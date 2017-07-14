@@ -33,6 +33,13 @@ parameters:
     required: true
     description: "The requested state of the job"
     in: body
+  newJob:
+    name: newJob
+    schema:
+      $ref: '#/definitions/NewJob'
+    required: true
+    description: "A new job to create"
+    in: body
 paths:
   /job:
     post:
@@ -42,11 +49,13 @@ paths:
       description: "Create a job so that dimensions can be added to filter a dataset"
       produces:
       - "application/json"
+      parameters:
+      - $ref: '#/parameters/newJob'
       responses:
         200:
           description: "Job was created"
           schema:
-            $ref: '#/definitions/Job'
+            $ref: '#/definitions/JobInstance'
         500:
           description: "Failed to process the request due to an internal error"
   /jobs/{jobId}:
@@ -109,12 +118,31 @@ paths:
         500:
           description: "Failed to process the request due to an internal error"
 definitions:
-  Job:
+  JobInstance:
     type: object
     properties:
       id:
         type: string
         description: "An unique id for the filter job"
+  NewJob:
+    description: |
+      A model used to create a new filter job
+    type: object
+    required: ["dataset", "edition", "version"]
+    properties:
+      dataset:
+        type: string
+        description: "The type of dataset"
+      edition:
+        type: string
+        description: "The edtion of the dataset (This could be monthly or yearly version)"
+      version:
+        type: string
+        description: "The version of the dataset (This includes any amendments to the original dataset edition)"
+      filters:
+        type: array
+        items:
+          $ref: '#/definitions/Dimension'
   JobState:
     description: |
       A description of a job to generate a customised dataset
