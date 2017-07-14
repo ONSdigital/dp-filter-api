@@ -1,0 +1,218 @@
+swagger: "2.0"
+info:
+  description: "An API used to hold the state of a customised dataset job. Once the job has been created via the `Dataset API` it can then be updated with filters to apply to the dataset. Once the job is ready it is expected that the client will update the job state to start the processing. Once processing has been started the job will be placed in a locked condition as no amendments can be done."
+  version: "1.0.0"
+  title: "Filter API"
+  license:
+    name: "Open Government Licence v3.0"
+    url: "http://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/"
+basePath: "/v1"
+tags:
+- name: "Jobs"
+  description: "Used for storing the state of a customised dataset and retrieving the results"
+schemes:
+- "http"
+parameters:
+  jobId:
+    name: jobId
+    type: string
+    required: true
+    description: "The unique jobId for customising a dataset"
+    in: path
+  dimension:
+    name: dimension
+    schema:
+      $ref: '#/definitions/Dimension'
+    required: true
+    description: "A dimension to filter the dataset"
+    in: body
+  format:
+    name: format
+    schema:
+      $ref: '#/definitions/Format'
+    required: true
+    description: "The requested format of the downloadable file"
+    in: body
+  state:
+    name: state
+    schema:
+      $ref: '#/definitions/State'
+    required: true
+    description: "The requested state of the job"
+    in: body
+paths:
+  /jobs/{jobId}:
+    get:
+      tags:
+      - "Jobs"
+      summary: "Get a description of a created job"
+      description: "A jobId is required to access a customised dataset job. To create a jobId see the `Dataset API`"
+      produces:
+      - "application/json"
+      parameters:
+      - $ref: '#/parameters/jobId'
+      responses:
+        200:
+          description: "The job was found and a `JobState` is returned"
+          schema:
+            $ref: '#/definitions/JobState'
+        404:
+          description: "Job not found"
+        500:
+          description: "Failed to process the request due to an internal error"
+  /jobs/{jobId}/filter:
+    put:
+      tags:
+      - "Jobs"
+      summary: "Add a dimension to filter the dataset"
+      description: "The dimension can only be added into the job if the state is still set to `created` otherwise 400 status code is returned"
+      produces:
+      - "application/json"
+      parameters:
+      - $ref: '#/parameters/jobId'
+      - $ref: '#/parameters/dimension'
+      responses:
+        200:
+          description: "Filter list was updated"
+        400:
+          description: "The job has been locked as it has been `submitted` to be processed"
+        404:
+          description: "Job not found"
+        500:
+          description: "Failed to process the request due to an internal error"
+  /jobs/{jobId}/format:
+    put:
+      tags:
+      - "Jobs"
+      summary: "Set the format of the downloadable file"
+      description: "Set the format of the downloadable dataset. Some formats may take longer to process than others"
+      produces:
+      - "application/json"
+      parameters:
+      - $ref: '#/parameters/jobId'
+      - $ref: '#/parameters/format'
+      responses:
+        200:
+          description: "The format was updated"
+        400:
+          description: "The job has been locked as it has been `submitted` to be processed or an unsupported format was given"
+        404:
+          description: "Job not found"
+        500:
+          description: "Failed to process the request due to an internal error"
+  /jobs/{jobId}/state:
+    put:
+      tags:
+      - "Jobs"
+      summary: "Update the state of the job"
+      description: |
+        The job state can only be updated if the state is still `created`. If the state is changed to `submitted`,
+        this will lock the job.
+      parameters:
+      - $ref: '#/parameters/jobId'
+      - $ref: '#/parameters/state'
+      responses:
+        200:
+          description: "The state has been updated"
+        400:
+          description: "The job has been locked as it has been `submitted` to be processed"
+        404:
+          description: "Job not found"
+        500:
+          description: "Failed to process the request due to an internal error"
+definitions:
+  JobState:
+    description: |
+      A description of a job to generate a customised dataset
+    type: object
+    properties:
+      dataset:
+        type: string
+        description: "The type of dataset"
+      edition:
+        type: string
+        description: "The edtion of the dataset (This could be monthly or yearly version)"
+      version:
+        type: string
+        description: "The version of the dataset (This includes any amendments to the original dataset edition)"
+      state:
+        type: string
+        description: |
+          The state of the job can be in four states;
+          * created - The job is ready to be updated with filters. (default state)
+          * submitted - The job has been submitted to be processed. This will lock the job and no further changes can be done
+          * completed - The job has been completed and can be downloaded using the `downloadUrl`
+          * failed - The job failed to be processed
+      filters:
+        type: array
+        items:
+          $ref: '#/definitions/Dimension'
+      format:
+        type: string
+        description: |
+          The format of the downloadable dataset can only be;
+            * xls (Default)
+            * csv
+            * json
+
+      downloadUrl:
+        type: string
+        description: |
+          The url to download the customised dataset. This will be blank until the jobs `state` has been marked completed
+      events:
+        type: array
+        description: |
+          A list of event which happened to the job. eg;
+          * Job has been queued
+          * Job is being processed
+          * Job is being converted into the requested format
+          * Job has been completed
+          * Job has failed
+        items:
+          $ref: '#/definitions/Event'
+  Dimension:
+    type: object
+    description: "A dimension to filter on a dataset. Information on a dimension can be gathered using the `Dataset API`"
+    properties:
+      name:
+        type: string
+        description: "The name of the dimension to filter on"
+      type:
+        type: string
+        description: "The type of dimension"
+      value:
+        type: string
+        description: "The value of the dimension"
+  State:
+    type: object
+    description: "An model to update the jobs state"
+    properties:
+      state:
+       type: string
+       description: |
+         The state of a job can uploaded to;
+         * submitted - This locks the job and queues the dataset to be processed
+  Format:
+    type: object
+    description: "The format of the dataset"
+    properties:
+      format:
+        type: string
+        description: |
+          The type of format the downloadable dataset will be in, this can be;
+          * xls
+          * json
+          * csv
+  Event:
+    type: object
+    description: "A description of an event which has happened to the job"
+    properties:
+      type:
+        type: string
+        description: |
+          The type of message, this can be;
+          * info - An information message
+          * error - An error message
+      message:
+        type: string
+        description: "The description of the event which has happened"
