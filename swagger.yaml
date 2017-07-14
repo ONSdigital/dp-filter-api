@@ -26,13 +26,6 @@ parameters:
     required: true
     description: "A dimension to filter the dataset"
     in: body
-  format:
-    name: format
-    schema:
-      $ref: '#/definitions/Format'
-    required: true
-    description: "The requested format of the downloadable file"
-    in: body
   state:
     name: state
     schema:
@@ -41,6 +34,21 @@ parameters:
     description: "The requested state of the job"
     in: body
 paths:
+  /job:
+    post:
+      tags:
+      - "Jobs"
+      summary: "Create a filter job for a dataset"
+      description: "Create a job so that dimensions can be added to filter a dataset"
+      produces:
+      - "application/json"
+      responses:
+        200:
+          description: "Job was created"
+          schema:
+            $ref: '#/definitions/Job'
+        500:
+          description: "Failed to process the request due to an internal error"
   /jobs/{jobId}:
     get:
       tags:
@@ -80,26 +88,6 @@ paths:
           description: "Job not found"
         500:
           description: "Failed to process the request due to an internal error"
-  /jobs/{jobId}/format:
-    put:
-      tags:
-      - "Jobs"
-      summary: "Set the format of the downloadable file"
-      description: "Set the format of the downloadable dataset. Some formats may take longer to process than others"
-      produces:
-      - "application/json"
-      parameters:
-      - $ref: '#/parameters/jobId'
-      - $ref: '#/parameters/format'
-      responses:
-        200:
-          description: "The format was updated"
-        400:
-          description: "The job has been locked as it has been `submitted` to be processed or an unsupported format was given"
-        404:
-          description: "Job not found"
-        500:
-          description: "Failed to process the request due to an internal error"
   /jobs/{jobId}/state:
     put:
       tags:
@@ -121,6 +109,12 @@ paths:
         500:
           description: "Failed to process the request due to an internal error"
 definitions:
+  Job:
+    type: object
+    properties:
+      id:
+        type: string
+        description: "An unique id for the filter job"
   JobState:
     description: |
       A description of a job to generate a customised dataset
@@ -147,14 +141,6 @@ definitions:
         type: array
         items:
           $ref: '#/definitions/Dimension'
-      format:
-        type: string
-        description: |
-          The format of the downloadable dataset can only be;
-            * xls (Default)
-            * csv
-            * json
-
       downloadUrl:
         type: string
         description: |
@@ -192,17 +178,6 @@ definitions:
        description: |
          The state of a job can uploaded to;
          * submitted - This locks the job and queues the dataset to be processed
-  Format:
-    type: object
-    description: "The format of the dataset"
-    properties:
-      format:
-        type: string
-        description: |
-          The type of format the downloadable dataset will be in, this can be;
-          * xls
-          * json
-          * csv
   Event:
     type: object
     description: "A description of an event which has happened to the job"
