@@ -17,7 +17,7 @@ parameters:
     name: filter_id
     type: string
     required: true
-    description: "The unique  filter ID for customising a dataset"
+    description: "The unique filter ID for customising a dataset"
     in: path
   dimension_name:
     name: dimension_name
@@ -29,7 +29,7 @@ parameters:
     name: value
     type: string
     required: true
-    description: "The a single value for a dimension"
+    description: "The single value for a dimension"
     in: path
   dimension:
     name: dimension
@@ -69,8 +69,8 @@ paths:
     get:
       tags:
       - "Filter"
-      summary: "Get a description of a created job"
-      description: "A jobId is required to access a customised dataset job. To create a jobId see the `Dataset API`"
+      summary: "Get a description of a filter job"
+      description: "Get the state of the filter job"
       produces:
       - "application/json"
       responses:
@@ -138,7 +138,7 @@ paths:
         400:
           description: "The filter job has been locked as it has been `submitted` to be processed"
         404:
-          $ref: '#/responses/FilterOrdimensionNotFound'
+          $ref: '#/responses/FilterOrDimensionNotFound'
         500:
           $ref: '#/responses/InternalError'
     delete:
@@ -152,7 +152,7 @@ paths:
         400:
           description: "The filter job has been locked as it has been `submitted` to be processed"
         404:
-          $ref: '#/responses/FilterOrdimensionNotFound'
+          $ref: '#/responses/FilterOrDimensionNotFound'
         500:
           $ref: '#/responses/InternalError'
     get:
@@ -168,7 +168,7 @@ paths:
         400:
           description: "The filter job has been locked as it has been `submitted` to be processed"
         404:
-          $ref: '#/responses/FilterOrdimensionNotFound'
+          $ref: '#/responses/FilterOrDimensionNotFound'
         500:
           $ref: '#/responses/InternalError'
   /filters/{filter_id}/dimensions/{dimension_name}/options/{value}:
@@ -185,7 +185,7 @@ paths:
         200:
           description: "Value exists within the dimension"
         400:
-          $ref: '#/responses/FilterOrdimensionNotFound'
+          $ref: '#/responses/FilterOrDimensionNotFound'
         404:
           description: "No Value found in dimension"
         500:
@@ -201,7 +201,7 @@ paths:
         400:
           description: "The filter job has been locked as it has been `submitted` to be processed"
         404:
-          $ref: '#/responses/FilterOrdimensionNotFound'
+          $ref: '#/responses/FilterOrDimensionNotFound'
         500:
           $ref: '#/responses/InternalError'
     delete:
@@ -215,14 +215,14 @@ paths:
         400:
           description: "The filter job has been locked as it has been `submitted` to be processed"
         404:
-          $ref: '#/responses/FilterOrdimensionNotFound'
+          $ref: '#/responses/FilterOrDimensionNotFound'
         500:
           $ref: '#/responses/InternalError'
 responses:
   FilterJobNotFound:
     description: "Filter Job not found"
-  FilterOrdimensionNotFound:
-    description: "The filter job has been locked as it has been `submitted` to be processed"
+  FilterOrDimensionNotFound:
+    description: "Filter Job or dimension name not found"
   InternalError:
     description: "Failed to process the request due to an internal error"
 definitions:
@@ -233,6 +233,7 @@ definitions:
     - type: object
       properties:
         dimensions:
+          readOnly: false
           type: array
           description: "A list of dimensions dimensions to include on the filter job"
           items:
