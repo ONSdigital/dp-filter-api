@@ -1,6 +1,6 @@
 swagger: "2.0"
 info:
-  description: "An API used to hold the state of a customised dataset job. Once the job has been created via the `Dataset API` it can then be updated with filters to apply to the dataset. Once the job is ready it is expected that the client will update the job state to start the processing. Once processing has been started the job will be placed in a locked condition as no amendments can be done."
+  description: "An API used to customise a dataset. Once the job has been created it can then be updated with filters to apply to the dataset. Once the job is ready it is expected that the client will update the job state to start the processing. Once processing has been started the job will be placed in a locked condition as no amendments can be done."
   version: "1.0.0"
   title: "Filter API"
   license:
@@ -8,16 +8,28 @@ info:
     url: "http://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/"
 basePath: "/v1"
 tags:
-- name: "Jobs"
-  description: "Used for storing the state of a customised dataset and retrieving the results"
+- name: "Filter"
+  description: "Used to filter published datasets"
 schemes:
 - "http"
 parameters:
-  jobId:
-    name: jobId
+  filter_id:
+    name: filter_id
     type: string
     required: true
-    description: "The unique jobId for customising a dataset"
+    description: "The unique  filter ID for customising a dataset"
+    in: path
+  dimension_name:
+    name: dimension_name
+    type: string
+    required: true
+    description: "The name of a dimension"
+    in: path
+  value:
+    name: value
+    type: string
+    required: true
+    description: "The a single value for a dimension"
     in: path
   dimension:
     name: dimension
@@ -26,164 +38,265 @@ parameters:
     required: true
     description: "A dimension to filter the dataset"
     in: body
-  state:
-    name: state
-    schema:
-      $ref: '#/definitions/State'
-    required: true
-    description: "The requested state of the job"
-    in: body
-  newJob:
-    name: newJob
+  filter_job:
+    name: filter_job
     schema:
       $ref: '#/definitions/NewJob'
     required: true
-    description: "A new job to create"
+    description: "Model of all editable properties within a filter job"
     in: body
 paths:
-  /job:
+  /filters:
     post:
       tags:
-      - "Jobs"
+      - "Filter"
       summary: "Create a filter job for a dataset"
       description: "Create a job so that dimensions can be added to filter a dataset"
       produces:
       - "application/json"
       parameters:
-      - $ref: '#/parameters/newJob'
+      - $ref: '#/parameters/filter_job'
       responses:
         200:
           description: "Job was created"
           schema:
-            $ref: '#/definitions/JobInstance'
+            $ref: '#/definitions/JobState'
         500:
-          description: "Failed to process the request due to an internal error"
-  /jobs/{jobId}:
+          $ref: '#/responses/InternalError'
+  /filters/{filter_id}:
+    parameters:
+      - $ref: '#/parameters/filter_id'
     get:
       tags:
-      - "Jobs"
+      - "Filter"
       summary: "Get a description of a created job"
       description: "A jobId is required to access a customised dataset job. To create a jobId see the `Dataset API`"
       produces:
       - "application/json"
-      parameters:
-      - $ref: '#/parameters/jobId'
       responses:
         200:
           description: "The job was found and a `JobState` is returned"
           schema:
             $ref: '#/definitions/JobState'
         404:
-          description: "Job not found"
+           $ref: '#/responses/FilterJobNotFound'
         500:
-          description: "Failed to process the request due to an internal error"
-  /jobs/{jobId}/filter:
+          $ref: '#/responses/InternalError'
     put:
       tags:
-      - "Jobs"
-      summary: "Add a dimension to filter the dataset"
-      description: "The dimension can only be added into the job if the state is still set to `created` otherwise 400 status code is returned"
-      produces:
-      - "application/json"
-      parameters:
-      - $ref: '#/parameters/jobId'
-      - $ref: '#/parameters/dimension'
-      responses:
-        200:
-          description: "Filter list was updated"
-        400:
-          description: "The job has been locked as it has been `submitted` to be processed"
-        404:
-          description: "Job not found"
-        500:
-          description: "Failed to process the request due to an internal error"
-  /jobs/{jobId}/state:
-    put:
-      tags:
-      - "Jobs"
+      - "Filter"
       summary: "Update the state of the job"
       description: |
-        The job state can only be updated if the state is still `created`. If the state is changed to `submitted`,
-        this will lock the job.
+        Update the filter job by providing new properties
       parameters:
-      - $ref: '#/parameters/jobId'
-      - $ref: '#/parameters/state'
+      - $ref: '#/parameters/filter_job'
       responses:
         200:
           description: "The state has been updated"
         400:
           description: "The job has been locked as it has been `submitted` to be processed"
         404:
-          description: "Job not found"
+          $ref: '#/responses/FilterJobNotFound'
         500:
-          description: "Failed to process the request due to an internal error"
+          $ref: '#/responses/InternalError'
+  /filters/{filter_id}/dimensions:
+    get:
+      tags:
+       - "Filter"
+      summary: "Get all dimensions used by this filter"
+      description: |
+        Return a list of all dimensions which are going to be used to filter on
+      parameters:
+      - $ref: '#/parameters/filter_id'
+      responses:
+        200:
+          description: "A list of dimension URLs"
+          schema:
+            type: array
+            items:
+              type: string
+        404:
+          $ref: '#/responses/FilterJobNotFound'
+        500:
+          $ref: '#/responses/InternalError'
+  /filters/{filter_id}/dimensions/{dimension_name}:
+    parameters:
+      - $ref: '#/parameters/filter_id'
+      - $ref: '#/parameters/dimension_name'
+    post:
+      tags:
+      - "Filter"
+      summary: "Add a dimension to filter on with a list of values"
+      description: "The dimension can only be added into the job if the state is still set to `created` otherwise 400 status code is returned"
+      produces:
+      - "application/json"
+      parameters:
+      - $ref: '#/parameters/dimension'
+      responses:
+        200:
+          description: "The dimension was created"
+        400:
+          description: "The filter job has been locked as it has been `submitted` to be processed"
+        404:
+          $ref: '#/responses/FilterOrdimensionNotFound'
+        500:
+          $ref: '#/responses/InternalError'
+    delete:
+      tags:
+      - "Filter"
+      summary: "Remove a dimension and any values set within the dimension"
+      description: "Remove a dimension and any values set within the dimension"
+      responses:
+        200:
+          description: "The dimension was removed"
+        400:
+          description: "The filter job has been locked as it has been `submitted` to be processed"
+        404:
+          $ref: '#/responses/FilterOrdimensionNotFound'
+        500:
+          $ref: '#/responses/InternalError'
+    get:
+      tags:
+      - "Filter"
+      summary: "Get all values from a dimension which have been set"
+      description: "Get a list of all values which will be used to filter the dimension"
+      responses:
+        200:
+          description: "A list of all values for a dimension was returned"
+          schema:
+            $ref: '#/definitions/Dimension'
+        400:
+          description: "The filter job has been locked as it has been `submitted` to be processed"
+        404:
+          $ref: '#/responses/FilterOrdimensionNotFound'
+        500:
+          $ref: '#/responses/InternalError'
+  /filters/{filter_id}/dimensions/{dimension_name}/options/{value}:
+    parameters:
+      - $ref: '#/parameters/filter_id'
+      - $ref: '#/parameters/dimension_name'
+      - $ref: '#/parameters/value'
+    get:
+      tags:
+      - "Filter"
+      summary: "Check if a value exists within a dimension"
+      description: "Check if a value exists within a dimension"
+      responses:
+        200:
+          description: "Value exists within the dimension"
+        400:
+          $ref: '#/responses/FilterOrdimensionNotFound'
+        404:
+          description: "No Value found in dimension"
+        500:
+          $ref: '#/responses/InternalError'
+    post:
+      tags:
+      - "Filter"
+      summary: "Add a value to a dimension to filter on"
+      description: "Add a value to a dimension to filter on"
+      responses:
+        200:
+          description: "Value was added"
+        400:
+          description: "The filter job has been locked as it has been `submitted` to be processed"
+        404:
+          $ref: '#/responses/FilterOrdimensionNotFound'
+        500:
+          $ref: '#/responses/InternalError'
+    delete:
+      tags:
+      - "Filter"
+      summary: "Remove a value from a dimension"
+      description: "Remove a single value from a dimension"
+      responses:
+        200:
+          description: "Value was removed"
+        400:
+          description: "The filter job has been locked as it has been `submitted` to be processed"
+        404:
+          $ref: '#/responses/FilterOrdimensionNotFound'
+        500:
+          $ref: '#/responses/InternalError'
+responses:
+  FilterJobNotFound:
+    description: "Filter Job not found"
+  FilterOrdimensionNotFound:
+    description: "The filter job has been locked as it has been `submitted` to be processed"
+  InternalError:
+    description: "Failed to process the request due to an internal error"
 definitions:
-  JobInstance:
-    type: object
-    properties:
-      id:
-        type: string
-        description: "An unique id for the filter job"
   NewJob:
-    description: |
-      A model used to create a new filter job
-    type: object
-    required: ["dataset", "edition", "version"]
-    properties:
-      dataset:
-        type: string
-        description: "The type of dataset"
-      edition:
-        type: string
-        description: "The edtion of the dataset (This could be monthly or yearly version)"
-      version:
-        type: string
-        description: "The version of the dataset (This includes any amendments to the original dataset edition)"
-      filters:
-        type: array
-        items:
-          $ref: '#/definitions/Dimension'
+    description: "A model used to create new filter jobs. Dimensions are optional"
+    allOf:
+    - $ref: '#/definitions/JobState'
+    - type: object
+      properties:
+        dimensions:
+          type: array
+          description: "A list of dimensions dimensions to include on the filter job"
+          items:
+            $ref: '#/definitions/Dimension'
   JobState:
     description: |
       A description of a job to generate a customised dataset
     type: object
+    required: ["dataset", "edition", "version"]
     properties:
+      filter_id:
+        readOnly: true
+        type: string
+        description: "A unique id for this filter job"
       dataset:
         type: string
         description: "The type of dataset"
       edition:
         type: string
-        description: "The edtion of the dataset (This could be monthly or yearly version)"
+        description: "The edition of the dataset (This could be monthly or yearly version)"
       version:
         type: string
         description: "The version of the dataset (This includes any amendments to the original dataset edition)"
       state:
         type: string
         description: |
-          The state of the job can be in four states;
+          The state of the job can be in five states;
           * created - The job is ready to be updated with filters. (default state)
           * submitted - The job has been submitted to be processed. This will lock the job and no further changes can be done
+          * in progress -
           * completed - The job has been completed and can be downloaded using the `downloadUrl`
           * failed - The job failed to be processed
-      filters:
+      dimensions:
+        readOnly: true
         type: array
+        description: "List of dimensions URL used for this filter"
         items:
-          $ref: '#/definitions/Dimension'
-      downloadUrl:
-        type: string
+          type: string
+      downloads:
+        readOnly: true
+        type: object
         description: |
           The url to download the customised dataset. This will be blank until the jobs `state` has been marked completed
+        properties:
+          xls:
+            $ref: '#/definitions/DownloadFile'
+          json:
+           $ref: '#/definitions/DownloadFile'
+          csv:
+           $ref: '#/definitions/DownloadFile'
       events:
-        type: array
+        readOnly: true
+        type: object
         description: |
-          A list of event which happened to the job. eg;
-          * Job has been queued
-          * Job is being processed
-          * Job is being converted into the requested format
-          * Job has been completed
-          * Job has failed
-        items:
-          $ref: '#/definitions/Event'
+          A list of event which happened to the job.
+        properties:
+          info:
+            type: array
+            items:
+              $ref: '#/definitions/Event'
+          error:
+            type: array
+            items:
+              $ref: '#/definitions/Event'
   Dimension:
     type: object
     description: "A dimension to filter on a dataset. Information on a dimension can be gathered using the `Dataset API`"
@@ -191,31 +304,30 @@ definitions:
       name:
         type: string
         description: "The name of the dimension to filter on"
-      type:
-        type: string
-        description: "The type of dimension"
-      value:
-        type: string
-        description: "The value of the dimension"
-  State:
-    type: object
-    description: "An model to update the jobs state"
-    properties:
-      state:
-       type: string
-       description: |
-         The state of a job can uploaded to;
-         * submitted - This locks the job and queues the dataset to be processed
+      values:
+        type: array
+        description: "A list of values within the dimension"
+        items:
+          type: string
   Event:
     type: object
     description: "A description of an event which has happened to the job"
     properties:
+      time:
+        type: string
+        description: "The time of the event happened"
       type:
         type: string
-        description: |
-          The type of message, this can be;
-          * info - An information message
-          * error - An error message
+        description: "The type of event which happened"
       message:
         type: string
         description: "The description of the event which has happened"
+  DownloadFile:
+    type: object
+    properties:
+      url:
+        type: string
+        description: "The URL to the generated file"
+      size:
+        type: string
+        description: "The size of the file in bytes"
