@@ -1,6 +1,6 @@
 swagger: "2.0"
 info:
-  description: "An API used to customise a dataset. Once the job has been created it can then be updated with filters to apply to the dataset. Once the job is ready it is expected that the client will update the job state to start the processing. Once processing has been started the job will be placed in a locked condition as no amendments can be done."
+  description: "An API used to customise and submit queries (filters) against a given dataset. Once the filter job has been created it can then be updated with dimension-specific filters that apply to that dataset. Once all the required filters have been applied to the job, it is expected that the client will update the job state to indicate that processing can begin. Once processing has been started the job will be placed in a locked condition such that no further amendments can be done. Finally, the state will be marked as completed (or failed)."
   version: "1.0.0"
   title: "Filter API"
   license:
