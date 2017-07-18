@@ -114,9 +114,15 @@ paths:
         200:
           description: "A list of dimension URLs"
           schema:
-            type: array
-            items:
-              type: string
+            type: object
+            properties:
+              links:
+                type: object
+                properties:
+                 dimensions:
+                    type: array
+                    items:
+                      type: string
         404:
           $ref: '#/responses/FilterJobNotFound'
         500:
@@ -282,12 +288,16 @@ definitions:
           * in progress -
           * completed - The job has been completed and can be downloaded using the `downloadUrl`
           * failed - The job failed to be processed
-      dimensions:
+      links:
         readOnly: true
-        type: array
-        description: "List of dimensions URL used for this filter"
-        items:
-          type: string
+        type: object
+        description: "List of links used by the filter job"
+        properties:
+          dimensions:
+            description: "A list of dimensions for URLs"
+            type: array
+            items:
+              type: string
       downloads:
         readOnly: true
         type: object
