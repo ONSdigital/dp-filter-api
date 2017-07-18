@@ -61,6 +61,8 @@ paths:
           description: "Job was created"
           schema:
             $ref: '#/definitions/JobState'
+        400:
+          description: "Invalid request body"
         500:
           $ref: '#/responses/InternalError'
   /filters/{filter_id}:
@@ -136,9 +138,13 @@ paths:
         200:
           description: "The dimension was created"
         400:
-          description: "The filter job has been locked as it has been `submitted` to be processed"
+          description: |
+            This error code could be one or more of:
+            * The filter job has been locked as it has been `submitted` to be processed
+            * Invalid request body
+            * Filter job was not found
         404:
-          $ref: '#/responses/FilterOrDimensionNotFound'
+          description: "Dimension name not found"
         500:
           $ref: '#/responses/InternalError'
     delete:
@@ -150,9 +156,12 @@ paths:
         200:
           description: "The dimension was removed"
         400:
-          description: "The filter job has been locked as it has been `submitted` to be processed"
+          description: |
+            This error code could be one or more of:
+            * The filter job has been locked as it has been `submitted` to be processed
+            * Filter job was not found
         404:
-          $ref: '#/responses/FilterOrDimensionNotFound'
+          description: "Dimension name was not found"
         500:
           $ref: '#/responses/InternalError'
     get:
@@ -166,9 +175,9 @@ paths:
           schema:
             $ref: '#/definitions/Dimension'
         400:
-          description: "The filter job has been locked as it has been `submitted` to be processed"
+          description: "Filter job was not found"
         404:
-          $ref: '#/responses/FilterOrDimensionNotFound'
+          description: "Dimension name was not found"
         500:
           $ref: '#/responses/InternalError'
   /filters/{filter_id}/dimensions/{name}/options/{value}:
@@ -187,7 +196,7 @@ paths:
         400:
           $ref: '#/responses/FilterOrDimensionNotFound'
         404:
-          description: "Filter and dimension exist but value was not found"
+          description: "Dimension value was not found"
         500:
           $ref: '#/responses/InternalError'
     post:
@@ -199,9 +208,12 @@ paths:
         200:
           description: "Value was added"
         400:
-          description: "The filter job has been locked as it has been `submitted` to be processed"
+          description: |
+            This error code could be one or more of:
+            * The filter job has been locked as it has been `submitted` to be processed
+            * Filter job was not found
         404:
-          $ref: '#/responses/FilterOrDimensionNotFound'
+          description: " Dimension name was not found"
         500:
           $ref: '#/responses/InternalError'
     delete:
@@ -213,9 +225,13 @@ paths:
         200:
           description: "Value was removed"
         400:
-          description: "The filter job has been locked as it has been `submitted` to be processed"
+          description: |
+            This error code could be one or more of:
+            * The filter job has been locked as it has been `submitted` to be processed
+            * Filter job was not found
+            * Dimension name was not found
         404:
-          $ref: '#/responses/FilterOrDimensionNotFound'
+          description: "Dimension value was not found"
         500:
           $ref: '#/responses/InternalError'
 responses:
