@@ -57,7 +57,7 @@ paths:
       parameters:
       - $ref: '#/parameters/filter_job'
       responses:
-        200:
+        201:
           description: "Job was created"
           schema:
             $ref: '#/definitions/JobState'
@@ -141,7 +141,7 @@ paths:
       parameters:
       - $ref: '#/parameters/dimension'
       responses:
-        200:
+        201:
           description: "The dimension was created"
         400:
           description: |
@@ -211,7 +211,7 @@ paths:
       summary: "Add a value to a dimension to filter on"
       description: "Add a value to a dimension to filter on"
       responses:
-        200:
+        201:
           description: "Value was added"
         400:
           description: |
@@ -298,6 +298,7 @@ definitions:
             type: array
             items:
               type: string
+              example: "http://localhost:90/filters/00001/dimensions/geography"
       downloads:
         readOnly: true
         type: object
