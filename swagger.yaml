@@ -116,13 +116,10 @@ paths:
           schema:
             type: object
             properties:
-              links:
-                type: object
-                properties:
-                 dimensions:
-                    type: array
-                    items:
-                      type: string
+              dimensions:
+                type: array
+                items:
+                  $ref: '#/definitions/Dimension'
         404:
           $ref: '#/responses/FilterJobNotFound'
         500:
@@ -257,7 +254,7 @@ definitions:
         dimensions:
           readOnly: false
           type: array
-          description: "A list of dimensions dimensions to include on the filter job"
+          description: "A list of dimensions included in the filter job"
           items:
             $ref: '#/definitions/Dimension'
   JobState:
@@ -288,17 +285,12 @@ definitions:
           * in progress -
           * completed - The job has been completed and can be downloaded using the `downloadUrl`
           * failed - The job failed to be processed
-      links:
+      dimensions:
         readOnly: true
-        type: object
-        description: "List of links used by the filter job"
-        properties:
-          dimensions:
-            description: "A list of dimensions for URLs"
-            type: array
-            items:
-              type: string
-              example: "http://localhost:90/filters/00001/dimensions/geography"
+        description: "A list of dimension URLs"
+        type: array
+        items:
+           $ref: '#/definitions/Dimension'
       downloads:
         readOnly: true
         type: object
@@ -332,11 +324,12 @@ definitions:
       name:
         type: string
         description: "The name of the dimension to filter on"
-      values:
-        type: array
-        description: "A list of values within the dimension"
+      dimension_url:
+        type: string
+        description: "A link to the filtered values within the dimension"
         items:
           type: string
+          example: "http://localhost:90/filters/00001/dimensions/age"
   Event:
     type: object
     description: "A description of an event which has happened to the job"
