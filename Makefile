@@ -9,9 +9,9 @@ export GOARCH?=$(shell go env GOARCH)
 
 build:
 	@mkdir -p $(BUILD_ARCH)/$(BIN_DIR)
-	go build -o $(BUILD_ARCH)/$(BIN_DIR)/dp-filter-api cmd/dp-filter-api/main.go
+	go build -o $(BUILD_ARCH)/$(BIN_DIR)/dp-filter-api main.go
 debug: build
-	HUMAN_LOG=1 go run cmd/dp-filter-api/main.go
+	HUMAN_LOG=1 go run main.go
 test:
 	go test -cover $(shell go list ./... | grep -v /vendor/)
 .PHONY: build debug test
