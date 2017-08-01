@@ -7,23 +7,27 @@ import (
 	"github.com/ONSdigital/dp-filter-api/models"
 )
 
-// Datastore - A structure to hold SQL statements to be used to gather information or insert about filters and dimensions
+// Datastore represents a structure to hold SQL statements to be used to gather information or insert about filters and dimensions
 type Datastore struct {
 	db           *sql.DB
 	addFilter    *sql.Stmt
 	addDimension *sql.Stmt
 }
 
-// NewDatastore - Create a postgres datastore. This is used to store and find information about jobs and instances.
+// NewDatastore manages a postgres datastore used to store and find information about filters and dimensions
 func NewDatastore(db *sql.DB) (Datastore, error) {
-	addFilter := prepare("INSERT INTO Filters(filterId, dataset, edition, version, state, filter) VALUES($1, $2, $3, $4, $5, $6)", db)
-	addDimension := prepare("INSERT INTO Dimensions(filterId, name, value) VALUES($1, $2, $3)", db)
+	addFilter, err := prepare("INSERT INTO Filters(filterId, dataset, edition, version, state, filter) VALUES($1, $2, $3, $4, $5, $6)", db)
+	addDimension, err := prepare("INSERT INTO Dimensions(filterId, name, value) VALUES($1, $2, $3)", db)
+	if err != nil {
+		return Datastore{db: db, addFilter: addFilter, addDimension: addDimension}, err
+	}
+
 	return Datastore{db: db, addFilter: addFilter, addDimension: addDimension}, nil
 }
 
-// AddFilter - Add a filter to be stored in postgres.
-func (ds Datastore) AddFilter(host string, newfilter *models.Filter) (models.Filter, error) {
-	bytes, err := json.Marshal(newfilter)
+// AddFilter adds a filter for a given dataset to be stored in postgres
+func (ds Datastore) AddFilter(host string, newFilter *models.Filter) (models.Filter, error) {
+	bytes, err := json.Marshal(newFilter)
 	if err != nil {
 		return models.Filter{}, err
 	}
@@ -33,12 +37,12 @@ func (ds Datastore) AddFilter(host string, newfilter *models.Filter) (models.Fil
 		return models.Filter{}, err
 	}
 
-	_, err = tx.Stmt(ds.addFilter).Exec(newfilter.FilterID, newfilter.DataSet, newfilter.Edition, newfilter.Version, newfilter.State, bytes)
+	_, err = tx.Stmt(ds.addFilter).Exec(newFilter.FilterID, newFilter.DataSet, newFilter.Edition, newFilter.Version, newFilter.State, bytes)
 	if err != nil {
 		return models.Filter{}, err
 	}
 
-	if err := ds.addDimensions(tx, newfilter.FilterID, newfilter.Dimensions); err != nil {
+	if err := ds.addDimensions(tx, newFilter.FilterID, newFilter.Dimensions); err != nil {
 		if err = tx.Rollback(); err != nil {
 			return models.Filter{}, err
 		}
@@ -49,10 +53,10 @@ func (ds Datastore) AddFilter(host string, newfilter *models.Filter) (models.Fil
 		return models.Filter{}, err
 	}
 
-	return *newfilter, nil
+	return *newFilter, nil
 }
 
-// AddDimensions - Add dimensions and relate it to filter.
+// AddDimensions method adds dimensions to be stored in postgres and relates them to a filter job
 func (ds Datastore) addDimensions(tx *sql.Tx, filterID string, dimensions []models.Dimension) error {
 	for _, dimension := range dimensions {
 		if err := ds.addDimensionValues(tx, filterID, dimension); err != nil {
@@ -63,7 +67,7 @@ func (ds Datastore) addDimensions(tx *sql.Tx, filterID string, dimensions []mode
 	return nil
 }
 
-// AddDimension - Add single dimension and relate it to filter.
+// AddDimension method adds a single dimension to be stored in postgres and relates it to filter job
 func (ds Datastore) addDimensionValues(tx *sql.Tx, filterID string, dimension models.Dimension) error {
 	for _, value := range dimension.Values {
 		_, err := tx.Stmt(ds.addDimension).Exec(filterID, dimension.Name, value)
@@ -75,10 +79,10 @@ func (ds Datastore) addDimensionValues(tx *sql.Tx, filterID string, dimension mo
 	return nil
 }
 
-func prepare(sql string, db *sql.DB) *sql.Stmt {
+func prepare(sql string, db *sql.DB) (*sql.Stmt, error) {
 	statement, err := db.Prepare(sql)
 	if err != nil {
-		panic(err)
+		return statement, err
 	}
-	return statement
+	return statement, nil
 }

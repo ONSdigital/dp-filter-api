@@ -9,7 +9,7 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
-// Filter - A structure for an importqueue job
+// Filter represents a structure for a filter job
 type Filter struct {
 	DataSet    string      `json:"dataset"`
 	Edition    string      `json:"edition"`
@@ -25,7 +25,7 @@ type Dimension struct {
 	Values []string `json:"values,omitempty"`
 }
 
-// Validate - Validate the content of the structure
+// Validate checks the content of the filter structure
 func (filter *Filter) Validate() error {
 	if filter.State == "" {
 		filter.State = "created"
@@ -52,7 +52,7 @@ func (filter *Filter) Validate() error {
 	return nil
 }
 
-// CreateFilter - Create a filter from a reader
+// CreateFilter manages the creation of a filter from a reader
 func CreateFilter(reader io.Reader) (*Filter, error) {
 	bytes, err := ioutil.ReadAll(reader)
 	if err != nil {

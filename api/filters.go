@@ -8,19 +8,22 @@ import (
 	"github.com/ONSdigital/go-ns/log"
 )
 
-var internalError = "Internal server error"
+var (
+	internalError = "Internal server error"
+	badRequest    = "Bad client request received"
+)
 
 func (api *FilterAPI) addFilter(w http.ResponseWriter, r *http.Request) {
 	newFilter, err := models.CreateFilter(r.Body)
 	if err != nil {
 		log.Error(err, log.Data{})
-		http.Error(w, "Bad client request received", http.StatusBadRequest)
+		http.Error(w, badRequest, http.StatusBadRequest)
 		return
 	}
 
 	if err := newFilter.Validate(); err != nil {
 		log.Error(err, log.Data{})
-		http.Error(w, "Bad client request received", http.StatusBadRequest)
+		http.Error(w, badRequest, http.StatusBadRequest)
 		return
 	}
 
