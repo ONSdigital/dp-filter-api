@@ -23,8 +23,8 @@ type Dimension struct {
 	Values []string `json:"values,omitempty"`
 }
 
-// ValidateFilterCreation checks the content of the filter structure
-func (filter *Filter) ValidateFilterCreation() error {
+// Validate checks the content of the filter structure
+func (filter *Filter) Validate() error {
 	if filter.State == "" {
 		filter.State = "created"
 	}

@@ -27,7 +27,7 @@ func (api *FilterAPI) addFilterJob(w http.ResponseWriter, r *http.Request) {
 	// Create unique id
 	newFilter.FilterID = (uuid.NewV4()).String()
 
-	if err := newFilter.ValidateFilterCreation(); err != nil {
+	if err := newFilter.Validate(); err != nil {
 		log.Error(err, nil)
 		http.Error(w, badRequest, http.StatusBadRequest)
 		return
