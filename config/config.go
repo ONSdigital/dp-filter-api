@@ -4,9 +4,12 @@ import "github.com/ian-kent/gofigure"
 
 // Config is the filing resource handler config
 type Config struct {
-	BindAddr    string `env:"BIND_ADDR" flag:"bind-addr" flagDesc:"The port to bind to"`
-	Host        string `env:"HOST" flag:"host" flagDesc:"The host name used to build URLs"`
-	PostgresURL string `env:"POSTGRES_URL" flag:"postgres-url" flagDesc:"The URL address to connect to a postgres instance'"`
+	BindAddr                string   `env:"BIND_ADDR" flag:"bind-addr" flagDesc:"The port to bind to"`
+	Brokers                 []string `env:"KAFKA_ADDR" flag:"kafka-addr" flagDesc:"The Kafka broker addresses"`
+	FilterJobSubmittedTopic string   `env:"FILTER_JOB_SUBMITTED_TOPIC" flag:"filter-job-submitted-topic" flagDesc:"The Kafka topic to write submitted filter job messages to"`
+	Host                    string   `env:"HOST" flag:"host" flagDesc:"The host name used to build URLs"`
+	KafkaMaxBytes           string   `env:"KAFKA_MAX_BYTES" flag:"kafka-max-bytes" flagDesc:"The maximum permitted size of a message. Should be set equal to or smaller than the broker's 'message.max.bytes'"`
+	PostgresURL             string   `env:"POSTGRES_URL" flag:"postgres-url" flagDesc:"The URL address to connect to a postgres instance'"`
 }
 
 var cfg *Config
@@ -18,9 +21,12 @@ func Get() (*Config, error) {
 	}
 
 	cfg = &Config{
-		BindAddr:    ":22100",
-		Host:        "http://localhost:22100",
-		PostgresURL: "user=dp dbname=FilterJobs sslmode=disable",
+		BindAddr:                ":22100",
+		Brokers:                 []string{"localhost:9092"},
+		FilterJobSubmittedTopic: "filter-job-submitted-topic",
+		Host:          "http://localhost:22100",
+		KafkaMaxBytes: "2000000",
+		PostgresURL:   "user=dp dbname=FilterJobs sslmode=disable",
 	}
 
 	if err := gofigure.Gofigure(cfg); err != nil {

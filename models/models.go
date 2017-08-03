@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-
-	uuid "github.com/satori/go.uuid"
 )
 
 // Filter represents a structure for a filter job
@@ -25,8 +23,8 @@ type Dimension struct {
 	Values []string `json:"values,omitempty"`
 }
 
-// Validate checks the content of the filter structure
-func (filter *Filter) Validate() error {
+// ValidateFilterCreation checks the content of the filter structure
+func (filter *Filter) ValidateFilterCreation() error {
 	if filter.State == "" {
 		filter.State = "created"
 	}
@@ -63,9 +61,6 @@ func CreateFilter(reader io.Reader) (*Filter, error) {
 	if err != nil {
 		return nil, fmt.Errorf("Failed to parse json body")
 	}
-
-	// Create unique id
-	filter.FilterID = (uuid.NewV4()).String()
 
 	return &filter, nil
 }
