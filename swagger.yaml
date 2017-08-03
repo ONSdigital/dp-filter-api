@@ -13,8 +13,8 @@ tags:
 schemes:
 - "http"
 parameters:
-  filter_id:
-    name: filter_id
+  filter_job_id:
+    name: filter_job_id
     type: string
     required: true
     description: "The unique filter ID for customising a dataset"
@@ -65,19 +65,19 @@ paths:
           description: "Invalid request body"
         500:
           $ref: '#/responses/InternalError'
-  /filters/{filter_id}:
+  /filters/{filter_job_id}:
     parameters:
-      - $ref: '#/parameters/filter_id'
+      - $ref: '#/parameters/filter_job_id'
     get:
       tags:
       - "Filter"
       summary: "Get a description of a filter job"
-      description: "Get the state of the filter job"
+      description: "Get document describing the filter job"
       produces:
       - "application/json"
       responses:
         200:
-          description: "The job was found and a `JobState` is returned"
+          description: "The filter job was found and document is returned"
           schema:
             $ref: '#/definitions/JobState'
         404:
@@ -94,14 +94,16 @@ paths:
       - $ref: '#/parameters/filter_job'
       responses:
         200:
-          description: "The state has been updated"
+          description: "The filter job has been updated"
         400:
-          description: "The job has been locked as it has been `submitted` to be processed"
+          description: "Invalid request body"
+        403:
+          description: "Forbidden, the job has been locked as it has been `submitted` to be processed"
         404:
           $ref: '#/responses/FilterJobNotFound'
         500:
           $ref: '#/responses/InternalError'
-  /filters/{filter_id}/dimensions:
+  /filters/{filter_job_id}/dimensions:
     get:
       tags:
        - "Filter"
@@ -109,7 +111,7 @@ paths:
       description: |
         Return a list of all dimensions which are going to be used to filter on
       parameters:
-      - $ref: '#/parameters/filter_id'
+      - $ref: '#/parameters/filter_job_id'
       responses:
         200:
           description: "A list of dimension URLs"
@@ -124,15 +126,15 @@ paths:
           $ref: '#/responses/FilterJobNotFound'
         500:
           $ref: '#/responses/InternalError'
-  /filters/{filter_id}/dimensions/{name}:
+  /filters/{filter_job_id}/dimensions/{name}:
     parameters:
-      - $ref: '#/parameters/filter_id'
+      - $ref: '#/parameters/filter_job_id'
       - $ref: '#/parameters/name'
     post:
       tags:
       - "Filter"
       summary: "Add a dimension to filter on with a list of values"
-      description: "The dimension can only be added into the job if the state is still set to `created` otherwise 400 status code is returned"
+      description: "The dimension can only be added into the job if the state is still set to `created` otherwise 403 status code is returned"
       produces:
       - "application/json"
       parameters:
@@ -143,9 +145,10 @@ paths:
         400:
           description: |
             This error code could be one or more of:
-            * The filter job has been locked as it has been `submitted` to be processed
             * Invalid request body
             * Filter job was not found
+        403:
+          description: Forbidden, the filter job has been locked as it has been `submitted` to be processed
         404:
           description: "Dimension name not found"
         500:
@@ -159,10 +162,9 @@ paths:
         200:
           description: "The dimension was removed"
         400:
-          description: |
-            This error code could be one or more of:
-            * The filter job has been locked as it has been `submitted` to be processed
-            * Filter job was not found
+          description: "Filter job was not found"
+        403:
+          description: "Forbidden, the filter job has been locked as it has been `submitted` to be processed"
         404:
           description: "Dimension name was not found"
         500:
@@ -183,9 +185,9 @@ paths:
           description: "Dimension name was not found"
         500:
           $ref: '#/responses/InternalError'
-  /filters/{filter_id}/dimensions/{name}/options/{value}:
+  /filters/{filter_job_id}/dimensions/{name}/options/{value}:
     parameters:
-      - $ref: '#/parameters/filter_id'
+      - $ref: '#/parameters/filter_job_id'
       - $ref: '#/parameters/name'
       - $ref: '#/parameters/value'
     get:
@@ -194,7 +196,7 @@ paths:
       summary: "Check if a value exists within a dimension"
       description: "Check if a value exists within a dimension"
       responses:
-        200:
+        204:
           description: "Value exists within the dimension"
         400:
           $ref: '#/responses/FilterOrDimensionNotFound'
@@ -211,10 +213,9 @@ paths:
         201:
           description: "Value was added"
         400:
-          description: |
-            This error code could be one or more of:
-            * The filter job has been locked as it has been `submitted` to be processed
-            * Filter job was not found
+          description: "Filter job was not found"
+        403:
+          description: "Forbidden, the filter job has been locked as it has been `submitted` to be processed"
         404:
           description: " Dimension name was not found"
         500:
@@ -230,9 +231,10 @@ paths:
         400:
           description: |
             This error code could be one or more of:
-            * The filter job has been locked as it has been `submitted` to be processed
             * Filter job was not found
             * Dimension name was not found
+        403:
+          description: "Forbidden, the filter job has been locked as it has been `submitted` to be processed"
         404:
           description: "Dimension value was not found"
         500:
@@ -261,21 +263,15 @@ definitions:
     description: |
       A description of a job to generate a customised dataset
     type: object
-    required: ["dataset", "edition", "version"]
+    required: ["dataset_filter_id"]
     properties:
-      filter_id:
+      filter_job_id:
         readOnly: true
         type: string
         description: "A unique id for this filter job"
-      dataset:
+      dataset_filter_id:
         type: string
-        description: "The type of dataset"
-      edition:
-        type: string
-        description: "The edition of the dataset (This could be monthly or yearly version)"
-      version:
-        type: string
-        description: "The version of the dataset (This includes any amendments to the original dataset edition)"
+        description: "A unique id for the type of dataset, edition and version"
       state:
         type: string
         description: |
@@ -352,3 +348,4 @@ definitions:
       size:
         type: string
         description: "The size of the file in bytes"
+
