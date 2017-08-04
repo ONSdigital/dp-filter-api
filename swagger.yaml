@@ -25,11 +25,11 @@ parameters:
     required: true
     description: "The name of a dimension"
     in: path
-  value:
-    name: value
+  option:
+    name: option
     type: string
     required: true
-    description: "The single value for a dimension"
+    description: "The single option for a dimension"
     in: path
   dimension:
     name: dimension
@@ -38,10 +38,16 @@ parameters:
     required: true
     description: "A dimension to filter the dataset"
     in: body
+  options:
+    name: options
+    schema:
+      $ref: '#/definitions/Options'
+    description: "A list of options for a dimension to filter the dataset"
+    in: body
   filter_job:
     name: filter_job
     schema:
-      $ref: '#/definitions/NewJob'
+      $ref: '#/definitions/NewJobRequest'
     required: true
     description: "Model of all editable properties within a filter job"
     in: body
@@ -60,7 +66,7 @@ paths:
         201:
           description: "Job was created"
           schema:
-            $ref: '#/definitions/JobState'
+            $ref: '#/definitions/NewJobResponse'
         400:
           description: "Invalid request body"
         500:
@@ -79,7 +85,7 @@ paths:
         200:
           description: "The filter job was found and document is returned"
           schema:
-            $ref: '#/definitions/JobState'
+            $ref: '#/definitions/NewJobResponse'
         404:
            $ref: '#/responses/FilterJobNotFound'
         500:
@@ -130,15 +136,29 @@ paths:
     parameters:
       - $ref: '#/parameters/filter_job_id'
       - $ref: '#/parameters/name'
+    get:
+      tags:
+      - "Filter"
+      summary: "Check if a dimension exists within a filter job"
+      description: "Check if a dimension exists within a filter job"
+      responses:
+        204:
+          description: "Dimension exists for filter job"
+        400:
+          description: "Filter job was not found"
+        404:
+          description: "Dimension name was not found"
+        500:
+          $ref: '#/responses/InternalError'
     post:
       tags:
       - "Filter"
-      summary: "Add a dimension to filter on with a list of values"
+      summary: "Add a dimension to filter on with a list of options"
       description: "The dimension can only be added into the job if the state is still set to `created` otherwise 403 status code is returned"
       produces:
       - "application/json"
       parameters:
-      - $ref: '#/parameters/dimension'
+      - $ref: '#/parameters/options'
       responses:
         201:
           description: "The dimension was created"
@@ -156,8 +176,8 @@ paths:
     delete:
       tags:
       - "Filter"
-      summary: "Remove a dimension and any values set within the dimension"
-      description: "Remove a dimension and any values set within the dimension"
+      summary: "Remove a dimension and any options set within the dimension"
+      description: "Remove a dimension and any options set within the dimension"
       responses:
         200:
           description: "The dimension was removed"
@@ -169,49 +189,53 @@ paths:
           description: "Dimension name was not found"
         500:
           $ref: '#/responses/InternalError'
+  /filters/{filter_job_id}/dimensions/{name}/options:
+    parameters:
+      - $ref: '#/parameters/filter_job_id'
+      - $ref: '#/parameters/name'
     get:
       tags:
       - "Filter"
-      summary: "Get all values from a dimension which have been set"
-      description: "Get a list of all values which will be used to filter the dimension"
+      summary: "Get all options from a dimension which have been set"
+      description: "Get a list of all options which will be used to filter the dimension"
       responses:
         200:
-          description: "A list of all values for a dimension was returned"
+          description: "A list of all options for a dimension was returned"
           schema:
-            $ref: '#/definitions/Dimension'
+            $ref: '#/definitions/ListOptions'
         400:
           description: "Filter job was not found"
         404:
           description: "Dimension name was not found"
         500:
           $ref: '#/responses/InternalError'
-  /filters/{filter_job_id}/dimensions/{name}/options/{value}:
+  /filters/{filter_job_id}/dimensions/{name}/options/{option}:
     parameters:
       - $ref: '#/parameters/filter_job_id'
       - $ref: '#/parameters/name'
-      - $ref: '#/parameters/value'
+      - $ref: '#/parameters/option'
     get:
       tags:
       - "Filter"
-      summary: "Check if a value exists within a dimension"
-      description: "Check if a value exists within a dimension"
+      summary: "Check if a option exists within a dimension"
+      description: "Check if a option exists within a dimension"
       responses:
         204:
-          description: "Value exists within the dimension"
+          description: "Option exists within the dimension"
         400:
           $ref: '#/responses/FilterOrDimensionNotFound'
         404:
-          description: "Dimension value was not found"
+          description: "Dimension option was not found"
         500:
           $ref: '#/responses/InternalError'
     post:
       tags:
       - "Filter"
-      summary: "Add a value to a dimension to filter on"
-      description: "Add a value to a dimension to filter on"
+      summary: "Add an option to a dimension to filter on"
+      description: "Add an option to a dimension to filter on"
       responses:
         201:
-          description: "Value was added"
+          description: "Option was added"
         400:
           description: "Filter job was not found"
         403:
@@ -223,11 +247,11 @@ paths:
     delete:
       tags:
       - "Filter"
-      summary: "Remove a value from a dimension"
-      description: "Remove a single value from a dimension"
+      summary: "Remove an option from a dimension"
+      description: "Remove a single option from a dimension"
       responses:
         200:
-          description: "Value was removed"
+          description: "Option was removed"
         400:
           description: |
             This error code could be one or more of:
@@ -236,7 +260,7 @@ paths:
         403:
           description: "Forbidden, the filter job has been locked as it has been `submitted` to be processed"
         404:
-          description: "Dimension value was not found"
+          description: "Dimension option was not found"
         500:
           $ref: '#/responses/InternalError'
 responses:
@@ -247,7 +271,7 @@ responses:
   InternalError:
     description: "Failed to process the request due to an internal error"
 definitions:
-  NewJob:
+  NewJobRequest:
     description: "A model used to create new filter jobs. Dimensions are optional"
     allOf:
     - $ref: '#/definitions/JobState'
@@ -256,9 +280,14 @@ definitions:
         dimensions:
           readOnly: false
           type: array
-          description: "A list of dimensions included in the filter job"
+          description: "A list of dimensions in the filter job"
           items:
-            $ref: '#/definitions/Dimension'
+             $ref: '#/definitions/DimensionOptions'
+  NewJobResponse:
+    description: "A model for the response body when creating a new filter job"
+    allOf:
+    - $ref: '#/definitions/JobState'
+    - type: object
   JobState:
     description: |
       A description of a job to generate a customised dataset
@@ -272,6 +301,10 @@ definitions:
       dataset_filter_id:
         type: string
         description: "A unique id for the type of dataset, edition and version"
+      dimension_list_url:
+        readOnly: true
+        type: string
+        description: "A url that lists all dimensions currently set for job filter"
       state:
         type: string
         description: |
@@ -281,12 +314,6 @@ definitions:
           * in progress -
           * completed - The job has been completed and can be downloaded using the `downloadUrl`
           * failed - The job failed to be processed
-      dimensions:
-        readOnly: true
-        description: "A list of dimension URLs"
-        type: array
-        items:
-           $ref: '#/definitions/Dimension'
       downloads:
         readOnly: true
         type: object
@@ -322,10 +349,36 @@ definitions:
         description: "The name of the dimension to filter on"
       dimension_url:
         type: string
-        description: "A link to the filtered values within the dimension"
+        description: "A link to the filtered options within the dimension"
         items:
           type: string
-          example: "http://localhost:90/filters/00001/dimensions/age"
+          example: "/filters/00001/dimensions/age"
+  DimensionOptions:
+    type: object
+    description: "A dimension to filter on a dataset. Information on a dimension can be gathered using the `Dataset API`"
+    properties:
+      name:
+        type: string
+        description: "The name of the dimension to filter on"
+      options:
+        type: array
+        description: "A list of options for dimension to filter on a dataset"
+        items:
+          type: string
+  ListOptions:
+    type: object
+    description: "A list of options for a dimension to filter on a dataset. Information on a dimension option can be gathered using the `Dataset API`"
+    properties:
+      dimension_option_urls:
+        type: array
+        description: "A link to the filtered options within dimension"
+        items:
+          type: string
+  Options:
+    type: array
+    description: "A list of options for dimension to filter on a dataset"
+    items:
+      type: string
   Event:
     type: object
     description: "A description of an event which has happened to the job"
@@ -348,4 +401,3 @@ definitions:
       size:
         type: string
         description: "The size of the file in bytes"
-
