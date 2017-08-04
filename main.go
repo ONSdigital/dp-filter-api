@@ -43,7 +43,12 @@ func main() {
 		os.Exit(1)
 	}
 
-	producer := kafka.NewProducer(cfg.Brokers, cfg.FilterJobSubmittedTopic, int(envMax))
+	producer, err := kafka.NewProducer(cfg.Brokers, cfg.FilterJobSubmittedTopic, int(envMax))
+	if err != nil {
+		log.ErrorC("Create kafka producer error", err, nil)
+		os.Exit(1)
+	}
+
 	jobQueue := filterJobQueue.CreateJobQueue(producer.Output())
 	router := mux.NewRouter()
 
