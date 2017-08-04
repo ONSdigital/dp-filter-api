@@ -48,23 +48,23 @@ func TestUpdateStatement(t *testing.T) {
 
 		statement, err := updateStatement(filter)
 		So(err, ShouldBeNil)
-		So(statement, ShouldEqual, "UPDATE Filters SET state = 'submitted' WHERE filterId = $1 RETURNING filterId")
+		So(statement, ShouldEqual, "UPDATE Filters SET state = 'submitted' WHERE filterJobId = $1 RETURNING filterJobId")
 	})
 
 	Convey("when update filter job has a state and dataset in json body successfully return statement", t, func() {
 		filter := &models.Filter{
-			DataSet: "Census",
-			State:   "submitted",
+			DataSetFilterID: "12345678",
+			State:           "submitted",
 		}
 
 		statement, err := updateStatement(filter)
 		So(err, ShouldBeNil)
-		So(statement, ShouldEqual, "UPDATE Filters SET state = 'submitted' WHERE filterId = $1 RETURNING filterId")
+		So(statement, ShouldEqual, "UPDATE Filters SET state = 'submitted' WHERE filterJobId = $1 RETURNING filterJobId")
 	})
 
-	Convey("when update filter job has only dataset in json body return error", t, func() {
+	Convey("when update filter job has only dataset_filter_id in json body return error", t, func() {
 		filter := &models.Filter{
-			DataSet: "Census",
+			DataSetFilterID: "12345678",
 		}
 
 		statement, err := updateStatement(filter)

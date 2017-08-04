@@ -23,7 +23,7 @@ func (ds *DataStore) AddFilter(host string, filterJob *models.Filter) (models.Fi
 	if ds.InternalError {
 		return models.Filter{}, internalServerError
 	}
-	return models.Filter{DataSet: "Census", Version: "1", Edition: "1"}, nil
+	return models.Filter{DataSetFilterID: "12345678"}, nil
 }
 
 func (ds *DataStore) UpdateFilter(host string, filterJob *models.Filter) error {

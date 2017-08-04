@@ -2,7 +2,6 @@ package postgres
 
 import (
 	"database/sql"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -21,9 +20,9 @@ type Datastore struct {
 
 // NewDatastore manages a postgres datastore used to store and find information about filters and dimensions
 func NewDatastore(db *sql.DB) (Datastore, error) {
-	addFilter, err := prepare("INSERT INTO Filters(filterId, dataset, edition, version, state, filter) VALUES($1, $2, $3, $4, $5, $6)", db)
-	addDimension, err := prepare("INSERT INTO Dimensions(filterId, name, value) VALUES($1, $2, $3)", db)
-	getFilter, err := prepare("SELECT state FROM Filters WHERE filterId = $1", db)
+	addFilter, err := prepare("INSERT INTO Filters(filterJobId, datasetfilterID, state) VALUES($1, $2, $3)", db)
+	addDimension, err := prepare("INSERT INTO Dimensions(filterJobId, name, value) VALUES($1, $2, $3)", db)
+	getFilter, err := prepare("SELECT state FROM Filters WHERE filterJobId = $1", db)
 	if err != nil {
 		return Datastore{db: db, addFilter: addFilter, addDimension: addDimension, getFilter: getFilter}, err
 	}
@@ -33,17 +32,12 @@ func NewDatastore(db *sql.DB) (Datastore, error) {
 
 // AddFilter adds a filter for a given dataset to be stored in postgres
 func (ds Datastore) AddFilter(host string, newFilter *models.Filter) (models.Filter, error) {
-	bytes, err := json.Marshal(newFilter)
-	if err != nil {
-		return models.Filter{}, err
-	}
-
 	tx, err := ds.db.Begin()
 	if err != nil {
 		return models.Filter{}, err
 	}
 
-	_, err = tx.Stmt(ds.addFilter).Exec(newFilter.FilterID, newFilter.DataSet, newFilter.Edition, newFilter.Version, newFilter.State, bytes)
+	_, err = tx.Stmt(ds.addFilter).Exec(newFilter.FilterID, newFilter.DataSetFilterID, newFilter.State)
 	if err != nil {
 		return models.Filter{}, err
 	}
@@ -165,7 +159,7 @@ func updateStatement(filter *models.Filter) (string, error) {
 	}
 
 	statement = strings.TrimSuffix(statement, ",")
-	statement = statement + " WHERE filterId = $1 RETURNING filterId"
+	statement = statement + " WHERE filterJobId = $1 RETURNING filterJobId"
 
 	return statement, nil
 }
