@@ -2,17 +2,14 @@ DROP TABLE IF EXISTS Filters;
 DROP TABLE IF EXISTS Dimensions;
 
 CREATE TABLE Filters(
-  filterId TEXT PRIMARY KEY,
-  dataset TEXT,
-  edition TEXT,
-  version TEXT,
-  state TEXT,
-  filter JSONB NOT NULL
+  filterJobId TEXT PRIMARY KEY,
+  datasetFilterId TEXT,
+  state TEXT
 );
 
 CREATE TABLE Dimensions(
   id SERIAL PRIMARY KEY,
-  filterId TEXT,
+  filterJobId TEXT,
   name TEXT,
   value TEXT
 );

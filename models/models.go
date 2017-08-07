@@ -5,18 +5,14 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-
-	uuid "github.com/satori/go.uuid"
 )
 
 // Filter represents a structure for a filter job
 type Filter struct {
-	DataSet    string      `json:"dataset"`
-	Edition    string      `json:"edition"`
-	FilterID   string      `json:"id,omitempty"`
-	State      string      `json:"state,omitempty"`
-	Version    string      `json:"version"`
-	Dimensions []Dimension `json:"dimensions,omitempty"`
+	DataSetFilterID string      `json:"dataset_filter_id"`
+	FilterID        string      `json:"id,omitempty"`
+	State           string      `json:"state,omitempty"`
+	Dimensions      []Dimension `json:"dimensions,omitempty"`
 }
 
 // Dimension represents an object containing a list of dimension values and the dimension name
@@ -33,16 +29,8 @@ func (filter *Filter) Validate() error {
 
 	var missingFields []string
 
-	if filter.DataSet == "" {
-		missingFields = append(missingFields, "dataset")
-	}
-
-	if filter.Edition == "" {
-		missingFields = append(missingFields, "edition")
-	}
-
-	if filter.Version == "" {
-		missingFields = append(missingFields, "version")
+	if filter.DataSetFilterID == "" {
+		missingFields = append(missingFields, "dataset_filter_id")
 	}
 
 	if missingFields != nil {
@@ -63,9 +51,6 @@ func CreateFilter(reader io.Reader) (*Filter, error) {
 	if err != nil {
 		return nil, fmt.Errorf("Failed to parse json body")
 	}
-
-	// Create unique id
-	filter.FilterID = (uuid.NewV4()).String()
 
 	return &filter, nil
 }
