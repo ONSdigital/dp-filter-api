@@ -12,9 +12,12 @@ import (
 )
 
 var (
-	addFilterSQL    = "INSERT INTO Filters"
-	addDimensionSQL = "INSERT INTO Dimensions"
-	getFilterSQL    = "SELECT state FROM Filters WHERE"
+	addFilterSQL          = "INSERT INTO Filters"
+	addDimensionSQL       = "INSERT INTO Dimensions"
+	getFilterSQL          = "SELECT * FROM Filters WHERE"
+	getFilterStateSQL     = "SELECT state FROM Filters WHERE"
+	getDimensionValuesSQL = "SELECT name, value FROM Dimensions WHERE"
+	getDownloadsSQL       = "SELECT size, type, url FROM Downloads WHERE"
 )
 
 func NewSQLMockWithSQLStatements() (sqlmock.Sqlmock, *sql.DB) {
@@ -25,6 +28,9 @@ func NewSQLMockWithSQLStatements() (sqlmock.Sqlmock, *sql.DB) {
 	mock.ExpectPrepare(addFilterSQL)
 	mock.ExpectPrepare(addDimensionSQL)
 	mock.ExpectPrepare(getFilterSQL)
+	mock.ExpectPrepare(getFilterStateSQL)
+	mock.ExpectPrepare(getDimensionValuesSQL)
+	mock.ExpectPrepare(getDownloadsSQL)
 	_, dbError := db.Begin()
 	So(dbError, ShouldBeNil)
 	return mock, db

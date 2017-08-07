@@ -26,6 +26,17 @@ func (ds *DataStore) AddFilter(host string, filterJob *models.Filter) (models.Fi
 	return models.Filter{DataSetFilterID: "12345678"}, nil
 }
 
+func (ds *DataStore) GetFilter(filterID string) (models.Filter, error) {
+	if ds.NotFound {
+		return models.Filter{}, notFoundError
+	}
+
+	if ds.InternalError {
+		return models.Filter{}, internalServerError
+	}
+	return models.Filter{DataSetFilterID: "12345678"}, nil
+}
+
 func (ds *DataStore) UpdateFilter(host string, filterJob *models.Filter) error {
 	if ds.InternalError {
 		return internalServerError

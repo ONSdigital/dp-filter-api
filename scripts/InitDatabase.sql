@@ -1,5 +1,6 @@
 DROP TABLE IF EXISTS Filters;
 DROP TABLE IF EXISTS Dimensions;
+DROP TABLE IF EXISTS Downloads;
 
 CREATE TABLE Filters(
   filterJobId TEXT PRIMARY KEY,
@@ -12,4 +13,12 @@ CREATE TABLE Dimensions(
   filterJobId TEXT,
   name TEXT,
   value TEXT
+);
+
+CREATE TABLE Downloads(
+  id SERIAL PRIMARY KEY,
+  filterJobId TEXT,
+  size TEXT,
+  type TEXT,
+  url TEXT
 );
