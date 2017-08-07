@@ -24,6 +24,6 @@ func CreateFilterAPI(host string, router *mux.Router, dataStore DataStore, jobQu
 
 	api := FilterAPI{host: host, dataStore: dataStore, router: router, jobQueue: jobQueue}
 	api.router.HandleFunc("/filters", api.addFilterJob).Methods("POST")
-	api.router.HandleFunc("/filters/{filterId}", api.updateFilterJob).Methods("PUT")
+	api.router.HandleFunc("/filters/{filter_id}", api.updateFilterJob).Methods("PUT")
 	return &api
 }
