@@ -14,7 +14,7 @@ type Filter struct {
 	Dimensions       []Dimension `json:"dimensions,omitempty"`
 	Downloads        Downloads   `json:"downloads,omitempty"`
 	Events           Events      `json:"events,omitempty"`
-	FilterID         string      `json:"id,omitempty"`
+	FilterID         string      `json:"filter_job_id,omitempty"`
 	State            string      `json:"state,omitempty"`
 }
 

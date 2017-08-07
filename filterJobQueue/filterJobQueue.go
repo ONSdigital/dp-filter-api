@@ -13,10 +13,12 @@ type filterJob struct {
 	FilterJobID string `avro:"filter_job_id"`
 }
 
+// CreateJobQueue returns an object containing a channel for queueing filter jobs
 func CreateJobQueue(filterJobQueue chan []byte) job {
 	return job{filterJobQueue: filterJobQueue}
 }
 
+// Queue represents a mechanism to add messages to the filter jobs queue
 func (filter *job) Queue(jobFilter *models.Filter) error {
 	message := filterJob{FilterJobID: jobFilter.FilterID}
 	bytes, err := schema.FilterJobSubmittedSchema.Marshal(message)

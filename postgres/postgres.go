@@ -3,7 +3,6 @@ package postgres
 import (
 	"database/sql"
 	"errors"
-	"fmt"
 	"strings"
 
 	"github.com/ONSdigital/dp-filter-api/models"
@@ -194,7 +193,7 @@ func getFilterJobState(tx *sql.Tx, ds Datastore, filterID string) (models.Filter
 	filterJob.State = state
 
 	if state == "submitted" {
-		err := fmt.Errorf("Forbidden")
+		err := errors.New("Forbidden")
 		log.ErrorC("update to filter job forbidden, job already submitted", err, log.Data{"filter_job_id": filterID})
 		return filterJob, err
 	}
@@ -215,7 +214,7 @@ func updateStatement(filter *models.Filter) (string, error) {
 	}
 
 	if !hasUpdate {
-		err := fmt.Errorf("Bad request")
+		err := errors.New("Bad request")
 		log.ErrorC("missing a filter field that can be updated", err, log.Data{"filter": filter})
 		return "", err
 	}

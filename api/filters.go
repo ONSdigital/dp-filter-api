@@ -35,14 +35,14 @@ func (api *FilterAPI) addFilterJob(w http.ResponseWriter, r *http.Request) {
 
 	filterJob, err := api.dataStore.AddFilter(api.host, newFilter)
 	if err != nil {
-		log.Error(err, log.Data{"new-filter": newFilter})
+		log.Error(err, log.Data{"new_filter": newFilter})
 		setErrorCode(w, err)
 		return
 	}
 
 	bytes, err := json.Marshal(filterJob)
 	if err != nil {
-		log.Error(err, log.Data{"new-filter": newFilter})
+		log.Error(err, log.Data{"new_filter": newFilter})
 		setErrorCode(w, err)
 		return
 	}
@@ -61,7 +61,7 @@ func (api *FilterAPI) addFilterJob(w http.ResponseWriter, r *http.Request) {
 
 func (api *FilterAPI) getFilterJob(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	filterID := vars["filterId"]
+	filterID := vars["filter_job_id"]
 
 	filterJob, err := api.dataStore.GetFilter(filterID)
 	if err != nil {
@@ -91,7 +91,7 @@ func (api *FilterAPI) getFilterJob(w http.ResponseWriter, r *http.Request) {
 
 func (api *FilterAPI) updateFilterJob(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	filterID := vars["filterId"]
+	filterID := vars["filter_job_id"]
 	filter, err := models.CreateFilter(r.Body)
 	if err != nil {
 		log.Error(err, log.Data{"filter_id": filterID})
