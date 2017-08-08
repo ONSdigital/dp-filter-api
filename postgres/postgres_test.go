@@ -85,19 +85,19 @@ func TestConvertSQLError(t *testing.T) {
 	Convey("Testing convert sql error function", t, func() {
 
 		Convey("when receiving an SQL number of rows error, successfully return Not found error", func() {
-			err := convertSQLError(sql.ErrNoRows)
+			err := convertSQLError(sql.ErrNoRows, "")
 			So(err, ShouldNotBeNil)
 			So(err, ShouldResemble, errors.New("Not found"))
 		})
 
 		Convey("when receiving a generic error (not an sql error), successfuly return same error", func() {
-			err := convertSQLError(fmt.Errorf("not an sql error"))
+			err := convertSQLError(fmt.Errorf("not an sql error"), "")
 			So(err, ShouldNotBeNil)
 			So(err, ShouldResemble, errors.New("not an sql error"))
 		})
 
 		Convey("when no error is passed in, return nil", func() {
-			err := convertSQLError(nil)
+			err := convertSQLError(nil, "")
 			So(err, ShouldBeNil)
 		})
 	})

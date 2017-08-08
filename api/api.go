@@ -26,5 +26,9 @@ func CreateFilterAPI(host string, router *mux.Router, dataStore DataStore, jobQu
 	api.router.HandleFunc("/filters", api.addFilterJob).Methods("POST")
 	api.router.HandleFunc("/filters/{filter_job_id}", api.getFilterJob).Methods("GET")
 	api.router.HandleFunc("/filters/{filter_job_id}", api.updateFilterJob).Methods("PUT")
+	api.router.HandleFunc("/filters/{filter_job_id}/dimensions", api.getFilterJobDimensions).Methods("GET")
+	api.router.HandleFunc("/filters/{filter_job_id}/dimensions/{name}", api.getFilterJobDimension).Methods("GET")
+	api.router.HandleFunc("/filters/{filter_job_id}/dimensions/{name}/options", api.getFilterJobDimensionOptions).Methods("GET")
+	api.router.HandleFunc("/filters/{filter_job_id}/dimensions/{name}/options/{option}", api.getFilterJobDimensionOption).Methods("GET")
 	return &api
 }

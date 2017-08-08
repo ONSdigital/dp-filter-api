@@ -20,9 +20,9 @@ type Filter struct {
 
 // Dimension represents an object containing a list of dimension values and the dimension name
 type Dimension struct {
-	DimensionValueURL string   `json:"dimension_value_url,omitempty"`
-	Name              string   `json:"name,omitempty"`
-	Values            []string `json:"values,omitempty"`
+	DimensionURL string   `json:"dimension_url,omitempty"`
+	Name         string   `json:"name,omitempty"`
+	Values       []string `json:"values,omitempty"`
 }
 
 // Downloads represents a list of file types possible to download
@@ -49,6 +49,11 @@ type EventItem struct {
 	Message string `json:"message,omitempty"`
 	Time    string `json:"time,omitempty"`
 	Type    string `json:"type,omitempty"`
+}
+
+// GetDimensionOptions
+type GetDimensionOptions struct {
+	DimensionOptionURLs []string `json:"dimension_option_urls"`
 }
 
 // Validate checks the content of the filter structure
