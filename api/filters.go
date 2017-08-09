@@ -59,9 +59,39 @@ func (api *FilterAPI) addFilterJob(w http.ResponseWriter, r *http.Request) {
 	log.Info("created new filter job", log.Data{"filter_job": filterJob})
 }
 
+func (api *FilterAPI) getFilterJob(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	filterID := vars["filter_job_id"]
+
+	filterJob, err := api.dataStore.GetFilter(filterID)
+	if err != nil {
+		log.Error(err, log.Data{"filter_id": filterID})
+		setErrorCode(w, err)
+		return
+	}
+
+	bytes, err := json.Marshal(filterJob)
+	if err != nil {
+		log.Error(err, log.Data{"filter_id": filterID})
+		http.Error(w, internalError, http.StatusInternalServerError)
+		return
+	}
+
+	setJSONContentType(w)
+	w.WriteHeader(http.StatusOK)
+	_, err = w.Write(bytes)
+	if err != nil {
+		log.Error(err, log.Data{"filter_job": filterJob})
+		setErrorCode(w, err)
+		return
+	}
+
+	log.Info("got filtered job", log.Data{"filter_id": filterID, "filter_job": filterJob})
+}
+
 func (api *FilterAPI) updateFilterJob(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	filterID := vars["filter_id"]
+	filterID := vars["filter_job_id"]
 	filter, err := models.CreateFilter(r.Body)
 	if err != nil {
 		log.Error(err, log.Data{"filter_id": filterID})
@@ -86,6 +116,10 @@ func (api *FilterAPI) updateFilterJob(w http.ResponseWriter, r *http.Request) {
 
 		log.Info("filter job message sent to kafka", log.Data{"filter_id": filterID})
 	}
+
+	setJSONContentType(w)
+	w.WriteHeader(http.StatusOK)
+
 }
 
 func setJSONContentType(w http.ResponseWriter) {

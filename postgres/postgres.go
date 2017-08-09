@@ -11,22 +11,28 @@ import (
 
 // Datastore represents a structure to hold SQL statements to be used to gather information or insert about filters and dimensions
 type Datastore struct {
-	db           *sql.DB
-	addFilter    *sql.Stmt
-	addDimension *sql.Stmt
-	getFilter    *sql.Stmt
+	db                 *sql.DB
+	addFilter          *sql.Stmt
+	addDimension       *sql.Stmt
+	getFilter          *sql.Stmt
+	getFilterState     *sql.Stmt
+	getDimensionValues *sql.Stmt
+	getDownloadItems   *sql.Stmt
 }
 
 // NewDatastore manages a postgres datastore used to store and find information about filters and dimensions
 func NewDatastore(db *sql.DB) (Datastore, error) {
 	addFilter, err := prepare("INSERT INTO Filters(filterJobId, datasetfilterID, state) VALUES($1, $2, $3)", db)
 	addDimension, err := prepare("INSERT INTO Dimensions(filterJobId, name, value) VALUES($1, $2, $3)", db)
-	getFilter, err := prepare("SELECT state FROM Filters WHERE filterJobId = $1", db)
+	getFilter, err := prepare("SELECT * FROM Filters WHERE filterJobId = $1", db)
+	getFilterState, err := prepare("SELECT state FROM Filters WHERE filterJobId = $1", db)
+	getDimensionValues, err := prepare("SELECT name, value FROM Dimensions WHERE filterJobId = $1", db)
+	getDownloadItems, err := prepare("SELECT size, type, url FROM Downloads WHERE filterJobId = $1", db)
 	if err != nil {
-		return Datastore{db: db, addFilter: addFilter, addDimension: addDimension, getFilter: getFilter}, err
+		return Datastore{db: db, addFilter: addFilter, addDimension: addDimension, getFilter: getFilter, getFilterState: getFilterState, getDimensionValues: getDimensionValues, getDownloadItems: getDownloadItems}, err
 	}
 
-	return Datastore{db: db, addFilter: addFilter, addDimension: addDimension, getFilter: getFilter}, nil
+	return Datastore{db: db, addFilter: addFilter, addDimension: addDimension, getFilter: getFilter, getFilterState: getFilterState, getDimensionValues: getDimensionValues, getDownloadItems: getDownloadItems}, nil
 }
 
 // AddFilter adds a filter for a given dataset to be stored in postgres
@@ -55,6 +61,59 @@ func (ds Datastore) AddFilter(host string, newFilter *models.Filter) (models.Fil
 	return *newFilter, nil
 }
 
+// GetFilter gets a filter for a given dataset that is stored in postgres
+func (ds Datastore) GetFilter(filterID string) (models.Filter, error) {
+	var filterJob models.Filter
+
+	tx, err := ds.db.Begin()
+	if err != nil {
+		return filterJob, err
+	}
+
+	row := tx.Stmt(ds.getFilter).QueryRow(filterID)
+
+	var filterJobID, datasetFilterID, state sql.NullString
+
+	if err := row.Scan(&filterJobID, &datasetFilterID, &state); err != nil {
+		return filterJob, convertSQLError(err)
+	}
+
+	filterJob.DataSetFilterID = datasetFilterID.String
+	filterJob.FilterID = filterID
+	filterJob.State = state.String
+	filterJob.DimensionListURL = "/filters/" + filterID + "/dimensions"
+
+	downloadRows, err := ds.getDownloadItems.Query(filterID)
+	if err != nil {
+		return filterJob, convertSQLError(err)
+	}
+
+	downloads := models.Downloads{}
+	for downloadRows.Next() {
+		var size, downloadType, url sql.NullString
+		err := downloadRows.Scan(&size, &downloadType, &url)
+		if err != nil {
+			return filterJob, err
+		}
+
+		switch downloadType.String {
+		case "csv":
+			downloads.CSV.Size = size.String
+			downloads.CSV.URL = url.String
+		case "json":
+			downloads.JSON.Size = size.String
+			downloads.JSON.URL = url.String
+		case "xls":
+			downloads.XLS.Size = size.String
+			downloads.XLS.URL = url.String
+		}
+	}
+
+	filterJob.Downloads = downloads
+
+	return filterJob, nil
+}
+
 // UpdateFilter updates a given filter against a given dataset in the postgres databaseilter job
 func (ds Datastore) UpdateFilter(host string, filter *models.Filter) error {
 	tx, err := ds.db.Begin()
@@ -62,7 +121,7 @@ func (ds Datastore) UpdateFilter(host string, filter *models.Filter) error {
 		return err
 	}
 
-	currentFilterJob, err := getFilterJob(tx, ds, filter.FilterID)
+	currentFilterJob, err := getFilterJobState(tx, ds, filter.FilterID)
 	if err != nil {
 		log.Error(err, log.Data{"filter_job_id": filter.FilterID, "current_filter_job": currentFilterJob})
 		return err
@@ -115,9 +174,9 @@ func (ds Datastore) addDimensionValues(tx *sql.Tx, filterID string, dimension mo
 	return nil
 }
 
-func getFilterJob(tx *sql.Tx, ds Datastore, filterID string) (models.Filter, error) {
+func getFilterJobState(tx *sql.Tx, ds Datastore, filterID string) (models.Filter, error) {
 	var filterJob models.Filter
-	row := tx.Stmt(ds.getFilter).QueryRow(filterID)
+	row := tx.Stmt(ds.getFilterState).QueryRow(filterID)
 
 	var filter sql.NullString
 
