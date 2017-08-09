@@ -102,17 +102,14 @@ func (ds Datastore) GetFilter(filterID string) (models.Filter, error) {
 			return filterJob, err
 		}
 
-		if downloadType.String == "csv" {
+		switch downloadType.String {
+		case "csv":
 			downloads.CSV.Size = size.String
 			downloads.CSV.URL = url.String
-		}
-
-		if downloadType.String == "json" {
+		case "json":
 			downloads.JSON.Size = size.String
 			downloads.JSON.URL = url.String
-		}
-
-		if downloadType.String == "xls" {
+		case "xls":
 			downloads.XLS.Size = size.String
 			downloads.XLS.URL = url.String
 		}
