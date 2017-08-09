@@ -12,7 +12,7 @@ CREATE TABLE Dimensions(
   id SERIAL PRIMARY KEY,
   filterJobId TEXT,
   name TEXT,
-  value TEXT
+  option TEXT
 );
 
 CREATE TABLE Downloads(

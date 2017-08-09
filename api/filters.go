@@ -89,12 +89,110 @@ func (api *FilterAPI) getFilterJob(w http.ResponseWriter, r *http.Request) {
 	log.Info("got filtered job", log.Data{"filter_id": filterID, "filter_job": filterJob})
 }
 
+func (api *FilterAPI) getFilterJobDimensions(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	filterID := vars["filter_job_id"]
+
+	dimensions, err := api.dataStore.GetFilterDimensions(filterID)
+	if err != nil {
+		log.Error(err, log.Data{"filter_job_id": filterID})
+		setErrorCode(w, err)
+		return
+	}
+
+	bytes, err := json.Marshal(dimensions)
+	if err != nil {
+		log.Error(err, log.Data{"filter_job_id": filterID})
+		http.Error(w, internalError, http.StatusInternalServerError)
+		return
+	}
+
+	setJSONContentType(w)
+	w.WriteHeader(http.StatusOK)
+	_, err = w.Write(bytes)
+	if err != nil {
+		log.Error(err, log.Data{"filter_job_id": filterID, "dimensions": dimensions})
+		setErrorCode(w, err)
+		return
+	}
+
+	log.Info("got filtered job", log.Data{"filter_job_id": filterID, "dimensions": dimensions})
+}
+
+func (api *FilterAPI) getFilterJobDimension(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	filterID := vars["filter_job_id"]
+	name := vars["name"]
+
+	err := api.dataStore.GetFilterDimension(filterID, name)
+	if err != nil {
+		log.Error(err, log.Data{"filter_job_id": filterID, "dimension": name})
+		setErrorCode(w, err)
+		return
+	}
+
+	setJSONContentType(w)
+	w.WriteHeader(http.StatusNoContent)
+
+	log.Info("got filtered job", log.Data{"filter_job_id": filterID, "dimension": name})
+}
+
+func (api *FilterAPI) getFilterJobDimensionOptions(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	filterID := vars["filter_job_id"]
+	name := vars["name"]
+
+	dimensionOptions, err := api.dataStore.GetFilterDimensionOptions(filterID, name)
+	if err != nil {
+		log.Error(err, log.Data{"filter_job_id": filterID})
+		setErrorCode(w, err)
+		return
+	}
+
+	bytes, err := json.Marshal(dimensionOptions)
+	if err != nil {
+		log.Error(err, log.Data{"filter_job_id": filterID, "dimension_options": dimensionOptions})
+		http.Error(w, internalError, http.StatusInternalServerError)
+		return
+	}
+
+	setJSONContentType(w)
+	w.WriteHeader(http.StatusOK)
+	_, err = w.Write(bytes)
+	if err != nil {
+		log.Error(err, log.Data{"filter_job_id": filterID, "dimension_options": dimensionOptions})
+		setErrorCode(w, err)
+		return
+	}
+
+	log.Info("got filtered job", log.Data{"filter_job_id": filterID, "dimension_options": dimensionOptions})
+}
+
+func (api *FilterAPI) getFilterJobDimensionOption(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	filterID := vars["filter_job_id"]
+	name := vars["name"]
+	option := vars["option"]
+
+	err := api.dataStore.GetFilterDimensionOption(filterID, name, option)
+	if err != nil {
+		log.Error(err, log.Data{"filter_job_id": filterID, "dimension": name, "option": option})
+		setErrorCode(w, err)
+		return
+	}
+
+	setJSONContentType(w)
+	w.WriteHeader(http.StatusNoContent)
+
+	log.Info("got filtered job", log.Data{"filter_job_id": filterID, "dimension": name, "option": option})
+}
+
 func (api *FilterAPI) updateFilterJob(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	filterID := vars["filter_job_id"]
 	filter, err := models.CreateFilter(r.Body)
 	if err != nil {
-		log.Error(err, log.Data{"filter_id": filterID})
+		log.Error(err, log.Data{"filter_job_id": filterID})
 		http.Error(w, badRequest, http.StatusBadRequest)
 		return
 	}
@@ -103,23 +201,22 @@ func (api *FilterAPI) updateFilterJob(w http.ResponseWriter, r *http.Request) {
 
 	err = api.dataStore.UpdateFilter(filterID, filter)
 	if err != nil {
-		log.Error(err, log.Data{"filter": filter, "filter_id": filterID})
+		log.Error(err, log.Data{"filter": filter, "filter_job_id": filterID})
 		setErrorCode(w, err)
 		return
 	}
 
-	log.Info("filter updated", log.Data{"filter_id": filterID, "filter": filter})
+	log.Info("filter updated", log.Data{"filter_job_id": filterID, "filter": filter})
 
 	if filter.State == "submitted" {
 
 		api.jobQueue.Queue(filter)
 
-		log.Info("filter job message sent to kafka", log.Data{"filter_id": filterID})
+		log.Info("filter job message sent to kafka", log.Data{"filter_job_id": filterID})
 	}
 
 	setJSONContentType(w)
 	w.WriteHeader(http.StatusOK)
-
 }
 
 func setJSONContentType(w http.ResponseWriter) {
@@ -131,6 +228,12 @@ func setErrorCode(w http.ResponseWriter, err error) {
 	switch {
 	case err.Error() == "Not found":
 		http.Error(w, "Filter job not found", http.StatusNotFound)
+		return
+	case err.Error() == "Dimension not found":
+		http.Error(w, "Dimension not found", http.StatusNotFound)
+		return
+	case err.Error() == "Option not found":
+		http.Error(w, "Option not found", http.StatusNotFound)
 		return
 	case err.Error() == "Bad request":
 		http.Error(w, "Bad request", http.StatusBadRequest)
