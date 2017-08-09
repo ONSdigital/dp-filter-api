@@ -39,6 +39,7 @@ parameters:
     description: "A dimension to filter the dataset"
     in: body
   options:
+    required: true
     name: options
     schema:
       $ref: '#/definitions/Options'
