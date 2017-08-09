@@ -230,6 +230,7 @@ func (ds Datastore) GetFilterDimension(filterID string, name string) error {
 	return nil
 }
 
+// GetFilterDimensionOption checks if option exists for a dimension on a filter job
 func (ds Datastore) GetFilterDimensionOption(filterID string, name string, option string) error {
 	checkFilterJobExists := ds.getFilter.QueryRow(filterID)
 

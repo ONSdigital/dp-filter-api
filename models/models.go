@@ -51,7 +51,7 @@ type EventItem struct {
 	Type    string `json:"type,omitempty"`
 }
 
-// GetDimensionOptions
+// GetDimensionOptions represents an array of dimension options returned on a GET request
 type GetDimensionOptions struct {
 	DimensionOptionURLs []string `json:"dimension_option_urls"`
 }
