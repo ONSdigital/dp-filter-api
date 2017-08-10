@@ -46,7 +46,7 @@ func TestAddFilterFailure(t *testing.T) {
 		r, err := http.NewRequest("POST", "http://localhost:22100/filters", reader)
 		So(err, ShouldBeNil)
 		w := httptest.NewRecorder()
-		api := CreateFilterAPI(host, mux.NewRouter(), &mocks.DataStore{BadRequest: true}, &mocks.FilterJob{})
+		api := CreateFilterAPI(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{})
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 	})
@@ -56,7 +56,7 @@ func TestAddFilterFailure(t *testing.T) {
 		r, err := http.NewRequest("POST", "http://localhost:22100/filters", reader)
 		So(err, ShouldBeNil)
 		w := httptest.NewRecorder()
-		api := CreateFilterAPI(host, mux.NewRouter(), &mocks.DataStore{BadRequest: true}, &mocks.FilterJob{})
+		api := CreateFilterAPI(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{})
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 	})
@@ -69,6 +69,135 @@ func TestAddFilterFailure(t *testing.T) {
 		api := CreateFilterAPI(host, mux.NewRouter(), &mocks.DataStore{BadRequest: true}, &mocks.FilterJob{})
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
+	})
+}
+
+func TestSuccessfulAddFilterJobDimension(t *testing.T) {
+	t.Parallel()
+	Convey("Successfully create a dimension with an empty request body", t, func() {
+		r, err := http.NewRequest("POST", "http://localhost:22100/filters/12345678/dimensions/age", nil)
+		So(err, ShouldBeNil)
+		w := httptest.NewRecorder()
+		api := CreateFilterAPI(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{})
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusCreated)
+	})
+
+	Convey("Successfully create a dimension with a request body but no options", t, func() {
+		reader := strings.NewReader("{}")
+		r, err := http.NewRequest("POST", "http://localhost:22100/filters/12345678/dimensions/age", reader)
+		So(err, ShouldBeNil)
+		w := httptest.NewRecorder()
+		api := CreateFilterAPI(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{})
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusCreated)
+	})
+
+	Convey("Successfully create a dimension with options", t, func() {
+		reader := strings.NewReader("{\"values\":[\"22\",\"17\"]}")
+		r, err := http.NewRequest("POST", "http://localhost:22100/filters/12345678/dimensions/age", reader)
+		So(err, ShouldBeNil)
+		w := httptest.NewRecorder()
+		api := CreateFilterAPI(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{})
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusCreated)
+	})
+}
+
+func TestAddFilterJobDimensionFailure(t *testing.T) {
+	t.Parallel()
+	Convey("When no data store is available, an internal error is returned", t, func() {
+		reader := strings.NewReader("{\"values\":[\"22\",\"17\"]}")
+		r, err := http.NewRequest("POST", "http://localhost:22100/filters/12345678/dimensions/age", reader)
+		So(err, ShouldBeNil)
+
+		w := httptest.NewRecorder()
+
+		api := CreateFilterAPI(host, mux.NewRouter(), &mocks.DataStore{InternalError: true}, &mocks.FilterJob{})
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusInternalServerError)
+	})
+
+	Convey("When an invalid json message is sent, a bad request is returned", t, func() {
+		reader := strings.NewReader("{")
+		r, err := http.NewRequest("POST", "http://localhost:22100/filters/12345678/dimensions/age", reader)
+		So(err, ShouldBeNil)
+		w := httptest.NewRecorder()
+		api := CreateFilterAPI(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{})
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusBadRequest)
+	})
+
+	Convey("When a filter job does not exist, a not found is returned", t, func() {
+		reader := strings.NewReader("{\"values\":[\"22\",\"17\"]}")
+		r, err := http.NewRequest("POST", "http://localhost:22100/filters/12345678/dimensions/age", reader)
+		So(err, ShouldBeNil)
+		w := httptest.NewRecorder()
+		api := CreateFilterAPI(host, mux.NewRouter(), &mocks.DataStore{NotFound: true}, &mocks.FilterJob{})
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusNotFound)
+	})
+
+	Convey("When a filter job has been submitted, a forbidden status is returned", t, func() {
+		reader := strings.NewReader("{\"values\":[\"22\",\"17\"]}")
+		r, err := http.NewRequest("POST", "http://localhost:22100/filters/12345678/dimensions/age", reader)
+		So(err, ShouldBeNil)
+		w := httptest.NewRecorder()
+		api := CreateFilterAPI(host, mux.NewRouter(), &mocks.DataStore{Forbidden: true}, &mocks.FilterJob{})
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusForbidden)
+	})
+}
+
+func TestSuccessfulAddFilterJobDimensionOption(t *testing.T) {
+	t.Parallel()
+	Convey("Successfully send a valid json message", t, func() {
+		r, err := http.NewRequest("POST", "http://localhost:22100/filters/12345678/dimensions/age/options/65", nil)
+		So(err, ShouldBeNil)
+		w := httptest.NewRecorder()
+		api := CreateFilterAPI(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{})
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusCreated)
+	})
+}
+
+func TestAddFilterJobDimensionOptionFailure(t *testing.T) {
+	t.Parallel()
+	Convey("When no data store is available, an internal error is returned", t, func() {
+		r, err := http.NewRequest("POST", "http://localhost:22100/filters/12345678/dimensions/age/options/65", nil)
+		So(err, ShouldBeNil)
+
+		w := httptest.NewRecorder()
+
+		api := CreateFilterAPI(host, mux.NewRouter(), &mocks.DataStore{InternalError: true}, &mocks.FilterJob{})
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusInternalServerError)
+	})
+	Convey("When the filter job does not exist, a bad request status is returned", t, func() {
+		r, err := http.NewRequest("POST", "http://localhost:22100/filters/12345678/dimensions/age/options/65", nil)
+		So(err, ShouldBeNil)
+		w := httptest.NewRecorder()
+		api := CreateFilterAPI(host, mux.NewRouter(), &mocks.DataStore{BadRequest: true}, &mocks.FilterJob{})
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusBadRequest)
+	})
+
+	Convey("When a filter job has been submitted, a forbidden status is returned", t, func() {
+		r, err := http.NewRequest("POST", "http://localhost:22100/filters/12345678/dimensions/age/options/65", nil)
+		So(err, ShouldBeNil)
+		w := httptest.NewRecorder()
+		api := CreateFilterAPI(host, mux.NewRouter(), &mocks.DataStore{Forbidden: true}, &mocks.FilterJob{})
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusForbidden)
+	})
+
+	Convey("When a dimension for filter job does not exist, a not found status is returned", t, func() {
+		r, err := http.NewRequest("POST", "http://localhost:22100/filters/12345678/dimensions/age/options/65", nil)
+		So(err, ShouldBeNil)
+		w := httptest.NewRecorder()
+		api := CreateFilterAPI(host, mux.NewRouter(), &mocks.DataStore{NotFound: true}, &mocks.FilterJob{})
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusNotFound)
 	})
 }
 

@@ -9,24 +9,30 @@ import (
 	"github.com/ONSdigital/go-ns/log"
 )
 
+const submittedState = "submitted"
+
 // Datastore represents a structure to hold SQL statements to be used to gather information or insert about filters and dimensions
 type Datastore struct {
-	db                  *sql.DB
-	addFilter           *sql.Stmt
-	addDimension        *sql.Stmt
-	getFilter           *sql.Stmt
-	getFilterState      *sql.Stmt
-	getDimension        *sql.Stmt
-	getDimensions       *sql.Stmt
-	getDimensionOptions *sql.Stmt
-	getDimensionOption  *sql.Stmt
-	getDownloadItems    *sql.Stmt
+	db                    *sql.DB
+	addFilter             *sql.Stmt
+	addDimension          *sql.Stmt
+	addDimensionOption    *sql.Stmt
+	getFilter             *sql.Stmt
+	getFilterState        *sql.Stmt
+	getDimension          *sql.Stmt
+	getDimensions         *sql.Stmt
+	getDimensionOptions   *sql.Stmt
+	getDimensionOption    *sql.Stmt
+	getDownloadItems      *sql.Stmt
+	deleteDimension       *sql.Stmt
+	upsertDimensionOption *sql.Stmt
 }
 
 // NewDatastore manages a postgres datastore used to store and find information about filters and dimensions
 func NewDatastore(db *sql.DB) (Datastore, error) {
 	addFilter, err := prepare("INSERT INTO Filters(filterJobId, datasetfilterID, state) VALUES($1, $2, $3)", db)
-	addDimension, err := prepare("INSERT INTO Dimensions(filterJobId, name, option) VALUES($1, $2, $3)", db)
+	addDimension, err := prepare("INSERT INTO Dimensions(filterJobId, name) VALUES($1, $2)", db)
+	addDimensionOption, err := prepare("INSERT INTO Dimensions(filterJobId, name, option) VALUES($1, $2, $3)", db)
 	getFilter, err := prepare("SELECT * FROM Filters WHERE filterJobId = $1", db)
 	getFilterState, err := prepare("SELECT state FROM Filters WHERE filterJobId = $1", db)
 	getDimension, err := prepare("SELECT name FROM Dimensions WHERE filterJobId = $1 AND name = $2", db)
@@ -34,11 +40,13 @@ func NewDatastore(db *sql.DB) (Datastore, error) {
 	getDimensionOptions, err := prepare("SELECT option FROM Dimensions WHERE filterJobId = $1 AND name = $2", db)
 	getDimensionOption, err := prepare("SELECT option FROM Dimensions WHERE filterJobId = $1 AND name = $2 AND option = $3", db)
 	getDownloadItems, err := prepare("SELECT size, type, url FROM Downloads WHERE filterJobId = $1", db)
+	deleteDimension, err := prepare("DELETE FROM Dimensions WHERE filterJobId = $1 AND name = $2", db)
+	upsertDimensionOption, err := prepare("INSERT INTO Dimensions(filterJobId, name, option) VALUES($1, $2, $3) ON CONFLICT ON CONSTRAINT filterJobDimensionOption DO UPDATE SET option = $3", db)
 	if err != nil {
-		return Datastore{db: db, addFilter: addFilter, addDimension: addDimension, getFilter: getFilter, getFilterState: getFilterState, getDimensions: getDimensions, getDimension: getDimension, getDimensionOptions: getDimensionOptions, getDimensionOption: getDimensionOption, getDownloadItems: getDownloadItems}, err
+		return Datastore{db: db, addFilter: addFilter, addDimension: addDimension, addDimensionOption: addDimensionOption, getFilter: getFilter, getFilterState: getFilterState, getDimensions: getDimensions, getDimension: getDimension, getDimensionOptions: getDimensionOptions, getDimensionOption: getDimensionOption, getDownloadItems: getDownloadItems, deleteDimension: deleteDimension, upsertDimensionOption: upsertDimensionOption}, err
 	}
 
-	return Datastore{db: db, addFilter: addFilter, addDimension: addDimension, getFilter: getFilter, getFilterState: getFilterState, getDimensions: getDimensions, getDimension: getDimension, getDimensionOptions: getDimensionOptions, getDimensionOption: getDimensionOption, getDownloadItems: getDownloadItems}, nil
+	return Datastore{db: db, addFilter: addFilter, addDimension: addDimension, addDimensionOption: addDimensionOption, getFilter: getFilter, getFilterState: getFilterState, getDimensions: getDimensions, getDimension: getDimension, getDimensionOptions: getDimensionOptions, getDimensionOption: getDimensionOption, getDownloadItems: getDownloadItems, deleteDimension: deleteDimension, upsertDimensionOption: upsertDimensionOption}, nil
 }
 
 // AddFilter adds a filter for a given dataset to be stored in postgres
@@ -53,7 +61,7 @@ func (ds Datastore) AddFilter(host string, newFilter *models.Filter) (models.Fil
 		return models.Filter{}, err
 	}
 
-	if err := ds.addDimensions(tx, newFilter.FilterID, newFilter.Dimensions); err != nil {
+	if err := ds.createDimensions(tx, newFilter.FilterID, newFilter.Dimensions); err != nil {
 		if err = tx.Rollback(); err != nil {
 			return models.Filter{}, err
 		}
@@ -65,6 +73,100 @@ func (ds Datastore) AddFilter(host string, newFilter *models.Filter) (models.Fil
 	}
 
 	return *newFilter, nil
+}
+
+// AddFilterDimension adds a dimension for a given dataset to be stored in postgres
+func (ds Datastore) AddFilterDimension(dimensionObject *models.AddDimension) error {
+	tx, err := ds.db.Begin()
+	if err != nil {
+		return err
+	}
+
+	// Check filter exists
+	row := ds.getFilter.QueryRow(dimensionObject.FilterID)
+
+	var filterJobID, datasetFilterID, state sql.NullString
+
+	if err := row.Scan(&filterJobID, &datasetFilterID, &state); err != nil {
+		return convertSQLError(err, "bad request")
+	}
+
+	// Check filter is not locked (if state is equal to `submitted`)
+	if state.String == submittedState {
+		return errors.New("Forbidden")
+	}
+
+	// Check if dimension already exists, if it does then remove all options against dimension
+	_, err = ds.getDimension.Query(dimensionObject.FilterID, dimensionObject.Name)
+	if err != nil {
+		if err != sql.ErrNoRows {
+			return convertSQLError(err, "")
+		}
+	} else {
+		log.Trace("dimension options already exist", log.Data{"filter_job_id": dimensionObject.FilterID, "dimension": dimensionObject.Name})
+		// Remove rows continaing dimension options
+		if err = ds.removeDimension(dimensionObject); err != nil {
+			return err
+		}
+		log.Trace("dimension successfully deleted", log.Data{"filter_job_id": dimensionObject.FilterID, "dimension": dimensionObject.Name})
+	}
+
+	// Add any values against dimension
+	if len(dimensionObject.Options) > 0 {
+		dimension := models.Dimension{
+			Name:   dimensionObject.Name,
+			Values: dimensionObject.Options,
+		}
+
+		if err = ds.createDimensionOptions(tx, dimensionObject.FilterID, dimension); err != nil {
+			if err = tx.Rollback(); err != nil {
+				return err
+			}
+			return err
+		}
+	} else {
+		if err = ds.addSingleDimension(tx, dimensionObject.FilterID, dimensionObject.Name); err != nil {
+			if err = tx.Rollback(); err != nil {
+				return err
+			}
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// AddFilterDimensionOption adds an option to existing dimension for a given dataset stored in postgres
+func (ds Datastore) AddFilterDimensionOption(dimensionOptionObject *models.AddDimensionOption) error { // Check filter exists
+	row := ds.getFilter.QueryRow(dimensionOptionObject.FilterID)
+
+	var filterJobID, datasetFilterID, state sql.NullString
+
+	if err := row.Scan(&filterJobID, &datasetFilterID, &state); err != nil {
+		return convertSQLError(err, "bad request")
+	}
+
+	// Check filter is not locked (if state is equal to `submitted`)
+	if state.String == submittedState {
+		return errors.New("Forbidden")
+	}
+
+	// Check if dimension exists
+	_, err := ds.getDimension.Query(dimensionOptionObject.FilterID, dimensionOptionObject.Name)
+	if err != nil {
+		return convertSQLError(err, "dimension not found")
+	}
+
+	log.Debug("about to upsert", nil)
+	if _, err = ds.upsertDimensionOption.Exec(dimensionOptionObject.FilterID, dimensionOptionObject.Name, dimensionOptionObject.Option); err != nil {
+		return err
+	}
+	log.Debug("finished upsert", nil)
+
+	return nil
 }
 
 // GetFilter gets a filter for a given dataset that is stored in postgres
@@ -295,10 +397,21 @@ func (ds Datastore) UpdateFilter(host string, filter *models.Filter) error {
 	return nil
 }
 
-// addDimensions - Add dimensions and relate it to filter.
-func (ds Datastore) addDimensions(tx *sql.Tx, filterID string, dimensions []models.Dimension) error {
+// addSingleDimension creates a single dimension and relates it to filter job
+func (ds Datastore) addSingleDimension(tx *sql.Tx, filterID string, name string) error {
+	log.Info("about to update dimension", nil)
+	help, err := tx.Stmt(ds.addDimension).Exec(filterID, name)
+	if err != nil {
+		log.ErrorC("got an error", err, log.Data{"what am i": help})
+		return err
+	}
+	return nil
+}
+
+// addDimensions creates many dimensions and respective options and relates it to filter job
+func (ds Datastore) createDimensions(tx *sql.Tx, filterID string, dimensions []models.Dimension) error {
 	for _, dimension := range dimensions {
-		if err := ds.addDimensionValues(tx, filterID, dimension); err != nil {
+		if err := ds.createDimensionOptions(tx, filterID, dimension); err != nil {
 			return err
 		}
 	}
@@ -306,13 +419,23 @@ func (ds Datastore) addDimensions(tx *sql.Tx, filterID string, dimensions []mode
 	return nil
 }
 
-// addDimensionValues method adds a single dimension to be stored in postgres and relates it to filter job
-func (ds Datastore) addDimensionValues(tx *sql.Tx, filterID string, dimension models.Dimension) error {
+// addDimensionOptions method adds options of a single dimension to be stored in postgres and relates it to filter job
+func (ds Datastore) createDimensionOptions(tx *sql.Tx, filterID string, dimension models.Dimension) error {
 	for _, value := range dimension.Values {
-		_, err := tx.Stmt(ds.addDimension).Exec(filterID, dimension.Name, value)
+		_, err := tx.Stmt(ds.addDimensionOption).Exec(filterID, dimension.Name, value)
 		if err != nil {
 			return err
 		}
+	}
+
+	return nil
+}
+
+// removeDimensionOptions method adds options of a single dimension to be stored in postgres and relates it to filter job
+func (ds Datastore) removeDimension(dimensionObject *models.AddDimension) error {
+	_, err := ds.deleteDimension.Exec(dimensionObject.FilterID, dimensionObject.Name)
+	if err != nil {
+		return err
 	}
 
 	return nil
@@ -333,7 +456,7 @@ func getFilterJobState(tx *sql.Tx, ds Datastore, filterID string) (models.Filter
 	filterJob.FilterID = filterID
 	filterJob.State = state
 
-	if state == "submitted" {
+	if state == submittedState {
 		err := errors.New("Forbidden")
 		log.ErrorC("update to filter job forbidden, job already submitted", err, log.Data{"filter_job_id": filterID})
 		return filterJob, err

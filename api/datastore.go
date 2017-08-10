@@ -7,6 +7,8 @@ import (
 // DataStore - A interface used to store filters
 type DataStore interface {
 	AddFilter(host string, filter *models.Filter) (models.Filter, error)
+	AddFilterDimension(*models.AddDimension) error
+	AddFilterDimensionOption(*models.AddDimensionOption) error
 	GetFilter(filterID string) (models.Filter, error)
 	GetFilterDimensions(filterID string) ([]models.Dimension, error)
 	GetFilterDimension(filterID string, name string) error

@@ -22,3 +22,7 @@ CREATE TABLE Downloads(
   type TEXT,
   url TEXT
 );
+
+ALTER TABLE Dimensions
+  ADD CONSTRAINT filterJobDimensionOption
+  UNIQUE (filterJobId, name, option)

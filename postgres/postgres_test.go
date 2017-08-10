@@ -12,12 +12,14 @@ import (
 )
 
 var (
-	addFilterSQL          = "INSERT INTO Filters"
-	addDimensionSQL       = "INSERT INTO Dimensions"
-	getFilterSQL          = "SELECT * FROM Filters WHERE"
-	getFilterStateSQL     = "SELECT state FROM Filters WHERE"
-	getDimensionValuesSQL = "SELECT name, value FROM Dimensions WHERE"
-	getDownloadsSQL       = "SELECT size, type, url FROM Downloads WHERE"
+	addFilterSQL             = "INSERT INTO Filters"
+	addDimensionSQL          = "INSERT INTO Dimensions"
+	deleteDimensionSQL       = "DELETE FROM Dimensions WHERE"
+	getFilterSQL             = "SELECT * FROM Filters WHERE"
+	getFilterStateSQL        = "SELECT state FROM Filters WHERE"
+	getDimensionValuesSQL    = "SELECT name, value FROM Dimensions WHERE"
+	getDownloadsSQL          = "SELECT size, type, url FROM Downloads WHERE"
+	upsertDimensionOptionSQL = "INSERT INTO Dimensions(.+) VALUES(.+) ON CONSTRAINT"
 )
 
 func NewSQLMockWithSQLStatements() (sqlmock.Sqlmock, *sql.DB) {
@@ -27,10 +29,12 @@ func NewSQLMockWithSQLStatements() (sqlmock.Sqlmock, *sql.DB) {
 	mock.MatchExpectationsInOrder(false)
 	mock.ExpectPrepare(addFilterSQL)
 	mock.ExpectPrepare(addDimensionSQL)
+	mock.ExpectPrepare(deleteDimensionSQL)
 	mock.ExpectPrepare(getFilterSQL)
 	mock.ExpectPrepare(getFilterStateSQL)
 	mock.ExpectPrepare(getDimensionValuesSQL)
 	mock.ExpectPrepare(getDownloadsSQL)
+	mock.ExpectPrepare(upsertDimensionOptionSQL)
 	_, dbError := db.Begin()
 	So(dbError, ShouldBeNil)
 	return mock, db
@@ -84,10 +88,28 @@ func TestConvertSQLError(t *testing.T) {
 	t.Parallel()
 	Convey("Testing convert sql error function", t, func() {
 
-		Convey("when receiving an SQL number of rows error, successfully return Not found error", func() {
+		Convey("when receiving an SQL number of rows error, successfully return \"Not found\" error", func() {
 			err := convertSQLError(sql.ErrNoRows, "")
 			So(err, ShouldNotBeNil)
 			So(err, ShouldResemble, errors.New("Not found"))
+		})
+
+		Convey("when receiving an SQL number of rows error and a string type of \"bad request\", successfuly return \"Bad request\" error", func() {
+			err := convertSQLError(sql.ErrNoRows, "bad request")
+			So(err, ShouldNotBeNil)
+			So(err, ShouldResemble, errors.New("Bad request"))
+		})
+
+		Convey("when receiving an SQL number of rows error and a string type of \"dimension not found\", successfuly return \"Dimension not found\" error", func() {
+			err := convertSQLError(sql.ErrNoRows, "dimension not found")
+			So(err, ShouldNotBeNil)
+			So(err, ShouldResemble, errors.New("Dimension not found"))
+		})
+
+		Convey("when receiving an SQL number of rows error and a string type of \"option not found\", successfuly return \"Option not found\" error", func() {
+			err := convertSQLError(sql.ErrNoRows, "option not found")
+			So(err, ShouldNotBeNil)
+			So(err, ShouldResemble, errors.New("Option not found"))
 		})
 
 		Convey("when receiving a generic error (not an sql error), successfuly return same error", func() {

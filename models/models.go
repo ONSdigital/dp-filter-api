@@ -51,7 +51,20 @@ type EventItem struct {
 	Type    string `json:"type,omitempty"`
 }
 
-// GetDimensionOptions represents an array of dimension options returned on a GET request
+// AddDimension represents represents dimension information for storing a list of options for a dimension
+type AddDimension struct {
+	FilterID string
+	Name     string
+	Options  []string
+}
+
+type AddDimensionOption struct {
+	FilterID string
+	Name     string
+	Option   string
+}
+
+// GetDimensionOptions represents an array of urls for a dimension options returned on a GET request
 type GetDimensionOptions struct {
 	DimensionOptionURLs []string `json:"dimension_option_urls"`
 }
@@ -88,4 +101,27 @@ func CreateFilter(reader io.Reader) (*Filter, error) {
 	}
 
 	return &filter, nil
+}
+
+// CreateDimensionOptions manages the creation of options for a dimension from a reader
+func CreateDimensionOptions(reader io.Reader) ([]string, error) {
+	var dimension Dimension
+	var values []string
+
+	// Dimension may not have any options
+	if reader != nil {
+		bytes, err := ioutil.ReadAll(reader)
+		if err != nil {
+			return nil, fmt.Errorf("Failed to read message body")
+		}
+
+		err = json.Unmarshal(bytes, &dimension)
+		if err != nil {
+			return nil, fmt.Errorf("Failed to parse json body")
+		}
+	} else {
+		dimension.Values = values
+	}
+
+	return dimension.Values, nil
 }

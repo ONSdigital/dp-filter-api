@@ -137,6 +137,34 @@ func (api *FilterAPI) getFilterJobDimension(w http.ResponseWriter, r *http.Reque
 	log.Info("got filtered job", log.Data{"filter_job_id": filterID, "dimension": name})
 }
 
+func (api *FilterAPI) addFilterJobDimension(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+
+	options, err := models.CreateDimensionOptions(r.Body)
+	if err != nil {
+		log.Error(err, nil)
+		http.Error(w, badRequest, http.StatusBadRequest)
+		return
+	}
+
+	addDimension := &models.AddDimension{
+		FilterID: vars["filter_job_id"],
+		Name:     vars["name"],
+		Options:  options,
+	}
+
+	if err = api.dataStore.AddFilterDimension(addDimension); err != nil {
+		log.Error(err, log.Data{"dimension": addDimension})
+		setErrorCode(w, err)
+		return
+	}
+
+	setJSONContentType(w)
+	w.WriteHeader(http.StatusCreated)
+
+	log.Info("created new dimension for filter job", log.Data{"dimension": addDimension})
+}
+
 func (api *FilterAPI) getFilterJobDimensionOptions(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	filterID := vars["filter_job_id"]
@@ -185,6 +213,27 @@ func (api *FilterAPI) getFilterJobDimensionOption(w http.ResponseWriter, r *http
 	w.WriteHeader(http.StatusNoContent)
 
 	log.Info("got filtered job", log.Data{"filter_job_id": filterID, "dimension": name, "option": option})
+}
+
+func (api *FilterAPI) addFilterJobDimensionOption(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+
+	addDimensionOption := &models.AddDimensionOption{
+		FilterID: vars["filter_job_id"],
+		Name:     vars["name"],
+		Option:   vars["option"],
+	}
+
+	if err := api.dataStore.AddFilterDimensionOption(addDimensionOption); err != nil {
+		log.Error(err, log.Data{"dimension_option": addDimensionOption})
+		setErrorCode(w, err)
+		return
+	}
+
+	setJSONContentType(w)
+	w.WriteHeader(http.StatusCreated)
+
+	log.Info("created new dimension option for filter job", log.Data{"dimension_option": addDimensionOption})
 }
 
 func (api *FilterAPI) updateFilterJob(w http.ResponseWriter, r *http.Request) {
