@@ -171,6 +171,25 @@ func (ds *DataStore) RemoveFilterDimension(string, string) error {
 
 	return nil
 }
+func (ds *DataStore) RemoveFilterDimensionOption(filterJobId string, name string, option string) error {
+	if ds.InternalError {
+		return internalServerError
+	}
+
+	if ds.BadRequest {
+		return badRequestError
+	}
+
+	if ds.Forbidden {
+		return forbiddenError
+	}
+
+	if ds.NotFound {
+		return notFoundError
+	}
+
+	return nil
+}
 
 func (ds *DataStore) UpdateFilter(host string, filterJob *models.Filter) error {
 	if ds.InternalError {

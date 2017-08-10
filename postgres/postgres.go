@@ -25,6 +25,7 @@ type Datastore struct {
 	getDimensionOption    *sql.Stmt
 	getDownloadItems      *sql.Stmt
 	deleteDimension       *sql.Stmt
+	deleteDimensionOption *sql.Stmt
 	upsertDimensionOption *sql.Stmt
 }
 
@@ -41,12 +42,13 @@ func NewDatastore(db *sql.DB) (Datastore, error) {
 	getDimensionOption, err := prepare("SELECT option FROM Dimensions WHERE filterJobId = $1 AND name = $2 AND option = $3", db)
 	getDownloadItems, err := prepare("SELECT size, type, url FROM Downloads WHERE filterJobId = $1", db)
 	deleteDimension, err := prepare("DELETE FROM Dimensions WHERE filterJobId = $1 AND name = $2", db)
+	deleteDimensionOption, err := prepare("DELETE FROM Dimensions WHERE filterJobId = $1 AND name = $2 AND option = $3", db)
 	upsertDimensionOption, err := prepare("INSERT INTO Dimensions(filterJobId, name, option) VALUES($1, $2, $3) ON CONFLICT ON CONSTRAINT filterJobDimensionOption DO UPDATE SET option = $3", db)
 	if err != nil {
-		return Datastore{db: db, addFilter: addFilter, addDimension: addDimension, addDimensionOption: addDimensionOption, getFilter: getFilter, getFilterState: getFilterState, getDimensions: getDimensions, getDimension: getDimension, getDimensionOptions: getDimensionOptions, getDimensionOption: getDimensionOption, getDownloadItems: getDownloadItems, deleteDimension: deleteDimension, upsertDimensionOption: upsertDimensionOption}, err
+		return Datastore{db: db, addFilter: addFilter, addDimension: addDimension, addDimensionOption: addDimensionOption, getFilter: getFilter, getFilterState: getFilterState, getDimensions: getDimensions, getDimension: getDimension, getDimensionOptions: getDimensionOptions, getDimensionOption: getDimensionOption, getDownloadItems: getDownloadItems, deleteDimension: deleteDimension, deleteDimensionOption: deleteDimensionOption, upsertDimensionOption: upsertDimensionOption}, err
 	}
 
-	return Datastore{db: db, addFilter: addFilter, addDimension: addDimension, addDimensionOption: addDimensionOption, getFilter: getFilter, getFilterState: getFilterState, getDimensions: getDimensions, getDimension: getDimension, getDimensionOptions: getDimensionOptions, getDimensionOption: getDimensionOption, getDownloadItems: getDownloadItems, deleteDimension: deleteDimension, upsertDimensionOption: upsertDimensionOption}, nil
+	return Datastore{db: db, addFilter: addFilter, addDimension: addDimension, addDimensionOption: addDimensionOption, getFilter: getFilter, getFilterState: getFilterState, getDimensions: getDimensions, getDimension: getDimension, getDimensionOptions: getDimensionOptions, getDimensionOption: getDimensionOption, getDownloadItems: getDownloadItems, deleteDimension: deleteDimension, deleteDimensionOption: deleteDimensionOption, upsertDimensionOption: upsertDimensionOption}, nil
 }
 
 // AddFilter adds a filter for a given dataset to be stored in postgres
@@ -392,6 +394,38 @@ func (ds Datastore) RemoveFilterDimension(filterID string, name string) error {
 	err := ds.removeDimension(dimensionObject)
 	if err != nil {
 		return err
+	}
+
+	return nil
+}
+
+//RemoveFilterDimensionOption deletes a dimension option if it exists for a filter job
+func (ds Datastore) RemoveFilterDimensionOption(filterID string, name string, option string) error {
+	checkFilterJobExists := ds.getFilter.QueryRow(filterID)
+
+	var filterJobID, datasetFilterID, state sql.NullString
+
+	if err := checkFilterJobExists.Scan(&filterJobID, &datasetFilterID, &state); err != nil {
+		return convertSQLError(err, "bad request")
+	}
+
+	if state.String == submittedState {
+		err := errors.New("Forbidden")
+		log.ErrorC("update to filter job forbidden, job already submitted", err, log.Data{"filter_job_id": filterID})
+		return err
+	}
+
+	checkDimensionExists := ds.getDimension.QueryRow(filterID, name)
+
+	var dimensionName sql.NullString
+
+	if err := checkDimensionExists.Scan(&dimensionName); err != nil {
+		return convertSQLError(err, "bad request")
+	}
+
+	_, err := ds.deleteDimensionOption.Query(filterID, name, option)
+	if err != nil {
+		return convertSQLError(err, "option not found")
 	}
 
 	return nil
