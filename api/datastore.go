@@ -14,5 +14,6 @@ type DataStore interface {
 	GetFilterDimension(filterID string, name string) error
 	GetFilterDimensionOptions(filterID string, name string) (models.GetDimensionOptions, error)
 	GetFilterDimensionOption(filterID string, name string, option string) error
+	RemoveFilterDimension(filterJobID string, name string) error
 	UpdateFilter(host string, filter *models.Filter) error
 }

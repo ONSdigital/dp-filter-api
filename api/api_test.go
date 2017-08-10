@@ -461,3 +461,54 @@ func TestGetFilterDimensionOptionFailure(t *testing.T) {
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 	})
 }
+
+func TestSuccessfulRemoveFilterDimension(t *testing.T) {
+	t.Parallel()
+	Convey("Successfully remove a dimension for a filter job, returns 200", t, func() {
+		r, err := http.NewRequest("DELETE", "http://localhost:22100/filters/12345678/dimensions/1_age", nil)
+		So(err, ShouldBeNil)
+		w := httptest.NewRecorder()
+		api := CreateFilterAPI(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{})
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusOK)
+	})
+}
+
+func TestRemoveFilterDimensionFailure(t *testing.T) {
+	t.Parallel()
+	Convey("When no data store is available, an internal error is returned", t, func() {
+		r, err := http.NewRequest("DELETE", "http://localhost:22100/filters/1234568/dimensions/1_age", nil)
+		So(err, ShouldBeNil)
+		w := httptest.NewRecorder()
+		api := CreateFilterAPI(host, mux.NewRouter(), &mocks.DataStore{InternalError: true}, &mocks.FilterJob{})
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusInternalServerError)
+	})
+
+	Convey("When filter job does not exist, a bad request is returned", t, func() {
+		r, err := http.NewRequest("DELETE", "http://localhost:22100/filters/12345678/dimensions/1_age", nil)
+		So(err, ShouldBeNil)
+		w := httptest.NewRecorder()
+		api := CreateFilterAPI(host, mux.NewRouter(), &mocks.DataStore{BadRequest: true}, &mocks.FilterJob{})
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusBadRequest)
+	})
+
+	Convey("When the filter job state is submitted, a forbidden status is returned", t, func() {
+		r, err := http.NewRequest("DELETE", "http://localhost:22100/filters/12345678/dimensions/1_age", nil)
+		So(err, ShouldBeNil)
+		w := httptest.NewRecorder()
+		api := CreateFilterAPI(host, mux.NewRouter(), &mocks.DataStore{Forbidden: true}, &mocks.FilterJob{})
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusForbidden)
+	})
+
+	Convey("When dimension does not exist against filter job, a not found is returned", t, func() {
+		r, err := http.NewRequest("DELETE", "http://localhost:22100/filters/12345678/dimensions/1_age", nil)
+		So(err, ShouldBeNil)
+		w := httptest.NewRecorder()
+		api := CreateFilterAPI(host, mux.NewRouter(), &mocks.DataStore{NotFound: true}, &mocks.FilterJob{})
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusNotFound)
+	})
+}

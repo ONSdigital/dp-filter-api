@@ -6,12 +6,14 @@ import (
 	"github.com/ONSdigital/dp-filter-api/models"
 )
 
-var internalServerError = errors.New("DataStore internal error")
-var badRequestError = errors.New("Bad request")
-var forbiddenError = errors.New("Forbidden")
-var notFoundError = errors.New("Not found")
-var dimensionionNotFound = errors.New("Dimension not found")
-var optionNotFound = errors.New("Option not found")
+var (
+	internalServerError  = errors.New("DataStore internal error")
+	badRequestError      = errors.New("Bad request")
+	forbiddenError       = errors.New("Forbidden")
+	notFoundError        = errors.New("Not found")
+	dimensionionNotFound = errors.New("Dimension not found")
+	optionNotFound       = errors.New("Option not found")
+)
 
 type DataStore struct {
 	NotFound          bool
@@ -145,6 +147,26 @@ func (ds *DataStore) GetFilterDimensionOption(filterID string, name string, opti
 
 	if ds.InternalError {
 		return internalServerError
+	}
+
+	return nil
+}
+
+func (ds *DataStore) RemoveFilterDimension(string, string) error {
+	if ds.InternalError {
+		return internalServerError
+	}
+
+	if ds.BadRequest {
+		return badRequestError
+	}
+
+	if ds.Forbidden {
+		return forbiddenError
+	}
+
+	if ds.NotFound {
+		return notFoundError
 	}
 
 	return nil

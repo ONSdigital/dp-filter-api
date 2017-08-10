@@ -137,6 +137,24 @@ func (api *FilterAPI) getFilterJobDimension(w http.ResponseWriter, r *http.Reque
 	log.Info("got filtered job", log.Data{"filter_job_id": filterID, "dimension": name})
 }
 
+func (api *FilterAPI) removeFilterJobDimension(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	filterID := vars["filter_job_id"]
+	name := vars["name"]
+
+	err := api.dataStore.RemoveFilterDimension(filterID, name)
+	if err != nil {
+		log.Error(err, log.Data{"filter_job_id": filterID, "dimension": name})
+		setErrorCode(w, err)
+		return
+	}
+
+	setJSONContentType(w)
+	w.WriteHeader(http.StatusOK)
+
+	log.Info("delete filtered job", log.Data{"filter_job_id": filterID, "dimension": name})
+}
+
 func (api *FilterAPI) addFilterJobDimension(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
