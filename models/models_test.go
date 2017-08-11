@@ -62,7 +62,7 @@ func TestCreateFilterJobWithValidJSON(t *testing.T) {
 		So(err, ShouldBeNil)
 		So(filter.Validate(), ShouldBeNil)
 		So(filter.FilterID, ShouldNotBeNil)
-		So(filter.DataSetFilterID, ShouldEqual, "12345678")
+		So(filter.DatasetFilterID, ShouldEqual, "12345678")
 		So(filter.State, ShouldEqual, "created")
 	})
 }

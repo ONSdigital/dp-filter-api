@@ -10,7 +10,7 @@ import (
 
 // Filter represents a structure for a filter job
 type Filter struct {
-	DataSetFilterID  string      `json:"dataset_filter_id"`
+	DatasetFilterID  string      `json:"dataset_filter_id"`
 	DimensionListURL string      `json:"dimension_list_url,omitempty"`
 	Dimensions       []Dimension `json:"dimensions,omitempty"`
 	Downloads        Downloads   `json:"downloads,omitempty"`
@@ -80,7 +80,7 @@ func (filter *Filter) Validate() error {
 
 	var missingFields []string
 
-	if filter.DataSetFilterID == "" {
+	if filter.DatasetFilterID == "" {
 		missingFields = append(missingFields, "dataset_filter_id")
 	}
 
@@ -109,21 +109,19 @@ func CreateFilter(reader io.Reader) (*Filter, error) {
 // CreateDimensionOptions manages the creation of options for a dimension from a reader
 func CreateDimensionOptions(reader io.Reader) ([]string, error) {
 	var dimension Dimension
-	var values []string
 
-	// Dimension may not have any options
-	if reader != nil {
-		bytes, err := ioutil.ReadAll(reader)
-		if err != nil {
-			return nil, errors.New("Failed to read message body")
-		}
+	bytes, err := ioutil.ReadAll(reader)
+	if err != nil {
+		return nil, errors.New("Failed to read message body")
+	}
 
-		err = json.Unmarshal(bytes, &dimension)
-		if err != nil {
-			return nil, errors.New("Failed to parse json body")
-		}
-	} else {
-		dimension.Values = values
+	if string(bytes) == "" {
+		return dimension.Values, nil
+	}
+
+	err = json.Unmarshal(bytes, &dimension)
+	if err != nil {
+		return nil, errors.New("Failed to parse json body")
 	}
 
 	return dimension.Values, nil

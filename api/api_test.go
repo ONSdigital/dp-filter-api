@@ -95,7 +95,8 @@ func TestAddFilterFailure(t *testing.T) {
 func TestSuccessfulAddFilterJobDimension(t *testing.T) {
 	t.Parallel()
 	Convey("Successfully create a dimension with an empty request body", t, func() {
-		r, err := http.NewRequest("POST", "http://localhost:22100/filters/12345678/dimensions/age", nil)
+		reader := strings.NewReader("")
+		r, err := http.NewRequest("POST", "http://localhost:22100/filters/12345678/dimensions/age", reader)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()

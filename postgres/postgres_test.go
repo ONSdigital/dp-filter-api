@@ -63,7 +63,7 @@ func TestUpdateStatement(t *testing.T) {
 
 	Convey("when update filter job has a state and dataset in json body successfully return statement", t, func() {
 		filter := &models.Filter{
-			DataSetFilterID: "12345678",
+			DatasetFilterID: "12345678",
 			State:           "submitted",
 		}
 
@@ -74,7 +74,7 @@ func TestUpdateStatement(t *testing.T) {
 
 	Convey("when update filter job has only dataset_filter_id in json body return error", t, func() {
 		filter := &models.Filter{
-			DataSetFilterID: "12345678",
+			DatasetFilterID: "12345678",
 		}
 
 		statement, err := updateStatement(filter)

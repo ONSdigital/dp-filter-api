@@ -58,7 +58,7 @@ func (ds Datastore) AddFilter(host string, newFilter *models.Filter) (models.Fil
 		return models.Filter{}, err
 	}
 
-	_, err = tx.Stmt(ds.addFilter).Exec(newFilter.FilterID, newFilter.DataSetFilterID, newFilter.State)
+	_, err = tx.Stmt(ds.addFilter).Exec(newFilter.FilterID, newFilter.DatasetFilterID, newFilter.State)
 	if err != nil {
 		return models.Filter{}, err
 	}
@@ -179,12 +179,12 @@ func (ds Datastore) GetFilter(filterID string) (models.Filter, error) {
 		return filterJob, convertSQLError(err, "")
 	}
 
-	filterJob.DataSetFilterID = datasetFilterID.String
+	filterJob.DatasetFilterID = datasetFilterID.String
 	filterJob.FilterID = filterID
 	filterJob.State = state.String
 	filterJob.DimensionListURL = "/filters/" + filterID + "/dimensions"
 
-	downloadRows, err := ds.getDownloadItems.Query(filterID)
+	downloadRows, err := tx.Stmt(ds.getDownloadItems).Query(filterID)
 	if err != nil {
 		return filterJob, convertSQLError(err, "")
 	}
@@ -355,7 +355,12 @@ func (ds Datastore) GetFilterDimensionOption(filterID string, name string, optio
 
 // RemoveFilterDimension deletes a dimension if it exists for a filter job
 func (ds Datastore) RemoveFilterDimension(filterID string, name string) error {
-	checkFilterJobExists := ds.getFilter.QueryRow(filterID)
+	tx, err := ds.db.Begin()
+	if err != nil {
+		return err
+	}
+
+	checkFilterJobExists := tx.Stmt(ds.getFilter).QueryRow(filterID)
 
 	var filterJobID, datasetFilterID, state sql.NullString
 
@@ -382,8 +387,12 @@ func (ds Datastore) RemoveFilterDimension(filterID string, name string) error {
 		Name:     name,
 	}
 
-	err := ds.removeDimension(dimensionObject)
+	_, err = ds.removeDimension(tx, dimensionObject)
 	if err != nil {
+		return err
+	}
+
+	if err := tx.Commit(); err != nil {
 		return err
 	}
 
@@ -392,7 +401,12 @@ func (ds Datastore) RemoveFilterDimension(filterID string, name string) error {
 
 //RemoveFilterDimensionOption deletes a dimension option if it exists for a filter job
 func (ds Datastore) RemoveFilterDimensionOption(filterID string, name string, option string) error {
-	checkFilterJobExists := ds.getFilter.QueryRow(filterID)
+	tx, err := ds.db.Begin()
+	if err != nil {
+		return err
+	}
+
+	checkFilterJobExists := tx.Stmt(ds.getFilter).QueryRow(filterID)
 
 	var filterJobID, datasetFilterID, state sql.NullString
 
@@ -414,9 +428,22 @@ func (ds Datastore) RemoveFilterDimensionOption(filterID string, name string, op
 		return convertSQLError(err, "bad request")
 	}
 
-	_, err := ds.deleteDimensionOption.Query(filterID, name, option)
+	results, err := ds.deleteDimensionOption.Exec(filterID, name, option)
 	if err != nil {
 		return convertSQLError(err, "option not found")
+	}
+
+	rowsAffected, err := results.RowsAffected()
+	if err != nil {
+		return convertSQLError(err, "")
+	}
+
+	if rowsAffected == 0 {
+		return errors.New("Option not found")
+	}
+
+	if err := tx.Commit(); err != nil {
+		return err
 	}
 
 	return nil
