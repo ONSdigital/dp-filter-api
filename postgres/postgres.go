@@ -85,7 +85,7 @@ func (ds Datastore) AddFilterDimension(dimensionObject *models.AddDimension) err
 	}
 
 	// Check filter exists
-	row := ds.getFilter.QueryRow(dimensionObject.FilterID)
+	row := tx.Stmt(ds.getFilter).QueryRow(dimensionObject.FilterID)
 
 	var filterJobID, datasetFilterID, state sql.NullString
 
@@ -98,20 +98,13 @@ func (ds Datastore) AddFilterDimension(dimensionObject *models.AddDimension) err
 		return errors.New("Forbidden")
 	}
 
-	// Check if dimension already exists, if it does then remove all options against dimension
-	_, err = ds.getDimension.Query(dimensionObject.FilterID, dimensionObject.Name)
+	// Remove dimension if it already exists
+	_, err = ds.removeDimension(tx, dimensionObject)
 	if err != nil {
-		if err != sql.ErrNoRows {
-			return convertSQLError(err, "")
-		}
-	} else {
-		log.Trace("dimension options already exist", log.Data{"filter_job_id": dimensionObject.FilterID, "dimension": dimensionObject.Name})
-		// Remove rows continaing dimension options
-		if err = ds.removeDimension(dimensionObject); err != nil {
-			return err
-		}
-		log.Trace("dimension successfully deleted", log.Data{"filter_job_id": dimensionObject.FilterID, "dimension": dimensionObject.Name})
+		return err
 	}
+
+	log.Trace("dimension successfully deleted", log.Data{"filter_job_id": dimensionObject.FilterID, "dimension": dimensionObject.Name})
 
 	// Add any values against dimension
 	if len(dimensionObject.Options) > 0 {
@@ -162,11 +155,9 @@ func (ds Datastore) AddFilterDimensionOption(dimensionOptionObject *models.AddDi
 		return convertSQLError(err, "dimension not found")
 	}
 
-	log.Debug("about to upsert", nil)
 	if _, err = ds.upsertDimensionOption.Exec(dimensionOptionObject.FilterID, dimensionOptionObject.Name, dimensionOptionObject.Option); err != nil {
 		return err
 	}
-	log.Debug("finished upsert", nil)
 
 	return nil
 }
@@ -502,14 +493,14 @@ func (ds Datastore) createDimensionOptions(tx *sql.Tx, filterID string, dimensio
 	return nil
 }
 
-// removeDimension method deletes all dimensions that are currently stored in postgres against a filter job
-func (ds Datastore) removeDimension(dimensionObject *models.AddDimension) error {
-	_, err := ds.deleteDimension.Exec(dimensionObject.FilterID, dimensionObject.Name)
+// removeDimension method deletes a single dimension stored against a filter job in postgres
+func (ds Datastore) removeDimension(tx *sql.Tx, dimensionObject *models.AddDimension) (sql.Result, error) {
+	result, err := tx.Stmt(ds.deleteDimension).Exec(dimensionObject.FilterID, dimensionObject.Name)
 	if err != nil {
-		return err
+		return result, err
 	}
 
-	return nil
+	return result, nil
 }
 
 func getFilterJobState(tx *sql.Tx, ds Datastore, filterID string) (models.Filter, error) {

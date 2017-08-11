@@ -2,6 +2,7 @@ package models
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -51,13 +52,15 @@ type EventItem struct {
 	Type    string `json:"type,omitempty"`
 }
 
-// AddDimension represents represents dimension information for storing a list of options for a dimension
+// AddDimension represents dimension information for storing a list of options for a dimension
 type AddDimension struct {
 	FilterID string
 	Name     string
 	Options  []string
 }
 
+// AddDimensionOption represents dimension option information for storing
+// an individual option for a given filter job dimension
 type AddDimensionOption struct {
 	FilterID string
 	Name     string
@@ -92,12 +95,12 @@ func (filter *Filter) Validate() error {
 func CreateFilter(reader io.Reader) (*Filter, error) {
 	bytes, err := ioutil.ReadAll(reader)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to read message body")
+		return nil, errors.New("Failed to read message body")
 	}
 	var filter Filter
 	err = json.Unmarshal(bytes, &filter)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to parse json body")
+		return nil, errors.New("Failed to parse json body")
 	}
 
 	return &filter, nil
@@ -112,12 +115,12 @@ func CreateDimensionOptions(reader io.Reader) ([]string, error) {
 	if reader != nil {
 		bytes, err := ioutil.ReadAll(reader)
 		if err != nil {
-			return nil, fmt.Errorf("Failed to read message body")
+			return nil, errors.New("Failed to read message body")
 		}
 
 		err = json.Unmarshal(bytes, &dimension)
 		if err != nil {
-			return nil, fmt.Errorf("Failed to parse json body")
+			return nil, errors.New("Failed to parse json body")
 		}
 	} else {
 		dimension.Values = values
