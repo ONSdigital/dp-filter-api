@@ -29,7 +29,7 @@ func (ds *DataStore) AddFilter(host string, filterJob *models.Filter) (models.Fi
 	if ds.InternalError {
 		return models.Filter{}, internalServerError
 	}
-	return models.Filter{DataSetFilterID: "12345678"}, nil
+	return models.Filter{DatasetFilterID: "12345678"}, nil
 }
 
 func (ds *DataStore) AddFilterDimension(dimension *models.AddDimension) error {
@@ -76,7 +76,7 @@ func (ds *DataStore) GetFilter(filterID string) (models.Filter, error) {
 	if ds.InternalError {
 		return models.Filter{}, internalServerError
 	}
-	return models.Filter{DataSetFilterID: "12345678"}, nil
+	return models.Filter{DatasetFilterID: "12345678"}, nil
 }
 
 func (ds *DataStore) GetFilterDimensions(filterID string) ([]models.Dimension, error) {
