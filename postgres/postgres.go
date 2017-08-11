@@ -157,8 +157,6 @@ func (ds Datastore) AddFilterDimensionOption(dimensionOptionObject *models.AddDi
 		return err
 	}
 
-	log.Debug("finished upsert", nil)
-
 	return nil
 }
 
