@@ -96,8 +96,8 @@ func (ds *DataStore) GetFilterDimensions(filterID string) ([]models.Dimension, e
 }
 
 func (ds *DataStore) GetFilterDimension(filterID string, name string) error {
-	if ds.NotFound {
-		return notFoundError
+	if ds.DimensionNotFound {
+		return dimensionionNotFound
 	}
 
 	if ds.BadRequest {
@@ -184,8 +184,8 @@ func (ds *DataStore) RemoveFilterDimensionOption(filterJobId string, name string
 		return forbiddenError
 	}
 
-	if ds.NotFound {
-		return notFoundError
+	if ds.DimensionNotFound {
+		return dimensionionNotFound
 	}
 
 	return nil
