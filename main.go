@@ -2,7 +2,6 @@ package main
 
 import (
 	"database/sql"
-	"net/http"
 	"os"
 	"strconv"
 
@@ -12,6 +11,7 @@ import (
 	"github.com/ONSdigital/dp-filter-api/postgres"
 	"github.com/ONSdigital/go-ns/kafka"
 	"github.com/ONSdigital/go-ns/log"
+	"github.com/ONSdigital/go-ns/server"
 	"github.com/gorilla/mux"
 	_ "github.com/lib/pq"
 )
@@ -52,9 +52,16 @@ func main() {
 	jobQueue := filterJobQueue.CreateJobQueue(producer.Output())
 	router := mux.NewRouter()
 
+	s := server.New(cfg.BindAddr, router)
+
+	log.Debug("listening...", log.Data{
+		"bind_address": cfg.BindAddr,
+	})
+
 	_ = api.CreateFilterAPI(cfg.Host, router, dataStore, &jobQueue)
-	if err = http.ListenAndServe(cfg.BindAddr, router); err != nil {
-		log.Error(err, log.Data{"BIND_ADDR": cfg.BindAddr})
+
+	if err = s.ListenAndServe(); err != nil {
+		log.Error(err, nil)
 	}
 
 	producer.Closer() <- true
