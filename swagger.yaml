@@ -45,10 +45,17 @@ parameters:
       $ref: '#/definitions/Options'
     description: "A list of options for a dimension to filter the dataset"
     in: body
-  filter_job:
+  new_filter_job:
     name: filter_job
     schema:
       $ref: '#/definitions/NewJobRequest'
+    required: true
+    description: "Model of all editable properties within a filter job"
+    in: body
+  update_filter_job:
+    name: filter_job
+    schema:
+      $ref: '#/definitions/UpdateJobRequest'
     required: true
     description: "Model of all editable properties within a filter job"
     in: body
@@ -62,7 +69,7 @@ paths:
       produces:
       - "application/json"
       parameters:
-      - $ref: '#/parameters/filter_job'
+      - $ref: '#/parameters/new_filter_job'
       responses:
         201:
           description: "Job was created"
@@ -94,16 +101,18 @@ paths:
     put:
       tags:
       - "Filter"
-      summary: "Update the state of the job"
+      summary: "Update filter job"
       description: |
         Update the filter job by providing new properties
       parameters:
-      - $ref: '#/parameters/filter_job'
+      - $ref: '#/parameters/update_filter_job'
       responses:
         200:
           description: "The filter job has been updated"
         400:
           description: "Invalid request body"
+        401:
+          description: "Unauthorised, request lacks valid authentication credentials"
         403:
           description: "Forbidden, the job has been locked as it has been `submitted` to be processed"
         404:
@@ -284,6 +293,32 @@ definitions:
           description: "A list of dimensions in the filter job"
           items:
              $ref: '#/definitions/DimensionOptions'
+  UpdateJobRequest:
+    description: "A model used to update filter jobs. Dimensions are optional, while downloads and events are for internal use only."
+    allOf:
+    - $ref: '#/definitions/JobState'
+    - type: object
+      properties:
+        dimensions:
+          readOnly: false
+          type: array
+          description: "A list of dimensions in the filter job"
+          items:
+             $ref: '#/definitions/DimensionOptions'
+        downloads:
+          readOnly: false
+          type: object
+          description: |
+            The url to download the customised dataset. This will be blank until the jobs `state` has been marked completed and can only be updated if authorised
+          items:
+            $ref: '#/definitions/Downloads'
+        events:
+          readOnly: false
+          type: object
+          description: |
+            A list of events which happened to the job, can only be updated if authorised.
+          items:
+            $ref: '#/definitions/Events'
   NewJobResponse:
     description: "A model for the response body when creating a new filter job"
     allOf:
@@ -366,6 +401,17 @@ definitions:
         description: "A list of options for dimension to filter on a dataset"
         items:
           type: string
+  Downloads:
+    type: object
+    description: |
+      The url to download the customised dataset. This will be blank until the jobs `state` has been marked completed and can only be updated if authorised
+    properties:
+      xls:
+        $ref: '#/definitions/DownloadFile'
+      json:
+        $ref: '#/definitions/DownloadFile'
+      csv:
+        $ref: '#/definitions/DownloadFile'
   ListOptions:
     type: object
     description: "A list of options for a dimension to filter on a dataset. Information on a dimension option can be gathered using the `Dataset API`"
@@ -380,6 +426,20 @@ definitions:
     description: "A list of options for dimension to filter on a dataset"
     items:
       type: string
+  Events:
+    readOnly: true
+    type: object
+    description: |
+      A list of events which happened to the job, can only be updated if authorised.
+    properties:
+      info:
+        type: array
+        items:
+          $ref: '#/definitions/Event'
+      error:
+        type: array
+        items:
+          $ref: '#/definitions/Event'
   Event:
     type: object
     description: "A description of an event which has happened to the job"
