@@ -299,12 +299,6 @@ definitions:
     - $ref: '#/definitions/JobState'
     - type: object
       properties:
-        dimensions:
-          readOnly: false
-          type: array
-          description: "A list of dimensions in the filter job"
-          items:
-             $ref: '#/definitions/DimensionOptions'
         downloads:
           readOnly: false
           type: object
