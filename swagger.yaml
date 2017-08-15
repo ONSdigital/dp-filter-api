@@ -39,7 +39,7 @@ parameters:
     description: "A dimension to filter the dataset"
     in: body
   options:
-    required: true
+    required: false
     name: options
     schema:
       $ref: '#/definitions/Options'
@@ -422,10 +422,14 @@ definitions:
         items:
           type: string
   Options:
-    type: array
+    type: object
     description: "A list of options for dimension to filter on a dataset"
-    items:
-      type: string
+    properties:
+      options:
+        type: array
+        description: "A list of options for dimension to filter on a dataset"
+        items:
+          type: string
   Events:
     readOnly: true
     type: object
