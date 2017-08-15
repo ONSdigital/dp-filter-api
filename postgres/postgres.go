@@ -109,11 +109,11 @@ func (ds Datastore) AddFilterDimension(dimensionObject *models.AddDimension) err
 
 	log.Trace("dimension successfully deleted", log.Data{"filter_job_id": dimensionObject.FilterID, "dimension": dimensionObject.Name})
 
-	// Add any values against dimension
+	// Add any options against dimension
 	if len(dimensionObject.Options) > 0 {
 		dimension := models.Dimension{
-			Name:   dimensionObject.Name,
-			Values: dimensionObject.Options,
+			Name:    dimensionObject.Name,
+			Options: dimensionObject.Options,
 		}
 
 		if err = ds.createDimensionOptions(tx, dimensionObject.FilterID, dimension); err != nil {
@@ -513,8 +513,8 @@ func (ds Datastore) createDimensions(tx *sql.Tx, filterID string, dimensions []m
 
 // addDimensionOptions method adds options of a single dimension to be stored in postgres and relates it to filter job
 func (ds Datastore) createDimensionOptions(tx *sql.Tx, filterID string, dimension models.Dimension) error {
-	for _, value := range dimension.Values {
-		_, err := tx.Stmt(ds.addDimensionOption).Exec(filterID, dimension.Name, value)
+	for _, option := range dimension.Options {
+		_, err := tx.Stmt(ds.addDimensionOption).Exec(filterID, dimension.Name, option)
 		if err != nil {
 			return err
 		}
