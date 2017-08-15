@@ -9,7 +9,10 @@ import (
 	"github.com/ONSdigital/go-ns/log"
 )
 
-const submittedState = "submitted"
+const (
+	submittedState = "submitted"
+	completedState = "completed"
+)
 
 // Datastore represents a structure to hold SQL statements to be used to gather information or insert about filters and dimensions
 type Datastore struct {
@@ -94,7 +97,7 @@ func (ds Datastore) AddFilterDimension(dimensionObject *models.AddDimension) err
 	}
 
 	// Check filter is not locked (if state is equal to `submitted`)
-	if state.String == submittedState {
+	if state.String == submittedState || state.String == completedState {
 		return errors.New("Forbidden")
 	}
 
@@ -145,7 +148,7 @@ func (ds Datastore) AddFilterDimensionOption(dimensionOptionObject *models.AddDi
 	}
 
 	// Check filter is not locked (if state is equal to `submitted`)
-	if state.String == submittedState {
+	if state.String == submittedState || state.String == completedState {
 		return errors.New("Forbidden")
 	}
 
@@ -368,7 +371,7 @@ func (ds Datastore) RemoveFilterDimension(filterID string, name string) error {
 		return convertSQLError(err, "bad request")
 	}
 
-	if state.String == submittedState {
+	if state.String == submittedState || state.String == completedState {
 		err := errors.New("Forbidden")
 		log.ErrorC("update to filter job forbidden, job already submitted", err, log.Data{"filter_job_id": filterID})
 		return err
@@ -414,7 +417,7 @@ func (ds Datastore) RemoveFilterDimensionOption(filterID string, name string, op
 		return convertSQLError(err, "bad request")
 	}
 
-	if state.String == submittedState {
+	if state.String == submittedState || state.String == completedState {
 		err := errors.New("Forbidden")
 		log.ErrorC("update to filter job forbidden, job already submitted", err, log.Data{"filter_job_id": filterID})
 		return err
@@ -450,13 +453,13 @@ func (ds Datastore) RemoveFilterDimensionOption(filterID string, name string, op
 }
 
 // UpdateFilter updates a given filter against a given dataset in the postgres databaseilter job
-func (ds Datastore) UpdateFilter(host string, filter *models.Filter) error {
+func (ds Datastore) UpdateFilter(isAuthenticated bool, filterID string, filter *models.Filter) error {
 	tx, err := ds.db.Begin()
 	if err != nil {
 		return err
 	}
 
-	currentFilterJob, err := getFilterJobState(tx, ds, filter.FilterID)
+	currentFilterJob, err := getFilterJobState(tx, ds, filter.FilterID, isAuthenticated)
 	if err != nil {
 		log.Error(err, log.Data{"filter_job_id": filter.FilterID, "current_filter_job": currentFilterJob})
 		return err
@@ -530,7 +533,7 @@ func (ds Datastore) removeDimension(tx *sql.Tx, dimensionObject *models.AddDimen
 	return result, nil
 }
 
-func getFilterJobState(tx *sql.Tx, ds Datastore, filterID string) (models.Filter, error) {
+func getFilterJobState(tx *sql.Tx, ds Datastore, filterID string, isAuthenticated bool) (models.Filter, error) {
 	var filterJob models.Filter
 	row := tx.Stmt(ds.getFilterState).QueryRow(filterID)
 
@@ -545,10 +548,12 @@ func getFilterJobState(tx *sql.Tx, ds Datastore, filterID string) (models.Filter
 	filterJob.FilterID = filterID
 	filterJob.State = state
 
-	if state == submittedState {
-		err := errors.New("Forbidden")
-		log.ErrorC("update to filter job forbidden, job already submitted", err, log.Data{"filter_job_id": filterID})
-		return filterJob, err
+	if !isAuthenticated {
+		if state == submittedState || state == completedState {
+			err := errors.New("Forbidden")
+			log.ErrorC("update to filter job forbidden, job already submitted", err, log.Data{"filter_job_id": filterID})
+			return filterJob, err
+		}
 	}
 
 	return filterJob, nil

@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 
 	"github.com/ONSdigital/dp-filter-api/models"
@@ -12,9 +13,13 @@ import (
 )
 
 var (
-	internalError = "Internal server error"
+	internalError = "Failed to process the request due to an internal error"
 	badRequest    = "Bad client request received"
+	unauthorised  = "Unauthorised, request lacks valid authentication credentials"
+	forbidden     = "Forbidden, the job has been locked as it has been submitted to be processed"
 )
+
+const internalToken = "internal_token"
 
 func (api *FilterAPI) addFilterJob(w http.ResponseWriter, r *http.Request) {
 	newFilter, err := models.CreateFilter(r.Body)
@@ -257,6 +262,7 @@ func (api *FilterAPI) addFilterJobDimensionOption(w http.ResponseWriter, r *http
 func (api *FilterAPI) updateFilterJob(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	filterID := vars["filter_job_id"]
+
 	filter, err := models.CreateFilter(r.Body)
 	if err != nil {
 		log.Error(err, log.Data{"filter_job_id": filterID})
@@ -264,9 +270,21 @@ func (api *FilterAPI) updateFilterJob(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	authenticationHeader := r.Header.Get(internalToken)
+
+	var isAuthenticated bool
+	if authenticationHeader != "" {
+		isAuthenticated, err = api.checkAuthentication(authenticationHeader)
+		if err != nil {
+			log.Error(err, log.Data{"filter_job_id": filterID})
+			setErrorCode(w, err)
+			return
+		}
+	}
+
 	filter.FilterID = filterID
 
-	err = api.dataStore.UpdateFilter(filterID, filter)
+	err = api.dataStore.UpdateFilter(isAuthenticated, filterID, filter)
 	if err != nil {
 		log.Error(err, log.Data{"filter": filter, "filter_job_id": filterID})
 		setErrorCode(w, err)
@@ -305,6 +323,15 @@ func (api *FilterAPI) removeFilterJobDimensionOption(w http.ResponseWriter, r *h
 	log.Info("delete filtered job", log.Data{"filter_job_id": filterID, "dimension": name})
 }
 
+func (api *FilterAPI) checkAuthentication(header string) (bool, error) {
+	if header != api.internalToken {
+		authorisationError := errors.New("Not authorised")
+		return false, authorisationError
+	}
+
+	return true, nil
+}
+
 func setJSONContentType(w http.ResponseWriter) {
 	w.Header().Set("Content-Type", "application/json")
 }
@@ -325,10 +352,10 @@ func setErrorCode(w http.ResponseWriter, err error) {
 		http.Error(w, "Bad request", http.StatusBadRequest)
 		return
 	case err.Error() == "Forbidden":
-		http.Error(w, "Filter job request forbidden", http.StatusForbidden)
+		http.Error(w, forbidden, http.StatusForbidden)
 		return
 	case err.Error() == "Not authorised":
-		http.Error(w, "Filter job request not authorised", http.StatusUnauthorized)
+		http.Error(w, unauthorised, http.StatusUnauthorized)
 		return
 	case err != nil:
 		http.Error(w, internalError, http.StatusInternalServerError)

@@ -12,17 +12,18 @@ type JobQueue interface {
 
 // FilterAPI manages importing filters against a dataset
 type FilterAPI struct {
-	host      string
-	dataStore DataStore
-	router    *mux.Router
-	jobQueue  JobQueue
+	host          string
+	dataStore     DataStore
+	internalToken string
+	jobQueue      JobQueue
+	router        *mux.Router
 }
 
 // CreateFilterAPI manages all the routes configured to API
-func CreateFilterAPI(host string, router *mux.Router, dataStore DataStore, jobQueue JobQueue) *FilterAPI {
+func CreateFilterAPI(secretKey string, host string, router *mux.Router, dataStore DataStore, jobQueue JobQueue) *FilterAPI {
 	router.Path("/healthcheck").Methods("GET").HandlerFunc(healthCheck)
 
-	api := FilterAPI{host: host, dataStore: dataStore, router: router, jobQueue: jobQueue}
+	api := FilterAPI{internalToken: secretKey, host: host, dataStore: dataStore, router: router, jobQueue: jobQueue}
 	api.router.HandleFunc("/filters", api.addFilterJob).Methods("POST")
 	api.router.HandleFunc("/filters/{filter_job_id}", api.getFilterJob).Methods("GET")
 	api.router.HandleFunc("/filters/{filter_job_id}", api.updateFilterJob).Methods("PUT")

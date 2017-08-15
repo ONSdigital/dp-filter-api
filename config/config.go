@@ -10,6 +10,7 @@ type Config struct {
 	Host                    string   `env:"HOST" flag:"host" flagDesc:"The host name used to build URLs"`
 	KafkaMaxBytes           string   `env:"KAFKA_MAX_BYTES" flag:"kafka-max-bytes" flagDesc:"The maximum permitted size of a message. Should be set equal to or smaller than the broker's 'message.max.bytes'"`
 	PostgresURL             string   `env:"POSTGRES_URL" flag:"postgres-url" flagDesc:"The URL address to connect to a postgres instance'"`
+	SecretKey               string   `env:"SECRET_KEY" flag:"secret-key" flagDesc:"A secret key used authentication"`
 }
 
 var cfg *Config
@@ -27,6 +28,7 @@ func Get() (*Config, error) {
 		Host:          "http://localhost:22100",
 		KafkaMaxBytes: "2000000",
 		PostgresURL:   "user=dp dbname=FilterJobs sslmode=disable",
+		SecretKey:     "FD0108EA-825D-411C-9B1D-41EF7727F465",
 	}
 
 	if err := gofigure.Gofigure(cfg); err != nil {
