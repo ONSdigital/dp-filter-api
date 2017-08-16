@@ -465,7 +465,7 @@ func (ds Datastore) RemoveFilterDimensionOption(filterID string, name string, op
 }
 
 // UpdateFilter updates a given filter against a given dataset in the postgres databaseilter job
-func (ds Datastore) UpdateFilter(isAuthenticated bool, filterID string, filter *models.Filter) error {
+func (ds Datastore) UpdateFilter(isAuthenticated bool, filter *models.Filter) error {
 	tx, err := ds.db.Begin()
 	if err != nil {
 		return err
@@ -480,7 +480,7 @@ func (ds Datastore) UpdateFilter(isAuthenticated bool, filterID string, filter *
 	rowsAffected := int64(0)
 
 	if filter.State != "" {
-		results, err := tx.Stmt(ds.updateFilterState).Exec(filterID, filter.State)
+		results, err := tx.Stmt(ds.updateFilterState).Exec(filter.FilterID, filter.State)
 		if err != nil {
 			if err = tx.Rollback(); err != nil {
 				return err
@@ -507,7 +507,7 @@ func (ds Datastore) UpdateFilter(isAuthenticated bool, filterID string, filter *
 
 	if isAuthenticated {
 		if csv.Size != "" {
-			_, err := tx.Stmt(ds.upsertDownloadURL).Exec(filterID, csv.Size, CSV, csv.URL)
+			_, err := tx.Stmt(ds.upsertDownloadURL).Exec(filter.FilterID, csv.Size, CSV, csv.URL)
 			if err != nil {
 				if err = tx.Rollback(); err != nil {
 					return err
@@ -517,7 +517,7 @@ func (ds Datastore) UpdateFilter(isAuthenticated bool, filterID string, filter *
 		}
 
 		if json.Size != "" {
-			_, err := tx.Stmt(ds.upsertDownloadURL).Exec(filterID, json.Size, JSON, json.URL)
+			_, err := tx.Stmt(ds.upsertDownloadURL).Exec(filter.FilterID, json.Size, JSON, json.URL)
 			if err != nil {
 				if err = tx.Rollback(); err != nil {
 					return err
@@ -527,7 +527,7 @@ func (ds Datastore) UpdateFilter(isAuthenticated bool, filterID string, filter *
 		}
 
 		if xls.Size != "" {
-			_, err := tx.Stmt(ds.upsertDownloadURL).Exec(filterID, xls.Size, XLS, xls.URL)
+			_, err := tx.Stmt(ds.upsertDownloadURL).Exec(filter.FilterID, xls.Size, XLS, xls.URL)
 			if err != nil {
 				if err = tx.Rollback(); err != nil {
 					return err
@@ -590,14 +590,14 @@ func (ds Datastore) removeDimension(tx *sql.Tx, dimensionObject *models.AddDimen
 	return result, nil
 }
 
-func getFilterJobState(tx *sql.Tx, ds Datastore, filterID string, isAuthenticated bool) (models.Filter, error) {
-	var filterJob models.Filter
+func getFilterJobState(tx *sql.Tx, ds Datastore, filterID string, isAuthenticated bool) (*models.Filter, error) {
+	var filterJob *models.Filter
 	row := tx.Stmt(ds.getFilterState).QueryRow(filterID)
 
 	var filter sql.NullString
 
 	if err := row.Scan(&filter); err != nil {
-		return filterJob, convertError(err, "")
+		return nil, convertError(err, "")
 	}
 
 	state := filter.String
@@ -608,8 +608,8 @@ func getFilterJobState(tx *sql.Tx, ds Datastore, filterID string, isAuthenticate
 	if !isAuthenticated {
 		if state == submittedState || state == completedState {
 			err := errors.New("Forbidden")
-			log.ErrorC("update to filter job forbidden, job already submitted", err, log.Data{"filter_job_id": filterID})
-			return filterJob, err
+			log.ErrorC("update to filter job forbidden, job already submitted or completed", err, log.Data{"filter_job_id": filterID})
+			return nil, err
 		}
 	}
 

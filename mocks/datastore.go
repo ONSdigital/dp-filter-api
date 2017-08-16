@@ -8,7 +8,7 @@ import (
 
 var (
 	internalServerError  = errors.New("DataStore internal error")
-	unauthorisedError    = errors.New("Unauthorised, request lacks valid authentication credentials")
+	unauthorisedError    = errors.New("Unauthorised")
 	badRequestError      = errors.New("Bad request")
 	forbiddenError       = errors.New("Forbidden")
 	notFoundError        = errors.New("Not found")
@@ -172,6 +172,7 @@ func (ds *DataStore) RemoveFilterDimension(string, string) error {
 
 	return nil
 }
+
 func (ds *DataStore) RemoveFilterDimensionOption(filterJobId string, name string, option string) error {
 	if ds.InternalError {
 		return internalServerError
@@ -192,7 +193,7 @@ func (ds *DataStore) RemoveFilterDimensionOption(filterJobId string, name string
 	return nil
 }
 
-func (ds *DataStore) UpdateFilter(isAuthenticated bool, filterID string, filterJob *models.Filter) error {
+func (ds *DataStore) UpdateFilter(isAuthenticated bool, filterJob *models.Filter) error {
 	if ds.InternalError {
 		return internalServerError
 	}
