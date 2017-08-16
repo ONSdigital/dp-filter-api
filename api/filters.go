@@ -284,7 +284,7 @@ func (api *FilterAPI) updateFilterJob(w http.ResponseWriter, r *http.Request) {
 
 	filter.FilterID = filterID
 
-	err = api.dataStore.UpdateFilter(isAuthenticated, filterID, filter)
+	err = api.dataStore.UpdateFilter(isAuthenticated, filter)
 	if err != nil {
 		log.Error(err, log.Data{"filter": filter, "filter_job_id": filterID})
 		setErrorCode(w, err)

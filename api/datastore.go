@@ -16,5 +16,5 @@ type DataStore interface {
 	GetFilterDimensionOption(filterID string, name string, option string) error
 	RemoveFilterDimension(filterID string, name string) error
 	RemoveFilterDimensionOption(filterId string, name string, option string) error
-	UpdateFilter(isAuthenticated bool, filterID string, filter *models.Filter) error
+	UpdateFilter(isAuthenticated bool, filter *models.Filter) error
 }
