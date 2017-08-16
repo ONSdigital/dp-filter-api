@@ -3,15 +3,19 @@ package postgres
 import (
 	"database/sql"
 	"errors"
-	"strings"
 
 	"github.com/ONSdigital/dp-filter-api/models"
 	"github.com/ONSdigital/go-ns/log"
+	"github.com/lib/pq"
 )
 
 const (
 	submittedState = "submitted"
 	completedState = "completed"
+
+	CSV  = "csv"
+	JSON = "json"
+	XLS  = "xls"
 )
 
 // Datastore represents a structure to hold SQL statements to be used to gather information or insert about filters and dimensions
@@ -30,6 +34,8 @@ type Datastore struct {
 	deleteDimension       *sql.Stmt
 	deleteDimensionOption *sql.Stmt
 	upsertDimensionOption *sql.Stmt
+	upsertDownloadURL     *sql.Stmt
+	updateFilterState     *sql.Stmt
 }
 
 // NewDatastore manages a postgres datastore used to store and find information about filters and dimensions
@@ -47,11 +53,13 @@ func NewDatastore(db *sql.DB) (Datastore, error) {
 	deleteDimension, err := prepare("DELETE FROM Dimensions WHERE filterJobId = $1 AND name = $2", db)
 	deleteDimensionOption, err := prepare("DELETE FROM Dimensions WHERE filterJobId = $1 AND name = $2 AND option = $3", db)
 	upsertDimensionOption, err := prepare("INSERT INTO Dimensions(filterJobId, name, option) VALUES($1, $2, $3) ON CONFLICT ON CONSTRAINT filterJobDimensionOption DO UPDATE SET option = $3", db)
+	upsertDownloadURL, err := prepare("INSERT INTO Downloads(filterJobId, size, type, url) VALUES($1,$2,$3,$4) ON CONFLICT ON CONSTRAINT filterJobDownloadURL DO UPDATE SET size = $2, url = $4", db)
+	updateFilterState, err := prepare("UPDATE Filters SET state = $2 WHERE filterJobId = $1", db)
 	if err != nil {
-		return Datastore{db: db, addFilter: addFilter, addDimension: addDimension, addDimensionOption: addDimensionOption, getFilter: getFilter, getFilterState: getFilterState, getDimensions: getDimensions, getDimension: getDimension, getDimensionOptions: getDimensionOptions, getDimensionOption: getDimensionOption, getDownloadItems: getDownloadItems, deleteDimension: deleteDimension, deleteDimensionOption: deleteDimensionOption, upsertDimensionOption: upsertDimensionOption}, err
+		return Datastore{db: db, addFilter: addFilter, addDimension: addDimension, addDimensionOption: addDimensionOption, getFilter: getFilter, getFilterState: getFilterState, getDimensions: getDimensions, getDimension: getDimension, getDimensionOptions: getDimensionOptions, getDimensionOption: getDimensionOption, getDownloadItems: getDownloadItems, deleteDimension: deleteDimension, deleteDimensionOption: deleteDimensionOption, upsertDimensionOption: upsertDimensionOption, upsertDownloadURL: upsertDownloadURL, updateFilterState: updateFilterState}, err
 	}
 
-	return Datastore{db: db, addFilter: addFilter, addDimension: addDimension, addDimensionOption: addDimensionOption, getFilter: getFilter, getFilterState: getFilterState, getDimensions: getDimensions, getDimension: getDimension, getDimensionOptions: getDimensionOptions, getDimensionOption: getDimensionOption, getDownloadItems: getDownloadItems, deleteDimension: deleteDimension, deleteDimensionOption: deleteDimensionOption, upsertDimensionOption: upsertDimensionOption}, nil
+	return Datastore{db: db, addFilter: addFilter, addDimension: addDimension, addDimensionOption: addDimensionOption, getFilter: getFilter, getFilterState: getFilterState, getDimensions: getDimensions, getDimension: getDimension, getDimensionOptions: getDimensionOptions, getDimensionOption: getDimensionOption, getDownloadItems: getDownloadItems, deleteDimension: deleteDimension, deleteDimensionOption: deleteDimensionOption, upsertDimensionOption: upsertDimensionOption, upsertDownloadURL: upsertDownloadURL, updateFilterState: updateFilterState}, nil
 }
 
 // AddFilter adds a filter for a given dataset to be stored in postgres
@@ -93,7 +101,7 @@ func (ds Datastore) AddFilterDimension(dimensionObject *models.AddDimension) err
 	var filterJobID, datasetFilterID, state sql.NullString
 
 	if err := row.Scan(&filterJobID, &datasetFilterID, &state); err != nil {
-		return convertSQLError(err, "bad request")
+		return convertError(err, "bad request")
 	}
 
 	// Check filter is not locked (if state is equal to `submitted`)
@@ -116,15 +124,15 @@ func (ds Datastore) AddFilterDimension(dimensionObject *models.AddDimension) err
 			Options: dimensionObject.Options,
 		}
 
-		if err = ds.createDimensionOptions(tx, dimensionObject.FilterID, dimension); err != nil {
-			if err = tx.Rollback(); err != nil {
+		if err := ds.createDimensionOptions(tx, dimensionObject.FilterID, dimension); err != nil {
+			if err := tx.Rollback(); err != nil {
 				return err
 			}
-			return err
+			return convertError(err, "")
 		}
 	} else {
-		if err = ds.addSingleDimension(tx, dimensionObject.FilterID, dimensionObject.Name); err != nil {
-			if err = tx.Rollback(); err != nil {
+		if err := ds.addSingleDimension(tx, dimensionObject.FilterID, dimensionObject.Name); err != nil {
+			if err := tx.Rollback(); err != nil {
 				return err
 			}
 		}
@@ -144,7 +152,7 @@ func (ds Datastore) AddFilterDimensionOption(dimensionOptionObject *models.AddDi
 	var filterJobID, datasetFilterID, state sql.NullString
 
 	if err := row.Scan(&filterJobID, &datasetFilterID, &state); err != nil {
-		return convertSQLError(err, "bad request")
+		return convertError(err, "bad request")
 	}
 
 	// Check filter is not locked (if state is equal to `submitted`)
@@ -153,10 +161,11 @@ func (ds Datastore) AddFilterDimensionOption(dimensionOptionObject *models.AddDi
 	}
 
 	// Check if dimension exists
-	_, err := ds.getDimension.Query(dimensionOptionObject.FilterID, dimensionOptionObject.Name)
+	rows, err := ds.getDimension.Query(dimensionOptionObject.FilterID, dimensionOptionObject.Name)
 	if err != nil {
-		return convertSQLError(err, "dimension not found")
+		return convertError(err, "dimension not found")
 	}
+	defer rows.Close()
 
 	if _, err = ds.upsertDimensionOption.Exec(dimensionOptionObject.FilterID, dimensionOptionObject.Name, dimensionOptionObject.Option); err != nil {
 		return err
@@ -179,7 +188,7 @@ func (ds Datastore) GetFilter(filterID string) (models.Filter, error) {
 	var filterJobID, datasetFilterID, state sql.NullString
 
 	if err := row.Scan(&filterJobID, &datasetFilterID, &state); err != nil {
-		return filterJob, convertSQLError(err, "")
+		return filterJob, convertError(err, "")
 	}
 
 	filterJob.DatasetFilterID = datasetFilterID.String
@@ -189,8 +198,9 @@ func (ds Datastore) GetFilter(filterID string) (models.Filter, error) {
 
 	downloadRows, err := tx.Stmt(ds.getDownloadItems).Query(filterID)
 	if err != nil {
-		return filterJob, convertSQLError(err, "")
+		return filterJob, convertError(err, "")
 	}
+	defer downloadRows.Close()
 
 	downloads := models.Downloads{}
 	for downloadRows.Next() {
@@ -227,15 +237,16 @@ func (ds Datastore) GetFilterDimensions(filterID string) ([]models.Dimension, er
 	var filterJobID, datasetFilterID, state sql.NullString
 
 	if err := checkFilterJobExists.Scan(&filterJobID, &datasetFilterID, &state); err != nil {
-		return dimensions, convertSQLError(err, "")
+		return dimensions, convertError(err, "")
 	}
 
 	uniqueDimensions := make(map[string]string)
 
 	dimensionRows, err := ds.getDimensions.Query(filterID)
 	if err != nil {
-		return dimensions, convertSQLError(err, "")
+		return dimensions, convertError(err, "")
 	}
+	defer dimensionRows.Close()
 
 	for dimensionRows.Next() {
 		var name sql.NullString
@@ -267,7 +278,7 @@ func (ds Datastore) GetFilterDimensionOptions(filterID string, name string) (mod
 	var filterJobID, datasetFilterID, state sql.NullString
 
 	if err := checkFilterJobExists.Scan(&filterJobID, &datasetFilterID, &state); err != nil {
-		return options, convertSQLError(err, "bad request")
+		return options, convertError(err, "bad request")
 	}
 
 	checkDimensionExists := ds.getDimension.QueryRow(filterID, name)
@@ -275,13 +286,14 @@ func (ds Datastore) GetFilterDimensionOptions(filterID string, name string) (mod
 	var dimensionName sql.NullString
 
 	if err := checkDimensionExists.Scan(&dimensionName); err != nil {
-		return options, convertSQLError(err, "dimension not found")
+		return options, convertError(err, "dimension not found")
 	}
 
 	optionRows, err := ds.getDimensionOptions.Query(filterID, name)
 	if err != nil {
-		return options, convertSQLError(err, "")
+		return options, convertError(err, "")
 	}
+	defer optionRows.Close()
 
 	var option sql.NullString
 	var optionURLs []string
@@ -314,7 +326,7 @@ func (ds Datastore) GetFilterDimension(filterID string, name string) error {
 	var filterJobID, datasetFilterID, state sql.NullString
 
 	if err := checkFilterJobExists.Scan(&filterJobID, &datasetFilterID, &state); err != nil {
-		return convertSQLError(err, "bad request")
+		return convertError(err, "bad request")
 	}
 
 	checkDimensionExists := ds.getDimension.QueryRow(filterID, name)
@@ -322,7 +334,7 @@ func (ds Datastore) GetFilterDimension(filterID string, name string) error {
 	var dimensionName sql.NullString
 
 	if err := checkDimensionExists.Scan(&dimensionName); err != nil {
-		return convertSQLError(err, "")
+		return convertError(err, "")
 	}
 
 	return nil
@@ -335,7 +347,7 @@ func (ds Datastore) GetFilterDimensionOption(filterID string, name string, optio
 	var filterJobID, datasetFilterID, state sql.NullString
 
 	if err := checkFilterJobExists.Scan(&filterJobID, &datasetFilterID, &state); err != nil {
-		return convertSQLError(err, "bad request")
+		return convertError(err, "bad request")
 	}
 
 	checkDimensionExists := ds.getDimension.QueryRow(filterID, name)
@@ -343,14 +355,14 @@ func (ds Datastore) GetFilterDimensionOption(filterID string, name string, optio
 	var dimensionName sql.NullString
 
 	if err := checkDimensionExists.Scan(&dimensionName); err != nil {
-		return convertSQLError(err, "bad request")
+		return convertError(err, "bad request")
 	}
 
 	checkDimensionOptionExists := ds.getDimensionOption.QueryRow(filterID, name, option)
 	var dimensionOption sql.NullString
 
 	if err := checkDimensionOptionExists.Scan(&dimensionOption); err != nil {
-		return convertSQLError(err, "option not found")
+		return convertError(err, "option not found")
 	}
 
 	return nil
@@ -368,7 +380,7 @@ func (ds Datastore) RemoveFilterDimension(filterID string, name string) error {
 	var filterJobID, datasetFilterID, state sql.NullString
 
 	if err := checkFilterJobExists.Scan(&filterJobID, &datasetFilterID, &state); err != nil {
-		return convertSQLError(err, "bad request")
+		return convertError(err, "bad request")
 	}
 
 	if state.String == submittedState || state.String == completedState {
@@ -382,7 +394,7 @@ func (ds Datastore) RemoveFilterDimension(filterID string, name string) error {
 	var dimensionName sql.NullString
 
 	if err := checkDimensionExists.Scan(&dimensionName); err != nil {
-		return convertSQLError(err, "dimension not found")
+		return convertError(err, "dimension not found")
 	}
 
 	dimensionObject := &models.AddDimension{
@@ -414,7 +426,7 @@ func (ds Datastore) RemoveFilterDimensionOption(filterID string, name string, op
 	var filterJobID, datasetFilterID, state sql.NullString
 
 	if err := checkFilterJobExists.Scan(&filterJobID, &datasetFilterID, &state); err != nil {
-		return convertSQLError(err, "bad request")
+		return convertError(err, "bad request")
 	}
 
 	if state.String == submittedState || state.String == completedState {
@@ -428,17 +440,17 @@ func (ds Datastore) RemoveFilterDimensionOption(filterID string, name string, op
 	var dimensionName sql.NullString
 
 	if err := checkDimensionExists.Scan(&dimensionName); err != nil {
-		return convertSQLError(err, "bad request")
+		return convertError(err, "bad request")
 	}
 
 	results, err := ds.deleteDimensionOption.Exec(filterID, name, option)
 	if err != nil {
-		return convertSQLError(err, "option not found")
+		return convertError(err, "option not found")
 	}
 
 	rowsAffected, err := results.RowsAffected()
 	if err != nil {
-		return convertSQLError(err, "")
+		return convertError(err, "")
 	}
 
 	if rowsAffected == 0 {
@@ -465,26 +477,71 @@ func (ds Datastore) UpdateFilter(isAuthenticated bool, filterID string, filter *
 		return err
 	}
 
-	updateStatement, err := updateStatement(filter)
-	if err != nil {
-		return err
+	rowsAffected := int64(0)
+
+	if filter.State != "" {
+		results, err := tx.Stmt(ds.updateFilterState).Exec(filterID, filter.State)
+		if err != nil {
+			if err = tx.Rollback(); err != nil {
+				return err
+			}
+			return err
+		}
+
+		rowsAffected, err = results.RowsAffected()
+		if err != nil {
+			if err = tx.Rollback(); err != nil {
+				return err
+			}
+			return err
+		}
 	}
 
-	stmt, err := tx.Prepare(updateStatement)
-	if err != nil {
-		return err
+	if !isAuthenticated && rowsAffected == 0 {
+		return errors.New("Bad request")
 	}
 
-	_, err = stmt.Exec(filter.FilterID)
-	if err != nil {
-		return err
+	csv := filter.Downloads.CSV
+	json := filter.Downloads.JSON
+	xls := filter.Downloads.XLS
+
+	if isAuthenticated {
+		if csv.Size != "" {
+			_, err := tx.Stmt(ds.upsertDownloadURL).Exec(filterID, csv.Size, CSV, csv.URL)
+			if err != nil {
+				if err = tx.Rollback(); err != nil {
+					return err
+				}
+				return err
+			}
+		}
+
+		if json.Size != "" {
+			_, err := tx.Stmt(ds.upsertDownloadURL).Exec(filterID, json.Size, JSON, json.URL)
+			if err != nil {
+				if err = tx.Rollback(); err != nil {
+					return err
+				}
+				return err
+			}
+		}
+
+		if xls.Size != "" {
+			_, err := tx.Stmt(ds.upsertDownloadURL).Exec(filterID, xls.Size, XLS, xls.URL)
+			if err != nil {
+				if err = tx.Rollback(); err != nil {
+					return err
+				}
+				return err
+			}
+		}
 	}
 
 	if err := tx.Commit(); err != nil {
 		return err
 	}
 
-	log.Debug("successfully committed filter job update", log.Data{"filter_job_id": filter.FilterID, "statement": updateStatement})
+	log.Debug("successfully committed filter job update", log.Data{"filter_job_id": filter.FilterID})
 
 	return nil
 }
@@ -500,7 +557,7 @@ func (ds Datastore) addSingleDimension(tx *sql.Tx, filterID string, name string)
 	return nil
 }
 
-// addDimensions creates many dimensions and respective options and relates it to filter job
+// createDimensions adds many dimensions and respective options and relates it to filter job
 func (ds Datastore) createDimensions(tx *sql.Tx, filterID string, dimensions []models.Dimension) error {
 	for _, dimension := range dimensions {
 		if err := ds.createDimensionOptions(tx, filterID, dimension); err != nil {
@@ -511,7 +568,7 @@ func (ds Datastore) createDimensions(tx *sql.Tx, filterID string, dimensions []m
 	return nil
 }
 
-// addDimensionOptions method adds options of a single dimension to be stored in postgres and relates it to filter job
+// createDimensionOptions method adds options of a single dimension to be stored in postgres and relates it to filter job
 func (ds Datastore) createDimensionOptions(tx *sql.Tx, filterID string, dimension models.Dimension) error {
 	for _, option := range dimension.Options {
 		_, err := tx.Stmt(ds.addDimensionOption).Exec(filterID, dimension.Name, option)
@@ -540,7 +597,7 @@ func getFilterJobState(tx *sql.Tx, ds Datastore, filterID string, isAuthenticate
 	var filter sql.NullString
 
 	if err := row.Scan(&filter); err != nil {
-		return filterJob, convertSQLError(err, "")
+		return filterJob, convertError(err, "")
 	}
 
 	state := filter.String
@@ -559,28 +616,11 @@ func getFilterJobState(tx *sql.Tx, ds Datastore, filterID string, isAuthenticate
 	return filterJob, nil
 }
 
-// This could be simplified by removing this and adding the statement to the
-// NewDatastore method but there will be other fields that will be available to
-// update in the near future and hence this function will stay here
-func updateStatement(filter *models.Filter) (string, error) {
-	statement := "UPDATE Filters SET"
-	var hasUpdate bool
-
-	if filter.State != "" {
-		hasUpdate = true
-		statement = statement + " state = '" + filter.State + "',"
-	}
-
-	if !hasUpdate {
-		err := errors.New("Bad request")
-		log.ErrorC("missing a filter field that can be updated", err, log.Data{"filter": filter})
-		return "", err
-	}
-
-	statement = strings.TrimSuffix(statement, ",")
-	statement = statement + " WHERE filterJobId = $1 RETURNING filterJobId"
-
-	return statement, nil
+type statements struct {
+	filterStatement       string
+	downloadCSVStatement  string
+	downloadJSONStatement string
+	downloadXLSStatement  string
 }
 
 func prepare(sql string, db *sql.DB) (*sql.Stmt, error) {
@@ -591,7 +631,7 @@ func prepare(sql string, db *sql.DB) (*sql.Stmt, error) {
 	return statement, nil
 }
 
-func convertSQLError(err error, typ string) error {
+func convertError(err error, typ string) error {
 	switch {
 	case err == sql.ErrNoRows:
 		if typ == "bad request" {
@@ -604,6 +644,11 @@ func convertSQLError(err error, typ string) error {
 			return errors.New("Option not found")
 		}
 		return errors.New("Not found")
+	case err == err.(*pq.Error):
+		if err.(*pq.Error).Constraint != "" {
+			return errors.New("Bad request")
+		}
+		return err
 	case err != nil:
 		return err
 	}
