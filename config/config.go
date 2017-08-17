@@ -24,7 +24,7 @@ func Get() (*Config, error) {
 	cfg = &Config{
 		BindAddr:                ":22100",
 		Brokers:                 []string{"localhost:9092"},
-		FilterJobSubmittedTopic: "filter-job-submitted-topic",
+		FilterJobSubmittedTopic: "filter-job-submitted",
 		Host:          "http://localhost:22100",
 		KafkaMaxBytes: "2000000",
 		PostgresURL:   "user=dp dbname=FilterJobs sslmode=disable",
