@@ -64,7 +64,5 @@ func main() {
 		log.Error(err, nil)
 	}
 
-	db.Close()
-
 	producer.Closer() <- true
 }

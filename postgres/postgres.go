@@ -167,6 +167,10 @@ func (ds Datastore) AddFilterDimensionOption(dimensionOptionObject *models.AddDi
 	}
 	defer rows.Close()
 
+	if err = rows.Err(); err != nil {
+		return convertError(err, "")
+	}
+
 	if _, err = ds.upsertDimensionOption.Exec(dimensionOptionObject.FilterID, dimensionOptionObject.Name, dimensionOptionObject.Option); err != nil {
 		return err
 	}
@@ -201,6 +205,10 @@ func (ds Datastore) GetFilter(filterID string) (models.Filter, error) {
 		return filterJob, convertError(err, "")
 	}
 	defer downloadRows.Close()
+
+	if err = downloadRows.Err(); err != nil {
+		return filterJob, convertError(err, "")
+	}
 
 	downloads := models.Downloads{}
 	for downloadRows.Next() {
@@ -248,6 +256,10 @@ func (ds Datastore) GetFilterDimensions(filterID string) ([]models.Dimension, er
 	}
 	defer dimensionRows.Close()
 
+	if err = dimensionRows.Err(); err != nil {
+		return dimensions, convertError(err, "")
+	}
+
 	for dimensionRows.Next() {
 		var name sql.NullString
 		err := dimensionRows.Scan(&name)
@@ -294,6 +306,10 @@ func (ds Datastore) GetFilterDimensionOptions(filterID string, name string) (mod
 		return options, convertError(err, "")
 	}
 	defer optionRows.Close()
+
+	if err = optionRows.Err(); err != nil {
+		return options, convertError(err, "")
+	}
 
 	var option sql.NullString
 	var optionURLs []string
