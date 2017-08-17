@@ -607,19 +607,19 @@ func (ds Datastore) removeDimension(tx *sql.Tx, dimensionObject *models.AddDimen
 }
 
 func getFilterJobState(tx *sql.Tx, ds Datastore, filterID string, isAuthenticated bool) (*models.Filter, error) {
-	var filterJob *models.Filter
 	row := tx.Stmt(ds.getFilterState).QueryRow(filterID)
 
 	var filter sql.NullString
-
 	if err := row.Scan(&filter); err != nil {
 		return nil, convertError(err, "")
 	}
 
 	state := filter.String
 
-	filterJob.FilterID = filterID
-	filterJob.State = state
+	filterJob := &models.Filter{
+		FilterID: filterID,
+		State:    state,
+	}
 
 	if !isAuthenticated {
 		if state == submittedState || state == completedState {
