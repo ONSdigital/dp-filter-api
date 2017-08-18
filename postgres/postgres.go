@@ -632,13 +632,6 @@ func getFilterJobState(tx *sql.Tx, ds Datastore, filterID string, isAuthenticate
 	return filterJob, nil
 }
 
-type statements struct {
-	filterStatement       string
-	downloadCSVStatement  string
-	downloadJSONStatement string
-	downloadXLSStatement  string
-}
-
 func prepare(sql string, db *sql.DB) (*sql.Stmt, error) {
 	statement, err := db.Prepare(sql)
 	if err != nil {
