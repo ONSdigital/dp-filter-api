@@ -26,8 +26,8 @@ var (
 	getDimensionOptionSQL    = "SELECT option FROM Dimensions WHERE filterJobId = (.+) AND name = (.+) AND option = (.+)"
 	getDownloadItemsSQL      = "SELECT size, type, url FROM Downloads WHERE"
 	updateFilterStateSQL     = "UPDATE Filters SET"
-	upsertDimensionOptionSQL = "INSERT INTO Dimensions(.+) VALUES(.+) ON CONSTRAINT"
-	upsertDownloadURLSQL     = "INSERT INTO Downloads(.+) VALUES(.+) ON CONSTRAINT"
+	upsertDimensionOptionSQL = "INSERT INTO Dimensions(.+) VALUES(.+) ON CONFLICT ON CONSTRAINT (.+)"
+	upsertDownloadURLSQL     = "INSERT INTO Downloads(.+) VALUES(.+) ON CONFLICT ON CONSTRAINT (.+)"
 )
 
 func TestNewPostgresDatastore(t *testing.T) {
@@ -136,10 +136,10 @@ func TestAddFilterDimensionOption(t *testing.T) {
 		mock, db := NewSQLMockWithSQLStatements()
 		ds, err := NewDatastore(db)
 		So(err, ShouldBeNil)
-		mock.ExpectPrepare(getFilterSQL).ExpectQuery().WithArgs(sqlmock.AnyArg()).
+		mock.ExpectQuery(getFilterSQL).WithArgs(sqlmock.AnyArg()).
 			WillReturnRows(sqlmock.NewRows([]string{"filterId", "datasetFilterId", "state"}).
 				AddRow("123", "12345678", "created"))
-		mock.ExpectPrepare(getDimensionSQL).ExpectQuery().WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg()).
+		mock.ExpectQuery(getDimensionSQL).WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg()).
 			WillReturnRows(sqlmock.NewRows([]string{"name"}).
 				AddRow("age"))
 		mock.ExpectPrepare(upsertDimensionOptionSQL).ExpectExec().WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg()).
@@ -153,6 +153,7 @@ func TestAddFilterDimensionOption(t *testing.T) {
 
 		err = ds.AddFilterDimensionOption(dimensionOptionObject)
 		So(err, ShouldBeNil)
+		So(mock.ExpectationsWereMet(), ShouldBeNil)
 	})
 }
 
@@ -206,10 +207,10 @@ func TestGetFilterDimensions(t *testing.T) {
 		mock, db := NewSQLMockWithSQLStatements()
 		ds, err := NewDatastore(db)
 		So(err, ShouldBeNil)
-		mock.ExpectPrepare(getFilterSQL).ExpectQuery().WithArgs(sqlmock.AnyArg()).
+		mock.ExpectQuery(getFilterSQL).WithArgs(sqlmock.AnyArg()).
 			WillReturnRows(sqlmock.NewRows([]string{"filterJobId", "datasetFilterId", "state"}).
 				AddRow("123", "12345678", "completed"))
-		mock.ExpectPrepare(getDimensionsSQL).ExpectQuery().WithArgs(sqlmock.AnyArg()).
+		mock.ExpectQuery(getDimensionsSQL).WithArgs(sqlmock.AnyArg()).
 			WillReturnRows(sqlmock.NewRows([]string{"name"}).
 				AddRow("age").AddRow("time"))
 
@@ -230,6 +231,7 @@ func TestGetFilterDimensions(t *testing.T) {
 		dimensions, err := ds.GetFilterDimensions("123")
 		So(err, ShouldBeNil)
 		So(dimensions, ShouldResemble, expectedDimensions)
+		So(mock.ExpectationsWereMet(), ShouldBeNil)
 	})
 }
 
@@ -239,13 +241,13 @@ func TestGetFilterDimensionOptions(t *testing.T) {
 		mock, db := NewSQLMockWithSQLStatements()
 		ds, err := NewDatastore(db)
 		So(err, ShouldBeNil)
-		mock.ExpectPrepare(getFilterSQL).ExpectQuery().WithArgs(sqlmock.AnyArg()).
+		mock.ExpectQuery(getFilterSQL).WithArgs(sqlmock.AnyArg()).
 			WillReturnRows(sqlmock.NewRows([]string{"filterJobId", "datasetFilterId", "state"}).
 				AddRow("123", "12345678", "created"))
-		mock.ExpectPrepare(getDimensionSQL).ExpectQuery().WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg()).
+		mock.ExpectQuery(getDimensionSQL).WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg()).
 			WillReturnRows(sqlmock.NewRows([]string{"name"}).
 				AddRow("age"))
-		mock.ExpectPrepare(getDimensionOptionsSQL).ExpectQuery().WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg()).
+		mock.ExpectQuery(getDimensionOptionsSQL).WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg()).
 			WillReturnRows(sqlmock.NewRows([]string{"option"}).
 				AddRow("29").AddRow("7"))
 
@@ -256,6 +258,7 @@ func TestGetFilterDimensionOptions(t *testing.T) {
 		dimensionOptions, err := ds.GetFilterDimensionOptions("123", "age")
 		So(err, ShouldBeNil)
 		So(dimensionOptions, ShouldResemble, expectedDimensionOptions)
+		So(mock.ExpectationsWereMet(), ShouldBeNil)
 	})
 }
 
@@ -265,15 +268,16 @@ func TestGetFilterDimension(t *testing.T) {
 		mock, db := NewSQLMockWithSQLStatements()
 		ds, err := NewDatastore(db)
 		So(err, ShouldBeNil)
-		mock.ExpectPrepare(getFilterSQL).ExpectQuery().WithArgs(sqlmock.AnyArg()).
+		mock.ExpectQuery(getFilterSQL).WithArgs(sqlmock.AnyArg()).
 			WillReturnRows(sqlmock.NewRows([]string{"filterJobId", "datasetFilterId", "state"}).
 				AddRow("123", "12345678", "created"))
-		mock.ExpectPrepare(getDimensionSQL).ExpectQuery().WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg()).
+		mock.ExpectQuery(getDimensionSQL).WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg()).
 			WillReturnRows(sqlmock.NewRows([]string{"name"}).
 				AddRow("age"))
 
 		err = ds.GetFilterDimension("123", "age")
 		So(err, ShouldBeNil)
+		So(mock.ExpectationsWereMet(), ShouldBeNil)
 	})
 }
 
@@ -283,18 +287,19 @@ func TestGetFilterDimensionOption(t *testing.T) {
 		mock, db := NewSQLMockWithSQLStatements()
 		ds, err := NewDatastore(db)
 		So(err, ShouldBeNil)
-		mock.ExpectPrepare(getFilterSQL).ExpectQuery().WithArgs(sqlmock.AnyArg()).
+		mock.ExpectQuery(getFilterSQL).WithArgs(sqlmock.AnyArg()).
 			WillReturnRows(sqlmock.NewRows([]string{"filterJobId", "datasetFilterId", "state"}).
 				AddRow("123", "12345678", "created"))
-		mock.ExpectPrepare(getDimensionSQL).ExpectQuery().WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg()).
+		mock.ExpectQuery(getDimensionSQL).WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg()).
 			WillReturnRows(sqlmock.NewRows([]string{"name"}).
 				AddRow("age"))
-		mock.ExpectPrepare(getDimensionOptionSQL).ExpectQuery().WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg()).
+		mock.ExpectQuery(getDimensionOptionSQL).WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg()).
 			WillReturnRows(sqlmock.NewRows([]string{"name"}).
 				AddRow("26"))
 
 		err = ds.GetFilterDimensionOption("123", "age", "26")
 		So(err, ShouldBeNil)
+		So(mock.ExpectationsWereMet(), ShouldBeNil)
 	})
 }
 
@@ -317,6 +322,7 @@ func TestRemoveFilterDimension(t *testing.T) {
 
 		err = ds.RemoveFilterDimension("123", "age")
 		So(err, ShouldBeNil)
+		So(mock.ExpectationsWereMet(), ShouldBeNil)
 	})
 }
 
@@ -339,6 +345,7 @@ func TestRemoveFilterDimensionOption(t *testing.T) {
 
 		err = ds.RemoveFilterDimensionOption("123", "age", "26")
 		So(err, ShouldBeNil)
+		So(mock.ExpectationsWereMet(), ShouldBeNil)
 	})
 }
 
@@ -365,6 +372,7 @@ func TestUpdateFilter(t *testing.T) {
 
 			err = ds.UpdateFilter(false, filter)
 			So(err, ShouldBeNil)
+			So(mock.ExpectationsWereMet(), ShouldBeNil)
 		})
 
 		Convey("when an authenticated user updates downloads object", func() {
@@ -407,6 +415,7 @@ func TestUpdateFilter(t *testing.T) {
 
 			err = ds.UpdateFilter(true, filter)
 			So(err, ShouldBeNil)
+			So(mock.ExpectationsWereMet(), ShouldBeNil)
 		})
 	})
 }
