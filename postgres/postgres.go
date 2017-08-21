@@ -24,6 +24,8 @@ type Datastore struct {
 	addFilter             *sql.Stmt
 	addDimension          *sql.Stmt
 	addDimensionOption    *sql.Stmt
+	deleteDimension       *sql.Stmt
+	deleteDimensionOption *sql.Stmt
 	getFilter             *sql.Stmt
 	getFilterState        *sql.Stmt
 	getDimension          *sql.Stmt
@@ -31,8 +33,6 @@ type Datastore struct {
 	getDimensionOptions   *sql.Stmt
 	getDimensionOption    *sql.Stmt
 	getDownloadItems      *sql.Stmt
-	deleteDimension       *sql.Stmt
-	deleteDimensionOption *sql.Stmt
 	upsertDimensionOption *sql.Stmt
 	upsertDownloadURL     *sql.Stmt
 	updateFilterState     *sql.Stmt
@@ -40,9 +40,11 @@ type Datastore struct {
 
 // NewDatastore manages a postgres datastore used to store and find information about filters and dimensions
 func NewDatastore(db *sql.DB) (Datastore, error) {
-	addFilter, err := prepare("INSERT INTO Filters(filterJobId, datasetfilterID, state) VALUES($1, $2, $3)", db)
+	addFilter, err := prepare("INSERT INTO Filters(filterJobId, datasetfilterId, state) VALUES($1, $2, $3)", db)
 	addDimension, err := prepare("INSERT INTO Dimensions(filterJobId, name) VALUES($1, $2)", db)
 	addDimensionOption, err := prepare("INSERT INTO Dimensions(filterJobId, name, option) VALUES($1, $2, $3)", db)
+	deleteDimension, err := prepare("DELETE FROM Dimensions WHERE filterJobId = $1 AND name = $2", db)
+	deleteDimensionOption, err := prepare("DELETE FROM Dimensions WHERE filterJobId = $1 AND name = $2 AND option = $3", db)
 	getFilter, err := prepare("SELECT * FROM Filters WHERE filterJobId = $1", db)
 	getFilterState, err := prepare("SELECT state FROM Filters WHERE filterJobId = $1", db)
 	getDimension, err := prepare("SELECT name FROM Dimensions WHERE filterJobId = $1 AND name = $2", db)
@@ -50,8 +52,6 @@ func NewDatastore(db *sql.DB) (Datastore, error) {
 	getDimensionOptions, err := prepare("SELECT option FROM Dimensions WHERE filterJobId = $1 AND name = $2", db)
 	getDimensionOption, err := prepare("SELECT option FROM Dimensions WHERE filterJobId = $1 AND name = $2 AND option = $3", db)
 	getDownloadItems, err := prepare("SELECT size, type, url FROM Downloads WHERE filterJobId = $1", db)
-	deleteDimension, err := prepare("DELETE FROM Dimensions WHERE filterJobId = $1 AND name = $2", db)
-	deleteDimensionOption, err := prepare("DELETE FROM Dimensions WHERE filterJobId = $1 AND name = $2 AND option = $3", db)
 	upsertDimensionOption, err := prepare("INSERT INTO Dimensions(filterJobId, name, option) VALUES($1, $2, $3) ON CONFLICT ON CONSTRAINT filterJobDimensionOption DO UPDATE SET option = $3", db)
 	upsertDownloadURL, err := prepare("INSERT INTO Downloads(filterJobId, size, type, url) VALUES($1,$2,$3,$4) ON CONFLICT ON CONSTRAINT filterJobDownloadURL DO UPDATE SET size = $2, url = $4", db)
 	updateFilterState, err := prepare("UPDATE Filters SET state = $2 WHERE filterJobId = $1", db)
@@ -99,7 +99,6 @@ func (ds Datastore) AddFilterDimension(dimensionObject *models.AddDimension) err
 	row := tx.Stmt(ds.getFilter).QueryRow(dimensionObject.FilterID)
 
 	var filterJobID, datasetFilterID, state sql.NullString
-
 	if err := row.Scan(&filterJobID, &datasetFilterID, &state); err != nil {
 		return convertError(err, "bad request")
 	}
@@ -135,6 +134,7 @@ func (ds Datastore) AddFilterDimension(dimensionObject *models.AddDimension) err
 			if err := tx.Rollback(); err != nil {
 				return err
 			}
+			return err
 		}
 	}
 
@@ -150,7 +150,6 @@ func (ds Datastore) AddFilterDimensionOption(dimensionOptionObject *models.AddDi
 	row := ds.getFilter.QueryRow(dimensionOptionObject.FilterID)
 
 	var filterJobID, datasetFilterID, state sql.NullString
-
 	if err := row.Scan(&filterJobID, &datasetFilterID, &state); err != nil {
 		return convertError(err, "bad request")
 	}
@@ -191,7 +190,7 @@ func (ds Datastore) GetFilter(filterID string) (models.Filter, error) {
 
 	var filterJobID, datasetFilterID, state sql.NullString
 
-	if err := row.Scan(&filterJobID, &datasetFilterID, &state); err != nil {
+	if err = row.Scan(&filterJobID, &datasetFilterID, &state); err != nil {
 		return filterJob, convertError(err, "")
 	}
 
@@ -241,7 +240,6 @@ func (ds Datastore) GetFilterDimensions(filterID string) ([]models.Dimension, er
 	dimensions := []models.Dimension{}
 
 	checkFilterJobExists := ds.getFilter.QueryRow(filterID)
-
 	var filterJobID, datasetFilterID, state sql.NullString
 
 	if err := checkFilterJobExists.Scan(&filterJobID, &datasetFilterID, &state); err != nil {
@@ -565,9 +563,8 @@ func (ds Datastore) UpdateFilter(isAuthenticated bool, filter *models.Filter) er
 // addSingleDimension creates a single dimension and relates it to filter job
 func (ds Datastore) addSingleDimension(tx *sql.Tx, filterID string, name string) error {
 	log.Info("about to update dimension", nil)
-	help, err := tx.Stmt(ds.addDimension).Exec(filterID, name)
+	_, err := tx.Stmt(ds.addDimension).Exec(filterID, name)
 	if err != nil {
-		log.ErrorC("got an error", err, log.Data{"what am i": help})
 		return err
 	}
 	return nil
@@ -609,12 +606,12 @@ func (ds Datastore) removeDimension(tx *sql.Tx, dimensionObject *models.AddDimen
 func getFilterJobState(tx *sql.Tx, ds Datastore, filterID string, isAuthenticated bool) (*models.Filter, error) {
 	row := tx.Stmt(ds.getFilterState).QueryRow(filterID)
 
-	var filter sql.NullString
-	if err := row.Scan(&filter); err != nil {
+	var filterState sql.NullString
+	if err := row.Scan(&filterState); err != nil {
 		return nil, convertError(err, "")
 	}
 
-	state := filter.String
+	state := filterState.String
 
 	filterJob := &models.Filter{
 		FilterID: filterID,

@@ -9,6 +9,18 @@
 			"revisionTime": "2017-07-28T08:24:17Z"
 		},
 		{
+			"checksumSHA1": "J9OiPnhPHFPhQ+R+dq6LFj+dTxE=",
+			"path": "github.com/ONSdigital/go-ns/handlers/requestID",
+			"revision": "c493b1568574c9720d7805f23ce6271ac445dc57",
+			"revisionTime": "2017-07-28T08:24:17Z"
+		},
+		{
+			"checksumSHA1": "HgL/HLG5D1WNPb1lrb/hpywtm9o=",
+			"path": "github.com/ONSdigital/go-ns/handlers/timeout",
+			"revision": "c493b1568574c9720d7805f23ce6271ac445dc57",
+			"revisionTime": "2017-07-28T08:24:17Z"
+		},
+		{
 			"checksumSHA1": "dF3c6fF99+C/Y09aqUqJ9ouiHPE=",
 			"path": "github.com/ONSdigital/go-ns/kafka",
 			"revision": "c493b1568574c9720d7805f23ce6271ac445dc57",
@@ -17,6 +29,12 @@
 		{
 			"checksumSHA1": "AjbjbhFVAOP/1NU5HL+uy+X/yJo=",
 			"path": "github.com/ONSdigital/go-ns/log",
+			"revision": "c493b1568574c9720d7805f23ce6271ac445dc57",
+			"revisionTime": "2017-07-28T08:24:17Z"
+		},
+		{
+			"checksumSHA1": "iz7DRbcFPAK2UUXpmFs2byjTwm0=",
+			"path": "github.com/ONSdigital/go-ns/server",
 			"revision": "c493b1568574c9720d7805f23ce6271ac445dc57",
 			"revisionTime": "2017-07-28T08:24:17Z"
 		},
@@ -104,6 +122,13 @@
 			"path": "github.com/jtolds/gls",
 			"revision": "77f18212c9c7edc9bd6a33d383a7b545ce62f064",
 			"revisionTime": "2017-05-03T22:40:06Z"
+		},
+		{
+			"checksumSHA1": "OBvAHqWjdI4NQVAqTkcQAdTuCFY=",
+			"origin": "github.com/ONSdigital/go-ns/vendor/github.com/justinas/alice",
+			"path": "github.com/justinas/alice",
+			"revision": "c493b1568574c9720d7805f23ce6271ac445dc57",
+			"revisionTime": "2017-07-28T08:24:17Z"
 		},
 		{
 			"checksumSHA1": "Wh2YCiWY/VIAEEQGLS7sMB9isXk=",
