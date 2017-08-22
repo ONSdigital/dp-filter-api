@@ -61,7 +61,7 @@ func TestAddFilterFailure(t *testing.T) {
 
 		bodyBytes, _ := ioutil.ReadAll(w.Body)
 		response := string(bodyBytes)
-		So(response, ShouldResemble, "Bad client request received\n")
+		So(response, ShouldResemble, "Bad request - Invalid request body\n")
 	})
 
 	Convey("When a empty json message is sent, a bad request is returned", t, func() {
@@ -76,7 +76,7 @@ func TestAddFilterFailure(t *testing.T) {
 
 		bodyBytes, _ := ioutil.ReadAll(w.Body)
 		response := string(bodyBytes)
-		So(response, ShouldResemble, "Bad client request received\n")
+		So(response, ShouldResemble, "Bad request - Invalid request body\n")
 	})
 
 	Convey("When a json message is missing mandatory fields, a bad request is returned", t, func() {
@@ -91,7 +91,7 @@ func TestAddFilterFailure(t *testing.T) {
 
 		bodyBytes, _ := ioutil.ReadAll(w.Body)
 		response := string(bodyBytes)
-		So(response, ShouldResemble, "Bad client request received\n")
+		So(response, ShouldResemble, "Bad request - Invalid request body\n")
 	})
 }
 
@@ -160,7 +160,7 @@ func TestAddFilterJobDimensionFailure(t *testing.T) {
 
 		bodyBytes, _ := ioutil.ReadAll(w.Body)
 		response := string(bodyBytes)
-		So(response, ShouldResemble, "Bad client request received\n")
+		So(response, ShouldResemble, "Bad request - Invalid request body\n")
 	})
 
 	Convey("When a filter job does not exist, a not found is returned", t, func() {
@@ -190,7 +190,7 @@ func TestAddFilterJobDimensionFailure(t *testing.T) {
 
 		bodyBytes, _ := ioutil.ReadAll(w.Body)
 		response := string(bodyBytes)
-		So(response, ShouldResemble, "Forbidden, the job has been locked as it has been submitted to be processed\n")
+		So(response, ShouldResemble, "Forbidden, the filter job has been locked as it has been submitted to be processed\n")
 	})
 }
 
@@ -248,7 +248,7 @@ func TestAddFilterJobDimensionOptionFailure(t *testing.T) {
 
 		bodyBytes, _ := ioutil.ReadAll(w.Body)
 		response := string(bodyBytes)
-		So(response, ShouldResemble, "Forbidden, the job has been locked as it has been submitted to be processed\n")
+		So(response, ShouldResemble, "Forbidden, the filter job has been locked as it has been submitted to be processed\n")
 	})
 
 	Convey("When a dimension for filter job does not exist, a not found status is returned", t, func() {
@@ -334,7 +334,7 @@ func TestFailedUpdateFilterJob(t *testing.T) {
 
 		bodyBytes, _ := ioutil.ReadAll(w.Body)
 		response := string(bodyBytes)
-		So(response, ShouldResemble, "Bad client request received\n")
+		So(response, ShouldResemble, "Bad request - Invalid request body\n")
 	})
 
 	Convey("When a empty json message is sent, a bad request is returned", t, func() {
@@ -394,7 +394,7 @@ func TestFailedUpdateFilterJob(t *testing.T) {
 
 		bodyBytes, _ := ioutil.ReadAll(w.Body)
 		response := string(bodyBytes)
-		So(response, ShouldResemble, "Forbidden, the job has been locked as it has been submitted to be processed\n")
+		So(response, ShouldResemble, "Forbidden, the filter job has been locked as it has been submitted to be processed\n")
 	})
 
 	Convey("a json message is sent to change a submitted filter with the wrong authorisation header, an unauthorised status is returned", t, func() {
@@ -687,7 +687,7 @@ func TestRemoveFilterDimensionFailure(t *testing.T) {
 
 		bodyBytes, _ := ioutil.ReadAll(w.Body)
 		response := string(bodyBytes)
-		So(response, ShouldResemble, "Forbidden, the job has been locked as it has been submitted to be processed\n")
+		So(response, ShouldResemble, "Forbidden, the filter job has been locked as it has been submitted to be processed\n")
 	})
 
 	Convey("When dimension does not exist against filter job, a not found is returned", t, func() {
@@ -759,7 +759,7 @@ func TestRemoveOptionDimensionFailure(t *testing.T) {
 
 		bodyBytes, _ := ioutil.ReadAll(w.Body)
 		response := string(bodyBytes)
-		So(response, ShouldResemble, "Forbidden, the job has been locked as it has been submitted to be processed\n")
+		So(response, ShouldResemble, "Forbidden, the filter job has been locked as it has been submitted to be processed\n")
 	})
 
 	Convey("When dimension does not exist against filter job, a not found is returned", t, func() {

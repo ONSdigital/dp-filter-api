@@ -84,11 +84,11 @@ func (ds *DataStore) GetFilterDimensions(filterID string) ([]models.Dimension, e
 	dimensions := []models.Dimension{}
 
 	if ds.NotFound {
-		return dimensions, notFoundError
+		return nil, notFoundError
 	}
 
 	if ds.InternalError {
-		return dimensions, internalServerError
+		return nil, internalServerError
 	}
 
 	dimensions = append(dimensions, models.Dimension{Name: "1_age", DimensionURL: "/filters/123/dimensions/1_age"})
@@ -112,27 +112,29 @@ func (ds *DataStore) GetFilterDimension(filterID string, name string) error {
 	return nil
 }
 
-func (ds *DataStore) GetFilterDimensionOptions(filterID string, name string) (models.GetDimensionOptions, error) {
+func (ds *DataStore) GetFilterDimensionOptions(filterID string, name string) ([]models.DimensionOption, error) {
 	var (
-		options    models.GetDimensionOptions
-		optionURLs []string
+		options []models.DimensionOption
 	)
 
 	if ds.BadRequest {
-		return options, badRequestError
+		return nil, badRequestError
 	}
 
 	if ds.DimensionNotFound {
-		return options, dimensionionNotFound
+		return nil, dimensionionNotFound
 	}
 
 	if ds.InternalError {
-		return options, internalServerError
+		return nil, internalServerError
 	}
 
-	optionURLs = append(optionURLs, "/filters/123/dimensions/1_age/options/26")
+	option := models.DimensionOption{
+		DimensionOptionURL: "/filters/123/dimensions/1_age/options/26",
+		Option:             "26",
+	}
 
-	options.DimensionOptionURLs = optionURLs
+	options = append(options, option)
 
 	return options, nil
 }

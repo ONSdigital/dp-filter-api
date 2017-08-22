@@ -67,9 +67,10 @@ type AddDimensionOption struct {
 	Option   string
 }
 
-// GetDimensionOptions represents an array of urls for a dimension options returned on a GET request
-type GetDimensionOptions struct {
-	DimensionOptionURLs []string `json:"dimension_option_urls"`
+// DimensionOption represents dimension option information
+type DimensionOption struct {
+	DimensionOptionURL string `json:"dimension_option_url"`
+	Option             string `json:"option"`
 }
 
 // Validate checks the content of the filter structure

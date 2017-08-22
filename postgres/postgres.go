@@ -243,26 +243,26 @@ func (ds Datastore) GetFilterDimensions(filterID string) ([]models.Dimension, er
 	var filterJobID, datasetFilterID, state sql.NullString
 
 	if err := checkFilterJobExists.Scan(&filterJobID, &datasetFilterID, &state); err != nil {
-		return dimensions, convertError(err, "")
+		return nil, convertError(err, "")
 	}
 
 	uniqueDimensions := make(map[string]string)
 
 	dimensionRows, err := ds.getDimensions.Query(filterID)
 	if err != nil {
-		return dimensions, convertError(err, "")
+		return nil, convertError(err, "dimension not found")
 	}
 	defer dimensionRows.Close()
 
 	if err = dimensionRows.Err(); err != nil {
-		return dimensions, convertError(err, "")
+		return nil, convertError(err, "")
 	}
 
 	for dimensionRows.Next() {
 		var name sql.NullString
 		err := dimensionRows.Scan(&name)
 		if err != nil {
-			return dimensions, err
+			return nil, err
 		}
 
 		if _, ok := uniqueDimensions[name.String]; ok {
@@ -280,15 +280,15 @@ func (ds Datastore) GetFilterDimensions(filterID string) ([]models.Dimension, er
 }
 
 // GetFilterDimensionOptions gets all options for a dimension of a filter job
-func (ds Datastore) GetFilterDimensionOptions(filterID string, name string) (models.GetDimensionOptions, error) {
-	var options models.GetDimensionOptions
+func (ds Datastore) GetFilterDimensionOptions(filterID string, name string) ([]models.DimensionOption, error) {
+	var options []models.DimensionOption
 
 	checkFilterJobExists := ds.getFilter.QueryRow(filterID)
 
 	var filterJobID, datasetFilterID, state sql.NullString
 
 	if err := checkFilterJobExists.Scan(&filterJobID, &datasetFilterID, &state); err != nil {
-		return options, convertError(err, "bad request")
+		return nil, convertError(err, "filter job not found")
 	}
 
 	checkDimensionExists := ds.getDimension.QueryRow(filterID, name)
@@ -296,21 +296,20 @@ func (ds Datastore) GetFilterDimensionOptions(filterID string, name string) (mod
 	var dimensionName sql.NullString
 
 	if err := checkDimensionExists.Scan(&dimensionName); err != nil {
-		return options, convertError(err, "dimension not found")
+		return nil, convertError(err, "bad request - dimension not found")
 	}
 
 	optionRows, err := ds.getDimensionOptions.Query(filterID, name)
 	if err != nil {
-		return options, convertError(err, "")
+		return nil, convertError(err, "")
 	}
 	defer optionRows.Close()
 
 	if err = optionRows.Err(); err != nil {
-		return options, convertError(err, "")
+		return nil, convertError(err, "")
 	}
 
 	var option sql.NullString
-	var optionURLs []string
 
 	for optionRows.Next() {
 		err := optionRows.Scan(&option)
@@ -325,10 +324,8 @@ func (ds Datastore) GetFilterDimensionOptions(filterID string, name string) (mod
 
 		dimensionOptionURL := "/filters/" + filterID + "/dimensions/" + name + "/options/" + option.String
 
-		optionURLs = append(optionURLs, dimensionOptionURL)
+		options = append(options, models.DimensionOption{DimensionOptionURL: dimensionOptionURL, Option: option.String})
 	}
-
-	options.DimensionOptionURLs = optionURLs
 
 	return options, nil
 }
@@ -340,7 +337,7 @@ func (ds Datastore) GetFilterDimension(filterID string, name string) error {
 	var filterJobID, datasetFilterID, state sql.NullString
 
 	if err := checkFilterJobExists.Scan(&filterJobID, &datasetFilterID, &state); err != nil {
-		return convertError(err, "bad request")
+		return convertError(err, "filter job not found")
 	}
 
 	checkDimensionExists := ds.getDimension.QueryRow(filterID, name)
@@ -348,7 +345,7 @@ func (ds Datastore) GetFilterDimension(filterID string, name string) error {
 	var dimensionName sql.NullString
 
 	if err := checkDimensionExists.Scan(&dimensionName); err != nil {
-		return convertError(err, "")
+		return convertError(err, "dimension not found")
 	}
 
 	return nil
@@ -361,7 +358,7 @@ func (ds Datastore) GetFilterDimensionOption(filterID string, name string, optio
 	var filterJobID, datasetFilterID, state sql.NullString
 
 	if err := checkFilterJobExists.Scan(&filterJobID, &datasetFilterID, &state); err != nil {
-		return convertError(err, "bad request")
+		return convertError(err, "filter job not found")
 	}
 
 	checkDimensionExists := ds.getDimension.QueryRow(filterID, name)
@@ -369,7 +366,7 @@ func (ds Datastore) GetFilterDimensionOption(filterID string, name string, optio
 	var dimensionName sql.NullString
 
 	if err := checkDimensionExists.Scan(&dimensionName); err != nil {
-		return convertError(err, "bad request")
+		return convertError(err, "bad request - dimension not found")
 	}
 
 	checkDimensionOptionExists := ds.getDimensionOption.QueryRow(filterID, name, option)
@@ -394,7 +391,7 @@ func (ds Datastore) RemoveFilterDimension(filterID string, name string) error {
 	var filterJobID, datasetFilterID, state sql.NullString
 
 	if err := checkFilterJobExists.Scan(&filterJobID, &datasetFilterID, &state); err != nil {
-		return convertError(err, "bad request")
+		return convertError(err, "filter job not found")
 	}
 
 	if state.String == submittedState || state.String == completedState {
@@ -440,7 +437,7 @@ func (ds Datastore) RemoveFilterDimensionOption(filterID string, name string, op
 	var filterJobID, datasetFilterID, state sql.NullString
 
 	if err := checkFilterJobExists.Scan(&filterJobID, &datasetFilterID, &state); err != nil {
-		return convertError(err, "bad request")
+		return convertError(err, "filter job not found")
 	}
 
 	if state.String == submittedState || state.String == completedState {
@@ -454,7 +451,7 @@ func (ds Datastore) RemoveFilterDimensionOption(filterID string, name string, op
 	var dimensionName sql.NullString
 
 	if err := checkDimensionExists.Scan(&dimensionName); err != nil {
-		return convertError(err, "bad request")
+		return convertError(err, "filter job not found")
 	}
 
 	results, err := ds.deleteDimensionOption.Exec(filterID, name, option)
@@ -640,8 +637,11 @@ func prepare(sql string, db *sql.DB) (*sql.Stmt, error) {
 func convertError(err error, typ string) error {
 	switch {
 	case err == sql.ErrNoRows:
-		if typ == "bad request" {
-			return errors.New("Bad request")
+		if typ == "filter job not found" {
+			return errors.New("Bad request - filter job not found")
+		}
+		if typ == "bad request - dimension not found" {
+			return errors.New("Bad request - dimension not found")
 		}
 		if typ == "dimension not found" {
 			return errors.New("Dimension not found")

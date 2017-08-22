@@ -251,9 +251,19 @@ func TestGetFilterDimensionOptions(t *testing.T) {
 			WillReturnRows(sqlmock.NewRows([]string{"option"}).
 				AddRow("29").AddRow("7"))
 
-		expectedDimensionOptions := models.GetDimensionOptions{
-			DimensionOptionURLs: []string{"/filters/123/dimensions/age/options/29", "/filters/123/dimensions/age/options/7"},
+		var expectedDimensionOptions []models.DimensionOption
+
+		option1 := models.DimensionOption{
+			DimensionOptionURL: "/filters/123/dimensions/age/options/29",
+			Option:             "29",
 		}
+
+		option2 := models.DimensionOption{
+			DimensionOptionURL: "/filters/123/dimensions/age/options/7",
+			Option:             "7",
+		}
+
+		expectedDimensionOptions = append(expectedDimensionOptions, option1, option2)
 
 		dimensionOptions, err := ds.GetFilterDimensionOptions("123", "age")
 		So(err, ShouldBeNil)
@@ -430,10 +440,16 @@ func TestConvertError(t *testing.T) {
 			So(err, ShouldResemble, errors.New("Not found"))
 		})
 
-		Convey("when receiving an SQL number of rows error and a string type of \"bad request\", successfuly return \"Bad request\" error", func() {
-			err := convertError(sql.ErrNoRows, "bad request")
+		Convey("when receiving an SQL number of rows error and a string type of \"filter job not found\", successfuly return \"Bad request\" error", func() {
+			err := convertError(sql.ErrNoRows, "filter job not found")
 			So(err, ShouldNotBeNil)
-			So(err, ShouldResemble, errors.New("Bad request"))
+			So(err, ShouldResemble, errors.New("Bad request - filter job not found"))
+		})
+
+		Convey("when receiving an SQL number of rows error and a string type of \"bad request - dimension not found\", successfuly return \"Bad request\" error", func() {
+			err := convertError(sql.ErrNoRows, "bad request - dimension not found")
+			So(err, ShouldNotBeNil)
+			So(err, ShouldResemble, errors.New("Bad request - dimension not found"))
 		})
 
 		Convey("when receiving an SQL number of rows error and a string type of \"dimension not found\", successfuly return \"Dimension not found\" error", func() {

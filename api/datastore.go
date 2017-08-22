@@ -12,7 +12,7 @@ type DataStore interface {
 	GetFilter(filterID string) (models.Filter, error)
 	GetFilterDimensions(filterID string) ([]models.Dimension, error)
 	GetFilterDimension(filterID string, name string) error
-	GetFilterDimensionOptions(filterID string, name string) (models.GetDimensionOptions, error)
+	GetFilterDimensionOptions(filterID string, name string) ([]models.DimensionOption, error)
 	GetFilterDimensionOption(filterID string, name string, option string) error
 	RemoveFilterDimension(filterID string, name string) error
 	RemoveFilterDimensionOption(filterId string, name string, option string) error

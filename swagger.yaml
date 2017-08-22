@@ -132,12 +132,9 @@ paths:
         200:
           description: "A list of dimension URLs"
           schema:
-            type: object
-            properties:
-              dimensions:
-                type: array
-                items:
-                  $ref: '#/definitions/Dimension'
+            type: array
+            items:
+              $ref: '#/definitions/Dimension'
         404:
           $ref: '#/responses/FilterJobNotFound'
         500:
@@ -173,14 +170,11 @@ paths:
         201:
           description: "The dimension was created"
         400:
-          description: |
-            This error code could be one or more of:
-            * Invalid request body
-            * Filter job was not found
+          description: "Invalid request body"
         403:
-          description: Forbidden, the filter job has been locked as it has been `submitted` to be processed
+          description: "Forbidden, the filter job has been locked as it has been `submitted` to be processed"
         404:
-          description: "Dimension name not found"
+          description: "Filter job was not found"
         500:
           $ref: '#/responses/InternalError'
     delete:
@@ -212,7 +206,9 @@ paths:
         200:
           description: "A list of all options for a dimension was returned"
           schema:
-            $ref: '#/definitions/ListOptions'
+            type: array
+            items:
+              $ref: '#/definitions/Option'
         400:
           description: "Filter job was not found"
         404:
@@ -406,15 +402,16 @@ definitions:
         $ref: '#/definitions/DownloadFile'
       csv:
         $ref: '#/definitions/DownloadFile'
-  ListOptions:
+  Option:
     type: object
-    description: "A list of options for a dimension to filter on a dataset. Information on a dimension option can be gathered using the `Dataset API`"
+    description: "An option for a dimension to filter on a dataset. Information on a dimension option can be gathered using the `Dataset API`"
     properties:
-      dimension_option_urls:
-        type: array
-        description: "A link to the filtered options within dimension"
-        items:
-          type: string
+      dimension_option_url:
+        type: string
+        description: "A link to a filtered dimension option"
+      option:
+        type: string
+        description: "The filtered dimension option"
   Options:
     type: object
     description: "A list of options for dimension to filter on a dataset"

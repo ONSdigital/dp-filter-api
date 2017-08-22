@@ -14,9 +14,9 @@ import (
 
 var (
 	internalError = "Failed to process the request due to an internal error"
-	badRequest    = "Bad client request received"
+	badRequest    = "Bad request - Invalid request body"
 	unauthorised  = "Unauthorised, request lacks valid authentication credentials"
-	forbidden     = "Forbidden, the job has been locked as it has been submitted to be processed"
+	forbidden     = "Forbidden, the filter job has been locked as it has been submitted to be processed"
 )
 
 const internalToken = "internal_token"
@@ -44,6 +44,8 @@ func (api *FilterAPI) addFilterJob(w http.ResponseWriter, r *http.Request) {
 		setErrorCode(w, err)
 		return
 	}
+
+	// TODO Remove new filter job dimensions AND add dimension url
 
 	bytes, err := json.Marshal(filterJob)
 	if err != nil {
@@ -347,6 +349,12 @@ func setErrorCode(w http.ResponseWriter, err error) {
 		return
 	case err.Error() == "Option not found":
 		http.Error(w, "Option not found", http.StatusNotFound)
+		return
+	case err.Error() == "Bad request - filter job not found":
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	case err.Error() == "Bad request - dimension not found":
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	case err.Error() == "Bad request":
 		http.Error(w, "Bad request", http.StatusBadRequest)
