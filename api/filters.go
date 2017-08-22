@@ -56,6 +56,13 @@ func (api *FilterAPI) addFilterJob(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if filterJob.State == "submitted" {
+
+		api.jobQueue.Queue(&filterJob)
+
+		log.Info("filter job message sent to kafka", log.Data{"filter_job_id": filterJob.FilterID})
+	}
+
 	setJSONContentType(w)
 	w.WriteHeader(http.StatusCreated)
 	_, err = w.Write(bytes)
