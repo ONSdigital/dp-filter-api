@@ -45,7 +45,9 @@ func (api *FilterAPI) addFilterJob(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO Remove new filter job dimensions AND add dimension url
+	// Remove new filter job dimensions and build dimension url
+	filterJob.Dimensions = nil
+	filterJob.DimensionListURL = "/filters/" + filterJob.FilterID + "/dimensions"
 
 	bytes, err := json.Marshal(filterJob)
 	if err != nil {
