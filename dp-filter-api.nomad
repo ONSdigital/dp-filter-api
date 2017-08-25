@@ -4,7 +4,7 @@ job "dp-filter-api" {
   type        = "service"
 
   group "web" {
-    count = {{WEB_TASK_COUNT}}
+    count = "{{WEB_TASK_COUNT}}"
 
     constraint {
       attribute = "${node.class}"
@@ -15,15 +15,18 @@ job "dp-filter-api" {
       driver = "exec"
 
       artifact {
-        source = "s3::https://s3-eu-west-1.amazonaws.com/ons-dp-deployments/dp-filter-api/latest.tar.gz"
+        source = "s3::https://s3-eu-west-1.amazonaws.com/{{BUILD_BUCKET}}/dp-filter-api/{{REVISION}}.tar.gz"
+      }
+
+      artifact {
+        source = "s3::https://s3-eu-west-1.amazonaws.com/{{DEPLOYMENT_BUCKET}}/dp-filter-api/{{REVISION}}.tar.gz"
       }
 
       config {
         command = "${NOMAD_TASK_DIR}/start-task"
-
-         args = [
-                  "${NOMAD_TASK_DIR}/dp-filter-api",
-                ]
+        args    = [
+          "${NOMAD_TASK_DIR}/dp-filter-api",
+        ]
       }
 
       service {
@@ -53,7 +56,7 @@ job "dp-filter-api" {
   }
 
   group "publishing" {
-    count = {{PUBLISHING_TASK_COUNT}}
+    count = "{{PUBLISHING_TASK_COUNT}}"
 
     constraint {
       attribute = "${node.class}"
@@ -64,15 +67,18 @@ job "dp-filter-api" {
       driver = "exec"
 
       artifact {
-        source = "s3::https://s3-eu-west-1.amazonaws.com/ons-dp-deployments/dp-filter-api/latest.tar.gz"
+        source = "s3::https://s3-eu-west-1.amazonaws.com/{{BUILD_BUCKET}}/dp-filter-api/{{REVISION}}.tar.gz"
+      }
+
+      artifact {
+        source = "s3::https://s3-eu-west-1.amazonaws.com/{{DEPLOYMENT_BUCKET}}/dp-filter-api/{{REVISION}}.tar.gz"
       }
 
       config {
         command = "${NOMAD_TASK_DIR}/start-task"
-
-         args = [
-                  "${NOMAD_TASK_DIR}/dp-filter-api",
-                ]
+        args    = [
+          "${NOMAD_TASK_DIR}/dp-filter-api",
+        ]
       }
 
       service {
@@ -100,5 +106,4 @@ job "dp-filter-api" {
       }
     }
   }
-
 }
