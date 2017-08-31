@@ -25,4 +25,9 @@ CREATE TABLE Downloads(
 
 ALTER TABLE Dimensions
   ADD CONSTRAINT filterJobDimensionOption
-  UNIQUE (filterJobId, name, option)
+  UNIQUE (filterJobId, name, option);
+
+
+ALTER TABLE Downloads
+  ADD CONSTRAINT filterJobDownloadURL
+  UNIQUE (filterJobId, type);

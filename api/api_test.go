@@ -13,7 +13,10 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-var host = "http://localhost:80"
+var (
+	host       = "http://localhost:80"
+	authHeader = "cake"
+)
 
 func TestSuccessfulAddFilterJob(t *testing.T) {
 	t.Parallel()
@@ -23,7 +26,7 @@ func TestSuccessfulAddFilterJob(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := CreateFilterAPI(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{})
+		api := CreateFilterAPI(authHeader, host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{})
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusCreated)
 	})
@@ -37,13 +40,13 @@ func TestAddFilterFailure(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := CreateFilterAPI(host, mux.NewRouter(), &mocks.DataStore{InternalError: true}, &mocks.FilterJob{})
+		api := CreateFilterAPI(authHeader, host, mux.NewRouter(), &mocks.DataStore{InternalError: true}, &mocks.FilterJob{})
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusInternalServerError)
 
 		bodyBytes, _ := ioutil.ReadAll(w.Body)
 		response := string(bodyBytes)
-		So(response, ShouldResemble, "Internal server error\n")
+		So(response, ShouldResemble, "Failed to process the request due to an internal error\n")
 	})
 
 	Convey("When an invalid json message is sent, a bad request is returned", t, func() {
@@ -52,13 +55,13 @@ func TestAddFilterFailure(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := CreateFilterAPI(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{})
+		api := CreateFilterAPI(authHeader, host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{})
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
 		bodyBytes, _ := ioutil.ReadAll(w.Body)
 		response := string(bodyBytes)
-		So(response, ShouldResemble, "Bad client request received\n")
+		So(response, ShouldResemble, "Bad request - Invalid request body\n")
 	})
 
 	Convey("When a empty json message is sent, a bad request is returned", t, func() {
@@ -67,13 +70,13 @@ func TestAddFilterFailure(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := CreateFilterAPI(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{})
+		api := CreateFilterAPI(authHeader, host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{})
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
 		bodyBytes, _ := ioutil.ReadAll(w.Body)
 		response := string(bodyBytes)
-		So(response, ShouldResemble, "Bad client request received\n")
+		So(response, ShouldResemble, "Bad request - Invalid request body\n")
 	})
 
 	Convey("When a json message is missing mandatory fields, a bad request is returned", t, func() {
@@ -82,13 +85,13 @@ func TestAddFilterFailure(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := CreateFilterAPI(host, mux.NewRouter(), &mocks.DataStore{BadRequest: true}, &mocks.FilterJob{})
+		api := CreateFilterAPI(authHeader, host, mux.NewRouter(), &mocks.DataStore{BadRequest: true}, &mocks.FilterJob{})
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
 		bodyBytes, _ := ioutil.ReadAll(w.Body)
 		response := string(bodyBytes)
-		So(response, ShouldResemble, "Bad client request received\n")
+		So(response, ShouldResemble, "Bad request - Invalid request body\n")
 	})
 }
 
@@ -100,7 +103,7 @@ func TestSuccessfulAddFilterJobDimension(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := CreateFilterAPI(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{})
+		api := CreateFilterAPI(authHeader, host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{})
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusCreated)
 	})
@@ -111,7 +114,7 @@ func TestSuccessfulAddFilterJobDimension(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := CreateFilterAPI(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{})
+		api := CreateFilterAPI(authHeader, host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{})
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusCreated)
 	})
@@ -122,7 +125,7 @@ func TestSuccessfulAddFilterJobDimension(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := CreateFilterAPI(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{})
+		api := CreateFilterAPI(authHeader, host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{})
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusCreated)
 	})
@@ -136,13 +139,13 @@ func TestAddFilterJobDimensionFailure(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := CreateFilterAPI(host, mux.NewRouter(), &mocks.DataStore{InternalError: true}, &mocks.FilterJob{})
+		api := CreateFilterAPI(authHeader, host, mux.NewRouter(), &mocks.DataStore{InternalError: true}, &mocks.FilterJob{})
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusInternalServerError)
 
 		bodyBytes, _ := ioutil.ReadAll(w.Body)
 		response := string(bodyBytes)
-		So(response, ShouldResemble, "Internal server error\n")
+		So(response, ShouldResemble, "Failed to process the request due to an internal error\n")
 	})
 
 	Convey("When an invalid json message is sent, a bad request is returned", t, func() {
@@ -151,13 +154,13 @@ func TestAddFilterJobDimensionFailure(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := CreateFilterAPI(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{})
+		api := CreateFilterAPI(authHeader, host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{})
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
 		bodyBytes, _ := ioutil.ReadAll(w.Body)
 		response := string(bodyBytes)
-		So(response, ShouldResemble, "Bad client request received\n")
+		So(response, ShouldResemble, "Bad request - Invalid request body\n")
 	})
 
 	Convey("When a filter job does not exist, a not found is returned", t, func() {
@@ -166,7 +169,7 @@ func TestAddFilterJobDimensionFailure(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := CreateFilterAPI(host, mux.NewRouter(), &mocks.DataStore{NotFound: true}, &mocks.FilterJob{})
+		api := CreateFilterAPI(authHeader, host, mux.NewRouter(), &mocks.DataStore{NotFound: true}, &mocks.FilterJob{})
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
@@ -181,13 +184,13 @@ func TestAddFilterJobDimensionFailure(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := CreateFilterAPI(host, mux.NewRouter(), &mocks.DataStore{Forbidden: true}, &mocks.FilterJob{})
+		api := CreateFilterAPI(authHeader, host, mux.NewRouter(), &mocks.DataStore{Forbidden: true}, &mocks.FilterJob{})
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusForbidden)
 
 		bodyBytes, _ := ioutil.ReadAll(w.Body)
 		response := string(bodyBytes)
-		So(response, ShouldResemble, "Filter job request forbidden\n")
+		So(response, ShouldResemble, "Forbidden, the filter job has been locked as it has been submitted to be processed\n")
 	})
 }
 
@@ -198,7 +201,7 @@ func TestSuccessfulAddFilterJobDimensionOption(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := CreateFilterAPI(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{})
+		api := CreateFilterAPI(authHeader, host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{})
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusCreated)
 	})
@@ -211,13 +214,13 @@ func TestAddFilterJobDimensionOptionFailure(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := CreateFilterAPI(host, mux.NewRouter(), &mocks.DataStore{InternalError: true}, &mocks.FilterJob{})
+		api := CreateFilterAPI(authHeader, host, mux.NewRouter(), &mocks.DataStore{InternalError: true}, &mocks.FilterJob{})
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusInternalServerError)
 
 		bodyBytes, _ := ioutil.ReadAll(w.Body)
 		response := string(bodyBytes)
-		So(response, ShouldResemble, "Internal server error\n")
+		So(response, ShouldResemble, "Failed to process the request due to an internal error\n")
 	})
 
 	Convey("When the filter job does not exist, a bad request status is returned", t, func() {
@@ -225,7 +228,7 @@ func TestAddFilterJobDimensionOptionFailure(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := CreateFilterAPI(host, mux.NewRouter(), &mocks.DataStore{BadRequest: true}, &mocks.FilterJob{})
+		api := CreateFilterAPI(authHeader, host, mux.NewRouter(), &mocks.DataStore{BadRequest: true}, &mocks.FilterJob{})
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
@@ -239,13 +242,13 @@ func TestAddFilterJobDimensionOptionFailure(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := CreateFilterAPI(host, mux.NewRouter(), &mocks.DataStore{Forbidden: true}, &mocks.FilterJob{})
+		api := CreateFilterAPI(authHeader, host, mux.NewRouter(), &mocks.DataStore{Forbidden: true}, &mocks.FilterJob{})
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusForbidden)
 
 		bodyBytes, _ := ioutil.ReadAll(w.Body)
 		response := string(bodyBytes)
-		So(response, ShouldResemble, "Filter job request forbidden\n")
+		So(response, ShouldResemble, "Forbidden, the filter job has been locked as it has been submitted to be processed\n")
 	})
 
 	Convey("When a dimension for filter job does not exist, a not found status is returned", t, func() {
@@ -253,7 +256,7 @@ func TestAddFilterJobDimensionOptionFailure(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := CreateFilterAPI(host, mux.NewRouter(), &mocks.DataStore{NotFound: true}, &mocks.FilterJob{})
+		api := CreateFilterAPI(authHeader, host, mux.NewRouter(), &mocks.DataStore{NotFound: true}, &mocks.FilterJob{})
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
@@ -269,7 +272,7 @@ func TestSuccessfulGetFilterJob(t *testing.T) {
 		r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678", nil)
 		So(err, ShouldBeNil)
 		w := httptest.NewRecorder()
-		api := CreateFilterAPI(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{})
+		api := CreateFilterAPI(authHeader, host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{})
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusOK)
 	})
@@ -283,7 +286,7 @@ func TestGetFilterFailure(t *testing.T) {
 
 		w := httptest.NewRecorder()
 
-		api := CreateFilterAPI(host, mux.NewRouter(), &mocks.DataStore{InternalError: true}, &mocks.FilterJob{})
+		api := CreateFilterAPI(authHeader, host, mux.NewRouter(), &mocks.DataStore{InternalError: true}, &mocks.FilterJob{})
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusInternalServerError)
 	})
@@ -293,7 +296,7 @@ func TestGetFilterFailure(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := CreateFilterAPI(host, mux.NewRouter(), &mocks.DataStore{NotFound: true}, &mocks.FilterJob{})
+		api := CreateFilterAPI(authHeader, host, mux.NewRouter(), &mocks.DataStore{NotFound: true}, &mocks.FilterJob{})
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
@@ -311,7 +314,7 @@ func TestSuccessfulUpdateFilterJob(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := CreateFilterAPI(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{})
+		api := CreateFilterAPI(authHeader, host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{})
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusOK)
 	})
@@ -325,13 +328,13 @@ func TestFailedUpdateFilterJob(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := CreateFilterAPI(host, mux.NewRouter(), &mocks.DataStore{BadRequest: true}, &mocks.FilterJob{})
+		api := CreateFilterAPI(authHeader, host, mux.NewRouter(), &mocks.DataStore{BadRequest: true}, &mocks.FilterJob{})
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
 		bodyBytes, _ := ioutil.ReadAll(w.Body)
 		response := string(bodyBytes)
-		So(response, ShouldResemble, "Bad client request received\n")
+		So(response, ShouldResemble, "Bad request - Invalid request body\n")
 	})
 
 	Convey("When a empty json message is sent, a bad request is returned", t, func() {
@@ -340,7 +343,7 @@ func TestFailedUpdateFilterJob(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := CreateFilterAPI(host, mux.NewRouter(), &mocks.DataStore{BadRequest: true}, &mocks.FilterJob{})
+		api := CreateFilterAPI(authHeader, host, mux.NewRouter(), &mocks.DataStore{BadRequest: true}, &mocks.FilterJob{})
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
@@ -355,7 +358,7 @@ func TestFailedUpdateFilterJob(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := CreateFilterAPI(host, mux.NewRouter(), &mocks.DataStore{BadRequest: true}, &mocks.FilterJob{})
+		api := CreateFilterAPI(authHeader, host, mux.NewRouter(), &mocks.DataStore{BadRequest: true}, &mocks.FilterJob{})
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
@@ -370,7 +373,7 @@ func TestFailedUpdateFilterJob(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := CreateFilterAPI(host, mux.NewRouter(), &mocks.DataStore{NotFound: true}, &mocks.FilterJob{})
+		api := CreateFilterAPI(authHeader, host, mux.NewRouter(), &mocks.DataStore{NotFound: true}, &mocks.FilterJob{})
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
@@ -385,13 +388,31 @@ func TestFailedUpdateFilterJob(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := CreateFilterAPI(host, mux.NewRouter(), &mocks.DataStore{Forbidden: true}, &mocks.FilterJob{})
+		api := CreateFilterAPI(authHeader, host, mux.NewRouter(), &mocks.DataStore{Forbidden: true}, &mocks.FilterJob{})
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusForbidden)
 
 		bodyBytes, _ := ioutil.ReadAll(w.Body)
 		response := string(bodyBytes)
-		So(response, ShouldResemble, "Filter job request forbidden\n")
+		So(response, ShouldResemble, "Forbidden, the filter job has been locked as it has been submitted to be processed\n")
+	})
+
+	Convey("a json message is sent to change a submitted filter with the wrong authorisation header, an unauthorised status is returned", t, func() {
+		reader := strings.NewReader("{\"state\":\"submitted\"}")
+
+		r, err := http.NewRequest("PUT", "http://localhost:22100/filters/21312", reader)
+		So(err, ShouldBeNil)
+
+		r.Header.Add(internalToken, "cookie")
+
+		w := httptest.NewRecorder()
+		api := CreateFilterAPI(authHeader, host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{})
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusUnauthorized)
+
+		bodyBytes, _ := ioutil.ReadAll(w.Body)
+		response := string(bodyBytes)
+		So(response, ShouldResemble, "Unauthorised, request lacks valid authentication credentials\n")
 	})
 }
 
@@ -402,7 +423,7 @@ func TestSuccessfulGetFilterDimensions(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := CreateFilterAPI(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{})
+		api := CreateFilterAPI(authHeader, host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{})
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusOK)
 	})
@@ -415,13 +436,13 @@ func TestGetFilterDimensionsFailure(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := CreateFilterAPI(host, mux.NewRouter(), &mocks.DataStore{InternalError: true}, &mocks.FilterJob{})
+		api := CreateFilterAPI(authHeader, host, mux.NewRouter(), &mocks.DataStore{InternalError: true}, &mocks.FilterJob{})
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusInternalServerError)
 
 		bodyBytes, _ := ioutil.ReadAll(w.Body)
 		response := string(bodyBytes)
-		So(response, ShouldResemble, "Internal server error\n")
+		So(response, ShouldResemble, "Failed to process the request due to an internal error\n")
 	})
 
 	Convey("When filter job does not exist, a not found is returned", t, func() {
@@ -429,7 +450,7 @@ func TestGetFilterDimensionsFailure(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := CreateFilterAPI(host, mux.NewRouter(), &mocks.DataStore{NotFound: true}, &mocks.FilterJob{})
+		api := CreateFilterAPI(authHeader, host, mux.NewRouter(), &mocks.DataStore{NotFound: true}, &mocks.FilterJob{})
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
@@ -446,7 +467,7 @@ func TestSuccessfulGetFilterDimension(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := CreateFilterAPI(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{})
+		api := CreateFilterAPI(authHeader, host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{})
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNoContent)
 	})
@@ -459,13 +480,13 @@ func TestGetFilterDimensionFailure(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := CreateFilterAPI(host, mux.NewRouter(), &mocks.DataStore{InternalError: true}, &mocks.FilterJob{})
+		api := CreateFilterAPI(authHeader, host, mux.NewRouter(), &mocks.DataStore{InternalError: true}, &mocks.FilterJob{})
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusInternalServerError)
 
 		bodyBytes, _ := ioutil.ReadAll(w.Body)
 		response := string(bodyBytes)
-		So(response, ShouldResemble, "Internal server error\n")
+		So(response, ShouldResemble, "Failed to process the request due to an internal error\n")
 	})
 
 	Convey("When filter job does not exist, a bad request is returned", t, func() {
@@ -473,7 +494,7 @@ func TestGetFilterDimensionFailure(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := CreateFilterAPI(host, mux.NewRouter(), &mocks.DataStore{BadRequest: true}, &mocks.FilterJob{})
+		api := CreateFilterAPI(authHeader, host, mux.NewRouter(), &mocks.DataStore{BadRequest: true}, &mocks.FilterJob{})
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
@@ -487,7 +508,7 @@ func TestGetFilterDimensionFailure(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := CreateFilterAPI(host, mux.NewRouter(), &mocks.DataStore{DimensionNotFound: true}, &mocks.FilterJob{})
+		api := CreateFilterAPI(authHeader, host, mux.NewRouter(), &mocks.DataStore{DimensionNotFound: true}, &mocks.FilterJob{})
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
@@ -503,7 +524,7 @@ func TestSuccessfulGetFilterDimensionOptions(t *testing.T) {
 		r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678/dimensions/1_age/options", nil)
 		So(err, ShouldBeNil)
 		w := httptest.NewRecorder()
-		api := CreateFilterAPI(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{})
+		api := CreateFilterAPI(authHeader, host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{})
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusOK)
 	})
@@ -516,13 +537,13 @@ func TestGetFilterDimensionOptionsFailure(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := CreateFilterAPI(host, mux.NewRouter(), &mocks.DataStore{InternalError: true}, &mocks.FilterJob{})
+		api := CreateFilterAPI(authHeader, host, mux.NewRouter(), &mocks.DataStore{InternalError: true}, &mocks.FilterJob{})
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusInternalServerError)
 
 		bodyBytes, _ := ioutil.ReadAll(w.Body)
 		response := string(bodyBytes)
-		So(response, ShouldResemble, "Internal server error\n")
+		So(response, ShouldResemble, "Failed to process the request due to an internal error\n")
 	})
 
 	Convey("When filter job does not exist, a bad request is returned", t, func() {
@@ -530,7 +551,7 @@ func TestGetFilterDimensionOptionsFailure(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := CreateFilterAPI(host, mux.NewRouter(), &mocks.DataStore{BadRequest: true}, &mocks.FilterJob{})
+		api := CreateFilterAPI(authHeader, host, mux.NewRouter(), &mocks.DataStore{BadRequest: true}, &mocks.FilterJob{})
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
@@ -544,7 +565,7 @@ func TestGetFilterDimensionOptionsFailure(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := CreateFilterAPI(host, mux.NewRouter(), &mocks.DataStore{DimensionNotFound: true}, &mocks.FilterJob{})
+		api := CreateFilterAPI(authHeader, host, mux.NewRouter(), &mocks.DataStore{DimensionNotFound: true}, &mocks.FilterJob{})
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
@@ -561,7 +582,7 @@ func TestSuccessfulGetFilterDimensionOption(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := CreateFilterAPI(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{})
+		api := CreateFilterAPI(authHeader, host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{})
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNoContent)
 	})
@@ -574,13 +595,13 @@ func TestGetFilterDimensionOptionFailure(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := CreateFilterAPI(host, mux.NewRouter(), &mocks.DataStore{InternalError: true}, &mocks.FilterJob{})
+		api := CreateFilterAPI(authHeader, host, mux.NewRouter(), &mocks.DataStore{InternalError: true}, &mocks.FilterJob{})
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusInternalServerError)
 
 		bodyBytes, _ := ioutil.ReadAll(w.Body)
 		response := string(bodyBytes)
-		So(response, ShouldResemble, "Internal server error\n")
+		So(response, ShouldResemble, "Failed to process the request due to an internal error\n")
 	})
 
 	Convey("When filter job does not exist, a bad request is returned", t, func() {
@@ -588,7 +609,7 @@ func TestGetFilterDimensionOptionFailure(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := CreateFilterAPI(host, mux.NewRouter(), &mocks.DataStore{BadRequest: true}, &mocks.FilterJob{})
+		api := CreateFilterAPI(authHeader, host, mux.NewRouter(), &mocks.DataStore{BadRequest: true}, &mocks.FilterJob{})
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
@@ -602,7 +623,7 @@ func TestGetFilterDimensionOptionFailure(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := CreateFilterAPI(host, mux.NewRouter(), &mocks.DataStore{OptionNotFound: true}, &mocks.FilterJob{})
+		api := CreateFilterAPI(authHeader, host, mux.NewRouter(), &mocks.DataStore{OptionNotFound: true}, &mocks.FilterJob{})
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
@@ -619,7 +640,7 @@ func TestSuccessfulRemoveFilterDimension(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := CreateFilterAPI(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{})
+		api := CreateFilterAPI(authHeader, host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{})
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusOK)
 	})
@@ -632,13 +653,13 @@ func TestRemoveFilterDimensionFailure(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := CreateFilterAPI(host, mux.NewRouter(), &mocks.DataStore{InternalError: true}, &mocks.FilterJob{})
+		api := CreateFilterAPI(authHeader, host, mux.NewRouter(), &mocks.DataStore{InternalError: true}, &mocks.FilterJob{})
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusInternalServerError)
 
 		bodyBytes, _ := ioutil.ReadAll(w.Body)
 		response := string(bodyBytes)
-		So(response, ShouldResemble, "Internal server error\n")
+		So(response, ShouldResemble, "Failed to process the request due to an internal error\n")
 	})
 
 	Convey("When filter job does not exist, a bad request is returned", t, func() {
@@ -646,7 +667,7 @@ func TestRemoveFilterDimensionFailure(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := CreateFilterAPI(host, mux.NewRouter(), &mocks.DataStore{BadRequest: true}, &mocks.FilterJob{})
+		api := CreateFilterAPI(authHeader, host, mux.NewRouter(), &mocks.DataStore{BadRequest: true}, &mocks.FilterJob{})
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
@@ -660,13 +681,13 @@ func TestRemoveFilterDimensionFailure(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := CreateFilterAPI(host, mux.NewRouter(), &mocks.DataStore{Forbidden: true}, &mocks.FilterJob{})
+		api := CreateFilterAPI(authHeader, host, mux.NewRouter(), &mocks.DataStore{Forbidden: true}, &mocks.FilterJob{})
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusForbidden)
 
 		bodyBytes, _ := ioutil.ReadAll(w.Body)
 		response := string(bodyBytes)
-		So(response, ShouldResemble, "Filter job request forbidden\n")
+		So(response, ShouldResemble, "Forbidden, the filter job has been locked as it has been submitted to be processed\n")
 	})
 
 	Convey("When dimension does not exist against filter job, a not found is returned", t, func() {
@@ -674,7 +695,7 @@ func TestRemoveFilterDimensionFailure(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := CreateFilterAPI(host, mux.NewRouter(), &mocks.DataStore{NotFound: true}, &mocks.FilterJob{})
+		api := CreateFilterAPI(authHeader, host, mux.NewRouter(), &mocks.DataStore{NotFound: true}, &mocks.FilterJob{})
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
@@ -691,7 +712,7 @@ func TestSuccessfulRemoveOptionDimension(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := CreateFilterAPI(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{})
+		api := CreateFilterAPI(authHeader, host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{})
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusOK)
 	})
@@ -704,13 +725,13 @@ func TestRemoveOptionDimensionFailure(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := CreateFilterAPI(host, mux.NewRouter(), &mocks.DataStore{InternalError: true}, &mocks.FilterJob{})
+		api := CreateFilterAPI(authHeader, host, mux.NewRouter(), &mocks.DataStore{InternalError: true}, &mocks.FilterJob{})
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusInternalServerError)
 
 		bodyBytes, _ := ioutil.ReadAll(w.Body)
 		response := string(bodyBytes)
-		So(response, ShouldResemble, "Internal server error\n")
+		So(response, ShouldResemble, "Failed to process the request due to an internal error\n")
 	})
 
 	Convey("When filter job does not exist, a bad request is returned", t, func() {
@@ -718,7 +739,7 @@ func TestRemoveOptionDimensionFailure(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := CreateFilterAPI(host, mux.NewRouter(), &mocks.DataStore{BadRequest: true}, &mocks.FilterJob{})
+		api := CreateFilterAPI(authHeader, host, mux.NewRouter(), &mocks.DataStore{BadRequest: true}, &mocks.FilterJob{})
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
@@ -732,13 +753,13 @@ func TestRemoveOptionDimensionFailure(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := CreateFilterAPI(host, mux.NewRouter(), &mocks.DataStore{Forbidden: true}, &mocks.FilterJob{})
+		api := CreateFilterAPI(authHeader, host, mux.NewRouter(), &mocks.DataStore{Forbidden: true}, &mocks.FilterJob{})
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusForbidden)
 
 		bodyBytes, _ := ioutil.ReadAll(w.Body)
 		response := string(bodyBytes)
-		So(response, ShouldResemble, "Filter job request forbidden\n")
+		So(response, ShouldResemble, "Forbidden, the filter job has been locked as it has been submitted to be processed\n")
 	})
 
 	Convey("When dimension does not exist against filter job, a not found is returned", t, func() {
@@ -746,7 +767,7 @@ func TestRemoveOptionDimensionFailure(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := CreateFilterAPI(host, mux.NewRouter(), &mocks.DataStore{DimensionNotFound: true}, &mocks.FilterJob{})
+		api := CreateFilterAPI(authHeader, host, mux.NewRouter(), &mocks.DataStore{DimensionNotFound: true}, &mocks.FilterJob{})
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 

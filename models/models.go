@@ -23,7 +23,7 @@ type Filter struct {
 type Dimension struct {
 	DimensionURL string   `json:"dimension_url,omitempty"`
 	Name         string   `json:"name,omitempty"`
-	Values       []string `json:"values,omitempty"`
+	Options      []string `json:"options,omitempty"`
 }
 
 // Downloads represents a list of file types possible to download
@@ -67,9 +67,10 @@ type AddDimensionOption struct {
 	Option   string
 }
 
-// GetDimensionOptions represents an array of urls for a dimension options returned on a GET request
-type GetDimensionOptions struct {
-	DimensionOptionURLs []string `json:"dimension_option_urls"`
+// DimensionOption represents dimension option information
+type DimensionOption struct {
+	DimensionOptionURL string `json:"dimension_option_url"`
+	Option             string `json:"option"`
 }
 
 // Validate checks the content of the filter structure
@@ -116,7 +117,7 @@ func CreateDimensionOptions(reader io.Reader) ([]string, error) {
 	}
 
 	if string(bytes) == "" {
-		return dimension.Values, nil
+		return dimension.Options, nil
 	}
 
 	err = json.Unmarshal(bytes, &dimension)
@@ -124,5 +125,5 @@ func CreateDimensionOptions(reader io.Reader) ([]string, error) {
 		return nil, errors.New("Failed to parse json body")
 	}
 
-	return dimension.Values, nil
+	return dimension.Options, nil
 }

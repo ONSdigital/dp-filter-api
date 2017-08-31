@@ -58,7 +58,7 @@ func main() {
 		"bind_address": cfg.BindAddr,
 	})
 
-	_ = api.CreateFilterAPI(cfg.Host, router, dataStore, &jobQueue)
+	_ = api.CreateFilterAPI(cfg.SecretKey, cfg.Host, router, dataStore, &jobQueue)
 
 	if err = s.ListenAndServe(); err != nil {
 		log.Error(err, nil)

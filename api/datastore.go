@@ -12,9 +12,9 @@ type DataStore interface {
 	GetFilter(filterID string) (models.Filter, error)
 	GetFilterDimensions(filterID string) ([]models.Dimension, error)
 	GetFilterDimension(filterID string, name string) error
-	GetFilterDimensionOptions(filterID string, name string) (models.GetDimensionOptions, error)
+	GetFilterDimensionOptions(filterID string, name string) ([]models.DimensionOption, error)
 	GetFilterDimensionOption(filterID string, name string, option string) error
-	RemoveFilterDimension(filterJobID string, name string) error
-	RemoveFilterDimensionOption(filterJobId string, name string, option string) error
-	UpdateFilter(host string, filter *models.Filter) error
+	RemoveFilterDimension(filterID string, name string) error
+	RemoveFilterDimensionOption(filterId string, name string, option string) error
+	UpdateFilter(isAuthenticated bool, filter *models.Filter) error
 }
