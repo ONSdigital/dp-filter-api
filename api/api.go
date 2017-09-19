@@ -2,7 +2,6 @@ package api
 
 import (
 	"context"
-	"sync"
 
 	"github.com/ONSdigital/dp-filter-api/models"
 	"github.com/ONSdigital/go-ns/log"
@@ -10,13 +9,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
-const (
-	gracefulShutdownMsg = "graceful shutdown of http server complete"
-)
-
 var httpServer *server.Server
-var serverErrors chan error
-var once sync.Once
 
 // JobQueue - An interface used to queue import jobs
 type JobQueue interface {
@@ -35,7 +28,7 @@ type FilterAPI struct {
 // CreateFilterAPI manages all the routes configured to API
 func CreateFilterAPI(secretKey, host, bindAddr string, datastore DataStore, jobQueue JobQueue, errorChan chan error) {
 	router := mux.NewRouter()
-	_ = routes(secretKey, host, router, datastore, jobQueue)
+	routes(secretKey, host, router, datastore, jobQueue)
 
 	httpServer = server.New(bindAddr, router)
 	// Disable this here to allow main to manage graceful shutdown of the entire app.
@@ -70,7 +63,11 @@ func routes(secretKey, host string, router *mux.Router, dataStore DataStore, job
 	return &api
 }
 
-func Close(ctx context.Context) {
-	httpServer.Shutdown(ctx)
-	log.Info(gracefulShutdownMsg, nil)
+func Close(ctx context.Context) error {
+	if err := httpServer.Shutdown(ctx); err != nil {
+		return err
+	}
+
+	log.Info("graceful shutdown of http server complete", nil)
+	return nil
 }

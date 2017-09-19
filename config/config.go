@@ -26,8 +26,6 @@ func Get() (*Config, error) {
 		return cfg, nil
 	}
 
-	defaultTimeout := time.Duration(5 * time.Second)
-
 	cfg = &Config{
 		BindAddr:                ":22100",
 		Brokers:                 []string{"localhost:9092"},
@@ -36,7 +34,7 @@ func Get() (*Config, error) {
 		KafkaMaxBytes:   "2000000",
 		PostgresURL:     "user=dp dbname=FilterJobs sslmode=disable",
 		SecretKey:       "FD0108EA-825D-411C-9B1D-41EF7727F465",
-		ShutdownTimeout: defaultTimeout,
+		ShutdownTimeout: 5 * time.Second,
 	}
 
 	return cfg, envconfig.Process("", cfg)

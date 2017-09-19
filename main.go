@@ -21,7 +21,7 @@ import (
 func main() {
 	log.Namespace = "dp-filter-api"
 
-	signals := make(chan os.Signal)
+	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM)
 
 	cfg, err := config.Get()
@@ -56,7 +56,7 @@ func main() {
 
 	jobQueue := filterJobQueue.CreateJobQueue(producer.Output())
 
-	apiErrors := make(chan error)
+	apiErrors := make(chan error, 1)
 
 	api.CreateFilterAPI(cfg.SecretKey, cfg.Host, cfg.BindAddr, dataStore, &jobQueue, apiErrors)
 
@@ -64,15 +64,17 @@ func main() {
 	gracefulShutdown := func() {
 		log.Info(fmt.Sprintf("Shutdown with timeout: %s", cfg.ShutdownTimeout), nil)
 		ctx, cancel := context.WithTimeout(context.Background(), cfg.ShutdownTimeout)
-		defer cancel()
 
-		api.Close(ctx)
-		// Close producer after http server has closed so if a message
-		// needs to be sent to kafka off a request it can
-		err := producer.Close(ctx)
-		if err != nil {
+		if err := api.Close(ctx); err != nil {
 			log.Error(err, nil)
 		}
+		// Close producer after http server has closed so if a message
+		// needs to be sent to kafka off a request it can
+		if err := producer.Close(ctx); err != nil {
+			log.Error(err, nil)
+		}
+
+		cancel()
 
 		log.Info("Shutdown complete", nil)
 		os.Exit(1)

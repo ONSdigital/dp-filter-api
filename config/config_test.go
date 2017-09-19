@@ -25,7 +25,7 @@ func TestSpec(t *testing.T) {
 				So(cfg.FilterJobSubmittedTopic, ShouldEqual, "filter-job-submitted")
 				So(cfg.KafkaMaxBytes, ShouldEqual, "2000000")
 				So(cfg.SecretKey, ShouldEqual, "FD0108EA-825D-411C-9B1D-41EF7727F465")
-				So(cfg.ShutdownTimeout, ShouldEqual, time.Duration(5*time.Second))
+				So(cfg.ShutdownTimeout, ShouldEqual, 5*time.Second)
 			})
 		})
 	})
