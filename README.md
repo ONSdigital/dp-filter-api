@@ -21,6 +21,7 @@ dp-filter-api
 | KAFKA_MAX_BYTES            | 2000000                | The maximum permitted size of a message. Should be set equal to or smaller than the broker's `message.max.bytes`
 | POSTGRES_URL               | user=dp dbname=FilterJobs sslmode=disable | URL to a Postgres services
 | SECRET_KEY                 | FD0108EA-825D-411C-9B1D-41EF7727F465      | A secret key used authentication
+| SHUTDOWN_TIMEOUT           | 5s                                  | The graceful shutdown timeout in seconds
 
 ### Contributing
 

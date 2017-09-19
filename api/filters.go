@@ -303,11 +303,9 @@ func (api *FilterAPI) updateFilterJob(w http.ResponseWriter, r *http.Request) {
 	}
 
 	log.Info("filter updated", log.Data{"filter_job_id": filterID, "filter": filter})
-
 	if filter.State == "submitted" {
 
 		api.jobQueue.Queue(filter)
-
 		log.Info("filter job message sent to kafka", log.Data{"filter_job_id": filterID})
 	}
 

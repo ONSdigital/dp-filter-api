@@ -1,9 +1,13 @@
 package main
 
 import (
+	"context"
 	"database/sql"
+	"fmt"
 	"os"
+	"os/signal"
 	"strconv"
+	"syscall"
 
 	"github.com/ONSdigital/dp-filter-api/api"
 	"github.com/ONSdigital/dp-filter-api/config"
@@ -11,13 +15,14 @@ import (
 	"github.com/ONSdigital/dp-filter-api/postgres"
 	"github.com/ONSdigital/go-ns/kafka"
 	"github.com/ONSdigital/go-ns/log"
-	"github.com/ONSdigital/go-ns/server"
-	"github.com/gorilla/mux"
 	_ "github.com/lib/pq"
 )
 
 func main() {
 	log.Namespace = "dp-filter-api"
+
+	signals := make(chan os.Signal)
+	signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM)
 
 	cfg, err := config.Get()
 	if err != nil {
@@ -50,19 +55,40 @@ func main() {
 	}
 
 	jobQueue := filterJobQueue.CreateJobQueue(producer.Output())
-	router := mux.NewRouter()
 
-	s := server.New(cfg.BindAddr, router)
+	apiErrors := make(chan error)
 
-	log.Debug("listening...", log.Data{
-		"bind_address": cfg.BindAddr,
-	})
+	api.CreateFilterAPI(cfg.SecretKey, cfg.Host, cfg.BindAddr, dataStore, &jobQueue, apiErrors)
 
-	_ = api.CreateFilterAPI(cfg.SecretKey, cfg.Host, router, dataStore, &jobQueue)
+	// Gracefully shutdown the application closing any open resources.
+	gracefulShutdown := func() {
+		log.Info(fmt.Sprintf("Shutdown with timeout: %s", cfg.ShutdownTimeout), nil)
+		ctx, cancel := context.WithTimeout(context.Background(), cfg.ShutdownTimeout)
+		defer cancel()
 
-	if err = s.ListenAndServe(); err != nil {
-		log.Error(err, nil)
+		api.Close(ctx)
+		// Close producer after http server has closed so if a message
+		// needs to be sent to kafka off a request it can
+		err := producer.Close(ctx)
+		if err != nil {
+			log.Error(err, nil)
+		}
+
+		log.Info("Shutdown complete", nil)
+		os.Exit(1)
 	}
 
-	producer.Closer() <- true
+	for {
+		select {
+		case err := <-producer.Errors():
+			log.ErrorC("kafka producer error received", err, nil)
+			gracefulShutdown()
+		case err := <-apiErrors:
+			log.ErrorC("api error received", err, nil)
+			gracefulShutdown()
+		case <-signals:
+			log.Debug("os signal received", nil)
+			gracefulShutdown()
+		}
+	}
 }

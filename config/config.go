@@ -1,18 +1,21 @@
 package config
 
 import (
+	"time"
+
 	"github.com/kelseyhightower/envconfig"
 )
 
 // Config is the filing resource handler config
 type Config struct {
-	BindAddr                string   `envconfig:"BIND_ADDR"`
-	Brokers                 []string `envconfig:"KAFKA_ADDR"`
-	FilterJobSubmittedTopic string   `envconfig:"FILTER_JOB_SUBMITTED_TOPIC"`
-	Host                    string   `envconfig:"HOST"`
-	KafkaMaxBytes           string   `envconfig:"KAFKA_MAX_BYTES"`
-	PostgresURL             string   `envconfig:"POSTGRES_URL"`
-	SecretKey               string   `envconfig:"SECRET_KEY"`
+	BindAddr                string        `envconfig:"BIND_ADDR"`
+	Brokers                 []string      `envconfig:"KAFKA_ADDR"`
+	FilterJobSubmittedTopic string        `envconfig:"FILTER_JOB_SUBMITTED_TOPIC"`
+	Host                    string        `envconfig:"HOST"`
+	KafkaMaxBytes           string        `envconfig:"KAFKA_MAX_BYTES"`
+	PostgresURL             string        `envconfig:"POSTGRES_URL"`
+	SecretKey               string        `envconfig:"SECRET_KEY"`
+	ShutdownTimeout         time.Duration `envconfig:"SHUTDOWN_TIMEOUT"`
 }
 
 var cfg *Config
@@ -23,14 +26,17 @@ func Get() (*Config, error) {
 		return cfg, nil
 	}
 
+	defaultTimeout := time.Duration(5 * time.Second)
+
 	cfg = &Config{
 		BindAddr:                ":22100",
 		Brokers:                 []string{"localhost:9092"},
 		FilterJobSubmittedTopic: "filter-job-submitted",
-		Host:                    "http://localhost:22100",
-		KafkaMaxBytes:           "2000000",
-		PostgresURL:             "user=dp dbname=FilterJobs sslmode=disable",
-		SecretKey:               "FD0108EA-825D-411C-9B1D-41EF7727F465",
+		Host:            "http://localhost:22100",
+		KafkaMaxBytes:   "2000000",
+		PostgresURL:     "user=dp dbname=FilterJobs sslmode=disable",
+		SecretKey:       "FD0108EA-825D-411C-9B1D-41EF7727F465",
+		ShutdownTimeout: defaultTimeout,
 	}
 
 	return cfg, envconfig.Process("", cfg)
