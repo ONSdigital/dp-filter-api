@@ -27,14 +27,14 @@ func Get() (*Config, error) {
 	}
 
 	cfg = &Config{
+		Host:                    "http://localhost:22100",
 		BindAddr:                ":22100",
 		Brokers:                 []string{"localhost:9092"},
 		FilterJobSubmittedTopic: "filter-job-submitted",
-		Host:            "http://localhost:22100",
-		KafkaMaxBytes:   "2000000",
-		PostgresURL:     "user=dp dbname=FilterJobs sslmode=disable",
-		SecretKey:       "FD0108EA-825D-411C-9B1D-41EF7727F465",
-		ShutdownTimeout: 5 * time.Second,
+		KafkaMaxBytes:           "2000000",
+		PostgresURL:             "user=dp dbname=FilterJobs sslmode=disable",
+		SecretKey:               "FD0108EA-825D-411C-9B1D-41EF7727F465",
+		ShutdownTimeout:         5 * time.Second,
 	}
 
 	return cfg, envconfig.Process("", cfg)
