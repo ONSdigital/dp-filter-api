@@ -3,12 +3,6 @@
 	"ignore": "test",
 	"package": [
 		{
-			"checksumSHA1": "s2Na0yu08klYRMOmRqtaH1bzI5E=",
-			"path": "github.com/ONSdigital/dp-dimension-importer/healthcheck",
-			"revision": "e7143d03b122744d0a71f801765686099012a035",
-			"revisionTime": "2017-09-12T12:49:50Z"
-		},
-		{
 			"checksumSHA1": "dzh4fF9o6j+mJEbJn5utm8Q+Pyg=",
 			"path": "github.com/ONSdigital/go-ns/avro",
 			"revision": "5c4e318aa10e56921c4e39fd5735c95868281d33",
@@ -19,12 +13,6 @@
 			"path": "github.com/ONSdigital/go-ns/handlers/requestID",
 			"revision": "5c4e318aa10e56921c4e39fd5735c95868281d33",
 			"revisionTime": "2017-09-07T12:17:38Z"
-		},
-		{
-			"checksumSHA1": "HgL/HLG5D1WNPb1lrb/hpywtm9o=",
-			"path": "github.com/ONSdigital/go-ns/handlers/timeout",
-			"revision": "c493b1568574c9720d7805f23ce6271ac445dc57",
-			"revisionTime": "2017-07-28T08:24:17Z"
 		},
 		{
 			"checksumSHA1": "Mk5V45ODgFoUimZ5XCUK6xE1TFc=",
@@ -100,6 +88,12 @@
 			"revisionTime": "2017-02-15T23:32:05Z"
 		},
 		{
+			"checksumSHA1": "yIkYzW7bzAD81zHyuCNmEj4+oxQ=",
+			"path": "github.com/gopherjs/gopherjs/js",
+			"revision": "b40cd48c38f9a18eb3db20d163bad78de12cf0b7",
+			"revisionTime": "2017-09-06T18:39:36Z"
+		},
+		{
 			"checksumSHA1": "g/V4qrXjUGG9B+e3hB+4NAYJ5Gs=",
 			"origin": "github.com/ONSdigital/dp-dimension-importer/vendor/github.com/gorilla/context",
 			"path": "github.com/gorilla/context",
@@ -111,6 +105,12 @@
 			"path": "github.com/gorilla/mux",
 			"revision": "ac112f7d75a0714af1bd86ab17749b31f7809640",
 			"revisionTime": "2017-07-03T15:07:09Z"
+		},
+		{
+			"checksumSHA1": "9lgMFoaIFZe75vv7ln+IbPKHasE=",
+			"path": "github.com/johnnadratowski/golang-neo4j-bolt-driver/errors",
+			"revision": "2387cc1f01254d3a0055e034f5716278a1f420c7",
+			"revisionTime": "2016-12-20T21:52:15Z"
 		},
 		{
 			"checksumSHA1": "Js/yx9fZ3+wH1wZpHNIxSTMIaCg=",
