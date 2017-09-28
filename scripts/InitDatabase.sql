@@ -5,6 +5,8 @@ DROP TABLE IF EXISTS Downloads;
 CREATE TABLE Filters(
   filterJobId TEXT PRIMARY KEY,
   instanceId TEXT,
+  versionId TEXT,
+  versionHref TEXT,
   state TEXT
 );
 

@@ -41,7 +41,7 @@ type Datastore struct {
 // NewDatastore manages a postgres datastore used to store and find information about filters and dimensions
 func NewDatastore(db *sql.DB) (ds Datastore, err error) {
 	ds.db = db
-	if ds.addFilter, err = prepare("INSERT INTO Filters(filterJobId, instanceId, state) VALUES($1, $2, $3)", db); err != nil {
+	if ds.addFilter, err = prepare("INSERT INTO Filters(filterJobId, instanceId, versionId, versionHref, state) VALUES($1, $2, $3, $4, $5)", db); err != nil {
 		return
 	}
 	if ds.addDimension, err = prepare("INSERT INTO Dimensions(filterJobId, name) VALUES($1, $2)", db); err != nil {
@@ -96,7 +96,7 @@ func (ds Datastore) AddFilter(host string, newFilter *models.Filter) (models.Fil
 		return models.Filter{}, err
 	}
 
-	_, err = tx.Stmt(ds.addFilter).Exec(newFilter.FilterID, newFilter.InstanceID, newFilter.State)
+	_, err = tx.Stmt(ds.addFilter).Exec(newFilter.FilterID, newFilter.InstanceID, newFilter.Links.Version.ID, newFilter.Links.Version.HRef, newFilter.State)
 	if err != nil {
 		return models.Filter{}, err
 	}
@@ -125,8 +125,8 @@ func (ds Datastore) AddFilterDimension(dimensionObject *models.AddDimension) err
 	// Check filter exists
 	row := tx.Stmt(ds.getFilter).QueryRow(dimensionObject.FilterID)
 
-	var filterJobID, instanceId, state sql.NullString
-	if err := row.Scan(&filterJobID, &instanceId, &state); err != nil {
+	var filterJobID, instanceId, versionID, versionHRef, state sql.NullString
+	if err := row.Scan(&filterJobID, &instanceId, &versionID, &versionHRef, &state); err != nil {
 		return convertError(err, "bad request")
 	}
 
@@ -176,8 +176,8 @@ func (ds Datastore) AddFilterDimension(dimensionObject *models.AddDimension) err
 func (ds Datastore) AddFilterDimensionOption(dimensionOptionObject *models.AddDimensionOption) error { // Check filter exists
 	row := ds.getFilter.QueryRow(dimensionOptionObject.FilterID)
 
-	var filterJobID, instanceId, state sql.NullString
-	if err := row.Scan(&filterJobID, &instanceId, &state); err != nil {
+	var filterJobID, instanceId, versionID, versionHRef, state sql.NullString
+	if err := row.Scan(&filterJobID, &instanceId, &versionID, &versionHRef, &state); err != nil {
 		return convertError(err, "bad request")
 	}
 
@@ -215,15 +215,16 @@ func (ds Datastore) GetFilter(filterID string) (models.Filter, error) {
 
 	row := tx.Stmt(ds.getFilter).QueryRow(filterID)
 
-	var filterJobID, instanceId, state sql.NullString
+	var filterJobID, instanceId, versionID, versionHRef, state sql.NullString
 
-	if err = row.Scan(&filterJobID, &instanceId, &state); err != nil {
+	if err := row.Scan(&filterJobID, &instanceId, &versionID, &versionHRef, &state); err != nil {
 		return filterJob, convertError(err, "")
 	}
 
 	filterJob.InstanceID = instanceId.String
 	filterJob.FilterID = filterID
 	filterJob.State = state.String
+	filterJob.Links = models.LinkMap{Version: models.LinkObject{ID: versionID.String, HRef: versionHRef.String}}
 	filterJob.DimensionListURL = "/filters/" + filterID + "/dimensions"
 
 	downloadRows, err := tx.Stmt(ds.getDownloadItems).Query(filterID)
@@ -267,9 +268,9 @@ func (ds Datastore) GetFilterDimensions(filterID string) ([]models.Dimension, er
 	dimensions := []models.Dimension{}
 
 	checkFilterJobExists := ds.getFilter.QueryRow(filterID)
-	var filterJobID, instanceId, state sql.NullString
+	var filterJobID, instanceId, versionID, versionHRef, state sql.NullString
 
-	if err := checkFilterJobExists.Scan(&filterJobID, &instanceId, &state); err != nil {
+	if err := checkFilterJobExists.Scan(&filterJobID, &instanceId, &versionID, &versionHRef, &state); err != nil {
 		return nil, convertError(err, "")
 	}
 
@@ -312,9 +313,9 @@ func (ds Datastore) GetFilterDimensionOptions(filterID string, name string) ([]m
 
 	checkFilterJobExists := ds.getFilter.QueryRow(filterID)
 
-	var filterJobID, instanceId, state sql.NullString
+	var filterJobID, instanceId, versionID, versionHRef, state sql.NullString
 
-	if err := checkFilterJobExists.Scan(&filterJobID, &instanceId, &state); err != nil {
+	if err := checkFilterJobExists.Scan(&filterJobID, &instanceId, &versionID, &versionHRef, &state); err != nil {
 		return nil, convertError(err, "filter job not found")
 	}
 
@@ -361,9 +362,9 @@ func (ds Datastore) GetFilterDimensionOptions(filterID string, name string) ([]m
 func (ds Datastore) GetFilterDimension(filterID string, name string) error {
 	checkFilterJobExists := ds.getFilter.QueryRow(filterID)
 
-	var filterJobID, instanceId, state sql.NullString
+	var filterJobID, instanceId, versionID, versionHRef, state sql.NullString
 
-	if err := checkFilterJobExists.Scan(&filterJobID, &instanceId, &state); err != nil {
+	if err := checkFilterJobExists.Scan(&filterJobID, &instanceId, &versionID, &versionHRef, &state); err != nil {
 		return convertError(err, "filter job not found")
 	}
 
@@ -382,9 +383,9 @@ func (ds Datastore) GetFilterDimension(filterID string, name string) error {
 func (ds Datastore) GetFilterDimensionOption(filterID string, name string, option string) error {
 	checkFilterJobExists := ds.getFilter.QueryRow(filterID)
 
-	var filterJobID, instanceId, state sql.NullString
+	var filterJobID, instanceId, versionID, versionHRef, state sql.NullString
 
-	if err := checkFilterJobExists.Scan(&filterJobID, &instanceId, &state); err != nil {
+	if err := checkFilterJobExists.Scan(&filterJobID, &instanceId, &versionID, &versionHRef, &state); err != nil {
 		return convertError(err, "filter job not found")
 	}
 
@@ -415,9 +416,9 @@ func (ds Datastore) RemoveFilterDimension(filterID string, name string) error {
 
 	checkFilterJobExists := tx.Stmt(ds.getFilter).QueryRow(filterID)
 
-	var filterJobID, instanceId, state sql.NullString
+	var filterJobID, instanceId, versionID, versionHRef, state sql.NullString
 
-	if err := checkFilterJobExists.Scan(&filterJobID, &instanceId, &state); err != nil {
+	if err := checkFilterJobExists.Scan(&filterJobID, &instanceId, &versionID, &versionHRef, &state); err != nil {
 		return convertError(err, "filter job not found")
 	}
 
@@ -461,9 +462,9 @@ func (ds Datastore) RemoveFilterDimensionOption(filterID string, name string, op
 
 	checkFilterJobExists := tx.Stmt(ds.getFilter).QueryRow(filterID)
 
-	var filterJobID, instanceId, state sql.NullString
+	var filterJobID, instanceId, versionID, versionHRef, state sql.NullString
 
-	if err := checkFilterJobExists.Scan(&filterJobID, &instanceId, &state); err != nil {
+	if err := checkFilterJobExists.Scan(&filterJobID, &instanceId, &versionID, &versionHRef, &state); err != nil {
 		return convertError(err, "filter job not found")
 	}
 

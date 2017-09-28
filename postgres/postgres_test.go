@@ -47,7 +47,7 @@ func TestAddFilter(t *testing.T) {
 		ds, err := NewDatastore(db)
 		So(err, ShouldBeNil)
 		mock.ExpectBegin()
-		mock.ExpectExec(addFilterSQL).WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg()).
+		mock.ExpectExec(addFilterSQL).WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg()).
 			WillReturnResult(sqlmock.NewResult(1, 1))
 		mock.ExpectExec(addDimensionOptionSQL).WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg()).
 			WillReturnResult(sqlmock.NewResult(1, 1))
@@ -66,6 +66,12 @@ func TestAddFilter(t *testing.T) {
 			FilterID:   "123",
 			Dimensions: dimensions,
 			State:      "created",
+			Links: models.LinkMap{
+				Version: models.LinkObject{
+					ID:   "vid",
+					HRef: "localhost/versions/vid",
+				},
+			},
 		}
 
 		filter, err := ds.AddFilter("80", newFilter)
@@ -83,8 +89,8 @@ func TestAddFilterDimensions(t *testing.T) {
 		So(err, ShouldBeNil)
 		mock.ExpectBegin()
 		mock.ExpectQuery(getFilterSQL).WithArgs(sqlmock.AnyArg()).
-			WillReturnRows(sqlmock.NewRows([]string{"filterId", "instanceId", "state"}).
-				AddRow("123", "12345678", "created"))
+			WillReturnRows(sqlmock.NewRows([]string{"filterId", "instanceId", "versionID", "versionHRef", "state"}).
+				AddRow("123", "12345678", "vid", "localhost/versions/vid", "created"))
 		mock.ExpectExec(deleteDimensionSQL).WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg()).
 			WillReturnResult(sqlmock.NewResult(1, 0))
 		mock.ExpectExec(addDimensionSQL).WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg()).
@@ -108,8 +114,8 @@ func TestAddFilterDimensions(t *testing.T) {
 		So(err, ShouldBeNil)
 		mock.ExpectBegin()
 		mock.ExpectQuery(getFilterSQL).WithArgs(sqlmock.AnyArg()).
-			WillReturnRows(sqlmock.NewRows([]string{"filterId", "instanceId", "state"}).
-				AddRow("123", "12345678", "created"))
+			WillReturnRows(sqlmock.NewRows([]string{"filterId", "instanceId", "versionID", "versionHRef", "state"}).
+				AddRow("123", "12345678", "vid", "localhost/versions/vid", "created"))
 		mock.ExpectExec(deleteDimensionSQL).WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg()).
 			WillReturnResult(sqlmock.NewResult(1, 1))
 		mock.ExpectExec(addDimensionOptionSQL).WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg()).
@@ -137,8 +143,8 @@ func TestAddFilterDimensionOption(t *testing.T) {
 		ds, err := NewDatastore(db)
 		So(err, ShouldBeNil)
 		mock.ExpectQuery(getFilterSQL).WithArgs(sqlmock.AnyArg()).
-			WillReturnRows(sqlmock.NewRows([]string{"filterId", "instanceId", "state"}).
-				AddRow("123", "12345678", "created"))
+			WillReturnRows(sqlmock.NewRows([]string{"filterId", "instanceId", "versionID", "versionHRef", "state"}).
+				AddRow("123", "12345678", "vid", "localhost/versions/vid", "created"))
 		mock.ExpectQuery(getDimensionSQL).WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg()).
 			WillReturnRows(sqlmock.NewRows([]string{"name"}).
 				AddRow("age"))
@@ -165,8 +171,8 @@ func TestGetFilter(t *testing.T) {
 		So(err, ShouldBeNil)
 		mock.ExpectBegin()
 		mock.ExpectQuery(getFilterSQL).WithArgs(sqlmock.AnyArg()).
-			WillReturnRows(sqlmock.NewRows([]string{"filterJobId", "instanceId", "state"}).
-				AddRow("123", "12345678", "completed"))
+			WillReturnRows(sqlmock.NewRows([]string{"filterJobId", "instanceId", "versionID", "versionHRef", "state"}).
+				AddRow("123", "12345678", "vid", "localhost/versions/vid", "completed"))
 		mock.ExpectQuery(getDownloadItemsSQL).WithArgs(sqlmock.AnyArg()).
 			WillReturnRows(sqlmock.NewRows([]string{"size", "type", "url"}).
 				AddRow("24mb", "csv", "csv/s3url").
@@ -192,6 +198,12 @@ func TestGetFilter(t *testing.T) {
 					URL:  "xls/s3url",
 				},
 			},
+			Links: models.LinkMap{
+				Version: models.LinkObject{
+					ID:   "vid",
+					HRef: "localhost/versions/vid",
+				},
+			},
 		}
 
 		filter, err := ds.GetFilter("123")
@@ -208,8 +220,8 @@ func TestGetFilterDimensions(t *testing.T) {
 		ds, err := NewDatastore(db)
 		So(err, ShouldBeNil)
 		mock.ExpectQuery(getFilterSQL).WithArgs(sqlmock.AnyArg()).
-			WillReturnRows(sqlmock.NewRows([]string{"filterJobId", "instanceId", "state"}).
-				AddRow("123", "12345678", "completed"))
+			WillReturnRows(sqlmock.NewRows([]string{"filterJobId", "instanceId", "versionID", "versionHRef", "state"}).
+				AddRow("123", "12345678", "vid", "localhost/versions/vid", "completed"))
 		mock.ExpectQuery(getDimensionsSQL).WithArgs(sqlmock.AnyArg()).
 			WillReturnRows(sqlmock.NewRows([]string{"name"}).
 				AddRow("age").AddRow("time"))
@@ -242,8 +254,8 @@ func TestGetFilterDimensionOptions(t *testing.T) {
 		ds, err := NewDatastore(db)
 		So(err, ShouldBeNil)
 		mock.ExpectQuery(getFilterSQL).WithArgs(sqlmock.AnyArg()).
-			WillReturnRows(sqlmock.NewRows([]string{"filterJobId", "instanceId", "state"}).
-				AddRow("123", "12345678", "created"))
+			WillReturnRows(sqlmock.NewRows([]string{"filterJobId", "instanceId", "versionID", "versionHRef", "state"}).
+				AddRow("123", "12345678", "vid", "localhost/versions/vid", "created"))
 		mock.ExpectQuery(getDimensionSQL).WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg()).
 			WillReturnRows(sqlmock.NewRows([]string{"name"}).
 				AddRow("age"))
@@ -279,8 +291,8 @@ func TestGetFilterDimension(t *testing.T) {
 		ds, err := NewDatastore(db)
 		So(err, ShouldBeNil)
 		mock.ExpectQuery(getFilterSQL).WithArgs(sqlmock.AnyArg()).
-			WillReturnRows(sqlmock.NewRows([]string{"filterJobId", "instanceId", "state"}).
-				AddRow("123", "12345678", "created"))
+			WillReturnRows(sqlmock.NewRows([]string{"filterJobId", "instanceId", "versionID", "versionHRef", "state"}).
+				AddRow("123", "12345678", "vid", "localhost/versions/vid", "created"))
 		mock.ExpectQuery(getDimensionSQL).WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg()).
 			WillReturnRows(sqlmock.NewRows([]string{"name"}).
 				AddRow("age"))
@@ -298,8 +310,8 @@ func TestGetFilterDimensionOption(t *testing.T) {
 		ds, err := NewDatastore(db)
 		So(err, ShouldBeNil)
 		mock.ExpectQuery(getFilterSQL).WithArgs(sqlmock.AnyArg()).
-			WillReturnRows(sqlmock.NewRows([]string{"filterJobId", "instanceId", "state"}).
-				AddRow("123", "12345678", "created"))
+			WillReturnRows(sqlmock.NewRows([]string{"filterJobId", "instanceId", "versionID", "versionHRef", "state"}).
+				AddRow("123", "12345678", "vid", "localhost/versions/vid", "created"))
 		mock.ExpectQuery(getDimensionSQL).WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg()).
 			WillReturnRows(sqlmock.NewRows([]string{"name"}).
 				AddRow("age"))
@@ -321,8 +333,8 @@ func TestRemoveFilterDimension(t *testing.T) {
 		So(err, ShouldBeNil)
 		mock.ExpectBegin()
 		mock.ExpectQuery(getFilterSQL).WithArgs(sqlmock.AnyArg()).
-			WillReturnRows(sqlmock.NewRows([]string{"filterJobId", "instanceId", "state"}).
-				AddRow("123", "12345678", "created"))
+			WillReturnRows(sqlmock.NewRows([]string{"filterJobId", "instanceId", "versionID", "versionHRef", "state"}).
+				AddRow("123", "12345678", "vid", "localhost/versions/vid", "created"))
 		mock.ExpectPrepare(getDimensionSQL).ExpectQuery().WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg()).
 			WillReturnRows(sqlmock.NewRows([]string{"name"}).
 				AddRow("age"))
@@ -344,8 +356,8 @@ func TestRemoveFilterDimensionOption(t *testing.T) {
 		So(err, ShouldBeNil)
 		mock.ExpectBegin()
 		mock.ExpectQuery(getFilterSQL).WithArgs(sqlmock.AnyArg()).
-			WillReturnRows(sqlmock.NewRows([]string{"filterJobId", "instanceId", "state"}).
-				AddRow("123", "12345678", "created"))
+			WillReturnRows(sqlmock.NewRows([]string{"filterJobId", "instanceId", "versionID", "versionHRef", "state"}).
+				AddRow("123", "12345678", "vid", "localhost/versions/vid", "created"))
 		mock.ExpectPrepare(getDimensionSQL).ExpectQuery().WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg()).
 			WillReturnRows(sqlmock.NewRows([]string{"name"}).
 				AddRow("age"))
