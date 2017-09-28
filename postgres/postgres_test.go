@@ -6,28 +6,28 @@ import (
 	"fmt"
 	"testing"
 
+	sqlmock "github.com/DATA-DOG/go-sqlmock"
 	"github.com/ONSdigital/dp-filter-api/models"
-	sqlmock "github.com/go-sqlmock"
 	"github.com/lib/pq"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
 var (
-	addFilterSQL             = "INSERT INTO Filters(.+) VALUES(.+)"
-	addDimensionSQL          = "INSERT INTO Dimensions"
-	addDimensionOptionSQL    = "INSERT INTO Dimensions(.+) VALUES"
-	deleteDimensionSQL       = "DELETE FROM Dimensions WHERE filterJobId = (.+) AND name = (.+)"
-	deleteDimensionOptionSQL = "DELETE FROM Dimensions WHERE filterJobId = (.+) AND name = (.+) AND option = (.+)"
-	getFilterSQL             = "SELECT (.*) FROM Filters WHERE"
-	getFilterStateSQL        = "SELECT state FROM Filters WHERE"
-	getDimensionSQL          = "SELECT name FROM Dimensions WHERE filterJobId = (.+) AND name = (.+)"
-	getDimensionsSQL         = "SELECT name FROM Dimensions WHERE filterJobId = (.+)"
-	getDimensionOptionsSQL   = "SELECT option FROM Dimensions WHERE filterJobId = (.+) AND name = (.+)"
-	getDimensionOptionSQL    = "SELECT option FROM Dimensions WHERE filterJobId = (.+) AND name = (.+) AND option = (.+)"
-	getDownloadItemsSQL      = "SELECT size, type, url FROM Downloads WHERE"
-	updateFilterStateSQL     = "UPDATE Filters SET"
-	upsertDimensionOptionSQL = "INSERT INTO Dimensions(.+) VALUES(.+) ON CONFLICT ON CONSTRAINT (.+)"
-	upsertDownloadURLSQL     = "INSERT INTO Downloads(.+) VALUES(.+) ON CONFLICT ON CONSTRAINT (.+)"
+	addFilterSQL             = `INSERT INTO Filters\(.+\) VALUES\(.+\)`
+	addDimensionSQL          = `INSERT INTO Dimensions\([^,]+, [^,]+\) VALUES\([^)]+\)\z`
+	addDimensionOptionSQL    = `INSERT INTO Dimensions\(.+, .+, .+\) VALUES\([^)]+\)\z`
+	deleteDimensionSQL       = `DELETE FROM Dimensions WHERE filterJobId = .+ AND name = [^=]+\z`
+	deleteDimensionOptionSQL = `DELETE FROM Dimensions WHERE filterJobId = .+ AND name = .+ AND option = .+`
+	getFilterSQL             = `SELECT . FROM Filters WHERE`
+	getFilterStateSQL        = `SELECT state FROM Filters WHERE`
+	getDimensionSQL          = `SELECT name FROM Dimensions WHERE filterJobId = .. AND name = ..\z`
+	getDimensionsSQL         = `SELECT name FROM Dimensions WHERE filterJobId = ..\z`
+	getDimensionOptionsSQL   = `SELECT option FROM Dimensions WHERE filterJobId = .+ AND name = [^=]+\z`
+	getDimensionOptionSQL    = `SELECT option FROM Dimensions WHERE filterJobId = .+ AND name = .+ AND option = .+`
+	getDownloadItemsSQL      = `SELECT size, type, url FROM Downloads WHERE`
+	updateFilterStateSQL     = `UPDATE Filters SET`
+	upsertDimensionOptionSQL = `INSERT INTO Dimensions\(.+\) VALUES\(.+\) ON CONFLICT ON CONSTRAINT .+`
+	upsertDownloadURLSQL     = `INSERT INTO Downloads\(.+\) VALUES\(.+\) ON CONFLICT ON CONSTRAINT .+`
 )
 
 func TestNewPostgresDatastore(t *testing.T) {
@@ -47,11 +47,11 @@ func TestAddFilter(t *testing.T) {
 		ds, err := NewDatastore(db)
 		So(err, ShouldBeNil)
 		mock.ExpectBegin()
-		mock.ExpectPrepare(addFilterSQL).ExpectExec().WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg()).
+		mock.ExpectExec(addFilterSQL).WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg()).
 			WillReturnResult(sqlmock.NewResult(1, 1))
-		mock.ExpectPrepare(addDimensionOptionSQL).ExpectExec().WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg()).
+		mock.ExpectExec(addDimensionOptionSQL).WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg()).
 			WillReturnResult(sqlmock.NewResult(1, 1))
-		mock.ExpectPrepare(addDimensionOptionSQL).ExpectExec().WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg()).
+		mock.ExpectExec(addDimensionOptionSQL).WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg()).
 			WillReturnResult(sqlmock.NewResult(1, 1))
 		mock.ExpectCommit()
 
@@ -82,12 +82,12 @@ func TestAddFilterDimensions(t *testing.T) {
 		ds, err := NewDatastore(db)
 		So(err, ShouldBeNil)
 		mock.ExpectBegin()
-		mock.ExpectPrepare(getFilterSQL).ExpectQuery().WithArgs(sqlmock.AnyArg()).
-			WillReturnRows(sqlmock.NewRows([]string{"filterId", "datasetFilterId", "state"}).
+		mock.ExpectQuery(getFilterSQL).WithArgs(sqlmock.AnyArg()).
+			WillReturnRows(sqlmock.NewRows([]string{"filterId", "instanceId", "state"}).
 				AddRow("123", "12345678", "created"))
-		mock.ExpectPrepare(deleteDimensionSQL).ExpectExec().WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg()).
+		mock.ExpectExec(deleteDimensionSQL).WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg()).
 			WillReturnResult(sqlmock.NewResult(1, 0))
-		mock.ExpectPrepare(addDimensionSQL).ExpectExec().WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg()).
+		mock.ExpectExec(addDimensionSQL).WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg()).
 			WillReturnResult(sqlmock.NewResult(1, 1))
 		mock.ExpectCommit()
 
@@ -107,14 +107,14 @@ func TestAddFilterDimensions(t *testing.T) {
 		ds, err := NewDatastore(db)
 		So(err, ShouldBeNil)
 		mock.ExpectBegin()
-		mock.ExpectPrepare(getFilterSQL).ExpectQuery().WithArgs(sqlmock.AnyArg()).
-			WillReturnRows(sqlmock.NewRows([]string{"filterId", "datasetFilterId", "state"}).
+		mock.ExpectQuery(getFilterSQL).WithArgs(sqlmock.AnyArg()).
+			WillReturnRows(sqlmock.NewRows([]string{"filterId", "instanceId", "state"}).
 				AddRow("123", "12345678", "created"))
-		mock.ExpectPrepare(deleteDimensionSQL).ExpectExec().WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg()).
+		mock.ExpectExec(deleteDimensionSQL).WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg()).
 			WillReturnResult(sqlmock.NewResult(1, 1))
-		mock.ExpectPrepare(addDimensionOptionSQL).ExpectExec().WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg()).
+		mock.ExpectExec(addDimensionOptionSQL).WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg()).
 			WillReturnResult(sqlmock.NewResult(1, 1))
-		mock.ExpectPrepare(addDimensionOptionSQL).ExpectExec().WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg()).
+		mock.ExpectExec(addDimensionOptionSQL).WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg()).
 			WillReturnResult(sqlmock.NewResult(1, 1))
 		mock.ExpectCommit()
 
@@ -137,7 +137,7 @@ func TestAddFilterDimensionOption(t *testing.T) {
 		ds, err := NewDatastore(db)
 		So(err, ShouldBeNil)
 		mock.ExpectQuery(getFilterSQL).WithArgs(sqlmock.AnyArg()).
-			WillReturnRows(sqlmock.NewRows([]string{"filterId", "datasetFilterId", "state"}).
+			WillReturnRows(sqlmock.NewRows([]string{"filterId", "instanceId", "state"}).
 				AddRow("123", "12345678", "created"))
 		mock.ExpectQuery(getDimensionSQL).WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg()).
 			WillReturnRows(sqlmock.NewRows([]string{"name"}).
@@ -164,10 +164,10 @@ func TestGetFilter(t *testing.T) {
 		ds, err := NewDatastore(db)
 		So(err, ShouldBeNil)
 		mock.ExpectBegin()
-		mock.ExpectPrepare(getFilterSQL).ExpectQuery().WithArgs(sqlmock.AnyArg()).
-			WillReturnRows(sqlmock.NewRows([]string{"filterJobId", "datasetFilterId", "state"}).
+		mock.ExpectQuery(getFilterSQL).WithArgs(sqlmock.AnyArg()).
+			WillReturnRows(sqlmock.NewRows([]string{"filterJobId", "instanceId", "state"}).
 				AddRow("123", "12345678", "completed"))
-		mock.ExpectPrepare(getDownloadItemsSQL).ExpectQuery().WithArgs(sqlmock.AnyArg()).
+		mock.ExpectQuery(getDownloadItemsSQL).WithArgs(sqlmock.AnyArg()).
 			WillReturnRows(sqlmock.NewRows([]string{"size", "type", "url"}).
 				AddRow("24mb", "csv", "csv/s3url").
 				AddRow("2mb", "json", "json/s3url").
@@ -175,7 +175,7 @@ func TestGetFilter(t *testing.T) {
 
 		expectedFilter := models.Filter{
 			FilterID:         "123",
-			DatasetFilterID:  "12345678",
+			InstanceID:       "12345678",
 			State:            "completed",
 			DimensionListURL: "/filters/123/dimensions",
 			Downloads: models.Downloads{
@@ -208,7 +208,7 @@ func TestGetFilterDimensions(t *testing.T) {
 		ds, err := NewDatastore(db)
 		So(err, ShouldBeNil)
 		mock.ExpectQuery(getFilterSQL).WithArgs(sqlmock.AnyArg()).
-			WillReturnRows(sqlmock.NewRows([]string{"filterJobId", "datasetFilterId", "state"}).
+			WillReturnRows(sqlmock.NewRows([]string{"filterJobId", "instanceId", "state"}).
 				AddRow("123", "12345678", "completed"))
 		mock.ExpectQuery(getDimensionsSQL).WithArgs(sqlmock.AnyArg()).
 			WillReturnRows(sqlmock.NewRows([]string{"name"}).
@@ -242,7 +242,7 @@ func TestGetFilterDimensionOptions(t *testing.T) {
 		ds, err := NewDatastore(db)
 		So(err, ShouldBeNil)
 		mock.ExpectQuery(getFilterSQL).WithArgs(sqlmock.AnyArg()).
-			WillReturnRows(sqlmock.NewRows([]string{"filterJobId", "datasetFilterId", "state"}).
+			WillReturnRows(sqlmock.NewRows([]string{"filterJobId", "instanceId", "state"}).
 				AddRow("123", "12345678", "created"))
 		mock.ExpectQuery(getDimensionSQL).WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg()).
 			WillReturnRows(sqlmock.NewRows([]string{"name"}).
@@ -279,7 +279,7 @@ func TestGetFilterDimension(t *testing.T) {
 		ds, err := NewDatastore(db)
 		So(err, ShouldBeNil)
 		mock.ExpectQuery(getFilterSQL).WithArgs(sqlmock.AnyArg()).
-			WillReturnRows(sqlmock.NewRows([]string{"filterJobId", "datasetFilterId", "state"}).
+			WillReturnRows(sqlmock.NewRows([]string{"filterJobId", "instanceId", "state"}).
 				AddRow("123", "12345678", "created"))
 		mock.ExpectQuery(getDimensionSQL).WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg()).
 			WillReturnRows(sqlmock.NewRows([]string{"name"}).
@@ -298,7 +298,7 @@ func TestGetFilterDimensionOption(t *testing.T) {
 		ds, err := NewDatastore(db)
 		So(err, ShouldBeNil)
 		mock.ExpectQuery(getFilterSQL).WithArgs(sqlmock.AnyArg()).
-			WillReturnRows(sqlmock.NewRows([]string{"filterJobId", "datasetFilterId", "state"}).
+			WillReturnRows(sqlmock.NewRows([]string{"filterJobId", "instanceId", "state"}).
 				AddRow("123", "12345678", "created"))
 		mock.ExpectQuery(getDimensionSQL).WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg()).
 			WillReturnRows(sqlmock.NewRows([]string{"name"}).
@@ -320,13 +320,13 @@ func TestRemoveFilterDimension(t *testing.T) {
 		ds, err := NewDatastore(db)
 		So(err, ShouldBeNil)
 		mock.ExpectBegin()
-		mock.ExpectPrepare(getFilterSQL).ExpectQuery().WithArgs(sqlmock.AnyArg()).
-			WillReturnRows(sqlmock.NewRows([]string{"filterJobId", "datasetFilterId", "state"}).
+		mock.ExpectQuery(getFilterSQL).WithArgs(sqlmock.AnyArg()).
+			WillReturnRows(sqlmock.NewRows([]string{"filterJobId", "instanceId", "state"}).
 				AddRow("123", "12345678", "created"))
 		mock.ExpectPrepare(getDimensionSQL).ExpectQuery().WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg()).
 			WillReturnRows(sqlmock.NewRows([]string{"name"}).
 				AddRow("age"))
-		mock.ExpectPrepare(deleteDimensionSQL).ExpectExec().WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg()).
+		mock.ExpectExec(deleteDimensionSQL).WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg()).
 			WillReturnResult(sqlmock.NewResult(1, 1))
 		mock.ExpectCommit()
 
@@ -343,13 +343,13 @@ func TestRemoveFilterDimensionOption(t *testing.T) {
 		ds, err := NewDatastore(db)
 		So(err, ShouldBeNil)
 		mock.ExpectBegin()
-		mock.ExpectPrepare(getFilterSQL).ExpectQuery().WithArgs(sqlmock.AnyArg()).
-			WillReturnRows(sqlmock.NewRows([]string{"filterJobId", "datasetFilterId", "state"}).
+		mock.ExpectQuery(getFilterSQL).WithArgs(sqlmock.AnyArg()).
+			WillReturnRows(sqlmock.NewRows([]string{"filterJobId", "instanceId", "state"}).
 				AddRow("123", "12345678", "created"))
 		mock.ExpectPrepare(getDimensionSQL).ExpectQuery().WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg()).
 			WillReturnRows(sqlmock.NewRows([]string{"name"}).
 				AddRow("age"))
-		mock.ExpectPrepare(deleteDimensionSQL).ExpectExec().WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg()).
+		mock.ExpectPrepare(deleteDimensionOptionSQL).ExpectExec().WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg()).
 			WillReturnResult(sqlmock.NewResult(1, 1))
 		mock.ExpectCommit()
 
@@ -367,17 +367,17 @@ func TestUpdateFilter(t *testing.T) {
 			ds, err := NewDatastore(db)
 			So(err, ShouldBeNil)
 			mock.ExpectBegin()
-			mock.ExpectPrepare(getFilterStateSQL).ExpectQuery().WithArgs(sqlmock.AnyArg()).
+			mock.ExpectQuery(getFilterStateSQL).WithArgs(sqlmock.AnyArg()).
 				WillReturnRows(sqlmock.NewRows([]string{"state"}).
 					AddRow("created"))
-			mock.ExpectPrepare(updateFilterStateSQL).ExpectExec().WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg()).
+			mock.ExpectExec(updateFilterStateSQL).WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg()).
 				WillReturnResult(sqlmock.NewResult(1, 1))
 			mock.ExpectCommit()
 
 			filter := &models.Filter{
-				FilterID:        "123",
-				State:           "submitted",
-				DatasetFilterID: "12345678",
+				FilterID:   "123",
+				State:      "submitted",
+				InstanceID: "12345678",
 			}
 
 			err = ds.UpdateFilter(false, filter)
@@ -390,23 +390,23 @@ func TestUpdateFilter(t *testing.T) {
 			ds, err := NewDatastore(db)
 			So(err, ShouldBeNil)
 			mock.ExpectBegin()
-			mock.ExpectPrepare(getFilterStateSQL).ExpectQuery().WithArgs(sqlmock.AnyArg()).
+			mock.ExpectQuery(getFilterStateSQL).WithArgs(sqlmock.AnyArg()).
 				WillReturnRows(sqlmock.NewRows([]string{"state"}).
 					AddRow("submitted"))
-			mock.ExpectPrepare(updateFilterStateSQL).ExpectExec().WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg()).
+			mock.ExpectExec(updateFilterStateSQL).WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg()).
 				WillReturnResult(sqlmock.NewResult(1, 1))
-			mock.ExpectPrepare(upsertDownloadURLSQL).ExpectExec().WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg()).
+			mock.ExpectExec(upsertDownloadURLSQL).WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg()).
 				WillReturnResult(sqlmock.NewResult(1, 1))
-			mock.ExpectPrepare(upsertDownloadURLSQL).ExpectExec().WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg()).
+			mock.ExpectExec(upsertDownloadURLSQL).WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg()).
 				WillReturnResult(sqlmock.NewResult(1, 1))
-			mock.ExpectPrepare(upsertDownloadURLSQL).ExpectExec().WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg()).
+			mock.ExpectExec(upsertDownloadURLSQL).WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg()).
 				WillReturnResult(sqlmock.NewResult(1, 1))
 			mock.ExpectCommit()
 
 			filter := &models.Filter{
-				FilterID:        "123",
-				State:           "completed",
-				DatasetFilterID: "12345678",
+				FilterID:   "123",
+				State:      "completed",
+				InstanceID: "12345678",
 				Downloads: models.Downloads{
 					CSV: models.DownloadItem{
 						Size: "12mb",
