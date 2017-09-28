@@ -77,7 +77,7 @@
 		},
 		{
 			"checksumSHA1": "T+9hugba0uXVF7SHbVzlKX87YQA=",
-			"path": "github.com/go-sqlmock",
+			"path": "github.com/DATA-DOG/go-sqlmock",
 			"revision": "c91a7f4b686e7c32bb4391481fa5cae7d25fc3ea",
 			"revisionTime": "2017-08-03T06:15:24Z"
 		},
