@@ -12,7 +12,7 @@ func TestFilterJobQueue(t *testing.T) {
 	Convey("When a filter job is updated with a status `submitted`, a message is sent to kafka", t, func() {
 		filterJobQueue := make(chan []byte, 1)
 		jobQueue := CreateJobQueue(filterJobQueue)
-		filter := models.Filter{DatasetFilterID: "12345678", State: "submitted", FilterID: "1234"}
+		filter := models.Filter{InstanceID: "12345678", State: "submitted", FilterID: "1234"}
 		err := jobQueue.Queue(&filter)
 		So(err, ShouldBeNil)
 		bytes := <-filterJobQueue

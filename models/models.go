@@ -10,13 +10,25 @@ import (
 
 // Filter represents a structure for a filter job
 type Filter struct {
-	DatasetFilterID  string      `json:"dataset_filter_id"`
+	InstanceID       string      `json:"instance_id"`
 	DimensionListURL string      `json:"dimension_list_url,omitempty"`
 	Dimensions       []Dimension `json:"dimensions,omitempty"`
 	Downloads        Downloads   `json:"downloads,omitempty"`
 	Events           Events      `json:"events,omitempty"`
 	FilterID         string      `json:"filter_job_id,omitempty"`
 	State            string      `json:"state,omitempty"`
+	Links            LinkMap     `json:"links,omitempty"`
+}
+
+// LinkMap contains a named LinkObject for each link to other resources
+type LinkMap struct {
+	Version LinkObject `json:"version,omitempty"`
+}
+
+// LinkObject represents a generic structure for all links
+type LinkObject struct {
+	ID   string `json:"id,omitempty"`
+	HRef string `json:"href,omitempty"`
 }
 
 // Dimension represents an object containing a list of dimension values and the dimension name
@@ -81,8 +93,8 @@ func (filter *Filter) Validate() error {
 
 	var missingFields []string
 
-	if filter.DatasetFilterID == "" {
-		missingFields = append(missingFields, "dataset_filter_id")
+	if filter.InstanceID == "" {
+		missingFields = append(missingFields, "instance_id")
 	}
 
 	if missingFields != nil {

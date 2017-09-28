@@ -318,15 +318,15 @@ definitions:
     description: |
       A description of a job to generate a customised dataset
     type: object
-    required: ["dataset_filter_id"]
+    required: ["instance_id"]
     properties:
       filter_job_id:
         readOnly: true
         type: string
         description: "A unique id for this filter job"
-      dataset_filter_id:
+      instance_id:
         type: string
-        description: "A unique id for the type of dataset, edition and version"
+        description: 'An instance ID for the specific dataset version to be filtered'
       dimension_list_url:
         readOnly: true
         type: string

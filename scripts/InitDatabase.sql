@@ -4,7 +4,7 @@ DROP TABLE IF EXISTS Downloads;
 
 CREATE TABLE Filters(
   filterJobId TEXT PRIMARY KEY,
-  datasetFilterId TEXT,
+  instanceId TEXT,
   state TEXT
 );
 

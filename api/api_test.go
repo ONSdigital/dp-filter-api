@@ -21,7 +21,7 @@ var (
 func TestSuccessfulAddFilterJob(t *testing.T) {
 	t.Parallel()
 	Convey("Successfully send a valid json message", t, func() {
-		reader := strings.NewReader("{\"dataset_filter_id\":\"12345678\"}")
+		reader := strings.NewReader(`{"instance_id":"12345678"}`)
 		r, err := http.NewRequest("POST", "http://localhost:22100/filters", reader)
 		So(err, ShouldBeNil)
 
@@ -35,7 +35,7 @@ func TestSuccessfulAddFilterJob(t *testing.T) {
 func TestAddFilterFailure(t *testing.T) {
 	t.Parallel()
 	Convey("When no data store is available, an internal error is returned", t, func() {
-		reader := strings.NewReader("{\"dataset_filter_id\":\"12345678\"}")
+		reader := strings.NewReader(`{"instance_id":"12345678"}`)
 		r, err := http.NewRequest("POST", "http://localhost:22100/filters", reader)
 		So(err, ShouldBeNil)
 

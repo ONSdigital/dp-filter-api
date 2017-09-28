@@ -25,12 +25,12 @@ func TestCreateFilterJobWithNoBody(t *testing.T) {
 }
 
 func TestCreateFilterJobWithInvalidJson(t *testing.T) {
-	Convey("When a filter job message is missing dataset_filter_id field, an error is returned", t, func() {
+	Convey("When a filter job message is missing instance_id field, an error is returned", t, func() {
 		filter, err := CreateFilter(strings.NewReader("{\"state\":\"created\"}"))
 		So(err, ShouldBeNil)
 
 		err = filter.Validate()
-		missingFields := []string{"dataset_filter_id"}
+		missingFields := []string{"instance_id"}
 		So(err, ShouldNotBeNil)
 		So(err, ShouldResemble, fmt.Errorf("Missing mandatory fields: %v", missingFields))
 	})
@@ -40,7 +40,7 @@ func TestCreateFilterJobWithInvalidJson(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		err = filter.Validate()
-		missingFields := []string{"dataset_filter_id"}
+		missingFields := []string{"instance_id"}
 		So(err, ShouldNotBeNil)
 		So(err, ShouldResemble, fmt.Errorf("Missing mandatory fields: %v", missingFields))
 	})
@@ -57,12 +57,12 @@ func TestCreateJobWithInvalidJson(t *testing.T) {
 
 func TestCreateFilterJobWithValidJSON(t *testing.T) {
 	Convey("When a filter job has a valid json body, a message is returned", t, func() {
-		reader := strings.NewReader("{\"dataset_filter_id\":\"12345678\"}")
+		reader := strings.NewReader("{\"instance_id\":\"12345678\"}")
 		filter, err := CreateFilter(reader)
 		So(err, ShouldBeNil)
 		So(filter.Validate(), ShouldBeNil)
 		So(filter.FilterID, ShouldNotBeNil)
-		So(filter.DatasetFilterID, ShouldEqual, "12345678")
+		So(filter.InstanceID, ShouldEqual, "12345678")
 		So(filter.State, ShouldEqual, "created")
 	})
 }
