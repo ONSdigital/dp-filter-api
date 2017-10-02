@@ -38,6 +38,15 @@ func (api *FilterAPI) addFilterJob(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// add version information from datasetAPI
+	instance, err := api.datasetAPI.GetInstance(r.Context(), newFilter.InstanceID)
+	if err != nil {
+		log.Error(err, log.Data{"new_filter": newFilter})
+		setErrorCode(w, err)
+		return
+	}
+	newFilter.Links = models.LinkMap{Version: instance.Links.Version}
+
 	filterJob, err := api.dataStore.AddFilter(api.host, newFilter)
 	if err != nil {
 		log.Error(err, log.Data{"new_filter": newFilter})

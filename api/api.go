@@ -23,12 +23,13 @@ type FilterAPI struct {
 	internalToken string
 	jobQueue      JobQueue
 	router        *mux.Router
+	datasetAPI    DatasetAPIer
 }
 
 // CreateFilterAPI manages all the routes configured to API
-func CreateFilterAPI(secretKey, host, bindAddr string, datastore DataStore, jobQueue JobQueue, errorChan chan error) {
+func CreateFilterAPI(secretKey, host, bindAddr string, datastore DataStore, jobQueue JobQueue, errorChan chan error, datasetAPI DatasetAPIer) {
 	router := mux.NewRouter()
-	routes(secretKey, host, router, datastore, jobQueue)
+	routes(secretKey, host, router, datastore, jobQueue, datasetAPI)
 
 	httpServer = server.New(bindAddr, router)
 	// Disable this here to allow main to manage graceful shutdown of the entire app.
@@ -44,8 +45,8 @@ func CreateFilterAPI(secretKey, host, bindAddr string, datastore DataStore, jobQ
 }
 
 // routes contain all endpoints for API
-func routes(secretKey, host string, router *mux.Router, dataStore DataStore, jobQueue JobQueue) *FilterAPI {
-	api := FilterAPI{internalToken: secretKey, host: host, dataStore: dataStore, router: router, jobQueue: jobQueue}
+func routes(secretKey, host string, router *mux.Router, dataStore DataStore, jobQueue JobQueue, datasetAPI DatasetAPIer) *FilterAPI {
+	api := FilterAPI{internalToken: secretKey, host: host, dataStore: dataStore, router: router, jobQueue: jobQueue, datasetAPI: datasetAPI}
 
 	router.Path("/healthcheck").Methods("GET").HandlerFunc(api.healthCheck)
 

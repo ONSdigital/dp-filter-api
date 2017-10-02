@@ -16,6 +16,8 @@ type Config struct {
 	PostgresURL             string        `envconfig:"POSTGRES_URL"`
 	SecretKey               string        `envconfig:"SECRET_KEY"`
 	ShutdownTimeout         time.Duration `envconfig:"SHUTDOWN_TIMEOUT"`
+	DatasetAPIURL           string        `envconfig:"DATASET_API_URL"`
+	DatasetAPIAuthToken     string        `envconfig:"DATASET_API_AUTH_TOKEN"`
 }
 
 var cfg *Config
@@ -35,6 +37,7 @@ func Get() (*Config, error) {
 		PostgresURL:             "user=dp dbname=FilterJobs sslmode=disable",
 		SecretKey:               "FD0108EA-825D-411C-9B1D-41EF7727F465",
 		ShutdownTimeout:         5 * time.Second,
+		DatasetAPIURL:           "http://localhost:22000",
 	}
 
 	return cfg, envconfig.Process("", cfg)

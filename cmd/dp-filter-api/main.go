@@ -11,10 +11,12 @@ import (
 
 	"github.com/ONSdigital/dp-filter-api/api"
 	"github.com/ONSdigital/dp-filter-api/config"
+	"github.com/ONSdigital/dp-filter-api/dataset"
 	"github.com/ONSdigital/dp-filter-api/filterJobQueue"
 	"github.com/ONSdigital/dp-filter-api/postgres"
 	"github.com/ONSdigital/go-ns/kafka"
 	"github.com/ONSdigital/go-ns/log"
+	"github.com/ONSdigital/go-ns/rchttp"
 	_ "github.com/lib/pq"
 )
 
@@ -54,11 +56,14 @@ func main() {
 		os.Exit(1)
 	}
 
+	client := rchttp.DefaultClient
+	datasetAPI := dataset.NewDatasetAPI(client, cfg.DatasetAPIURL, cfg.DatasetAPIAuthToken)
+
 	jobQueue := filterJobQueue.CreateJobQueue(producer.Output())
 
 	apiErrors := make(chan error, 1)
 
-	api.CreateFilterAPI(cfg.SecretKey, cfg.Host, cfg.BindAddr, dataStore, &jobQueue, apiErrors)
+	api.CreateFilterAPI(cfg.SecretKey, cfg.Host, cfg.BindAddr, dataStore, &jobQueue, apiErrors, datasetAPI)
 
 	// Gracefully shutdown the application closing any open resources.
 	gracefulShutdown := func() {
