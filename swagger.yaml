@@ -352,6 +352,8 @@ definitions:
            $ref: '#/definitions/DownloadFile'
           csv:
            $ref: '#/definitions/DownloadFile'
+      links:
+        $ref: '#/definitions/FilterLinks'
       events:
         readOnly: true
         type: object
@@ -457,3 +459,19 @@ definitions:
       size:
         type: string
         description: "The size of the file in bytes"
+  FilterLinks:
+    description: "A list of links related to this resource"
+    readOnly: true
+    type: object
+    properties:
+      version:
+        type: object
+        properties:
+          href:
+            description: "A URL to the version being filtered"
+            example: "http://localhost:8080/datasets/DE3BC0B6-D6C4-4E20-917E-95D7EA8C91DC/editions/2017/version/1"
+            type: string
+          id:
+            description: "An ID of the version being filtered"
+            example: "de3bc0b6-d6c4-4e20-917e-95d7ea8c91dc"
+            type: string
