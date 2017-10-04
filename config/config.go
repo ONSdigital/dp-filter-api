@@ -38,6 +38,7 @@ func Get() (*Config, error) {
 		SecretKey:               "FD0108EA-825D-411C-9B1D-41EF7727F465",
 		ShutdownTimeout:         5 * time.Second,
 		DatasetAPIURL:           "http://localhost:22000",
+		DatasetAPIAuthToken:     "FD0108EA-825D-411C-9B1D-41EF7727F465",
 	}
 
 	return cfg, envconfig.Process("", cfg)
