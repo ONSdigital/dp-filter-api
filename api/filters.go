@@ -19,7 +19,7 @@ var (
 	forbidden     = "Forbidden, the filter job has been locked as it has been submitted to be processed"
 )
 
-const internalToken = "internal_token"
+const internalToken = "Internal-Token"
 
 func (api *FilterAPI) addFilterJob(w http.ResponseWriter, r *http.Request) {
 	newFilter, err := models.CreateFilter(r.Body)
