@@ -98,6 +98,7 @@ func (ds Datastore) AddFilter(host string, newFilter *models.Filter) (models.Fil
 
 	_, err = tx.Stmt(ds.addFilter).Exec(newFilter.FilterID, newFilter.InstanceID, newFilter.Links.Version.ID, newFilter.Links.Version.HRef, newFilter.State)
 	if err != nil {
+		tx.Rollback()
 		return models.Filter{}, err
 	}
 
@@ -109,9 +110,11 @@ func (ds Datastore) AddFilter(host string, newFilter *models.Filter) (models.Fil
 	}
 
 	if err := tx.Commit(); err != nil {
+		tx.Rollback()
 		return models.Filter{}, err
 	}
 
+	tx.Commit()
 	return *newFilter, nil
 }
 
@@ -127,17 +130,20 @@ func (ds Datastore) AddFilterDimension(dimensionObject *models.AddDimension) err
 
 	var filterJobID, instanceId, versionID, versionHRef, state sql.NullString
 	if err := row.Scan(&filterJobID, &instanceId, &versionID, &versionHRef, &state); err != nil {
+		tx.Rollback()
 		return convertError(err, "bad request")
 	}
 
 	// Check filter is not locked (if state is equal to `submitted`)
 	if state.String == submittedState || state.String == completedState {
+		tx.Rollback()
 		return errors.New("Forbidden")
 	}
 
 	// Remove dimension if it already exists
 	_, err = ds.removeDimension(tx, dimensionObject)
 	if err != nil {
+		tx.Rollback()
 		return err
 	}
 
@@ -218,6 +224,7 @@ func (ds Datastore) GetFilter(filterID string) (models.Filter, error) {
 	var filterJobID, instanceId, versionID, versionHRef, state sql.NullString
 
 	if err := row.Scan(&filterJobID, &instanceId, &versionID, &versionHRef, &state); err != nil {
+		tx.Rollback()
 		return filterJob, convertError(err, "")
 	}
 
@@ -229,11 +236,13 @@ func (ds Datastore) GetFilter(filterID string) (models.Filter, error) {
 
 	downloadRows, err := tx.Stmt(ds.getDownloadItems).Query(filterID)
 	if err != nil {
+		tx.Rollback()
 		return filterJob, convertError(err, "")
 	}
 	defer downloadRows.Close()
 
 	if err = downloadRows.Err(); err != nil {
+		tx.Rollback()
 		return filterJob, convertError(err, "")
 	}
 
@@ -242,6 +251,7 @@ func (ds Datastore) GetFilter(filterID string) (models.Filter, error) {
 		var size, downloadType, url sql.NullString
 		err := downloadRows.Scan(&size, &downloadType, &url)
 		if err != nil {
+			tx.Rollback()
 			return filterJob, err
 		}
 
@@ -259,6 +269,8 @@ func (ds Datastore) GetFilter(filterID string) (models.Filter, error) {
 	}
 
 	filterJob.Downloads = downloads
+
+	tx.Commit()
 
 	return filterJob, nil
 }
@@ -419,12 +431,14 @@ func (ds Datastore) RemoveFilterDimension(filterID string, name string) error {
 	var filterJobID, instanceId, versionID, versionHRef, state sql.NullString
 
 	if err := checkFilterJobExists.Scan(&filterJobID, &instanceId, &versionID, &versionHRef, &state); err != nil {
+		tx.Rollback()
 		return convertError(err, "filter job not found")
 	}
 
 	if state.String == submittedState || state.String == completedState {
 		err := errors.New("Forbidden")
 		log.ErrorC("update to filter job forbidden, job already submitted", err, log.Data{"filter_job_id": filterID})
+		tx.Rollback()
 		return err
 	}
 
@@ -433,6 +447,7 @@ func (ds Datastore) RemoveFilterDimension(filterID string, name string) error {
 	var dimensionName sql.NullString
 
 	if err := checkDimensionExists.Scan(&dimensionName); err != nil {
+		tx.Rollback()
 		return convertError(err, "dimension not found")
 	}
 
@@ -443,6 +458,7 @@ func (ds Datastore) RemoveFilterDimension(filterID string, name string) error {
 
 	_, err = ds.removeDimension(tx, dimensionObject)
 	if err != nil {
+		tx.Rollback()
 		return err
 	}
 
@@ -465,12 +481,14 @@ func (ds Datastore) RemoveFilterDimensionOption(filterID string, name string, op
 	var filterJobID, instanceId, versionID, versionHRef, state sql.NullString
 
 	if err := checkFilterJobExists.Scan(&filterJobID, &instanceId, &versionID, &versionHRef, &state); err != nil {
+		tx.Rollback()
 		return convertError(err, "filter job not found")
 	}
 
 	if state.String == submittedState || state.String == completedState {
 		err := errors.New("Forbidden")
 		log.ErrorC("update to filter job forbidden, job already submitted", err, log.Data{"filter_job_id": filterID})
+		tx.Rollback()
 		return err
 	}
 
@@ -479,20 +497,24 @@ func (ds Datastore) RemoveFilterDimensionOption(filterID string, name string, op
 	var dimensionName sql.NullString
 
 	if err := checkDimensionExists.Scan(&dimensionName); err != nil {
+		tx.Rollback()
 		return convertError(err, "filter job not found")
 	}
 
 	results, err := ds.deleteDimensionOption.Exec(filterID, name, option)
 	if err != nil {
+		tx.Rollback()
 		return convertError(err, "option not found")
 	}
 
 	rowsAffected, err := results.RowsAffected()
 	if err != nil {
+		tx.Rollback()
 		return convertError(err, "")
 	}
 
 	if rowsAffected == 0 {
+		tx.Rollback()
 		return errors.New("Option not found")
 	}
 
@@ -513,6 +535,7 @@ func (ds Datastore) UpdateFilter(isAuthenticated bool, filter *models.Filter) er
 	currentFilterJob, err := getFilterJobState(tx, ds, filter.FilterID, isAuthenticated)
 	if err != nil {
 		log.Error(err, log.Data{"filter_job_id": filter.FilterID, "current_filter_job": currentFilterJob})
+		tx.Rollback()
 		return err
 	}
 
@@ -537,6 +560,7 @@ func (ds Datastore) UpdateFilter(isAuthenticated bool, filter *models.Filter) er
 	}
 
 	if !isAuthenticated && rowsAffected == 0 {
+		tx.Rollback()
 		return errors.New("Bad request")
 	}
 
