@@ -33,6 +33,12 @@
 			"revisionTime": "2017-09-07T12:17:38Z"
 		},
 		{
+			"checksumSHA1": "4TZpshhXxRKFxKy3PIok84P5cvo=",
+			"path": "github.com/ONSdigital/go-ns/mongo",
+			"revision": "f77a99756a4da7082417a23f082549903a83321e",
+			"revisionTime": "2017-10-09T12:14:44Z"
+		},
+		{
 			"checksumSHA1": "yDc9FMgs8F379i52A0wQgRhEyX4=",
 			"path": "github.com/ONSdigital/go-ns/rchttp",
 			"revision": "f48b96961e1cf255a2e901651a3e629569f20e21",
@@ -227,6 +233,40 @@
 			"path": "golang.org/x/net/context/ctxhttp",
 			"revision": "a04bdaca5b32abe1c069418fb7088ae607de5bd0",
 			"revisionTime": "2017-10-03T05:09:24Z"
+		},
+		{
+			"checksumSHA1": "1D8GzeoFGUs5FZOoyC2DpQg8c5Y=",
+			"origin": "github.com/ONSdigital/dp-filter-api/vendor/gopkg.in/mgo.v2",
+			"path": "gopkg.in/mgo.v2",
+			"revision": "3f83fa5005286a7fe593b055f0d7771a7dce4655",
+			"revisionTime": "2016-08-18T02:01:20Z"
+		},
+		{
+			"checksumSHA1": "YsB2DChSV9HxdzHaKATllAUKWSI=",
+			"origin": "github.com/ONSdigital/dp-filter-api/vendor/gopkg.in/mgo.v2/bson",
+			"path": "gopkg.in/mgo.v2/bson",
+			"revision": "3f83fa5005286a7fe593b055f0d7771a7dce4655",
+			"revisionTime": "2016-08-18T02:01:20Z"
+		},
+		{
+			"checksumSHA1": "XQsrqoNT1U0KzLxOFcAZVvqhLfk=",
+			"path": "gopkg.in/mgo.v2/internal/json",
+			"revision": "3f83fa5005286a7fe593b055f0d7771a7dce4655",
+			"revisionTime": "2016-08-18T02:01:20Z"
+		},
+		{
+			"checksumSHA1": "LEvMCnprte47qdAxWvQ/zRxVF1U=",
+			"origin": "github.com/ONSdigital/dp-filter-api/vendor/gopkg.in/mgo.v2/internal/sasl",
+			"path": "gopkg.in/mgo.v2/internal/sasl",
+			"revision": "3f83fa5005286a7fe593b055f0d7771a7dce4655",
+			"revisionTime": "2016-08-18T02:01:20Z"
+		},
+		{
+			"checksumSHA1": "+1WDRPaOphSCmRMxVPIPBV4aubc=",
+			"origin": "github.com/ONSdigital/dp-filter-api/vendor/gopkg.in/mgo.v2/internal/scram",
+			"path": "gopkg.in/mgo.v2/internal/scram",
+			"revision": "3f83fa5005286a7fe593b055f0d7771a7dce4655",
+			"revisionTime": "2016-08-18T02:01:20Z"
 		}
 	],
 	"rootPath": "github.com/ONSdigital/dp-filter-api"
