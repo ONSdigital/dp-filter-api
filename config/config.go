@@ -13,7 +13,7 @@ type Config struct {
 	FilterJobSubmittedTopic string        `envconfig:"FILTER_JOB_SUBMITTED_TOPIC"`
 	Host                    string        `envconfig:"HOST"`
 	KafkaMaxBytes           string        `envconfig:"KAFKA_MAX_BYTES"`
-	PostgresURL             string        `envconfig:"POSTGRES_URL"`
+	MongoDBURL              string        `envconfig:"MONGODB_BIND_ADDR"`
 	SecretKey               string        `envconfig:"SECRET_KEY"`
 	ShutdownTimeout         time.Duration `envconfig:"SHUTDOWN_TIMEOUT"`
 	DatasetAPIURL           string        `envconfig:"DATASET_API_URL"`
@@ -34,7 +34,7 @@ func Get() (*Config, error) {
 		Brokers:                 []string{"localhost:9092"},
 		FilterJobSubmittedTopic: "filter-job-submitted",
 		KafkaMaxBytes:           "2000000",
-		PostgresURL:             "user=dp dbname=FilterJobs sslmode=disable",
+		MongoDBURL:              "localhost:27017",
 		SecretKey:               "FD0108EA-825D-411C-9B1D-41EF7727F465",
 		ShutdownTimeout:         5 * time.Second,
 		DatasetAPIURL:           "http://localhost:22000",

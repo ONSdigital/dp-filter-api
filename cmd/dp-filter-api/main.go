@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"os"
 	"os/signal"
@@ -13,15 +12,15 @@ import (
 	"github.com/ONSdigital/dp-filter-api/config"
 	"github.com/ONSdigital/dp-filter-api/dataset"
 	"github.com/ONSdigital/dp-filter-api/filterJobQueue"
-	"github.com/ONSdigital/dp-filter-api/postgres"
+	"github.com/ONSdigital/dp-filter-api/mongo"
 	"github.com/ONSdigital/go-ns/kafka"
 	"github.com/ONSdigital/go-ns/log"
+	mongoclosure "github.com/ONSdigital/go-ns/mongo"
 	"github.com/ONSdigital/go-ns/rchttp"
-	_ "github.com/lib/pq"
 )
 
 func main() {
-	log.Namespace = "dp-filter-api"
+	log.Namespace = "filter-api"
 
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM)
@@ -38,15 +37,9 @@ func main() {
 		os.Exit(1)
 	}
 
-	db, err := sql.Open("postgres", cfg.PostgresURL)
+	dataStore, err := mongo.CreateFilterStore(cfg.MongoDBURL)
 	if err != nil {
-		log.ErrorC("DB open error", err, nil)
-		os.Exit(1)
-	}
-
-	dataStore, err := postgres.NewDatastore(db)
-	if err != nil {
-		log.ErrorC("Create postgres error", err, nil)
+		log.ErrorC("could not connect to mongodb", err, log.Data{"url": cfg.MongoDBURL})
 		os.Exit(1)
 	}
 
@@ -73,6 +66,12 @@ func main() {
 		if err := api.Close(ctx); err != nil {
 			log.Error(err, nil)
 		}
+
+		// mongo.Close() may use all remaining time in the context
+		if err = mongoclosure.Close(ctx, dataStore.Session); err != nil {
+			log.Error(err, nil)
+		}
+
 		// Close producer after http server has closed so if a message
 		// needs to be sent to kafka off a request it can
 		if err := producer.Close(ctx); err != nil {

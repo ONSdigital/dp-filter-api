@@ -3,12 +3,6 @@
 	"ignore": "test",
 	"package": [
 		{
-			"checksumSHA1": "Eb7SLyl7UabVb7smnf0fC0ibJnc=",
-			"path": "github.com/DATA-DOG/go-sqlmock",
-			"revision": "d76b18b42f285b792bf985118980ce9eacea9d10",
-			"revisionTime": "2017-09-01T07:34:10Z"
-		},
-		{
 			"checksumSHA1": "dzh4fF9o6j+mJEbJn5utm8Q+Pyg=",
 			"path": "github.com/ONSdigital/go-ns/avro",
 			"revision": "5c4e318aa10e56921c4e39fd5735c95868281d33",
@@ -31,6 +25,12 @@
 			"path": "github.com/ONSdigital/go-ns/log",
 			"revision": "5c4e318aa10e56921c4e39fd5735c95868281d33",
 			"revisionTime": "2017-09-07T12:17:38Z"
+		},
+		{
+			"checksumSHA1": "4TZpshhXxRKFxKy3PIok84P5cvo=",
+			"path": "github.com/ONSdigital/go-ns/mongo",
+			"revision": "f77a99756a4da7082417a23f082549903a83321e",
+			"revisionTime": "2017-10-09T12:14:44Z"
 		},
 		{
 			"checksumSHA1": "yDc9FMgs8F379i52A0wQgRhEyX4=",
@@ -138,18 +138,6 @@
 			"revisionTime": "2017-09-18T16:15:10Z"
 		},
 		{
-			"checksumSHA1": "/mlelB9eP/TxbND7uBtxVrLF1Ik=",
-			"path": "github.com/lib/pq",
-			"revision": "b77235e3890a962fe8a6f8c4c7198679ca7814e7",
-			"revisionTime": "2017-09-22T17:26:34Z"
-		},
-		{
-			"checksumSHA1": "ATnwV0POluBNQEMjPdylodz0oK0=",
-			"path": "github.com/lib/pq/oid",
-			"revision": "b77235e3890a962fe8a6f8c4c7198679ca7814e7",
-			"revisionTime": "2017-09-22T17:26:34Z"
-		},
-		{
 			"checksumSHA1": "hBgLmZ/4mCxmnH88mqFKBkpJFUY=",
 			"origin": "github.com/ONSdigital/go-ns/vendor/github.com/mgutz/ansi",
 			"path": "github.com/mgutz/ansi",
@@ -227,6 +215,36 @@
 			"path": "golang.org/x/net/context/ctxhttp",
 			"revision": "a04bdaca5b32abe1c069418fb7088ae607de5bd0",
 			"revisionTime": "2017-10-03T05:09:24Z"
+		},
+		{
+			"checksumSHA1": "1D8GzeoFGUs5FZOoyC2DpQg8c5Y=",
+			"path": "gopkg.in/mgo.v2",
+			"revision": "3f83fa5005286a7fe593b055f0d7771a7dce4655",
+			"revisionTime": "2016-08-18T02:01:20Z"
+		},
+		{
+			"checksumSHA1": "YsB2DChSV9HxdzHaKATllAUKWSI=",
+			"path": "gopkg.in/mgo.v2/bson",
+			"revision": "3f83fa5005286a7fe593b055f0d7771a7dce4655",
+			"revisionTime": "2016-08-18T02:01:20Z"
+		},
+		{
+			"checksumSHA1": "XQsrqoNT1U0KzLxOFcAZVvqhLfk=",
+			"path": "gopkg.in/mgo.v2/internal/json",
+			"revision": "3f83fa5005286a7fe593b055f0d7771a7dce4655",
+			"revisionTime": "2016-08-18T02:01:20Z"
+		},
+		{
+			"checksumSHA1": "LEvMCnprte47qdAxWvQ/zRxVF1U=",
+			"path": "gopkg.in/mgo.v2/internal/sasl",
+			"revision": "3f83fa5005286a7fe593b055f0d7771a7dce4655",
+			"revisionTime": "2016-08-18T02:01:20Z"
+		},
+		{
+			"checksumSHA1": "+1WDRPaOphSCmRMxVPIPBV4aubc=",
+			"path": "gopkg.in/mgo.v2/internal/scram",
+			"revision": "3f83fa5005286a7fe593b055f0d7771a7dce4655",
+			"revisionTime": "2016-08-18T02:01:20Z"
 		}
 	],
 	"rootPath": "github.com/ONSdigital/dp-filter-api"
