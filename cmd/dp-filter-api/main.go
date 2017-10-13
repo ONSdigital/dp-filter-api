@@ -20,7 +20,7 @@ import (
 )
 
 func main() {
-	log.Namespace = "dp-filter-api"
+	log.Namespace = "filter-api"
 
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM)

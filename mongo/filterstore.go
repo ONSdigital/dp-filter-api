@@ -11,7 +11,10 @@ import (
 const Database = "filters"
 const Filters_Collection = "filters"
 
+const Submitted = "submitted"
+
 var Not_Found = errors.New("not found")
+var Not_Authorised = errors.New("Not authorised")
 
 // FilterStore containing all filter jobs stored in mongodb
 type FilterStore struct {
@@ -55,10 +58,23 @@ func (s *FilterStore) GetFilter(filterID string) (*models.Filter, error) {
 }
 
 // UpdateFilter replaces the stored filter properties
-func (s *FilterStore) UpdateFilter(isAuthenticated bool, filter *models.Filter) error {
+func (s *FilterStore) UpdateFilter(isAuthenticated bool, UpdatedFilter *models.Filter) error {
 	session := s.Session.Copy()
-	query := bson.M{"filter_job_id": filter.FilterID}
-	err := session.DB(Database).C(Filters_Collection).Update(query, &filter)
+
+	currentFilter, err := s.GetFilter(UpdatedFilter.FilterID)
+	if err != nil {
+		if err == mgo.ErrNotFound {
+			return Not_Found
+		}
+		return err
+	}
+
+	if currentFilter.State == Submitted && !isAuthenticated {
+		return Not_Authorised
+	}
+
+	query := bson.M{"filter_job_id": UpdatedFilter.FilterID}
+	err = session.DB(Database).C(Filters_Collection).Update(query, &UpdatedFilter)
 	if err != nil {
 		if err == mgo.ErrNotFound {
 			return Not_Found
