@@ -1,9 +1,17 @@
 package mongo
 
 import (
+	"errors"
 	"github.com/ONSdigital/dp-filter-api/models"
+	"github.com/satori/go.uuid"
 	"gopkg.in/mgo.v2"
+	"gopkg.in/mgo.v2/bson"
 )
+
+const Database = "filters"
+const Filters_Collection = "filters"
+
+var Not_Found = errors.New("not found")
 
 // FilterStore containing all filter jobs stored in mongodb
 type FilterStore struct {
@@ -20,8 +28,44 @@ func CreateFilterStore(url string) (*FilterStore, error) {
 }
 
 // AddFilter to the data store
-func (s *FilterStore) AddFilter(host string, filter *models.Filter) (models.Filter, error) {
-	return models.Filter{}, nil
+func (s *FilterStore) AddFilter(host string, filter *models.Filter) (*models.Filter, error) {
+	session := s.Session.Copy()
+	filter.FilterID = uuid.NewV4().String()
+	err := session.DB(Database).C(Filters_Collection).Insert(filter)
+	if err != nil {
+		return nil, err
+	}
+	return filter, nil
+}
+
+// GetFilter returns a single filter, if not found return an error
+func (s *FilterStore) GetFilter(filterID string) (*models.Filter, error) {
+	session := s.Session.Copy()
+	query := bson.M{"filter_job_id": filterID}
+	var result models.Filter
+	err := session.DB(Database).C(Filters_Collection).Find(query).One(&result)
+	if err != nil {
+		if err == mgo.ErrNotFound {
+			return nil, Not_Found
+		}
+		return nil, err
+	}
+	validateFilter(&result)
+	return &result, nil
+}
+
+// UpdateFilter replaces the stored filter properties
+func (s *FilterStore) UpdateFilter(isAuthenticated bool, filter *models.Filter) error {
+	session := s.Session.Copy()
+	query := bson.M{"filter_job_id": filter.FilterID}
+	err := session.DB(Database).C(Filters_Collection).Update(query, &filter)
+	if err != nil {
+		if err == mgo.ErrNotFound {
+			return Not_Found
+		}
+		return err
+	}
+	return nil
 }
 
 // AddFilterDimension to a filter
@@ -32,11 +76,6 @@ func (s *FilterStore) AddFilterDimension(*models.AddDimension) error {
 // AddFilterDimensionOption to a filter
 func (s *FilterStore) AddFilterDimensionOption(*models.AddDimensionOption) error {
 	return nil
-}
-
-// GetFilter returns a single filter, if not found return an error
-func (s *FilterStore) GetFilter(filterID string) (models.Filter, error) {
-	return models.Filter{}, nil
 }
 
 // GetFilterDimensions returns a list of dimensions from a filter, if the filter is not found an error is returned
@@ -69,7 +108,15 @@ func (s *FilterStore) RemoveFilterDimensionOption(filterID string, name string, 
 	return nil
 }
 
-// UpdateFilter replaces the stored filter properties
-func (s *FilterStore) UpdateFilter(isAuthenticated bool, filter *models.Filter) error {
-	return nil
+func validateFilter(filter *models.Filter) {
+	// Make sure all empty arrays are initialized
+	if filter.Dimensions == nil {
+		filter.Dimensions = []models.Dimension{}
+	}
+	if filter.Events.Info == nil {
+		filter.Events.Info = []models.EventItem{}
+	}
+	if filter.Events.Error == nil {
+		filter.Events.Error = []models.EventItem{}
+	}
 }
