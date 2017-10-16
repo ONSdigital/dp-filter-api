@@ -14,7 +14,6 @@ const FiltersCollection = "filters"
 
 const Submitted = "submitted"
 
-
 var NotFound = errors.New("not found")
 var NotAuthorised = errors.New("Not authorised")
 var DimensionNotFound = errors.New("Dimension not found")
@@ -23,15 +22,16 @@ var Forbidden = errors.New("Forbidden")
 // FilterStore containing all filter jobs stored in mongodb
 type FilterStore struct {
 	Session *mgo.Session
+	host    string
 }
 
 // CreateFilterStore which can store, update and fetch filter jobs
-func CreateFilterStore(url string) (*FilterStore, error) {
+func CreateFilterStore(url, host string) (*FilterStore, error) {
 	session, err := mgo.Dial(url)
 	if err != nil {
 		return nil, err
 	}
-	return &FilterStore{Session: session}, nil
+	return &FilterStore{Session: session, host: host}, nil
 }
 
 // AddFilter to the data store
@@ -137,7 +137,7 @@ func (s *FilterStore) AddFilterDimension(dimension *models.AddDimension) error {
 
 	session := s.Session.Copy()
 	queryFilter := bson.M{"filter_job_id": dimension.FilterID}
-	url := fmt.Sprintf("%s/filter/%s/dimensions/%s", "localhost", dimension.FilterID, dimension.Name)
+	url := fmt.Sprintf("%s/filter/%s/dimensions/%s", s.host, dimension.FilterID, dimension.Name)
 	d := models.Dimension{Name: dimension.Name, Options: dimension.Options, DimensionURL: url}
 	update := bson.M{"$push": bson.M{"dimensions": d}}
 	err = session.DB(Database).C(FiltersCollection).Update(queryFilter, update)
