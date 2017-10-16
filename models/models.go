@@ -12,7 +12,7 @@ import (
 type Filter struct {
 	InstanceID       string      `bson:"instance_id"          json:"instance_id"`
 	DimensionListURL string      `bson:"dimension_list_url"   json:"dimension_list_url,omitempty"`
-	Dimensions       []Dimension `bson:"dimensions,omitempty"           json:"dimensions"`
+	Dimensions       []Dimension `bson:"dimensions,omitempty" json:"dimensions"`
 	Downloads        Downloads   `bson:"downloads"            json:"downloads,omitempty"`
 	Events           Events      `bson:"events"               json:"events,omitempty"`
 	FilterID         string      `bson:"filter_job_id"        json:"filter_job_id,omitempty"`

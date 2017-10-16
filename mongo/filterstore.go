@@ -9,12 +9,12 @@ import (
 )
 
 const Database = "filters"
-const Filters_Collection = "filters"
+const FiltersCollection = "filters"
 
 const Submitted = "submitted"
 
-var Not_Found = errors.New("not found")
-var Not_Authorised = errors.New("Not authorised")
+var NotFound = errors.New("not found")
+var NotAuthorised = errors.New("Not authorised")
 
 // FilterStore containing all filter jobs stored in mongodb
 type FilterStore struct {
@@ -34,7 +34,7 @@ func CreateFilterStore(url string) (*FilterStore, error) {
 func (s *FilterStore) AddFilter(host string, filter *models.Filter) (*models.Filter, error) {
 	session := s.Session.Copy()
 	filter.FilterID = uuid.NewV4().String()
-	err := session.DB(Database).C(Filters_Collection).Insert(filter)
+	err := session.DB(Database).C(FiltersCollection).Insert(filter)
 	if err != nil {
 		return nil, err
 	}
@@ -46,10 +46,10 @@ func (s *FilterStore) GetFilter(filterID string) (*models.Filter, error) {
 	session := s.Session.Copy()
 	query := bson.M{"filter_job_id": filterID}
 	var result models.Filter
-	err := session.DB(Database).C(Filters_Collection).Find(query).One(&result)
+	err := session.DB(Database).C(FiltersCollection).Find(query).One(&result)
 	if err != nil {
 		if err == mgo.ErrNotFound {
-			return nil, Not_Found
+			return nil, NotFound
 		}
 		return nil, err
 	}
@@ -64,20 +64,20 @@ func (s *FilterStore) UpdateFilter(isAuthenticated bool, UpdatedFilter *models.F
 	currentFilter, err := s.GetFilter(UpdatedFilter.FilterID)
 	if err != nil {
 		if err == mgo.ErrNotFound {
-			return Not_Found
+			return NotFound
 		}
 		return err
 	}
 
 	if currentFilter.State == Submitted && !isAuthenticated {
-		return Not_Authorised
+		return NotAuthorised
 	}
 
 	query := bson.M{"filter_job_id": UpdatedFilter.FilterID}
-	err = session.DB(Database).C(Filters_Collection).Update(query, &UpdatedFilter)
+	err = session.DB(Database).C(FiltersCollection).Update(query, &UpdatedFilter)
 	if err != nil {
 		if err == mgo.ErrNotFound {
-			return Not_Found
+			return NotFound
 		}
 		return err
 	}
