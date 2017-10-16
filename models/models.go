@@ -10,58 +10,58 @@ import (
 
 // Filter represents a structure for a filter job
 type Filter struct {
-	InstanceID       string      `json:"instance_id"`
-	DimensionListURL string      `json:"dimension_list_url,omitempty"`
-	Dimensions       []Dimension `json:"dimensions,omitempty"`
-	Downloads        Downloads   `json:"downloads,omitempty"`
-	Events           Events      `json:"events,omitempty"`
-	FilterID         string      `json:"filter_job_id,omitempty"`
-	State            string      `json:"state,omitempty"`
-	Links            LinkMap     `json:"links,omitempty"`
+	InstanceID       string      `bson:"instance_id"          json:"instance_id"`
+	DimensionListURL string      `bson:"dimension_list_url"   json:"dimension_list_url,omitempty"`
+	Dimensions       []Dimension `bson:"dimensions,omitempty" json:"dimensions"`
+	Downloads        Downloads   `bson:"downloads"            json:"downloads,omitempty"`
+	Events           Events      `bson:"events"               json:"events,omitempty"`
+	FilterID         string      `bson:"filter_job_id"        json:"filter_job_id,omitempty"`
+	State            string      `bson:"state"                json:"state,omitempty"`
+	Links            LinkMap     `bson:"links"                json:"links,omitempty"`
 }
 
 // LinkMap contains a named LinkObject for each link to other resources
 type LinkMap struct {
-	Version LinkObject `json:"version,omitempty"`
+	Version LinkObject `bson:"version" json:"version,omitempty"`
 }
 
 // LinkObject represents a generic structure for all links
 type LinkObject struct {
-	ID   string `json:"id,omitempty"`
-	HRef string `json:"href,omitempty"`
+	ID   string `bson:"id"   json:"id,omitempty"`
+	HRef string `bson:"href" json:"href,omitempty"`
 }
 
 // Dimension represents an object containing a list of dimension values and the dimension name
 type Dimension struct {
-	DimensionURL string   `json:"dimension_url,omitempty"`
-	Name         string   `json:"name,omitempty"`
-	Options      []string `json:"options,omitempty"`
+	DimensionURL string   `bson:"dimension_url"           json:"dimension_url"`
+	Name         string   `bson:"name"                    json:"name"`
+	Options      []string `bson:"options"                 json:"options,omitempty"`
 }
 
 // Downloads represents a list of file types possible to download
 type Downloads struct {
-	CSV  DownloadItem `json:"csv,omitempty"`
-	JSON DownloadItem `json:"json,omitempty"`
-	XLS  DownloadItem `json:"xls,omitempty"`
+	CSV  DownloadItem `bson:"csv"  json:"csv,omitempty"`
+	JSON DownloadItem `bson:"json" json:"json,omitempty"`
+	XLS  DownloadItem `bson:"xls"  json:"xls,omitempty"`
 }
 
 // DownloadItem represents an object containing information for the download item
 type DownloadItem struct {
-	Size string `json:"size,omitempty"`
-	URL  string `json:"url,omitempty"`
+	Size string `bson:"size" json:"size,omitempty"`
+	URL  string `bson:"url"  json:"url,omitempty"`
 }
 
 // Events represents a list of array objects containing event information against the filter job
 type Events struct {
-	Error []EventItem `json:"error,omitempty"`
-	Info  []EventItem `json:"info,omitempty"`
+	Error []EventItem `bson:"error,omitempty" json:"error"`
+	Info  []EventItem `bson:"info,omitempty"  json:"info"`
 }
 
 // EventItem represents an event object containing event information
 type EventItem struct {
-	Message string `json:"message,omitempty"`
-	Time    string `json:"time,omitempty"`
-	Type    string `json:"type,omitempty"`
+	Message string `bson:"message" json:"message,omitempty"`
+	Time    string `bson:"time"    json:"time,omitempty"`
+	Type    string `bson:"type"    json:"type,omitempty"`
 }
 
 // AddDimension represents dimension information for storing a list of options for a dimension

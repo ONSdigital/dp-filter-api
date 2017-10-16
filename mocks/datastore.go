@@ -26,11 +26,11 @@ type DataStore struct {
 	InternalError     bool
 }
 
-func (ds *DataStore) AddFilter(host string, filterJob *models.Filter) (models.Filter, error) {
+func (ds *DataStore) AddFilter(host string, filterJob *models.Filter) (*models.Filter, error) {
 	if ds.InternalError {
-		return models.Filter{}, internalServerError
+		return nil, internalServerError
 	}
-	return models.Filter{InstanceID: "12345678"}, nil
+	return &models.Filter{InstanceID: "12345678"}, nil
 }
 
 func (ds *DataStore) AddFilterDimension(dimension *models.AddDimension) error {
@@ -69,15 +69,15 @@ func (ds *DataStore) AddFilterDimensionOption(dimension *models.AddDimensionOpti
 	return nil
 }
 
-func (ds *DataStore) GetFilter(filterID string) (models.Filter, error) {
+func (ds *DataStore) GetFilter(filterID string) (*models.Filter, error) {
 	if ds.NotFound {
-		return models.Filter{}, notFoundError
+		return nil, notFoundError
 	}
 
 	if ds.InternalError {
-		return models.Filter{}, internalServerError
+		return nil, internalServerError
 	}
-	return models.Filter{InstanceID: "12345678"}, nil
+	return &models.Filter{InstanceID: "12345678"}, nil
 }
 
 func (ds *DataStore) GetFilterDimensions(filterID string) ([]models.Dimension, error) {

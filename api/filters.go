@@ -67,7 +67,7 @@ func (api *FilterAPI) addFilterJob(w http.ResponseWriter, r *http.Request) {
 
 	if filterJob.State == "submitted" {
 
-		api.jobQueue.Queue(&filterJob)
+		api.jobQueue.Queue(filterJob)
 
 		log.Info("filter job message sent to kafka", log.Data{"filter_job_id": filterJob.FilterID})
 	}
