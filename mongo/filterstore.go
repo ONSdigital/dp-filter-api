@@ -194,64 +194,52 @@ func (s *FilterStore) AddFilterDimensionOption(newOption *models.AddDimensionOpt
 func (s *FilterStore) GetFilterDimensionOptions(filterID string, name string) ([]models.DimensionOption, error) {
 	session := s.Session.Copy()
 	queryFilter := bson.M{"filter_job_id": filterID}
-	queryDimension := bson.M{"filter_job_id": filterID, "dimensions": bson.M{"$elemMatch": bson.M{"name": name}}}
-	dimensionSelect := bson.M{"dimensions": 1}
 	var result models.Filter
-	err := session.DB(Database).C(FiltersCollection).Find(queryFilter).Select(dimensionSelect).One(&result)
+	err := session.DB(Database).C(FiltersCollection).Find(queryFilter).One(&result)
 	if err != nil {
 		if err == mgo.ErrNotFound {
 			return nil, NotFound
 		}
 		return nil, err
 	}
-	err = session.DB(Database).C(FiltersCollection).Find(queryDimension).Select(dimensionSelect).One(&result)
-	if err != nil {
-		if err == mgo.ErrNotFound {
-			return nil, DimensionNotFound
+
+	for _, dimension := range result.Dimensions {
+		var options []models.DimensionOption
+		if dimension.Name == name {
+			for _, option := range dimension.Options {
+				url := fmt.Sprintf("%s/filter/%s/dimensions/%s/option/%s", s.host, filterID, dimension.Name, option)
+				dimensionOption := models.DimensionOption{Option: option, DimensionOptionURL: url}
+				options = append(options, dimensionOption)
+			}
+
+			return options, nil
 		}
-		return nil, err
-	}
-	var options []models.DimensionOption
-	dimension := result.Dimensions[0]
-	for _, option := range dimension.Options {
-		url := fmt.Sprintf("%s/filter/%s/dimensions/%s/option/%s", s.host, filterID, dimension.Name, option)
-		dimensionOption := models.DimensionOption{Option: option, DimensionOptionURL: url}
-		options = append(options, dimensionOption)
 	}
 
-	return options, nil
+	return nil, DimensionNotFound
 }
 
 // GetFilterDimensionOption return a single dimension option
 func (s *FilterStore) GetFilterDimensionOption(filterID string, name string, option string) error {
 	session := s.Session.Copy()
-	queryFilter := bson.M{"filter_job_id": filterID}
 	queryDimension := bson.M{"filter_job_id": filterID, "dimensions": bson.M{"$elemMatch": bson.M{"name": name}}}
-	queryOptions := bson.M{"filter_job_id": filterID, "dimensions": bson.M{"$elemMatch": bson.M{"name": name, "options": option}}}
 	dimensionSelect := bson.M{"dimensions": 1}
 	var result models.Filter
-	err := session.DB(Database).C(FiltersCollection).Find(queryFilter).Select(dimensionSelect).One(&result)
+	err := session.DB(Database).C(FiltersCollection).Find(queryDimension).Select(dimensionSelect).One(&result)
 	if err != nil {
 		if err == mgo.ErrNotFound {
 			return NotFound
 		}
 		return err
 	}
-	err = session.DB(Database).C(FiltersCollection).Find(queryDimension).Select(dimensionSelect).One(&result)
-	if err != nil {
-		if err == mgo.ErrNotFound {
-			return NotFound
+    options := result.Dimensions[0].Options
+    for _, o := range options {
+    	if o == option {
+    		return nil
 		}
-		return err
 	}
-	err = session.DB(Database).C(FiltersCollection).Find(queryOptions).Select(dimensionSelect).One(&result)
-	if err != nil {
-		if err == mgo.ErrNotFound {
-			return OptionNot
-		}
-		return err
-	}
-	return nil
+
+	return OptionNot
 }
 
 // RemoveFilterDimensionOption from a filter
