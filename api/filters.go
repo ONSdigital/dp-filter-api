@@ -9,6 +9,7 @@ import (
 	"github.com/ONSdigital/go-ns/log"
 	"github.com/gorilla/mux"
 
+	"fmt"
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -56,7 +57,7 @@ func (api *FilterAPI) addFilterJob(w http.ResponseWriter, r *http.Request) {
 
 	// Remove new filter job dimensions and build dimension url
 	filterJob.Dimensions = nil
-	filterJob.DimensionListURL = "/filters/" + filterJob.FilterID + "/dimensions"
+	filterJob.DimensionListURL = fmt.Sprintf("%s/filters/%s/dimensions", api.host, filterJob.FilterID)
 
 	bytes, err := json.Marshal(filterJob)
 	if err != nil {
@@ -94,6 +95,9 @@ func (api *FilterAPI) getFilterJob(w http.ResponseWriter, r *http.Request) {
 		setErrorCode(w, err)
 		return
 	}
+
+	filterJob.Dimensions = nil
+	filterJob.DimensionListURL = fmt.Sprintf("%s/filters/%s/dimensions", api.host, filterJob.FilterID)
 
 	bytes, err := json.Marshal(filterJob)
 	if err != nil {

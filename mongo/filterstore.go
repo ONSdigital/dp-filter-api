@@ -12,8 +12,11 @@ import (
 const Database = "filters"
 const FiltersCollection = "filters"
 
+// Filter job states
 const Submitted = "submitted"
+const Completed = "completed"
 
+// Error codes
 var NotFound = errors.New("Not found")
 var NotAuthorised = errors.New("Not authorised")
 var DimensionNotFound = errors.New("Dimension not found")
@@ -43,6 +46,7 @@ func (s *FilterStore) AddFilter(host string, filter *models.Filter) (*models.Fil
 	if err != nil {
 		return nil, err
 	}
+	validateFilter(filter)
 	return filter, nil
 }
 
@@ -63,29 +67,55 @@ func (s *FilterStore) GetFilter(filterID string) (*models.Filter, error) {
 }
 
 // UpdateFilter replaces the stored filter properties
-func (s *FilterStore) UpdateFilter(isAuthenticated bool, UpdatedFilter *models.Filter) error {
+func (s *FilterStore) UpdateFilter(isAuthenticated bool, updatedFilter *models.Filter) error {
 	session := s.Session.Copy()
 
-	currentFilter, err := s.GetFilter(UpdatedFilter.FilterID)
+	currentFilter, err := s.GetFilter(updatedFilter.FilterID)
 	if err != nil {
 		if err == mgo.ErrNotFound {
 			return NotFound
 		}
 		return err
+	}
+
+	if !isAuthenticated {
+		if currentFilter.State == Submitted {
+			return NotAuthorised
+		}
+		// force updates to the downloads property to be blank, only authenticated user can do this
+		updatedFilter.Downloads = models.Downloads{}
 	}
 
 	if currentFilter.State == Submitted && !isAuthenticated {
 		return NotAuthorised
 	}
 
-	query := bson.M{"filter_job_id": UpdatedFilter.FilterID}
-	err = session.DB(Database).C(FiltersCollection).Update(query, &UpdatedFilter)
+	if updatedFilter.Downloads.XLS.URL == "" {
+		updatedFilter.Downloads.XLS = currentFilter.Downloads.XLS
+	}
+
+	if updatedFilter.Downloads.CSV.URL == "" {
+		updatedFilter.Downloads.CSV = currentFilter.Downloads.CSV
+	}
+
+	if updatedFilter.Downloads.JSON.URL == "" {
+		updatedFilter.Downloads.JSON = currentFilter.Downloads.JSON
+	}
+
+	// Don't bother checking for JSON as it doesn't get generated at the moment
+	if updatedFilter.Downloads.CSV.URL == "" && updatedFilter.Downloads.XLS.URL == "" {
+		updatedFilter.State = Completed
+	}
+
+	query := bson.M{"filter_job_id": updatedFilter.FilterID}
+	err = session.DB(Database).C(FiltersCollection).Update(query, &updatedFilter)
 	if err != nil {
 		if err == mgo.ErrNotFound {
 			return NotFound
 		}
 		return err
 	}
+
 	return nil
 }
 
@@ -232,10 +262,10 @@ func (s *FilterStore) GetFilterDimensionOption(filterID string, name string, opt
 		}
 		return err
 	}
-    options := result.Dimensions[0].Options
-    for _, o := range options {
-    	if o == option {
-    		return nil
+	options := result.Dimensions[0].Options
+	for _, o := range options {
+		if o == option {
+			return nil
 		}
 	}
 

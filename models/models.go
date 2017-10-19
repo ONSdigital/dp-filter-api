@@ -12,7 +12,7 @@ import (
 type Filter struct {
 	InstanceID       string      `bson:"instance_id"          json:"instance_id"`
 	DimensionListURL string      `bson:"dimension_list_url"   json:"dimension_list_url,omitempty"`
-	Dimensions       []Dimension `bson:"dimensions,omitempty" json:"dimensions"`
+	Dimensions       []Dimension `bson:"dimensions,omitempty" json:"dimensions,omitempty"`
 	Downloads        Downloads   `bson:"downloads"            json:"downloads,omitempty"`
 	Events           Events      `bson:"events"               json:"events,omitempty"`
 	FilterID         string      `bson:"filter_job_id"        json:"filter_job_id,omitempty"`
@@ -35,20 +35,20 @@ type LinkObject struct {
 type Dimension struct {
 	DimensionURL string   `bson:"dimension_url"           json:"dimension_url"`
 	Name         string   `bson:"name"                    json:"name"`
-	Options      []string `bson:"options"                 json:"options,omitempty"`
+	Options      []string `bson:"options"                 json:"options"`
 }
 
 // Downloads represents a list of file types possible to download
 type Downloads struct {
-	CSV  DownloadItem `bson:"csv"  json:"csv,omitempty"`
-	JSON DownloadItem `bson:"json" json:"json,omitempty"`
-	XLS  DownloadItem `bson:"xls"  json:"xls,omitempty"`
+	CSV  DownloadItem `bson:"csv"  json:"csv"`
+	JSON DownloadItem `bson:"json" json:"json"`
+	XLS  DownloadItem `bson:"xls"  json:"xls"`
 }
 
 // DownloadItem represents an object containing information for the download item
 type DownloadItem struct {
-	Size string `bson:"size" json:"size,omitempty"`
-	URL  string `bson:"url"  json:"url,omitempty"`
+	Size string `bson:"size" json:"size"`
+	URL  string `bson:"url"  json:"url"`
 }
 
 // Events represents a list of array objects containing event information against the filter job
