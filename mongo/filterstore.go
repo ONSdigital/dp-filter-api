@@ -20,8 +20,10 @@ const Completed = "completed"
 var NotFound = errors.New("Not found")
 var NotAuthorised = errors.New("Not authorised")
 var DimensionNotFound = errors.New("Dimension not found")
+var FilterOrDimensionNotFound = errors.New("Bad request - filter or dimension not found")
 var Forbidden = errors.New("Forbidden")
-var OptionNot = errors.New("Option not found")
+var OptionNotFound = errors.New("Option not found")
+var BadRequest = errors.New("Bad request - filter job not found")
 
 // FilterStore containing all filter jobs stored in mongodb
 type FilterStore struct {
@@ -80,14 +82,10 @@ func (s *FilterStore) UpdateFilter(isAuthenticated bool, updatedFilter *models.F
 
 	if !isAuthenticated {
 		if currentFilter.State == Submitted {
-			return NotAuthorised
+			return Forbidden
 		}
 		// force updates to the downloads property to be blank, only authenticated user can do this
 		updatedFilter.Downloads = models.Downloads{}
-	}
-
-	if currentFilter.State == Submitted && !isAuthenticated {
-		return NotAuthorised
 	}
 
 	if updatedFilter.Downloads.XLS.URL == "" {
@@ -145,7 +143,7 @@ func (s *FilterStore) GetFilterDimension(filterID string, name string) error {
 	err := session.DB(Database).C(FiltersCollection).Find(queryFilter).Select(dimensionSelect).One(&result)
 	if err != nil {
 		if err == mgo.ErrNotFound {
-			return NotFound
+			return BadRequest
 		}
 		return err
 	}
@@ -185,18 +183,26 @@ func (s *FilterStore) AddFilterDimension(dimension *models.AddDimension) error {
 func (s *FilterStore) RemoveFilterDimension(filterID string, name string) error {
 	err := s.checkFilterState(filterID)
 	if err != nil {
+		if err == NotFound {
+			return BadRequest
+		}
 		return err
 	}
 	session := s.Session.Copy()
 	queryFilter := bson.M{"filter_job_id": filterID}
 	update := bson.M{"$pull": bson.M{"dimensions": bson.M{"name": name}}}
-	err = session.DB(Database).C(FiltersCollection).Update(queryFilter, update)
+	info, err := session.DB(Database).C(FiltersCollection).UpdateAll(queryFilter, update)
 	if err != nil {
 		if err == mgo.ErrNotFound {
 			return NotFound
 		}
 		return err
 	}
+
+	if info.Updated == 0 {
+		return DimensionNotFound
+	}
+
 	return nil
 }
 
@@ -204,16 +210,19 @@ func (s *FilterStore) RemoveFilterDimension(filterID string, name string) error 
 func (s *FilterStore) AddFilterDimensionOption(newOption *models.AddDimensionOption) error {
 	err := s.checkFilterState(newOption.FilterID)
 	if err != nil {
+		if err == NotFound {
+			return BadRequest
+		}
 		return err
 	}
 
 	session := s.Session.Copy()
 	queryOptions := bson.M{"filter_job_id": newOption.FilterID, "dimensions": bson.M{"$elemMatch": bson.M{"name": newOption.Name}}}
-	update := bson.M{"$push": bson.M{"dimensions.0.options": newOption.Option}}
+	update := bson.M{"$push": bson.M{"dimensions.$.options": newOption.Option}}
 	err = session.DB(Database).C(FiltersCollection).Update(queryOptions, update)
 	if err != nil {
 		if err == mgo.ErrNotFound {
-			return NotFound
+			return DimensionNotFound
 		}
 		return err
 	}
@@ -228,7 +237,7 @@ func (s *FilterStore) GetFilterDimensionOptions(filterID string, name string) ([
 	err := session.DB(Database).C(FiltersCollection).Find(queryFilter).One(&result)
 	if err != nil {
 		if err == mgo.ErrNotFound {
-			return nil, NotFound
+			return nil, BadRequest
 		}
 		return nil, err
 	}
@@ -258,35 +267,50 @@ func (s *FilterStore) GetFilterDimensionOption(filterID string, name string, opt
 	err := session.DB(Database).C(FiltersCollection).Find(queryDimension).Select(dimensionSelect).One(&result)
 	if err != nil {
 		if err == mgo.ErrNotFound {
-			return NotFound
+			return FilterOrDimensionNotFound
 		}
 		return err
 	}
-	options := result.Dimensions[0].Options
-	for _, o := range options {
-		if o == option {
-			return nil
+
+	for _, d := range result.Dimensions {
+		if d.Name == name {
+			for _, o := range d.Options {
+				if o == option {
+					return nil
+				}
+			}
 		}
 	}
 
-	return OptionNot
+	return OptionNotFound
 }
 
 // RemoveFilterDimensionOption from a filter
 func (s *FilterStore) RemoveFilterDimensionOption(filterID string, name string, option string) error {
 	err := s.checkFilterState(filterID)
 	if err != nil {
+		if err == NotFound {
+			return BadRequest
+		}
 		return err
 	}
 	session := s.Session.Copy()
 	queryOptions := bson.M{"filter_job_id": filterID, "dimensions": bson.M{"$elemMatch": bson.M{"name": name}}}
-	update := bson.M{"$pull": bson.M{"dimensions.0.options": option}}
-	err = session.DB(Database).C(FiltersCollection).Update(queryOptions, update)
+	update := bson.M{"$pull": bson.M{"dimensions.$.options": option}}
+	info, err := session.DB(Database).C(FiltersCollection).UpdateAll(queryOptions, update)
 	if err != nil {
 		if err == mgo.ErrNotFound {
 			return NotFound
 		}
 		return err
+	}
+	// No document was matched
+	if info.Matched == 0 {
+		return BadRequest
+	}
+	// document was match but nothing was removed
+	if info.Updated == 0 {
+		return NotFound
 	}
 	return nil
 }
@@ -294,9 +318,6 @@ func (s *FilterStore) RemoveFilterDimensionOption(filterID string, name string, 
 func (s *FilterStore) checkFilterState(filterID string) error {
 	filter, err := s.GetFilter(filterID)
 	if err != nil {
-		if err == mgo.ErrNotFound {
-			return NotFound
-		}
 		return err
 	}
 

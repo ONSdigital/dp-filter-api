@@ -376,6 +376,9 @@ func setErrorCode(w http.ResponseWriter, err error) {
 	case err.Error() == "Bad request - dimension not found":
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
+	case err.Error() == "Bad request - filter or dimension not found":
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
 	case err.Error() == "Bad request":
 		http.Error(w, "Bad request", http.StatusBadRequest)
 		return
