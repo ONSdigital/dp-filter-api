@@ -13,8 +13,8 @@ type Filter struct {
 	InstanceID       string      `bson:"instance_id"          json:"instance_id"`
 	DimensionListURL string      `bson:"dimension_list_url"   json:"dimension_list_url,omitempty"`
 	Dimensions       []Dimension `bson:"dimensions,omitempty" json:"dimensions,omitempty"`
-	Downloads        Downloads   `bson:"downloads"            json:"downloads,omitempty"`
-	Events           Events      `bson:"events"               json:"events,omitempty"`
+	Downloads        Downloads   `bson:"downloads,omitempty"  json:"downloads,omitempty"`
+	Events           Events      `bson:"events,omitempty"     json:"events,omitempty"`
 	FilterID         string      `bson:"filter_job_id"        json:"filter_job_id,omitempty"`
 	State            string      `bson:"state"                json:"state,omitempty"`
 	Links            LinkMap     `bson:"links"                json:"links,omitempty"`
@@ -47,14 +47,14 @@ type Downloads struct {
 
 // DownloadItem represents an object containing information for the download item
 type DownloadItem struct {
-	Size string `bson:"size" json:"size"`
-	URL  string `bson:"url"  json:"url"`
+	Size string `bson:"size,omitempty" json:"size"`
+	URL  string `bson:"url,omitempty"  json:"url"`
 }
 
 // Events represents a list of array objects containing event information against the filter job
 type Events struct {
-	Error []EventItem `bson:"error,omitempty" json:"error"`
-	Info  []EventItem `bson:"info,omitempty"  json:"info"`
+	Error []EventItem `bson:"error,omitempty" json:"error,omitempty"`
+	Info  []EventItem `bson:"info,omitempty"  json:"info,omitempty"`
 }
 
 // EventItem represents an event object containing event information
