@@ -30,7 +30,14 @@ func NewDatasetAPI(client *rchttp.Client, datasetAPIURL, datasetAPIAuthToken str
 	}
 }
 
-// GetInstance queries the Dataset API to create an instance
+var (
+	ErrorUnexpectedStatusCode = errors.New("unexpected status code from api")
+	ErrorInstanceNotFound     = errors.New("Instance not found")
+
+	publishedState = "published"
+)
+
+// GetInstance queries the Dataset API to get an instance
 func (api *DatasetAPI) GetInstance(ctx context.Context, instanceID string) (instance *models.Instance, err error) {
 	path := api.url + "/instances/" + instanceID
 	logData := log.Data{"func": "GetInstance", "URL": path, "instance_id": instanceID}
@@ -38,13 +45,9 @@ func (api *DatasetAPI) GetInstance(ctx context.Context, instanceID string) (inst
 	jsonResult, httpCode, err := api.get(ctx, path, nil)
 	logData["httpCode"] = httpCode
 	logData["jsonResult"] = jsonResult
-	if httpCode != http.StatusOK {
-		err = errors.New("bad response")
-		// fall through to log/return below
-	}
 	if err != nil {
 		log.ErrorC("api get", err, logData)
-		return
+		return nil, handleError(httpCode, err)
 	}
 
 	instance = &models.Instance{}
@@ -52,6 +55,14 @@ func (api *DatasetAPI) GetInstance(ctx context.Context, instanceID string) (inst
 		log.ErrorC("unmarshal", err, logData)
 		return
 	}
+
+	// External facing customers should NOT be able to filter an unpublished instance
+	// TODO If authorised (internal user or precanned results) should be able to filter
+	// instances which have a state of edition-confirmed, associated and published
+	if instance.State != publishedState {
+		return instance, ErrorInstanceNotFound
+	}
+
 	return
 }
 
@@ -97,17 +108,29 @@ func (api *DatasetAPI) callDatasetAPI(ctx context.Context, method, path string, 
 		log.ErrorC("Failed to action dataset api", err, logData)
 		return nil, 0, err
 	}
+	defer resp.Body.Close()
 
 	logData["httpCode"] = resp.StatusCode
 	if resp.StatusCode < http.StatusOK || resp.StatusCode >= 300 {
-		log.Debug("unexpected status code from api", logData)
+		return nil, resp.StatusCode, ErrorUnexpectedStatusCode
 	}
 
-	defer resp.Body.Close()
 	jsonBody, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		log.ErrorC("failed to read body from dataset api", err, logData)
 		return nil, resp.StatusCode, err
 	}
+
 	return jsonBody, resp.StatusCode, nil
+}
+
+func handleError(httpCode int, err error) error {
+	if err == ErrorUnexpectedStatusCode {
+		switch httpCode {
+		case http.StatusNotFound:
+			return ErrorInstanceNotFound
+		}
+	}
+
+	return err
 }

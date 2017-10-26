@@ -10,6 +10,7 @@ import (
 	"github.com/gorilla/mux"
 
 	"fmt"
+
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -369,6 +370,9 @@ func setErrorCode(w http.ResponseWriter, err error) {
 		return
 	case err.Error() == "Option not found":
 		http.Error(w, "Option not found", http.StatusNotFound)
+		return
+	case err.Error() == "Instance not found":
+		http.Error(w, "Instance not found", http.StatusNotFound)
 		return
 	case err.Error() == "Bad request - filter job not found":
 		http.Error(w, err.Error(), http.StatusBadRequest)
