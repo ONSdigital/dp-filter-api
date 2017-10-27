@@ -193,21 +193,24 @@ func (s *FilterStore) AddFilterDimension(dimension *models.AddDimension) error {
 	url := fmt.Sprintf("%s/filter/%s/dimensions/%s", s.host, dimension.FilterID, dimension.Name)
 	d := models.Dimension{Name: dimension.Name, Options: dimension.Options, URL: url}
 
-	var updatedList []models.Dimension
+	var found bool
+	var index int
 	for i, item := range list {
-		if item.Name != d.Name {
-			updatedList = append(updatedList, d)
-			continue
+		if item.Name == d.Name {
+			found = true
+			index = i
+			break
 		}
-		updatedList[i] = d
 	}
 
-	if len(list) == 0 {
-		updatedList = append(updatedList, d)
+	if found {
+		list[index] = d
+	} else {
+		list = append(list, d)
 	}
 
 	queryFilter := bson.M{"filter_job_id": dimension.FilterID}
-	update := bson.M{"$set": bson.M{"dimensions": updatedList}}
+	update := bson.M{"$set": bson.M{"dimensions": list}}
 
 	if err := session.DB(database).C(filtersCollection).Update(queryFilter, update); err != nil {
 		if err == mgo.ErrNotFound {
