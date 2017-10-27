@@ -202,6 +202,10 @@ func (s *FilterStore) AddFilterDimension(dimension *models.AddDimension) error {
 		updatedList[i] = d
 	}
 
+	if len(list) == 0 {
+		updatedList = append(updatedList, d)
+	}
+
 	queryFilter := bson.M{"filter_job_id": dimension.FilterID}
 	update := bson.M{"$set": bson.M{"dimensions": updatedList}}
 
