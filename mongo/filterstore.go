@@ -186,8 +186,8 @@ func (s *FilterStore) AddFilterDimension(dimension *models.AddDimension) error {
 	defer session.Close()
 
 	list, err := s.GetFilterDimensions(dimension.FilterID)
-	if err != nil {
-		return errFilterOrDimensionNotFound
+	if err != nil && err != errNotFound {
+		return errBadRequest
 	}
 
 	for i, item := range list {
@@ -200,6 +200,12 @@ func (s *FilterStore) AddFilterDimension(dimension *models.AddDimension) error {
 			Options: dimension.Options,
 		}
 		list[i] = *replace
+	}
+
+	if list == nil {
+		url := fmt.Sprintf("%s/filter/%s/dimensions/%s", s.host, dimension.FilterID, dimension.Name)
+		d := models.Dimension{Name: dimension.Name, Options: dimension.Options, URL: url}
+		list = append(list, d)
 	}
 
 	queryFilter := bson.M{"filter_job_id": dimension.FilterID}
