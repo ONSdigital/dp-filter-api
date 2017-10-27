@@ -218,7 +218,7 @@ func (s *FilterStore) AddFilterDimensionOption(newOption *models.AddDimensionOpt
 
 	session := s.Session.Copy()
 	queryOptions := bson.M{"filter_job_id": newOption.FilterID, "dimensions": bson.M{"$elemMatch": bson.M{"name": newOption.Name}}}
-	update := bson.M{"$push": bson.M{"dimensions.$.options": newOption.Option}}
+	update := bson.M{"$addToSet": bson.M{"dimensions.$.options": newOption.Option}}
 	err = session.DB(Database).C(FiltersCollection).Update(queryOptions, update)
 	if err != nil {
 		if err == mgo.ErrNotFound {
