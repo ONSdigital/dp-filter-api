@@ -188,7 +188,7 @@ func (s *FilterStore) AddFilterDimension(dimension *models.AddDimension) error {
 	queryFilter := bson.M{"filter_job_id": dimension.FilterID}
 	url := fmt.Sprintf("%s/filter/%s/dimensions/%s", s.host, dimension.FilterID, dimension.Name)
 	d := models.Dimension{Name: dimension.Name, Options: dimension.Options, DimensionURL: url}
-	update := bson.M{"$push": bson.M{"dimensions": d}}
+	update := bson.M{"$addToSet": bson.M{"dimensions": d}}
 
 	if err := session.DB(database).C(filtersCollection).Update(queryFilter, update); err != nil {
 		if err == mgo.ErrNotFound {
@@ -243,7 +243,7 @@ func (s *FilterStore) AddFilterDimensionOption(newOption *models.AddDimensionOpt
 	defer session.Close()
 
 	queryOptions := bson.M{"filter_job_id": newOption.FilterID, "dimensions": bson.M{"$elemMatch": bson.M{"name": newOption.Name}}}
-	update := bson.M{"$push": bson.M{"dimensions.$.options": newOption.Option}}
+	update := bson.M{"$addToSet": bson.M{"dimensions.$.options": newOption.Option}}
 
 	if err := session.DB(database).C(filtersCollection).Update(queryOptions, update); err != nil {
 		if err == mgo.ErrNotFound {
