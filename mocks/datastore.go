@@ -91,7 +91,7 @@ func (ds *DataStore) GetFilterDimensions(filterID string) ([]models.Dimension, e
 		return nil, internalServerError
 	}
 
-	dimensions = append(dimensions, models.Dimension{Name: "1_age", DimensionURL: "/filters/123/dimensions/1_age"})
+	dimensions = append(dimensions, models.Dimension{Name: "1_age", URL: "/filters/123/dimensions/1_age"})
 
 	return dimensions, nil
 }

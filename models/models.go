@@ -33,9 +33,9 @@ type LinkObject struct {
 
 // Dimension represents an object containing a list of dimension values and the dimension name
 type Dimension struct {
-	DimensionURL string   `bson:"dimension_url"           json:"dimension_url"`
-	Name         string   `bson:"name"                    json:"name"`
-	Options      []string `bson:"options"                 json:"options"`
+	URL     string   `bson:"dimension_url"           json:"dimension_url"`
+	Name    string   `bson:"name"                    json:"name"`
+	Options []string `bson:"options"                 json:"options"`
 }
 
 // Downloads represents a list of file types possible to download

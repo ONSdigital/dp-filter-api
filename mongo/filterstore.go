@@ -185,10 +185,29 @@ func (s *FilterStore) AddFilterDimension(dimension *models.AddDimension) error {
 	session := s.Session.Copy()
 	defer session.Close()
 
-	queryFilter := bson.M{"filter_job_id": dimension.FilterID}
+	list, err := s.GetFilterDimensions(dimension.FilterID)
+	if err != nil && err != errNotFound {
+		return errBadRequest
+	}
+
 	url := fmt.Sprintf("%s/filter/%s/dimensions/%s", s.host, dimension.FilterID, dimension.Name)
-	d := models.Dimension{Name: dimension.Name, Options: dimension.Options, DimensionURL: url}
-	update := bson.M{"$addToSet": bson.M{"dimensions": d}}
+	d := models.Dimension{Name: dimension.Name, Options: dimension.Options, URL: url}
+
+	var found bool
+	for i, item := range list {
+		if item.Name == d.Name {
+			found = true
+			list[i] = d
+			break
+		}
+	}
+
+	if !found {
+		list = append(list, d)
+	}
+
+	queryFilter := bson.M{"filter_job_id": dimension.FilterID}
+	update := bson.M{"$set": bson.M{"dimensions": list}}
 
 	if err := session.DB(database).C(filtersCollection).Update(queryFilter, update); err != nil {
 		if err == mgo.ErrNotFound {
