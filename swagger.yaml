@@ -1,6 +1,6 @@
 swagger: "2.0"
 info:
-  description: "An API used to customise and submit queries (filters) against a given dataset. Once the filter blueprint has been created it can then be updated with dimension-specific filters that apply to that dataset. Once all the required filters have been applied to the blueprint, it is expected that the client will send a Put request with query parameter `submitted` set to `true` to indicate that processing can begin; this request will result in a filter output resource to be created, copying the data from the blueprint and setting a status of submitted. The response for this request will give a link to the created filter output document. Once processing has been started the filter output resource will be placed in a locked condition such that onlu authorised requests can update the resource. Finally, the state will be marked as completed with a complete list of downloads (or failed)."
+  description: "An API used to customise and submit queries (filters) against a given dataset. Once the filter blueprint has been created it can then be updated with dimension-specific filters that apply to that dataset. Once all the required filters have been applied to the blueprint, it is expected that the client will send a Put request with query parameter `submitted` set to `true` to indicate that processing can begin; this request will result in a filter output resource to be created, copying the data from the blueprint and setting a status of created. The response for this request will give a link to the created filter output document. Once processing has been started the filter output resource will only be updated by authorised requests. Finally, the state will be marked as completed with a complete list of downloads (or failed)."
   version: "1.0.0"
   title: "Filter API"
   license:
@@ -79,6 +79,12 @@ parameters:
     required: true
     description: "Model of all editable properties within a filter blueprint"
     in: body
+securityDefinitions:
+  InternalAPIKey:
+    name: internal-token
+    description: "API key used to allow only internal services to update the state of an import job"
+    in: header
+    type: apiKey
 paths:
   /filters:
     post:
@@ -307,6 +313,8 @@ paths:
         Update the filter output state and to contain downloads
       parameters:
       - $ref: '#/parameters/update_filter_output'
+      security:
+      - InternalAPIKey: []
       responses:
         200:
           description: "The filter output has been updated"
@@ -356,13 +364,6 @@ definitions:
     - $ref: '#/definitions/JobState'
     - type: object
       properties:
-        #downloads:
-        #  readOnly: false
-        #  type: object
-        #  description: |
-        #    The url to download the customised dataset. This will be blank until the jobs `state` has been marked completed and can only be updated if authorised
-        #  items:
-        #    $ref: '#/definitions/Downloads'
         events:
           readOnly: false
           type: object
