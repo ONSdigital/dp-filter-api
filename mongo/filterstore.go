@@ -115,7 +115,7 @@ func (s *FilterStore) UpdateFilter(isAuthenticated bool, updatedFilter *models.F
 	}
 
 	// Don't bother checking for JSON as it doesn't get generated at the moment
-	if updatedFilter.Downloads.CSV.URL == "" && updatedFilter.Downloads.XLS.URL == "" {
+	if updatedFilter.Downloads.CSV.URL != "" && updatedFilter.Downloads.XLS.URL != "" {
 		updatedFilter.State = completed
 	}
 
