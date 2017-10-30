@@ -194,18 +194,15 @@ func (s *FilterStore) AddFilterDimension(dimension *models.AddDimension) error {
 	d := models.Dimension{Name: dimension.Name, Options: dimension.Options, URL: url}
 
 	var found bool
-	var index int
 	for i, item := range list {
 		if item.Name == d.Name {
 			found = true
-			index = i
+			list[i] = d
 			break
 		}
 	}
 
-	if found {
-		list[index] = d
-	} else {
+	if !found {
 		list = append(list, d)
 	}
 
