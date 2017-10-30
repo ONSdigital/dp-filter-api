@@ -1,6 +1,6 @@
 swagger: "2.0"
 info:
-  description: "An API used to customise and submit queries (filters) against a given dataset. Once the filter job has been created it can then be updated with dimension-specific filters that apply to that dataset. Once all the required filters have been applied to the job, it is expected that the client will update the job state to indicate that processing can begin. Once processing has been started the job will be placed in a locked condition such that no further amendments can be done. Finally, the state will be marked as completed (or failed)."
+  description: "An API used to customise and submit queries (filters) against a given dataset. Once the filter blueprint has been created it can then be updated with dimension-specific filters that apply to that dataset. Once all the required filters have been applied to the blueprint, it is expected that the client will send a Put request with query parameter `submitted` set to `true` to indicate that processing can begin; this request will result in a filter output resource to be created, copying the data from the blueprint and setting a status of submitted. The response for this request will give a link to the created filter output document. Once processing has been started the filter output resource will be placed in a locked condition such that onlu authorised requests can update the resource. Finally, the state will be marked as completed with a complete list of downloads (or failed)."
   version: "1.0.0"
   title: "Filter API"
   license:
@@ -8,16 +8,24 @@ info:
     url: "http://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/"
 basePath: "/v1"
 tags:
-- name: "Filter"
+- name: "Public"
   description: "Used to filter published datasets"
+- name: "Private"
+  description: "Used to update filter outputs for a published dataset"
 schemes:
 - "http"
 parameters:
-  filter_job_id:
-    name: filter_job_id
+  filter_id:
+    name: filter_id
     type: string
     required: true
     description: "The unique filter ID for customising a dataset"
+    in: path
+  filter_output_id:
+    name: filter_output_id
+    type: string
+    required: true
+    description: "The unique filter outer ID for customising a dataset"
     in: path
   name:
     name: name
@@ -45,89 +53,100 @@ parameters:
       $ref: '#/definitions/Options'
     description: "A list of options for a dimension to filter the dataset"
     in: body
-  new_filter_job:
-    name: filter_job
+  new_filter_blueprint:
+    name: filter_blueprint
     schema:
-      $ref: '#/definitions/NewJobRequest'
+      $ref: '#/definitions/NewBlueprintRequest'
     required: true
-    description: "Model of all editable properties within a filter job"
+    description: "Model of all editable properties within a filter blueprint"
     in: body
-  update_filter_job:
-    name: filter_job
+  update_filter_output:
+    name: filter_output
     schema:
-      $ref: '#/definitions/UpdateJobRequest'
+      $ref: '#/definitions/UpdateOutputRequest'
     required: true
-    description: "Model of all editable properties within a filter job"
+    description: "Model of all editable properties within a filter output"
+    in: body
+  submitted:
+    name: submitted
+    description: "A flag to indicate the submission of a filter blueprint"
+    in: query
+    type: boolean
+  update_filter:
+    name: filter
+    schema:
+      $ref: '#/definitions/UpdateBlueprintRequest'
+    required: true
+    description: "Model of all editable properties within a filter blueprint"
     in: body
 paths:
   /filters:
     post:
       tags:
-      - "Filter"
-      summary: "Create a filter job for a dataset"
-      description: "Create a job so that dimensions can be added to filter a dataset"
+      - "Public"
+      summary: "Create a filter for a dataset"
+      description: "Create a blueprint for listing a selection of dimensions and dimension options to be added to filter for a dataset"
       produces:
       - "application/json"
       parameters:
-      - $ref: '#/parameters/new_filter_job'
+      - $ref: '#/parameters/new_filter_blueprint'
       responses:
         201:
-          description: "Job was created"
+          description: "filter blueprint was created"
           schema:
-            $ref: '#/definitions/NewJobResponse'
+            $ref: '#/definitions/NewBlueprintResponse'
         400:
           description: "Invalid request body"
         500:
           $ref: '#/responses/InternalError'
-  /filters/{filter_job_id}:
+  /filters/{filter_id}:
     parameters:
-      - $ref: '#/parameters/filter_job_id'
+      - $ref: '#/parameters/filter_id'
     get:
       tags:
-      - "Filter"
-      summary: "Get a description of a filter job"
-      description: "Get document describing the filter job"
+      - "Public"
+      summary: "Get a blueprint of a filter"
+      description: "Get document describing the filter"
       produces:
       - "application/json"
       responses:
         200:
-          description: "The filter job was found and document is returned"
+          description: "The filter blueprint was found and document is returned"
           schema:
-            $ref: '#/definitions/NewJobResponse'
+            $ref: '#/definitions/NewBlueprintResponse'
         404:
-           $ref: '#/responses/FilterJobNotFound'
+           $ref: '#/responses/FilterNotFound'
         500:
           $ref: '#/responses/InternalError'
     put:
       tags:
-      - "Filter"
-      summary: "Update filter job"
+      - "Public"
+      summary: "Update blueprint of a filter"
       description: |
-        Update the filter job by providing new properties
+        Update the filter by providing new properties
       parameters:
-      - $ref: '#/parameters/update_filter_job'
+      - $ref: '#/parameters/submitted'
+      - $ref: '#/parameters/update_filter'
       responses:
         200:
           description: "The filter job has been updated"
+          schema:
+            $ref: '#/definitions/UpdateBlueprintResponse'
         400:
           description: "Invalid request body"
-        401:
-          description: "Unauthorised, request lacks valid authentication credentials"
-        403:
-          description: "Forbidden, the job has been locked as it has been `submitted` to be processed"
         404:
-          $ref: '#/responses/FilterJobNotFound'
+          $ref: '#/responses/FilterNotFound'
         500:
           $ref: '#/responses/InternalError'
-  /filters/{filter_job_id}/dimensions:
+  /filters/{filter_id}/dimensions:
     get:
       tags:
-       - "Filter"
-      summary: "Get all dimensions used by this filter"
+       - "Public"
+      summary: "Get all dimensions used by this filter blueprint"
       description: |
         Return a list of all dimensions which are going to be used to filter on
       parameters:
-      - $ref: '#/parameters/filter_job_id'
+      - $ref: '#/parameters/filter_id'
       responses:
         200:
           description: "A list of dimension URLs"
@@ -136,32 +155,32 @@ paths:
             items:
               $ref: '#/definitions/Dimension'
         404:
-          $ref: '#/responses/FilterJobNotFound'
+          $ref: '#/responses/FilterNotFound'
         500:
           $ref: '#/responses/InternalError'
-  /filters/{filter_job_id}/dimensions/{name}:
+  /filters/{filter_id}/dimensions/{name}:
     parameters:
-      - $ref: '#/parameters/filter_job_id'
+      - $ref: '#/parameters/filter_id'
       - $ref: '#/parameters/name'
     get:
       tags:
-      - "Filter"
-      summary: "Check if a dimension exists within a filter job"
-      description: "Check if a dimension exists within a filter job"
+      - "Public"
+      summary: "Check if a dimension exists within a filter blueprint"
+      description: "Check if a dimension exists within a filter blueprint"
       responses:
         204:
-          description: "Dimension exists for filter job"
+          description: "Dimension exists for filter"
         400:
-          description: "Filter job was not found"
+          description: "Filte was not found"
         404:
           description: "Dimension name was not found"
         500:
           $ref: '#/responses/InternalError'
     post:
       tags:
-      - "Filter"
-      summary: "Add a dimension to filter on with a list of options"
-      description: "The dimension can only be added into the job if the state is still set to `created` otherwise 403 status code is returned"
+      - "Public"
+      summary: "Add a dimension to filter blueprint on with a list of options"
+      description: "Add a dimension to filter blueprint on with a list of options"
       produces:
       - "application/json"
       parameters:
@@ -171,35 +190,31 @@ paths:
           description: "The dimension was created"
         400:
           description: "Invalid request body"
-        403:
-          description: "Forbidden, the filter job has been locked as it has been `submitted` to be processed"
         404:
           description: "Filter job was not found"
         500:
           $ref: '#/responses/InternalError'
     delete:
       tags:
-      - "Filter"
+      - "Public"
       summary: "Remove a dimension and any options set within the dimension"
       description: "Remove a dimension and any options set within the dimension"
       responses:
         200:
           description: "The dimension was removed"
         400:
-          description: "Filter job was not found"
-        403:
-          description: "Forbidden, the filter job has been locked as it has been `submitted` to be processed"
+          description: "Filter blueprint was not found"
         404:
           description: "Dimension name was not found"
         500:
           $ref: '#/responses/InternalError'
-  /filters/{filter_job_id}/dimensions/{name}/options:
+  /filters/{filter_id}/dimensions/{name}/options:
     parameters:
-      - $ref: '#/parameters/filter_job_id'
+      - $ref: '#/parameters/filter_id'
       - $ref: '#/parameters/name'
     get:
       tags:
-      - "Filter"
+      - "Public"
       summary: "Get all options from a dimension which have been set"
       description: "Get a list of all options which will be used to filter the dimension"
       responses:
@@ -210,19 +225,19 @@ paths:
             items:
               $ref: '#/definitions/Option'
         400:
-          description: "Filter job was not found"
+          description: "Filter blueprint was not found"
         404:
           description: "Dimension name was not found"
         500:
           $ref: '#/responses/InternalError'
-  /filters/{filter_job_id}/dimensions/{name}/options/{option}:
+  /filters/{filter_id}/dimensions/{name}/options/{option}:
     parameters:
-      - $ref: '#/parameters/filter_job_id'
+      - $ref: '#/parameters/filter_id'
       - $ref: '#/parameters/name'
       - $ref: '#/parameters/option'
     get:
       tags:
-      - "Filter"
+      - "Public"
       summary: "Check if a option exists within a dimension"
       description: "Check if a option exists within a dimension"
       responses:
@@ -236,23 +251,21 @@ paths:
           $ref: '#/responses/InternalError'
     post:
       tags:
-      - "Filter"
-      summary: "Add an option to a dimension to filter on"
-      description: "Add an option to a dimension to filter on"
+      - "Public"
+      summary: "Add an option to a dimension of a filter blueprint"
+      description: "Add an option to a dimension of a filter blueprint"
       responses:
         201:
           description: "Option was added"
         400:
-          description: "Filter job was not found"
-        403:
-          description: "Forbidden, the filter job has been locked as it has been `submitted` to be processed"
+          description: "Filter blueprint was not found"
         404:
           description: " Dimension name was not found"
         500:
           $ref: '#/responses/InternalError'
     delete:
       tags:
-      - "Filter"
+      - "Public"
       summary: "Remove an option from a dimension"
       description: "Remove a single option from a dimension"
       responses:
@@ -261,24 +274,72 @@ paths:
         400:
           description: |
             This error code could be one or more of:
-            * Filter job was not found
+            * Filter blueprint was not found
             * Dimension name was not found
-        403:
-          description: "Forbidden, the filter job has been locked as it has been `submitted` to be processed"
         404:
           description: "Dimension option was not found"
         500:
           $ref: '#/responses/InternalError'
+  /filter-outputs/{filter_id}:
+    parameters:
+      - $ref: '#/parameters/filter_id'
+    get:
+      tags:
+      - "Public"
+      summary: "Get a filter output"
+      description: "Get document describing the filter output"
+      produces:
+      - "application/json"
+      responses:
+        200:
+          description: "The filter output was found and document is returned"
+          schema:
+            $ref: '#/definitions/FilterOutputResponse'
+        404:
+           $ref: '#/responses/FilterOutputNotFound'
+        500:
+          $ref: '#/responses/InternalError'
+    put:
+      tags:
+      - "Private"
+      summary: "Update filter output with downloads and state"
+      description: |
+        Update the filter output state and to contain downloads
+      parameters:
+      - $ref: '#/parameters/update_filter_output'
+      responses:
+        200:
+          description: "The filter output has been updated"
+        400:
+          description: "Invalid request body"
+        401:
+          description: "Unauthorised, request lacks valid authentication credentials"
+        403:
+          description: "Forbidden, the filter output state has been set to `completed`, resource has a list of downloadable files"
+        404:
+          $ref: '#/responses/FilterOutputNotFound'
+        500:
+          $ref: '#/responses/InternalError'
 responses:
-  FilterJobNotFound:
-    description: "Filter job not found"
+  FilterNotFound:
+    description: "Filter blueprint not found"
+  FilterOutputNotFound:
+    description: "Filter output not found"
   FilterOrDimensionNotFound:
-    description: "Filter job or dimension name not found"
+    description: "Filter blueprint or dimension name not found"
   InternalError:
     description: "Failed to process the request due to an internal error"
 definitions:
-  NewJobRequest:
-    description: "A model used to create new filter jobs. Dimensions are optional"
+  FilterOutputResponse:
+    description: "A model for the response body when retrieving a filter output"
+    allOf:
+    - type: object
+      properties:
+        downloads:
+          $ref: '#/definitions/Downloads'
+    - $ref: '#/definitions/JobState'
+  NewBlueprintRequest:
+    description: "A model used to create new filter blueprints. Dimensions are optional"
     allOf:
     - $ref: '#/definitions/JobState'
     - type: object
@@ -289,48 +350,56 @@ definitions:
           description: "A list of dimensions in the filter job"
           items:
              $ref: '#/definitions/DimensionOptions'
-  UpdateJobRequest:
-    description: "A model used to update filter jobs. Dimensions are optional, while downloads and events are for internal use only."
+  UpdateBlueprintRequest:
+    description: "A model used to update filter blueprints. Dimensions are optional, while downloads and events are for internal use only."
     allOf:
     - $ref: '#/definitions/JobState'
     - type: object
       properties:
-        downloads:
-          readOnly: false
-          type: object
-          description: |
-            The url to download the customised dataset. This will be blank until the jobs `state` has been marked completed and can only be updated if authorised
-          items:
-            $ref: '#/definitions/Downloads'
+        #downloads:
+        #  readOnly: false
+        #  type: object
+        #  description: |
+        #    The url to download the customised dataset. This will be blank until the jobs `state` has been marked completed and can only be updated if authorised
+        #  items:
+        #    $ref: '#/definitions/Downloads'
         events:
           readOnly: false
           type: object
           description: |
-            A list of events which happened to the job, can only be updated if authorised.
+            A list of events which happened to the blueprint, can only be updated if authorised.
           items:
             $ref: '#/definitions/Events'
-  NewJobResponse:
-    description: "A model for the response body when creating a new filter job"
+  NewBlueprintResponse:
+    description: "A model for the response body when creating a new filter blueprint"
     allOf:
     - $ref: '#/definitions/JobState'
     - type: object
-  JobState:
-    description: |
-      A description of a job to generate a customised dataset
+  UpdateBlueprintResponse:
+    description: "A model for the response body when updating a filter blueprint"
+    allOf:
+    - $ref: '#/definitions/JobState'
+    - type: object
+      properties:
+        links:
+          type: object
+          properties:
+            filter_output:
+              description: "A link object containing the url to the filter output document, this is only returned once the submitted query parameter is set to true."
+              type: object
+              properties:
+                href:
+                  description: "A URL to the filter output document"
+                  example: "http://localhost:8080/filter-outputs/95c4669b-3ae9-4ba7-b690-87e890a1c543"
+                  type: string
+                id:
+                  description: "An ID of the created filter output document"
+                  example: "95c4669b-3ae9-4ba7-b690-87e890a1c543"
+                  type: string
+  UpdateOutputRequest:
+    description: "A model used to update filter outputs. Only the downloads list and state are editable"
     type: object
-    required: ["instance_id"]
     properties:
-      filter_job_id:
-        readOnly: true
-        type: string
-        description: "A unique id for this filter job"
-      instance_id:
-        type: string
-        description: 'An instance ID for the specific dataset version to be filtered'
-      dimension_list_url:
-        readOnly: true
-        type: string
-        description: "A url that lists all dimensions currently set for job filter"
       state:
         type: string
         description: |
@@ -341,33 +410,30 @@ definitions:
           * completed - The job has been completed and can be downloaded using the `downloadUrl`
           * failed - The job failed to be processed
       downloads:
+        $ref: '#/definitions/Downloads'
+      events:
+        $ref: '#/definitions/Events'
+  JobState:
+    description: |
+      A description of a job to generate a customised dataset
+    type: object
+    required: ["instance_id"]
+    properties:
+      filter_id:
         readOnly: true
-        type: object
-        description: |
-          The url to download the customised dataset. This will be blank until the jobs `state` has been marked completed
-        properties:
-          xls:
-            $ref: '#/definitions/DownloadFile'
-          json:
-           $ref: '#/definitions/DownloadFile'
-          csv:
-           $ref: '#/definitions/DownloadFile'
+        type: string
+        description: "A unique id for this resource"
+      instance_id:
+        type: string
+        description: 'An instance ID for he specific dataset version to be filtered'
+      dimension_list_url:
+        readOnly: true
+        type: string
+        description: "A url that lists all dimensions currently set for filter"
       links:
         $ref: '#/definitions/FilterLinks'
       events:
-        readOnly: true
-        type: object
-        description: |
-          A list of event which happened to the job.
-        properties:
-          info:
-            type: array
-            items:
-              $ref: '#/definitions/Event'
-          error:
-            type: array
-            items:
-              $ref: '#/definitions/Event'
+        $ref: '#/definitions/Events'
   Dimension:
     type: object
     description: "A dimension to filter on a dataset. Information on a dimension can be gathered using the `Dataset API`"
@@ -424,10 +490,9 @@ definitions:
         items:
           type: string
   Events:
-    readOnly: true
     type: object
     description: |
-      A list of events which happened to the job, can only be updated if authorised.
+      A list of events which happened to the resource, can only be updated if authorised.
     properties:
       info:
         type: array
@@ -439,7 +504,7 @@ definitions:
           $ref: '#/definitions/Event'
   Event:
     type: object
-    description: "A description of an event which has happened to the job"
+    description: "A description of an event which has happened to the resource"
     properties:
       time:
         type: string
