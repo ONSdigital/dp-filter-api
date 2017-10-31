@@ -94,33 +94,35 @@ func (s *FilterStore) UpdateFilter(isAuthenticated bool, updatedFilter *models.F
 		return err
 	}
 
-	if !isAuthenticated {
-		if currentFilter.State == submitted {
-			return errForbidden
+	if !isAuthenticated && currentFilter.State == submitted {
+		return errForbidden
+	}
+
+	updates := make(bson.M, 0)
+	if isAuthenticated {
+		if updatedFilter.Downloads.XLS.URL == "" {
+			updatedFilter.Downloads.XLS = currentFilter.Downloads.XLS
 		}
-		// force updates to the downloads property to be blank, only authenticated user can do this
-		updatedFilter.Downloads = models.Downloads{}
+
+		if updatedFilter.Downloads.CSV.URL == "" {
+			updatedFilter.Downloads.CSV = currentFilter.Downloads.CSV
+		}
+
+		if updatedFilter.Downloads.JSON.URL == "" {
+			updatedFilter.Downloads.JSON = currentFilter.Downloads.JSON
+		}
+
+		// Don't bother checking for JSON as it doesn't get generated at the moment
+		if updatedFilter.Downloads.CSV.URL != "" && updatedFilter.Downloads.XLS.URL != "" {
+			updatedFilter.State = completed
+		}
+		updates["downloads"] = updatedFilter.Downloads
 	}
 
-	if updatedFilter.Downloads.XLS.URL == "" {
-		updatedFilter.Downloads.XLS = currentFilter.Downloads.XLS
-	}
-
-	if updatedFilter.Downloads.CSV.URL == "" {
-		updatedFilter.Downloads.CSV = currentFilter.Downloads.CSV
-	}
-
-	if updatedFilter.Downloads.JSON.URL == "" {
-		updatedFilter.Downloads.JSON = currentFilter.Downloads.JSON
-	}
-
-	// Don't bother checking for JSON as it doesn't get generated at the moment
-	if updatedFilter.Downloads.CSV.URL == "" && updatedFilter.Downloads.XLS.URL == "" {
-		updatedFilter.State = completed
-	}
+	updates["state"] = updatedFilter.State
 
 	query := bson.M{"filter_job_id": updatedFilter.FilterID}
-	if err = session.DB(database).C(filtersCollection).Update(query, &updatedFilter); err != nil {
+	if err = session.DB(database).C(filtersCollection).Update(query, &updates); err != nil {
 		if err == mgo.ErrNotFound {
 			return errNotFound
 		}
