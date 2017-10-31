@@ -122,7 +122,7 @@ func (s *FilterStore) UpdateFilter(isAuthenticated bool, updatedFilter *models.F
 	updates["state"] = updatedFilter.State
 
 	query := bson.M{"filter_job_id": updatedFilter.FilterID}
-	if err = session.DB(database).C(filtersCollection).Update(query, &updates); err != nil {
+	if err = session.DB(database).C(filtersCollection).Update(query, bson.M{"$set": updates}); err != nil {
 		if err == mgo.ErrNotFound {
 			return errNotFound
 		}
