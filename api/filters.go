@@ -71,9 +71,9 @@ func (api *FilterAPI) addFilterBlueprint(w http.ResponseWriter, r *http.Request)
 	filterBlueprint.Dimensions = nil
 
 	if submitted == "true" {
-
+		// TODO Check this works
 		// Create filter output resource and use id to pass into kafka
-		filterOutput := api.createFilterOutputResource(filterBlueprint)
+		filterOutput := api.createFilterOutputResource(filterBlueprint, filterBlueprint)
 
 		filterBlueprint.Links.FilterOutput.HRef = filterOutput.Links.Self.HRef
 		filterBlueprint.Links.FilterOutput.ID = filterOutput.FilterID
@@ -361,7 +361,7 @@ func (api *FilterAPI) updateFilterBlueprint(w http.ResponseWriter, r *http.Reque
 		outputFilter := newFilter
 
 		// Create filter output resource and use id to pass into kafka
-		filterOutput := api.createFilterOutputResource(outputFilter)
+		filterOutput := api.createFilterOutputResource(filter, outputFilter)
 
 		newFilter.Links.FilterOutput.HRef = filterOutput.Links.Self.HRef
 		newFilter.Links.FilterOutput.ID = filterOutput.FilterID
@@ -476,14 +476,14 @@ func (api *FilterAPI) updateFilterOutput(w http.ResponseWriter, r *http.Request)
 	log.Info("got filtered blueprint", log.Data{"filter_output_id": filterOutputID, "filter_output": filterOutput})
 }
 
-func (api *FilterAPI) createFilterOutputResource(newFilter *models.Filter) *models.Filter {
+func (api *FilterAPI) createFilterOutputResource(filterBlueprint, newFilter *models.Filter) *models.Filter {
 	filterOutput := newFilter
 	filterOutput.FilterID = uuid.NewV4().String()
 	filterOutput.State = "created"
 	filterOutput.Links.Self.HRef = fmt.Sprintf("%s/filter-outputs/%s", api.host, filterOutput.FilterID)
 	filterOutput.Links.Dimensions.HRef = ""
-	filterOutput.Links.FilterBlueprint.HRef = newFilter.Links.Self.HRef
-	filterOutput.Links.FilterBlueprint.ID = newFilter.FilterID
+	filterOutput.Links.FilterBlueprint.HRef = filterBlueprint.Links.Self.HRef
+	filterOutput.Links.FilterBlueprint.ID = filterBlueprint.FilterID
 
 	// Clear out any event information to output document
 	filterOutput.Events = models.Events{}
