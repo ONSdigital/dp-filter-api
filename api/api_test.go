@@ -21,9 +21,9 @@ var (
 	datasetAPI = mocks.NewDatasetAPI(client, "", "")
 )
 
-func TestSuccessfulAddFilterJob(t *testing.T) {
+func TestSuccessfulAddFilterBlueprint(t *testing.T) {
 	t.Parallel()
-	Convey("Successfully send a valid json message", t, func() {
+	Convey("Successfully create a filter blueprint", t, func() {
 		reader := strings.NewReader(`{"instance_id":"12345678"}`)
 		r, err := http.NewRequest("POST", "http://localhost:22100/filters", reader)
 		So(err, ShouldBeNil)
@@ -33,9 +33,21 @@ func TestSuccessfulAddFilterJob(t *testing.T) {
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusCreated)
 	})
+
+	// TODO check test doesn't actually write job to queue?
+	Convey("Successfully submit a filter blueprint", t, func() {
+		reader := strings.NewReader(`{"instance_id":"12345678"}`)
+		r, err := http.NewRequest("POST", "http://localhost:22100/filters?submitted=true", reader)
+		So(err, ShouldBeNil)
+
+		w := httptest.NewRecorder()
+		api := routes(authHeader, host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, datasetAPI)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusCreated)
+	})
 }
 
-func TestAddFilterFailure(t *testing.T) {
+func TestFailedToAddFilterBlueprint(t *testing.T) {
 	t.Parallel()
 	Convey("When no data store is available, an internal error is returned", t, func() {
 		reader := strings.NewReader(`{"instance_id":"12345678"}`)
@@ -118,7 +130,7 @@ func TestAddFilterFailure(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := routes(authHeader, host, mux.NewRouter(), &mocks.DataStore{BadRequest: true}, &mocks.FilterJob{}, datasetAPI)
+		api := routes(authHeader, host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, datasetAPI)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
@@ -128,7 +140,7 @@ func TestAddFilterFailure(t *testing.T) {
 	})
 }
 
-func TestSuccessfulAddFilterJobDimension(t *testing.T) {
+func TestSuccessfulAddFilterBlueprintDimension(t *testing.T) {
 	t.Parallel()
 	Convey("Successfully create a dimension with an empty request body", t, func() {
 		reader := strings.NewReader("")
@@ -164,7 +176,7 @@ func TestSuccessfulAddFilterJobDimension(t *testing.T) {
 	})
 }
 
-func TestAddFilterJobDimensionFailure(t *testing.T) {
+func TestFailedToAddFilterBlueprintDimension(t *testing.T) {
 	t.Parallel()
 	Convey("When no data store is available, an internal error is returned", t, func() {
 		reader := strings.NewReader("{\"values\":[\"22\",\"17\"]}")
@@ -196,7 +208,7 @@ func TestAddFilterJobDimensionFailure(t *testing.T) {
 		So(response, ShouldResemble, "Bad request - Invalid request body\n")
 	})
 
-	Convey("When a filter job does not exist, a not found is returned", t, func() {
+	Convey("When a filter blueprint does not exist, a not found is returned", t, func() {
 		reader := strings.NewReader("{\"values\":[\"22\",\"17\"]}")
 		r, err := http.NewRequest("POST", "http://localhost:22100/filters/12345678/dimensions/age", reader)
 		So(err, ShouldBeNil)
@@ -208,26 +220,11 @@ func TestAddFilterJobDimensionFailure(t *testing.T) {
 
 		bodyBytes, _ := ioutil.ReadAll(w.Body)
 		response := string(bodyBytes)
-		So(response, ShouldResemble, "Filter job not found\n")
-	})
-
-	Convey("When a filter job has been submitted, a forbidden status is returned", t, func() {
-		reader := strings.NewReader("{\"values\":[\"22\",\"17\"]}")
-		r, err := http.NewRequest("POST", "http://localhost:22100/filters/12345678/dimensions/age", reader)
-		So(err, ShouldBeNil)
-
-		w := httptest.NewRecorder()
-		api := routes(authHeader, host, mux.NewRouter(), &mocks.DataStore{Forbidden: true}, &mocks.FilterJob{}, datasetAPI)
-		api.router.ServeHTTP(w, r)
-		So(w.Code, ShouldEqual, http.StatusForbidden)
-
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
-		So(response, ShouldResemble, "Forbidden, the filter job has been locked as it has been submitted to be processed\n")
+		So(response, ShouldResemble, "Filter blueprint not found\n")
 	})
 }
 
-func TestSuccessfulAddFilterJobDimensionOption(t *testing.T) {
+func TestSuccessfulAddFilterBlueprintDimensionOption(t *testing.T) {
 	t.Parallel()
 	Convey("Successfully send a valid json message", t, func() {
 		r, err := http.NewRequest("POST", "http://localhost:22100/filters/12345678/dimensions/age/options/65", nil)
@@ -240,7 +237,7 @@ func TestSuccessfulAddFilterJobDimensionOption(t *testing.T) {
 	})
 }
 
-func TestAddFilterJobDimensionOptionFailure(t *testing.T) {
+func TestFailedToAddFilterBlueprintDimensionOption(t *testing.T) {
 	t.Parallel()
 	Convey("When no data store is available, an internal error is returned", t, func() {
 		r, err := http.NewRequest("POST", "http://localhost:22100/filters/12345678/dimensions/age/options/65", nil)
@@ -256,7 +253,7 @@ func TestAddFilterJobDimensionOptionFailure(t *testing.T) {
 		So(response, ShouldResemble, "Failed to process the request due to an internal error\n")
 	})
 
-	Convey("When the filter job does not exist, a bad request status is returned", t, func() {
+	Convey("When the filter blueprint does not exist, a bad request status is returned", t, func() {
 		r, err := http.NewRequest("POST", "http://localhost:22100/filters/12345678/dimensions/age/options/65", nil)
 		So(err, ShouldBeNil)
 
@@ -270,21 +267,7 @@ func TestAddFilterJobDimensionOptionFailure(t *testing.T) {
 		So(response, ShouldResemble, "Bad request\n")
 	})
 
-	Convey("When a filter job has been submitted, a forbidden status is returned", t, func() {
-		r, err := http.NewRequest("POST", "http://localhost:22100/filters/12345678/dimensions/age/options/65", nil)
-		So(err, ShouldBeNil)
-
-		w := httptest.NewRecorder()
-		api := routes(authHeader, host, mux.NewRouter(), &mocks.DataStore{Forbidden: true}, &mocks.FilterJob{}, datasetAPI)
-		api.router.ServeHTTP(w, r)
-		So(w.Code, ShouldEqual, http.StatusForbidden)
-
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
-		So(response, ShouldResemble, "Forbidden, the filter job has been locked as it has been submitted to be processed\n")
-	})
-
-	Convey("When a dimension for filter job does not exist, a not found status is returned", t, func() {
+	Convey("When a dimension for filter blueprint does not exist, a not found status is returned", t, func() {
 		r, err := http.NewRequest("POST", "http://localhost:22100/filters/12345678/dimensions/age/options/65", nil)
 		So(err, ShouldBeNil)
 
@@ -295,13 +278,13 @@ func TestAddFilterJobDimensionOptionFailure(t *testing.T) {
 
 		bodyBytes, _ := ioutil.ReadAll(w.Body)
 		response := string(bodyBytes)
-		So(response, ShouldResemble, "Filter job not found\n")
+		So(response, ShouldResemble, "Filter blueprint not found\n")
 	})
 }
 
-func TestSuccessfulGetFilterJob(t *testing.T) {
+func TestSuccessfulGetFilterBlueprint(t *testing.T) {
 	t.Parallel()
-	Convey("Successfully get a filter job", t, func() {
+	Convey("Successfully get a filter blueprint", t, func() {
 		r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678", nil)
 		So(err, ShouldBeNil)
 		w := httptest.NewRecorder()
@@ -311,7 +294,7 @@ func TestSuccessfulGetFilterJob(t *testing.T) {
 	})
 }
 
-func TestGetFilterFailure(t *testing.T) {
+func TestFailedToGetFilterBlueprint(t *testing.T) {
 	t.Parallel()
 	Convey("When no data store is available, an internal error is returned", t, func() {
 		r, err := http.NewRequest("GET", "http://localhost:22100/filters/1234568", nil)
@@ -324,7 +307,7 @@ func TestGetFilterFailure(t *testing.T) {
 		So(w.Code, ShouldEqual, http.StatusInternalServerError)
 	})
 
-	Convey("When filter job does not exist, a not found is returned", t, func() {
+	Convey("When filter blueprint does not exist, a not found is returned", t, func() {
 		r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678", nil)
 		So(err, ShouldBeNil)
 
@@ -335,15 +318,26 @@ func TestGetFilterFailure(t *testing.T) {
 
 		bodyBytes, _ := ioutil.ReadAll(w.Body)
 		response := string(bodyBytes)
-		So(response, ShouldResemble, "Filter job not found\n")
+		So(response, ShouldResemble, "Filter blueprint not found\n")
 	})
 }
 
-func TestSuccessfulUpdateFilterJob(t *testing.T) {
+func TestSuccessfulUpdateFilterBlueprint(t *testing.T) {
 	t.Parallel()
 	Convey("Successfully send a valid json message", t, func() {
-		reader := strings.NewReader("{\"dataset\":\"Census\",\"version\":\"1\",\"edition\":\"1\",\"state\":\"submitted\"}")
+		reader := strings.NewReader("{\"instance_id\":\"123\"}")
 		r, err := http.NewRequest("PUT", "http://localhost:22100/filters/21312", reader)
+		So(err, ShouldBeNil)
+
+		w := httptest.NewRecorder()
+		api := routes(authHeader, host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, datasetAPI)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusOK)
+	})
+
+	Convey("Successfully send a request to submit filter blueprint", t, func() {
+		reader := strings.NewReader("{}")
+		r, err := http.NewRequest("PUT", "http://localhost:22100/filters/21312?submitted=true", reader)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
@@ -353,7 +347,7 @@ func TestSuccessfulUpdateFilterJob(t *testing.T) {
 	})
 }
 
-func TestFailedUpdateFilterJob(t *testing.T) {
+func TestFailedToUpdateFilterBlueprint(t *testing.T) {
 	t.Parallel()
 	Convey("When an invalid json message is sent, a bad request is returned", t, func() {
 		reader := strings.NewReader("{")
@@ -361,7 +355,7 @@ func TestFailedUpdateFilterJob(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := routes(authHeader, host, mux.NewRouter(), &mocks.DataStore{BadRequest: true}, &mocks.FilterJob{}, datasetAPI)
+		api := routes(authHeader, host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, datasetAPI)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
@@ -376,32 +370,17 @@ func TestFailedUpdateFilterJob(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := routes(authHeader, host, mux.NewRouter(), &mocks.DataStore{BadRequest: true}, &mocks.FilterJob{}, datasetAPI)
+		api := routes(authHeader, host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, datasetAPI)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
 		bodyBytes, _ := ioutil.ReadAll(w.Body)
 		response := string(bodyBytes)
-		So(response, ShouldResemble, "Bad request\n")
+		So(response, ShouldResemble, "Bad request - Invalid request body\n")
 	})
 
-	Convey("When a json message is missing mandatory fields, a bad request is returned", t, func() {
-		reader := strings.NewReader("{\"dataset\":\"Census\"}")
-		r, err := http.NewRequest("PUT", "http://localhost:22100/filters/21312", reader)
-		So(err, ShouldBeNil)
-
-		w := httptest.NewRecorder()
-		api := routes(authHeader, host, mux.NewRouter(), &mocks.DataStore{BadRequest: true}, &mocks.FilterJob{}, datasetAPI)
-		api.router.ServeHTTP(w, r)
-		So(w.Code, ShouldEqual, http.StatusBadRequest)
-
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
-		So(response, ShouldResemble, "Bad request\n")
-	})
-
-	Convey("When a json message is sent to change a submitted filter on a filter job that doesn't exist, a status of not found is returned", t, func() {
-		reader := strings.NewReader("{\"state\":\"submitted\"}")
+	Convey("When a json message is sent to update filter blueprint that doesn't exist, a status of not found is returned", t, func() {
+		reader := strings.NewReader("{\"instance_id\":\"44444\"}")
 		r, err := http.NewRequest("PUT", "http://localhost:22100/filters/21312", reader)
 		So(err, ShouldBeNil)
 
@@ -412,46 +391,28 @@ func TestFailedUpdateFilterJob(t *testing.T) {
 
 		bodyBytes, _ := ioutil.ReadAll(w.Body)
 		response := string(bodyBytes)
-		So(response, ShouldResemble, "Filter job not found\n")
+		So(response, ShouldResemble, "Filter blueprint not found\n")
 	})
 
-	Convey("When a json message is sent to change a submitted filter, a status of forbidden is returned", t, func() {
-		reader := strings.NewReader("{\"state\":\"submitted\"}")
+	Convey("When a json message is sent to change the instance id of a filter blueprint and the instance does not exist, a status of not found is returned", t, func() {
+		reader := strings.NewReader("{\"instance_id\":\"44444\"}")
 		r, err := http.NewRequest("PUT", "http://localhost:22100/filters/21312", reader)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := routes(authHeader, host, mux.NewRouter(), &mocks.DataStore{Forbidden: true}, &mocks.FilterJob{}, datasetAPI)
+		api := routes(authHeader, host, mux.NewRouter(), &mocks.DataStore{InstanceNotFound: true}, &mocks.FilterJob{}, datasetAPI)
 		api.router.ServeHTTP(w, r)
-		So(w.Code, ShouldEqual, http.StatusForbidden)
+		So(w.Code, ShouldEqual, http.StatusNotFound)
 
 		bodyBytes, _ := ioutil.ReadAll(w.Body)
 		response := string(bodyBytes)
-		So(response, ShouldResemble, "Forbidden, the filter job has been locked as it has been submitted to be processed\n")
-	})
-
-	Convey("a json message is sent to change a submitted filter with the wrong authorisation header, an unauthorised status is returned", t, func() {
-		reader := strings.NewReader("{\"state\":\"submitted\"}")
-
-		r, err := http.NewRequest("PUT", "http://localhost:22100/filters/21312", reader)
-		So(err, ShouldBeNil)
-
-		r.Header.Add(internalToken, "cookie")
-
-		w := httptest.NewRecorder()
-		api := routes(authHeader, host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, datasetAPI)
-		api.router.ServeHTTP(w, r)
-		So(w.Code, ShouldEqual, http.StatusUnauthorized)
-
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
-		So(response, ShouldResemble, "Unauthorised, request lacks valid authentication credentials\n")
+		So(response, ShouldResemble, "Instance not found\n")
 	})
 }
 
-func TestSuccessfulGetFilterDimensions(t *testing.T) {
+func TestSuccessfulGetFilterBlueprintDimensions(t *testing.T) {
 	t.Parallel()
-	Convey("Successfully get a list of dimensions for a filter job", t, func() {
+	Convey("Successfully get a list of dimensions for a filter blueprint", t, func() {
 		r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678/dimensions", nil)
 		So(err, ShouldBeNil)
 
@@ -462,7 +423,7 @@ func TestSuccessfulGetFilterDimensions(t *testing.T) {
 	})
 }
 
-func TestGetFilterDimensionsFailure(t *testing.T) {
+func TestFailedToGetFilterBlueprintDimensions(t *testing.T) {
 	t.Parallel()
 	Convey("When no data store is available, an internal error is returned", t, func() {
 		r, err := http.NewRequest("GET", "http://localhost:22100/filters/1234568/dimensions", nil)
@@ -478,7 +439,7 @@ func TestGetFilterDimensionsFailure(t *testing.T) {
 		So(response, ShouldResemble, "Failed to process the request due to an internal error\n")
 	})
 
-	Convey("When filter job does not exist, a not found is returned", t, func() {
+	Convey("When filter blueprint does not exist, a not found is returned", t, func() {
 		r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678/dimensions", nil)
 		So(err, ShouldBeNil)
 
@@ -489,13 +450,13 @@ func TestGetFilterDimensionsFailure(t *testing.T) {
 
 		bodyBytes, _ := ioutil.ReadAll(w.Body)
 		response := string(bodyBytes)
-		So(response, ShouldResemble, "Filter job not found\n")
+		So(response, ShouldResemble, "Filter blueprint not found\n")
 	})
 }
 
-func TestSuccessfulGetFilterDimension(t *testing.T) {
+func TestSuccessfulGetFilterBlueprintDimension(t *testing.T) {
 	t.Parallel()
-	Convey("Successfully get a dimension for a filter job, returns 204", t, func() {
+	Convey("Successfully get a dimension for a filter blueprint, returns 204", t, func() {
 		r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678/dimensions/1_age", nil)
 		So(err, ShouldBeNil)
 
@@ -506,7 +467,7 @@ func TestSuccessfulGetFilterDimension(t *testing.T) {
 	})
 }
 
-func TestGetFilterDimensionFailure(t *testing.T) {
+func TestFailedToGetFilterBlueprintDimension(t *testing.T) {
 	t.Parallel()
 	Convey("When no data store is available, an internal error is returned", t, func() {
 		r, err := http.NewRequest("GET", "http://localhost:22100/filters/1234568/dimensions/1_age", nil)
@@ -522,7 +483,7 @@ func TestGetFilterDimensionFailure(t *testing.T) {
 		So(response, ShouldResemble, "Failed to process the request due to an internal error\n")
 	})
 
-	Convey("When filter job does not exist, a bad request is returned", t, func() {
+	Convey("When filter blueprint does not exist, a bad request is returned", t, func() {
 		r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678/dimensions/1_age", nil)
 		So(err, ShouldBeNil)
 
@@ -536,7 +497,7 @@ func TestGetFilterDimensionFailure(t *testing.T) {
 		So(response, ShouldResemble, "Bad request\n")
 	})
 
-	Convey("When dimension does not exist against filter job, a not found is returned", t, func() {
+	Convey("When dimension does not exist against filter blueprint, a not found is returned", t, func() {
 		r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678/dimensions/1_age", nil)
 		So(err, ShouldBeNil)
 
@@ -551,9 +512,9 @@ func TestGetFilterDimensionFailure(t *testing.T) {
 	})
 }
 
-func TestSuccessfulGetFilterDimensionOptions(t *testing.T) {
+func TestSuccessfulGetFilterBlueprintDimensionOptions(t *testing.T) {
 	t.Parallel()
-	Convey("Successfully get a list of dimension options for a filter job", t, func() {
+	Convey("Successfully get a list of dimension options for a filter blueprint", t, func() {
 		r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678/dimensions/1_age/options", nil)
 		So(err, ShouldBeNil)
 		w := httptest.NewRecorder()
@@ -563,7 +524,7 @@ func TestSuccessfulGetFilterDimensionOptions(t *testing.T) {
 	})
 }
 
-func TestGetFilterDimensionOptionsFailure(t *testing.T) {
+func TestFailedToGetFilterBlueprintDimensionOptions(t *testing.T) {
 	t.Parallel()
 	Convey("When no data store is available, an internal error is returned", t, func() {
 		r, err := http.NewRequest("GET", "http://localhost:22100/filters/1234568/dimensions/1_age/options", nil)
@@ -579,7 +540,7 @@ func TestGetFilterDimensionOptionsFailure(t *testing.T) {
 		So(response, ShouldResemble, "Failed to process the request due to an internal error\n")
 	})
 
-	Convey("When filter job does not exist, a bad request is returned", t, func() {
+	Convey("When filter blueprint does not exist, a bad request is returned", t, func() {
 		r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678/dimensions/1_age/options", nil)
 		So(err, ShouldBeNil)
 
@@ -593,7 +554,7 @@ func TestGetFilterDimensionOptionsFailure(t *testing.T) {
 		So(response, ShouldResemble, "Bad request\n")
 	})
 
-	Convey("When dimension does not exist against filter job, a dimension not found is returned", t, func() {
+	Convey("When dimension does not exist against filter blueprint, a dimension not found is returned", t, func() {
 		r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678/dimensions/1_age/options", nil)
 		So(err, ShouldBeNil)
 
@@ -608,9 +569,9 @@ func TestGetFilterDimensionOptionsFailure(t *testing.T) {
 	})
 }
 
-func TestSuccessfulGetFilterDimensionOption(t *testing.T) {
+func TestSuccessfulGetFilterBlueprintDimensionOption(t *testing.T) {
 	t.Parallel()
-	Convey("Successfully get a list of dimension options for a filter job", t, func() {
+	Convey("Successfully get a list of dimension options for a filter blueprint", t, func() {
 		r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678/dimensions/1_age/options/26", nil)
 		So(err, ShouldBeNil)
 
@@ -621,7 +582,7 @@ func TestSuccessfulGetFilterDimensionOption(t *testing.T) {
 	})
 }
 
-func TestGetFilterDimensionOptionFailure(t *testing.T) {
+func TestFailedToGetFilterBlueprintDimensionOption(t *testing.T) {
 	t.Parallel()
 	Convey("When no data store is available, an internal error is returned", t, func() {
 		r, err := http.NewRequest("GET", "http://localhost:22100/filters/1234568/dimensions/1_age/options/26", nil)
@@ -637,7 +598,7 @@ func TestGetFilterDimensionOptionFailure(t *testing.T) {
 		So(response, ShouldResemble, "Failed to process the request due to an internal error\n")
 	})
 
-	Convey("When filter job does not exist, a bad request is returned", t, func() {
+	Convey("When filter blueprint does not exist, a bad request is returned", t, func() {
 		r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678/dimensions/1_age/options/26", nil)
 		So(err, ShouldBeNil)
 
@@ -651,7 +612,7 @@ func TestGetFilterDimensionOptionFailure(t *testing.T) {
 		So(response, ShouldResemble, "Bad request\n")
 	})
 
-	Convey("When option does not exist against filter job, an option not found is returned", t, func() {
+	Convey("When option does not exist against filter blueprint, an option not found is returned", t, func() {
 		r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678/dimensions/1_age/options/26", nil)
 		So(err, ShouldBeNil)
 
@@ -666,9 +627,9 @@ func TestGetFilterDimensionOptionFailure(t *testing.T) {
 	})
 }
 
-func TestSuccessfulRemoveFilterDimension(t *testing.T) {
+func TestSuccessfulRemoveFilterBlueprintDimension(t *testing.T) {
 	t.Parallel()
-	Convey("Successfully remove a dimension for a filter job, returns 200", t, func() {
+	Convey("Successfully remove a dimension for a filter blueprint, returns 200", t, func() {
 		r, err := http.NewRequest("DELETE", "http://localhost:22100/filters/12345678/dimensions/1_age", nil)
 		So(err, ShouldBeNil)
 
@@ -679,7 +640,7 @@ func TestSuccessfulRemoveFilterDimension(t *testing.T) {
 	})
 }
 
-func TestRemoveFilterDimensionFailure(t *testing.T) {
+func TestFailedToRemoveFilterBlueprintDimension(t *testing.T) {
 	t.Parallel()
 	Convey("When no data store is available, an internal error is returned", t, func() {
 		r, err := http.NewRequest("DELETE", "http://localhost:22100/filters/1234568/dimensions/1_age", nil)
@@ -695,7 +656,7 @@ func TestRemoveFilterDimensionFailure(t *testing.T) {
 		So(response, ShouldResemble, "Failed to process the request due to an internal error\n")
 	})
 
-	Convey("When filter job does not exist, a bad request is returned", t, func() {
+	Convey("When filter blueprint does not exist, a bad request is returned", t, func() {
 		r, err := http.NewRequest("DELETE", "http://localhost:22100/filters/12345678/dimensions/1_age", nil)
 		So(err, ShouldBeNil)
 
@@ -709,21 +670,7 @@ func TestRemoveFilterDimensionFailure(t *testing.T) {
 		So(response, ShouldResemble, "Bad request\n")
 	})
 
-	Convey("When the filter job state is submitted, a forbidden status is returned", t, func() {
-		r, err := http.NewRequest("DELETE", "http://localhost:22100/filters/12345678/dimensions/1_age", nil)
-		So(err, ShouldBeNil)
-
-		w := httptest.NewRecorder()
-		api := routes(authHeader, host, mux.NewRouter(), &mocks.DataStore{Forbidden: true}, &mocks.FilterJob{}, datasetAPI)
-		api.router.ServeHTTP(w, r)
-		So(w.Code, ShouldEqual, http.StatusForbidden)
-
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
-		So(response, ShouldResemble, "Forbidden, the filter job has been locked as it has been submitted to be processed\n")
-	})
-
-	Convey("When dimension does not exist against filter job, a not found is returned", t, func() {
+	Convey("When dimension does not exist against filter blueprint, a not found is returned", t, func() {
 		r, err := http.NewRequest("DELETE", "http://localhost:22100/filters/12345678/dimensions/1_age", nil)
 		So(err, ShouldBeNil)
 
@@ -734,13 +681,13 @@ func TestRemoveFilterDimensionFailure(t *testing.T) {
 
 		bodyBytes, _ := ioutil.ReadAll(w.Body)
 		response := string(bodyBytes)
-		So(response, ShouldResemble, "Filter job not found\n")
+		So(response, ShouldResemble, "Filter blueprint not found\n")
 	})
 }
 
-func TestSuccessfulRemoveOptionDimension(t *testing.T) {
+func TestSuccessfulRemoveFilterBlueprintDimensionOption(t *testing.T) {
 	t.Parallel()
-	Convey("Successfully remove a option for a filter job, returns 200", t, func() {
+	Convey("Successfully remove a option for a filter blueprint, returns 200", t, func() {
 		r, err := http.NewRequest("DELETE", "http://localhost:22100/filters/12345678/dimensions/1_age/options/26", nil)
 		So(err, ShouldBeNil)
 
@@ -751,7 +698,7 @@ func TestSuccessfulRemoveOptionDimension(t *testing.T) {
 	})
 }
 
-func TestRemoveOptionDimensionFailure(t *testing.T) {
+func TestFailedToRemoveFilterBlueprintDimensionOption(t *testing.T) {
 	t.Parallel()
 	Convey("When no data store is available, an internal error is returned", t, func() {
 		r, err := http.NewRequest("DELETE", "http://localhost:22100/filters/12345678/dimensions/1_age/options/26", nil)
@@ -767,7 +714,7 @@ func TestRemoveOptionDimensionFailure(t *testing.T) {
 		So(response, ShouldResemble, "Failed to process the request due to an internal error\n")
 	})
 
-	Convey("When filter job does not exist, a bad request is returned", t, func() {
+	Convey("When filter blueprint does not exist, a bad request is returned", t, func() {
 		r, err := http.NewRequest("DELETE", "http://localhost:22100/filters/12345678/dimensions/1_age/options/26", nil)
 		So(err, ShouldBeNil)
 
@@ -781,21 +728,7 @@ func TestRemoveOptionDimensionFailure(t *testing.T) {
 		So(response, ShouldResemble, "Bad request\n")
 	})
 
-	Convey("When the filter job state is submitted, a forbidden status is returned", t, func() {
-		r, err := http.NewRequest("DELETE", "http://localhost:22100/filters/12345678/dimensions/1_age/options/26", nil)
-		So(err, ShouldBeNil)
-
-		w := httptest.NewRecorder()
-		api := routes(authHeader, host, mux.NewRouter(), &mocks.DataStore{Forbidden: true}, &mocks.FilterJob{}, datasetAPI)
-		api.router.ServeHTTP(w, r)
-		So(w.Code, ShouldEqual, http.StatusForbidden)
-
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
-		So(response, ShouldResemble, "Forbidden, the filter job has been locked as it has been submitted to be processed\n")
-	})
-
-	Convey("When dimension does not exist against filter job, a not found is returned", t, func() {
+	Convey("When dimension does not exist against filter blueprint, a not found is returned", t, func() {
 		r, err := http.NewRequest("DELETE", "http://localhost:22100/filters/12345678/dimensions/1_age/options/26", nil)
 		So(err, ShouldBeNil)
 
@@ -807,5 +740,164 @@ func TestRemoveOptionDimensionFailure(t *testing.T) {
 		bodyBytes, _ := ioutil.ReadAll(w.Body)
 		response := string(bodyBytes)
 		So(response, ShouldResemble, "Dimension not found\n")
+	})
+}
+
+func TestSuccessfulGetFilterOutput(t *testing.T) {
+	t.Parallel()
+	Convey("Successfully get a filter output", t, func() {
+		r, err := http.NewRequest("GET", "http://localhost:22100/filter-outputs/12345678", nil)
+		So(err, ShouldBeNil)
+
+		w := httptest.NewRecorder()
+		api := routes(authHeader, host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, datasetAPI)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusOK)
+	})
+}
+
+func TestFailedToGetFilterOutput(t *testing.T) {
+	t.Parallel()
+	Convey("When no data store is available, an internal error is returned", t, func() {
+		r, err := http.NewRequest("GET", "http://localhost:22100/filter-outputs/1234568", nil)
+		So(err, ShouldBeNil)
+
+		w := httptest.NewRecorder()
+
+		api := routes(authHeader, host, mux.NewRouter(), &mocks.DataStore{InternalError: true}, &mocks.FilterJob{}, datasetAPI)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusInternalServerError)
+
+		bodyBytes, _ := ioutil.ReadAll(w.Body)
+		response := string(bodyBytes)
+		So(response, ShouldResemble, "Failed to process the request due to an internal error\n")
+	})
+
+	Convey("When filter output does not exist, a not found is returned", t, func() {
+		r, err := http.NewRequest("GET", "http://localhost:22100/filter-outputs/12345678", nil)
+		So(err, ShouldBeNil)
+
+		w := httptest.NewRecorder()
+		api := routes(authHeader, host, mux.NewRouter(), &mocks.DataStore{NotFound: true}, &mocks.FilterJob{}, datasetAPI)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusNotFound)
+
+		bodyBytes, _ := ioutil.ReadAll(w.Body)
+		response := string(bodyBytes)
+		So(response, ShouldResemble, "Filter output not found\n")
+	})
+}
+
+func TestSuccessfulUpdateFilterOutput(t *testing.T) {
+	t.Parallel()
+	Convey("Successfully send a valid json message", t, func() {
+		reader := strings.NewReader("{\"downloads\":{\"csv\":{\"url\":\"s3-csv-location\",\"size\":\"12mb\"}}}")
+		r, err := http.NewRequest("PUT", "http://localhost:22100/filter-outputs/21312", reader)
+		So(err, ShouldBeNil)
+
+		r.Header.Add(internalToken, "cake")
+
+		w := httptest.NewRecorder()
+		api := routes(authHeader, host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, datasetAPI)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusOK)
+	})
+}
+
+func TestFailedToUpdateFilterOutput(t *testing.T) {
+	t.Parallel()
+	Convey("When no data store is available, an internal error is returned", t, func() {
+		reader := strings.NewReader("{\"downloads\":{\"csv\":{\"url\":\"s3-csv-location\",\"size\":\"12mb\"}}}")
+		r, err := http.NewRequest("PUT", "http://localhost:22100/filter-outputs/21312", reader)
+		So(err, ShouldBeNil)
+
+		r.Header.Add(internalToken, "cake")
+
+		w := httptest.NewRecorder()
+		api := routes(authHeader, host, mux.NewRouter(), &mocks.DataStore{InternalError: true}, &mocks.FilterJob{}, datasetAPI)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusInternalServerError)
+	})
+
+	Convey("When an invalid json message is sent, a bad request is returned", t, func() {
+		reader := strings.NewReader("{")
+		r, err := http.NewRequest("PUT", "http://localhost:22100/filter-outputs/21312", reader)
+		So(err, ShouldBeNil)
+
+		r.Header.Add(internalToken, "cake")
+
+		w := httptest.NewRecorder()
+		api := routes(authHeader, host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, datasetAPI)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusBadRequest)
+
+		bodyBytes, _ := ioutil.ReadAll(w.Body)
+		response := string(bodyBytes)
+		So(response, ShouldResemble, "Bad request - Invalid request body\n")
+	})
+
+	Convey("When an update to a filter output resource that does not exist, a not found is returned", t, func() {
+		reader := strings.NewReader("{\"downloads\":{\"csv\":{\"url\":\"s3-csv-location\",\"size\":\"12mb\"}}}")
+		r, err := http.NewRequest("PUT", "http://localhost:22100/filter-outputs/21312", reader)
+		So(err, ShouldBeNil)
+
+		r.Header.Add(internalToken, "cake")
+
+		w := httptest.NewRecorder()
+		api := routes(authHeader, host, mux.NewRouter(), &mocks.DataStore{NotFound: true}, &mocks.FilterJob{}, datasetAPI)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusNotFound)
+	})
+
+	Convey("When a empty json message is sent, a bad request is returned", t, func() {
+		reader := strings.NewReader("{}")
+		r, err := http.NewRequest("PUT", "http://localhost:22100/filter-outputs/21312", reader)
+		So(err, ShouldBeNil)
+
+		r.Header.Add(internalToken, "cake")
+
+		w := httptest.NewRecorder()
+		api := routes(authHeader, host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, datasetAPI)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusBadRequest)
+
+		bodyBytes, _ := ioutil.ReadAll(w.Body)
+		response := string(bodyBytes)
+		So(response, ShouldResemble, "Bad request - Invalid request body\n")
+	})
+
+	Convey("When a json message contains fields that are not allowed to be updated, a forbidden status is returned", t, func() {
+		reader := strings.NewReader("{\"instance_id\":\"1234\"}")
+		r, err := http.NewRequest("PUT", "http://localhost:22100/filter-outputs/21312", reader)
+		So(err, ShouldBeNil)
+
+		r.Header.Add(internalToken, "cake")
+
+		w := httptest.NewRecorder()
+		api := routes(authHeader, host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, datasetAPI)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusForbidden)
+
+		bodyBytes, _ := ioutil.ReadAll(w.Body)
+		response := string(bodyBytes)
+		So(response, ShouldResemble, "Forbidden from updating the following fields: [instance_id]\n")
+	})
+
+	Convey("When a json message is sent to change a filter output with the wrong authorisation header, an unauthorised status is returned", t, func() {
+		reader := strings.NewReader("{\"downloads\":{\"csv\":{\"url\":\"s3-csv-location\",\"size\":\"12mb\"}}}")
+
+		r, err := http.NewRequest("PUT", "http://localhost:22100/filter-outputs/21312", reader)
+		So(err, ShouldBeNil)
+
+		r.Header.Add(internalToken, "cookie")
+
+		w := httptest.NewRecorder()
+		api := routes(authHeader, host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, datasetAPI)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusUnauthorized)
+
+		bodyBytes, _ := ioutil.ReadAll(w.Body)
+		response := string(bodyBytes)
+		So(response, ShouldResemble, "Unauthorised, request lacks valid authentication credentials\n")
 	})
 }

@@ -5,5 +5,6 @@ type Instance struct {
 	State string        `json:"state,omitempty"`
 }
 type InstanceLinks struct {
-	Version LinkObject `bson:"version,omitempty"   json:"version"`
+	Self    LinkObject `bson:"self,omitempty"    json:"self"`
+	Version LinkObject `bson:"version,omitempty" json:"version"`
 }

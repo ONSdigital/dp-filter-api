@@ -50,17 +50,20 @@ func routes(secretKey, host string, router *mux.Router, dataStore DataStore, job
 
 	router.Path("/healthcheck").Methods("GET").HandlerFunc(api.healthCheck)
 
-	api.router.HandleFunc("/filters", api.addFilterJob).Methods("POST")
-	api.router.HandleFunc("/filters/{filter_job_id}", api.getFilterJob).Methods("GET")
-	api.router.HandleFunc("/filters/{filter_job_id}", api.updateFilterJob).Methods("PUT")
-	api.router.HandleFunc("/filters/{filter_job_id}/dimensions", api.getFilterJobDimensions).Methods("GET")
-	api.router.HandleFunc("/filters/{filter_job_id}/dimensions/{name}", api.getFilterJobDimension).Methods("GET")
-	api.router.HandleFunc("/filters/{filter_job_id}/dimensions/{name}", api.addFilterJobDimension).Methods("POST")
-	api.router.HandleFunc("/filters/{filter_job_id}/dimensions/{name}", api.removeFilterJobDimension).Methods("DELETE")
-	api.router.HandleFunc("/filters/{filter_job_id}/dimensions/{name}/options", api.getFilterJobDimensionOptions).Methods("GET")
-	api.router.HandleFunc("/filters/{filter_job_id}/dimensions/{name}/options/{option}", api.getFilterJobDimensionOption).Methods("GET")
-	api.router.HandleFunc("/filters/{filter_job_id}/dimensions/{name}/options/{option}", api.addFilterJobDimensionOption).Methods("POST")
-	api.router.HandleFunc("/filters/{filter_job_id}/dimensions/{name}/options/{option}", api.removeFilterJobDimensionOption).Methods("DELETE")
+	api.router.HandleFunc("/filters", api.addFilterBlueprint).Methods("POST")
+	api.router.HandleFunc("/filters/{filter_blueprint_id}", api.getFilterBlueprint).Methods("GET")
+	api.router.HandleFunc("/filters/{filter_blueprint_id}", api.updateFilterBlueprint).Methods("PUT")
+	api.router.HandleFunc("/filters/{filter_blueprint_id}/dimensions", api.getFilterBlueprintDimensions).Methods("GET")
+	api.router.HandleFunc("/filters/{filter_blueprint_id}/dimensions/{name}", api.getFilterBlueprintDimension).Methods("GET")
+	api.router.HandleFunc("/filters/{filter_blueprint_id}/dimensions/{name}", api.addFilterBlueprintDimension).Methods("POST")
+	api.router.HandleFunc("/filters/{filter_blueprint_id}/dimensions/{name}", api.removeFilterBlueprintDimension).Methods("DELETE")
+	api.router.HandleFunc("/filters/{filter_blueprint_id}/dimensions/{name}/options", api.getFilterBlueprintDimensionOptions).Methods("GET")
+	api.router.HandleFunc("/filters/{filter_blueprint_id}/dimensions/{name}/options/{option}", api.getFilterBlueprintDimensionOption).Methods("GET")
+	api.router.HandleFunc("/filters/{filter_blueprint_id}/dimensions/{name}/options/{option}", api.addFilterBlueprintDimensionOption).Methods("POST")
+	api.router.HandleFunc("/filters/{filter_blueprint_id}/dimensions/{name}/options/{option}", api.removeFilterBlueprintDimensionOption).Methods("DELETE")
+
+	api.router.HandleFunc("/filter-outputs/{filter_output_id}", api.getFilterOutput).Methods("GET")
+	api.router.HandleFunc("/filter-outputs/{filter_output_id}", api.updateFilterOutput).Methods("PUT")
 	return &api
 }
 
