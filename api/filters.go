@@ -482,6 +482,8 @@ func (api *FilterAPI) createFilterOutputResource(newFilter *models.Filter) *mode
 	filterOutput.State = "created"
 	filterOutput.Links.Self.HRef = fmt.Sprintf("%s/filter-outputs/%s", api.host, filterOutput.FilterID)
 	filterOutput.Links.Dimensions.HRef = ""
+	filterOutput.Links.FilterBlueprint.HRef = newFilter.Links.Self.HRef
+	filterOutput.Links.FilterBlueprint.ID = newFilter.FilterID
 
 	// Clear out any event information to output document
 	filterOutput.Events = models.Events{}

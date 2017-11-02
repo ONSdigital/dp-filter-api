@@ -23,10 +23,11 @@ type Filter struct {
 
 // LinkMap contains a named LinkObject for each link to other resources
 type LinkMap struct {
-	Dimensions   LinkObject `bson:"dimensions"               json:"dimensions,omitempty"`
-	FilterOutput LinkObject `json:"filter_output,omitempty"`
-	Self         LinkObject `bson:"self"                     json:"self,omitempty"`
-	Version      LinkObject `bson:"version"                  json:"version,omitempty"`
+	Dimensions      LinkObject `bson:"dimensions"                 json:"dimensions,omitempty"`
+	FilterOutput    LinkObject `json:"filter_output,omitempty"`
+	FilterBlueprint LinkObject `bson:"filter_blueprint,omitempty" json:"filter_blueprint,omitempty"`
+	Self            LinkObject `bson:"self"                       json:"self,omitempty"`
+	Version         LinkObject `bson:"version"                    json:"version,omitempty"`
 }
 
 // LinkObject represents a generic structure for all links
