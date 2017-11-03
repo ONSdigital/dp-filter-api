@@ -50,7 +50,7 @@ func (api *FilterAPI) addFilterBlueprint(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	newFilter.Links = models.LinkMap{
+	links := models.LinkMap{
 		Dimensions: models.LinkObject{
 			HRef: fmt.Sprintf("%s/filters/%s/dimensions", api.host, newFilter.FilterID),
 		},
@@ -60,28 +60,31 @@ func (api *FilterAPI) addFilterBlueprint(w http.ResponseWriter, r *http.Request)
 		Version: instance.Links.Version,
 	}
 
-	filterBlueprint, err := api.dataStore.AddFilter(api.host, newFilter)
+	newFilter.Links = links
+
+	log.Info("newFilter", log.Data{"new-filter": newFilter})
+
+	_, err = api.dataStore.AddFilter(api.host, newFilter)
 	if err != nil {
 		log.Error(err, log.Data{"new_filter": newFilter})
 		setErrorCode(w, err)
 		return
 	}
 
-	// Remove new filter blueprint dimensions
-	filterBlueprint.Dimensions = nil
-
 	if submitted == "true" {
-		// TODO Check this works
+
 		// Create filter output resource and use id to pass into kafka
-		filterOutput := api.createFilterOutputResource(filterBlueprint, filterBlueprint)
-
-		filterBlueprint.Links.FilterOutput.HRef = filterOutput.Links.Self.HRef
-		filterBlueprint.Links.FilterOutput.ID = filterOutput.FilterID
-
+		filterOutput := api.createFilterOutputResource(newFilter, newFilter.FilterID)
 		log.Info("filter output id sent in message to kafka", log.Data{"filter_output_id": filterOutput.FilterID})
+
+		newFilter.Links = links
+		newFilter.Links.FilterOutput.HRef = filterOutput.Links.Self.HRef
+		newFilter.Links.FilterOutput.ID = filterOutput.FilterID
+
+		log.Info("newFilter 2", log.Data{"new-filter": newFilter})
 	}
 
-	bytes, err := json.Marshal(filterBlueprint)
+	bytes, err := json.Marshal(newFilter)
 	if err != nil {
 		log.Error(err, log.Data{"new_filter": newFilter})
 		setErrorCode(w, err)
@@ -92,12 +95,12 @@ func (api *FilterAPI) addFilterBlueprint(w http.ResponseWriter, r *http.Request)
 	w.WriteHeader(http.StatusCreated)
 	_, err = w.Write(bytes)
 	if err != nil {
-		log.Error(err, log.Data{"filter_blueprint": filterBlueprint})
+		log.Error(err, log.Data{"new_filter": newFilter})
 		setErrorCode(w, err)
 		return
 	}
 
-	log.Info("created new filter blueprint", log.Data{"filter_blueprint": filterBlueprint})
+	log.Info("created new filter blueprint", log.Data{"filter_blueprint": newFilter})
 }
 
 func (api *FilterAPI) getFilterBlueprint(w http.ResponseWriter, r *http.Request) {
@@ -361,12 +364,11 @@ func (api *FilterAPI) updateFilterBlueprint(w http.ResponseWriter, r *http.Reque
 		outputFilter := newFilter
 
 		// Create filter output resource and use id to pass into kafka
-		filterOutput := api.createFilterOutputResource(filter, outputFilter)
+		filterOutput := api.createFilterOutputResource(outputFilter, filterID)
+		log.Info("filter output id sent in message to kafka", log.Data{"filter_output_id": filterOutput.FilterID})
 
 		newFilter.Links.FilterOutput.HRef = filterOutput.Links.Self.HRef
 		newFilter.Links.FilterOutput.ID = filterOutput.FilterID
-
-		log.Info("filter output id sent in message to kafka", log.Data{"filter_output_id": filterOutput.FilterID})
 	}
 
 	bytes, err := json.Marshal(newFilter)
@@ -476,14 +478,14 @@ func (api *FilterAPI) updateFilterOutput(w http.ResponseWriter, r *http.Request)
 	log.Info("got filtered blueprint", log.Data{"filter_output_id": filterOutputID, "filter_output": filterOutput})
 }
 
-func (api *FilterAPI) createFilterOutputResource(filterBlueprint, newFilter *models.Filter) *models.Filter {
-	filterOutput := newFilter
+func (api *FilterAPI) createFilterOutputResource(newFilter *models.Filter, filterBlueprintID string) models.Filter {
+	filterOutput := *newFilter
 	filterOutput.FilterID = uuid.NewV4().String()
 	filterOutput.State = "created"
 	filterOutput.Links.Self.HRef = fmt.Sprintf("%s/filter-outputs/%s", api.host, filterOutput.FilterID)
 	filterOutput.Links.Dimensions.HRef = ""
-	filterOutput.Links.FilterBlueprint.HRef = filterBlueprint.Links.Self.HRef
-	filterOutput.Links.FilterBlueprint.ID = filterBlueprint.FilterID
+	filterOutput.Links.FilterBlueprint.HRef = fmt.Sprintf("%s/filters/%s", api.host, filterBlueprintID)
+	filterOutput.Links.FilterBlueprint.ID = filterBlueprintID
 
 	// Clear out any event information to output document
 	filterOutput.Events = models.Events{}
@@ -501,9 +503,9 @@ func (api *FilterAPI) createFilterOutputResource(filterBlueprint, newFilter *mod
 		filterOutput.Dimensions[i].URL = ""
 	}
 
-	api.dataStore.CreateFilterOutput(filterOutput)
+	api.dataStore.CreateFilterOutput(&filterOutput)
 
-	api.jobQueue.Queue(filterOutput)
+	api.jobQueue.Queue(&filterOutput)
 
 	return filterOutput
 }
