@@ -11,7 +11,7 @@ import (
 	"github.com/ONSdigital/dp-filter-api/api"
 	"github.com/ONSdigital/dp-filter-api/config"
 	"github.com/ONSdigital/dp-filter-api/dataset"
-	"github.com/ONSdigital/dp-filter-api/filterJobQueue"
+	"github.com/ONSdigital/dp-filter-api/filterOutputQueue"
 	"github.com/ONSdigital/dp-filter-api/mongo"
 	"github.com/ONSdigital/go-ns/kafka"
 	"github.com/ONSdigital/go-ns/log"
@@ -43,7 +43,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	producer, err := kafka.NewProducer(cfg.Brokers, cfg.FilterJobSubmittedTopic, int(envMax))
+	producer, err := kafka.NewProducer(cfg.Brokers, cfg.FilterOutputSubmittedTopic, int(envMax))
 	if err != nil {
 		log.ErrorC("Create kafka producer error", err, nil)
 		os.Exit(1)
@@ -52,11 +52,11 @@ func main() {
 	client := rchttp.DefaultClient
 	datasetAPI := dataset.NewDatasetAPI(client, cfg.DatasetAPIURL, cfg.DatasetAPIAuthToken)
 
-	jobQueue := filterJobQueue.CreateJobQueue(producer.Output())
+	outputQueue := filterOutputQueue.CreateOutputQueue(producer.Output())
 
 	apiErrors := make(chan error, 1)
 
-	api.CreateFilterAPI(cfg.SecretKey, cfg.Host, cfg.BindAddr, dataStore, &jobQueue, apiErrors, datasetAPI)
+	api.CreateFilterAPI(cfg.SecretKey, cfg.Host, cfg.BindAddr, dataStore, &outputQueue, apiErrors, datasetAPI)
 
 	// Gracefully shutdown the application closing any open resources.
 	gracefulShutdown := func() {

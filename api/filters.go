@@ -505,7 +505,7 @@ func (api *FilterAPI) createFilterOutputResource(newFilter *models.Filter, filte
 
 	api.dataStore.CreateFilterOutput(&filterOutput)
 
-	api.jobQueue.Queue(&filterOutput)
+	api.outputQueue.Queue(&filterOutput)
 
 	return filterOutput
 }

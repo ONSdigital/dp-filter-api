@@ -2,16 +2,16 @@ package schema
 
 import "github.com/ONSdigital/go-ns/avro"
 
-var filterJobSubmitted = `{
+var filterOutputSubmitted = `{
   "type": "record",
-  "name": "filter-job-submitted",
+  "name": "filter-output-submitted",
   "fields": [
-    {"name": "filter_job_id", "type": "string"}
+    {"name": "filter_output_id", "type": "string"}
   ]
 }`
 
-// FilterJobSubmittedSchema is the Avro schema for each
-// filter job submitted
-var FilterJobSubmittedSchema *avro.Schema = &avro.Schema{
-	Definition: filterJobSubmitted,
+// FilterSubmittedSchema is the Avro schema for each
+// filter output submitted
+var FilterSubmittedSchema *avro.Schema = &avro.Schema{
+	Definition: filterOutputSubmitted,
 }

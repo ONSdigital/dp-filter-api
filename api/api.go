@@ -11,9 +11,9 @@ import (
 
 var httpServer *server.Server
 
-// JobQueue - An interface used to queue import jobs
-type JobQueue interface {
-	Queue(job *models.Filter) error
+// OutputQueue - An interface used to queue filter outputs
+type OutputQueue interface {
+	Queue(output *models.Filter) error
 }
 
 // FilterAPI manages importing filters against a dataset
@@ -21,15 +21,15 @@ type FilterAPI struct {
 	host          string
 	dataStore     DataStore
 	internalToken string
-	jobQueue      JobQueue
+	outputQueue   OutputQueue
 	router        *mux.Router
 	datasetAPI    DatasetAPIer
 }
 
 // CreateFilterAPI manages all the routes configured to API
-func CreateFilterAPI(secretKey, host, bindAddr string, datastore DataStore, jobQueue JobQueue, errorChan chan error, datasetAPI DatasetAPIer) {
+func CreateFilterAPI(secretKey, host, bindAddr string, datastore DataStore, outputQueue OutputQueue, errorChan chan error, datasetAPI DatasetAPIer) {
 	router := mux.NewRouter()
-	routes(secretKey, host, router, datastore, jobQueue, datasetAPI)
+	routes(secretKey, host, router, datastore, outputQueue, datasetAPI)
 
 	httpServer = server.New(bindAddr, router)
 	// Disable this here to allow main to manage graceful shutdown of the entire app.
@@ -45,8 +45,8 @@ func CreateFilterAPI(secretKey, host, bindAddr string, datastore DataStore, jobQ
 }
 
 // routes contain all endpoints for API
-func routes(secretKey, host string, router *mux.Router, dataStore DataStore, jobQueue JobQueue, datasetAPI DatasetAPIer) *FilterAPI {
-	api := FilterAPI{internalToken: secretKey, host: host, dataStore: dataStore, router: router, jobQueue: jobQueue, datasetAPI: datasetAPI}
+func routes(secretKey, host string, router *mux.Router, dataStore DataStore, outputQueue OutputQueue, datasetAPI DatasetAPIer) *FilterAPI {
+	api := FilterAPI{internalToken: secretKey, host: host, dataStore: dataStore, router: router, outputQueue: outputQueue, datasetAPI: datasetAPI}
 
 	router.Path("/healthcheck").Methods("GET").HandlerFunc(api.healthCheck)
 
