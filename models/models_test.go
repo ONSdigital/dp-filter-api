@@ -19,7 +19,7 @@ func (f reader) Read(bytes []byte) (int, error) {
 
 func TestCreateFilterBlueprintWithValidJSON(t *testing.T) {
 	Convey("When a filter blueprint has a valid json body, a message is returned", t, func() {
-		reader := strings.NewReader("{\"instance_id\":\"12345678\"}")
+		reader := strings.NewReader(`{"instance_id":"12345678"}`)
 		filter, err := CreateFilter(reader)
 		So(err, ShouldBeNil)
 		So(filter.ValidateFilterBlueprint(), ShouldBeNil)
@@ -29,7 +29,7 @@ func TestCreateFilterBlueprintWithValidJSON(t *testing.T) {
 	})
 
 	Convey("When a filter blueprint has a valid json body with a state, a message is returned", t, func() {
-		reader := strings.NewReader("{\"instance_id\":\"12345678\",\"state\":\"created\"}")
+		reader := strings.NewReader(`{"instance_id":"12345678","state":"created"}`)
 		filter, err := CreateFilter(reader)
 		So(err, ShouldBeNil)
 		So(filter.ValidateFilterBlueprint(), ShouldBeNil)
@@ -56,7 +56,7 @@ func TestCreateFilterWithNoBody(t *testing.T) {
 
 func TestCreateFilterBlueprintWithInvalidJson(t *testing.T) {
 	Convey("When a filter blueprint message is missing instance_id field, an error is returned", t, func() {
-		filter, err := CreateFilter(strings.NewReader("{\"state\":\"created\"}"))
+		filter, err := CreateFilter(strings.NewReader(`{"state":"created"}`))
 		So(err, ShouldBeNil)
 
 		err = filter.ValidateFilterBlueprint()
@@ -78,7 +78,7 @@ func TestCreateFilterBlueprintWithInvalidJson(t *testing.T) {
 
 func TestCreateBlueprintWithInvalidJson(t *testing.T) {
 	Convey("When a job message has an invalid json, an error is returned", t, func() {
-		reader := strings.NewReader("{")
+		reader := strings.NewReader(`{`)
 		_, err := CreateFilter(reader)
 		So(err, ShouldNotBeNil)
 		So(err, ShouldResemble, fmt.Errorf("Failed to parse json body"))
@@ -87,7 +87,7 @@ func TestCreateBlueprintWithInvalidJson(t *testing.T) {
 
 func TestValidateFilterOutputUpdate(t *testing.T) {
 	Convey("Given the filterOutput doesn't contain any forbidden fields", t, func() {
-		reader := strings.NewReader("{\"downloads\":{\"csv\":{\"url\":\"some-test-url\",\"size\":\"12mb\"}}}")
+		reader := strings.NewReader(`{"downloads":{"csv":{"url":"some-test-url","size":"12mb"}}}`)
 		filter, err := CreateFilter(reader)
 		So(err, ShouldBeNil)
 
@@ -99,7 +99,7 @@ func TestValidateFilterOutputUpdate(t *testing.T) {
 	})
 
 	Convey("Given the filterOutput contains dimensions", t, func() {
-		reader := strings.NewReader("{\"dimensions\":[{\"dimension_url\":\"some-test-dimension-url\",\"name\":\"age\",\"options\":[\"24\"]}]}")
+		reader := strings.NewReader(`{"dimensions":[{"dimension_url":"some-test-dimension-url","name":"age","options":["24"]}]}`)
 		filter, err := CreateFilter(reader)
 		So(err, ShouldBeNil)
 
@@ -112,7 +112,7 @@ func TestValidateFilterOutputUpdate(t *testing.T) {
 	})
 
 	Convey("Given the filterOutput contains instance id", t, func() {
-		reader := strings.NewReader("{\"instance_id\":\"12345678\"}")
+		reader := strings.NewReader(`{"instance_id":"12345678"}`)
 		filter, err := CreateFilter(reader)
 		So(err, ShouldBeNil)
 
@@ -125,7 +125,7 @@ func TestValidateFilterOutputUpdate(t *testing.T) {
 	})
 
 	Convey("Given the filterOutput contains filter_id", t, func() {
-		reader := strings.NewReader("{\"filter_id\":\"87654321\"}")
+		reader := strings.NewReader(`{"filter_id":"87654321"}`)
 		filter, err := CreateFilter(reader)
 		So(err, ShouldBeNil)
 
@@ -138,7 +138,7 @@ func TestValidateFilterOutputUpdate(t *testing.T) {
 	})
 
 	Convey("Given the filterOutput contains filter_id, instance_id and dimensions", t, func() {
-		reader := strings.NewReader("{\"instance_id\":\"12345678\",\"filter_id\":\"87654321\",\"dimensions\":[{\"dimension_url\":\"some-test-dimension-url\",\"name\":\"age\",\"options\":[\"24\"]}]}")
+		reader := strings.NewReader(`{"instance_id":"12345678","filter_id":"87654321","dimensions":[{"dimension_url":"some-test-dimension-url","name":"age","options":["24"]}]}`)
 		filter, err := CreateFilter(reader)
 		So(err, ShouldBeNil)
 

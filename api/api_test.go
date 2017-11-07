@@ -125,7 +125,7 @@ func TestFailedToAddFilterBlueprint(t *testing.T) {
 	})
 
 	Convey("When a json message is missing mandatory fields, a bad request is returned", t, func() {
-		reader := strings.NewReader("{\"dataset\":\"Census\"}")
+		reader := strings.NewReader(`{"dataset":"Census"}`)
 		r, err := http.NewRequest("POST", "http://localhost:22100/filters", reader)
 		So(err, ShouldBeNil)
 
@@ -165,7 +165,7 @@ func TestSuccessfulAddFilterBlueprintDimension(t *testing.T) {
 	})
 
 	Convey("Successfully create a dimension with options", t, func() {
-		reader := strings.NewReader("{\"values\":[\"22\",\"17\"]}")
+		reader := strings.NewReader(`{"values":["22","17"]}`)
 		r, err := http.NewRequest("POST", "http://localhost:22100/filters/12345678/dimensions/age", reader)
 		So(err, ShouldBeNil)
 
@@ -179,7 +179,7 @@ func TestSuccessfulAddFilterBlueprintDimension(t *testing.T) {
 func TestFailedToAddFilterBlueprintDimension(t *testing.T) {
 	t.Parallel()
 	Convey("When no data store is available, an internal error is returned", t, func() {
-		reader := strings.NewReader("{\"values\":[\"22\",\"17\"]}")
+		reader := strings.NewReader(`{"values":["22","17"]}`)
 		r, err := http.NewRequest("POST", "http://localhost:22100/filters/12345678/dimensions/age", reader)
 		So(err, ShouldBeNil)
 
@@ -209,7 +209,7 @@ func TestFailedToAddFilterBlueprintDimension(t *testing.T) {
 	})
 
 	Convey("When a filter blueprint does not exist, a not found is returned", t, func() {
-		reader := strings.NewReader("{\"values\":[\"22\",\"17\"]}")
+		reader := strings.NewReader(`{"values":["22","17"]}`)
 		r, err := http.NewRequest("POST", "http://localhost:22100/filters/12345678/dimensions/age", reader)
 		So(err, ShouldBeNil)
 
@@ -325,7 +325,7 @@ func TestFailedToGetFilterBlueprint(t *testing.T) {
 func TestSuccessfulUpdateFilterBlueprint(t *testing.T) {
 	t.Parallel()
 	Convey("Successfully send a valid json message", t, func() {
-		reader := strings.NewReader("{\"instance_id\":\"123\"}")
+		reader := strings.NewReader(`{"instance_id":"123"}`)
 		r, err := http.NewRequest("PUT", "http://localhost:22100/filters/21312", reader)
 		So(err, ShouldBeNil)
 
@@ -380,7 +380,7 @@ func TestFailedToUpdateFilterBlueprint(t *testing.T) {
 	})
 
 	Convey("When a json message is sent to update filter blueprint that doesn't exist, a status of not found is returned", t, func() {
-		reader := strings.NewReader("{\"instance_id\":\"44444\"}")
+		reader := strings.NewReader(`{"instance_id":"44444"}`)
 		r, err := http.NewRequest("PUT", "http://localhost:22100/filters/21312", reader)
 		So(err, ShouldBeNil)
 
@@ -395,7 +395,7 @@ func TestFailedToUpdateFilterBlueprint(t *testing.T) {
 	})
 
 	Convey("When a json message is sent to change the instance id of a filter blueprint and the instance does not exist, a status of not found is returned", t, func() {
-		reader := strings.NewReader("{\"instance_id\":\"44444\"}")
+		reader := strings.NewReader(`{"instance_id":"44444"}`)
 		r, err := http.NewRequest("PUT", "http://localhost:22100/filters/21312", reader)
 		So(err, ShouldBeNil)
 
@@ -791,7 +791,7 @@ func TestFailedToGetFilterOutput(t *testing.T) {
 func TestSuccessfulUpdateFilterOutput(t *testing.T) {
 	t.Parallel()
 	Convey("Successfully send a valid json message", t, func() {
-		reader := strings.NewReader("{\"downloads\":{\"csv\":{\"url\":\"s3-csv-location\",\"size\":\"12mb\"}}}")
+		reader := strings.NewReader(`{"downloads":{"csv":{"url":"s3-csv-location","size":"12mb"}}}`)
 		r, err := http.NewRequest("PUT", "http://localhost:22100/filter-outputs/21312", reader)
 		So(err, ShouldBeNil)
 
@@ -807,7 +807,7 @@ func TestSuccessfulUpdateFilterOutput(t *testing.T) {
 func TestFailedToUpdateFilterOutput(t *testing.T) {
 	t.Parallel()
 	Convey("When no data store is available, an internal error is returned", t, func() {
-		reader := strings.NewReader("{\"downloads\":{\"csv\":{\"url\":\"s3-csv-location\",\"size\":\"12mb\"}}}")
+		reader := strings.NewReader(`{"downloads":{"csv":{"url":"s3-csv-location","size":"12mb"}}}`)
 		r, err := http.NewRequest("PUT", "http://localhost:22100/filter-outputs/21312", reader)
 		So(err, ShouldBeNil)
 
@@ -837,7 +837,7 @@ func TestFailedToUpdateFilterOutput(t *testing.T) {
 	})
 
 	Convey("When an update to a filter output resource that does not exist, a not found is returned", t, func() {
-		reader := strings.NewReader("{\"downloads\":{\"csv\":{\"url\":\"s3-csv-location\",\"size\":\"12mb\"}}}")
+		reader := strings.NewReader(`{"downloads":{"csv":{"url":"s3-csv-location","size":"12mb"}}}`)
 		r, err := http.NewRequest("PUT", "http://localhost:22100/filter-outputs/21312", reader)
 		So(err, ShouldBeNil)
 
@@ -867,7 +867,7 @@ func TestFailedToUpdateFilterOutput(t *testing.T) {
 	})
 
 	Convey("When a json message contains fields that are not allowed to be updated, a forbidden status is returned", t, func() {
-		reader := strings.NewReader("{\"instance_id\":\"1234\"}")
+		reader := strings.NewReader(`{"instance_id":"1234"}`)
 		r, err := http.NewRequest("PUT", "http://localhost:22100/filter-outputs/21312", reader)
 		So(err, ShouldBeNil)
 
@@ -884,7 +884,7 @@ func TestFailedToUpdateFilterOutput(t *testing.T) {
 	})
 
 	Convey("When a json message is sent to change a filter output with the wrong authorisation header, an unauthorised status is returned", t, func() {
-		reader := strings.NewReader("{\"downloads\":{\"csv\":{\"url\":\"s3-csv-location\",\"size\":\"12mb\"}}}")
+		reader := strings.NewReader(`{"downloads":{"csv":{"url":"s3-csv-location","size":"12mb"}}}`)
 
 		r, err := http.NewRequest("PUT", "http://localhost:22100/filter-outputs/21312", reader)
 		So(err, ShouldBeNil)
