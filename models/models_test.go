@@ -43,13 +43,13 @@ func TestCreateFilterWithNoBody(t *testing.T) {
 	Convey("When a filter message has no body, an error is returned", t, func() {
 		_, err := CreateFilter(reader{})
 		So(err, ShouldNotBeNil)
-		So(err, ShouldResemble, fmt.Errorf("Failed to read message body"))
+		So(err, ShouldEqual, ErrorReadingBody)
 	})
 
 	Convey("When a filter message has an empty body, an error is returned", t, func() {
 		filter, err := CreateFilter(strings.NewReader("{}"))
 		So(err, ShouldNotBeNil)
-		So(err, ShouldResemble, fmt.Errorf("Bad request - Missing data in body"))
+		So(err, ShouldResemble, ErrorNoData)
 		So(filter, ShouldNotBeNil)
 	})
 }
@@ -81,7 +81,7 @@ func TestCreateBlueprintWithInvalidJson(t *testing.T) {
 		reader := strings.NewReader(`{`)
 		_, err := CreateFilter(reader)
 		So(err, ShouldNotBeNil)
-		So(err, ShouldResemble, fmt.Errorf("Failed to parse json body"))
+		So(err, ShouldEqual, ErrorParsingBody)
 	})
 }
 

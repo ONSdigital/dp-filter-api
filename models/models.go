@@ -90,6 +90,12 @@ type DimensionOption struct {
 	Option             string `json:"option"`
 }
 
+var (
+	ErrorReadingBody = errors.New("Failed to read message body")
+	ErrorParsingBody = errors.New("Failed to parse json body")
+	ErrorNoData      = errors.New("Bad request - Missing data in body")
+)
+
 // ValidateFilterBlueprint checks the content of the filter structure
 func (filter *Filter) ValidateFilterBlueprint() error {
 	// FilterBluePrint should not have state
@@ -139,18 +145,18 @@ func (filter *Filter) ValidateFilterOutputUpdate() error {
 func CreateFilter(reader io.Reader) (*Filter, error) {
 	bytes, err := ioutil.ReadAll(reader)
 	if err != nil {
-		return nil, errors.New("Failed to read message body")
+		return nil, ErrorReadingBody
 	}
 
 	var filter Filter
 	err = json.Unmarshal(bytes, &filter)
 	if err != nil {
-		return nil, errors.New("Failed to parse json body")
+		return nil, ErrorParsingBody
 	}
 
 	// This should be the last check before returning filter
 	if len(bytes) == 2 {
-		return &filter, errors.New("Bad request - Missing data in body")
+		return &filter, ErrorNoData
 	}
 
 	return &filter, nil
@@ -162,7 +168,7 @@ func CreateDimensionOptions(reader io.Reader) ([]string, error) {
 
 	bytes, err := ioutil.ReadAll(reader)
 	if err != nil {
-		return nil, errors.New("Failed to read message body")
+		return nil, ErrorReadingBody
 	}
 
 	if string(bytes) == "" {
@@ -171,7 +177,7 @@ func CreateDimensionOptions(reader io.Reader) ([]string, error) {
 
 	err = json.Unmarshal(bytes, &dimension)
 	if err != nil {
-		return nil, errors.New("Failed to parse json body")
+		return nil, ErrorParsingBody
 	}
 
 	return dimension.Options, nil

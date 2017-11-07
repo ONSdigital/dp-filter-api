@@ -308,9 +308,10 @@ func (api *FilterAPI) updateFilterBlueprint(w http.ResponseWriter, r *http.Reque
 
 	filter, err := models.CreateFilter(r.Body)
 	if err != nil {
-		// If filter blueprint has query parameter submitted set to true then
-		// request can have an empty body
-		if err != errors.New("Bad request - Missing data in body") && submitted != "true" {
+
+		// When filter blueprint has query parameter `submitted` set to true then
+		// request can have an empty json in body for this PUT request
+		if submitted != "true" || err != models.ErrorNoData {
 			log.Error(err, log.Data{"filter_blueprint_id": filterID})
 			http.Error(w, badRequest, http.StatusBadRequest)
 			return

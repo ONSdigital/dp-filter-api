@@ -364,7 +364,7 @@ func TestFailedToUpdateFilterBlueprint(t *testing.T) {
 		So(response, ShouldResemble, "Bad request - Invalid request body\n")
 	})
 
-	Convey("When a empty json message is sent, a bad request is returned", t, func() {
+	Convey("When an empty json message is sent, a bad request is returned", t, func() {
 		reader := strings.NewReader("{}")
 		r, err := http.NewRequest("PUT", "http://localhost:22100/filters/21312", reader)
 		So(err, ShouldBeNil)
