@@ -286,6 +286,27 @@ paths:
           description: "Dimension option was not found"
         500:
           $ref: '#/responses/InternalError'
+  /filters/{filter_id}/preview:
+    parameters:
+      - $ref: '#/parameters/filter_id'
+    get:
+      tags:
+      - "Public"
+      summary: "Get a preview of the current state of the filter"
+      description: "Get a preview of up to 20 observations using the current state of the filter job. It could be possible no results are returned due to data sparsity."
+      produces:
+      - "application/json"
+      responses:
+        200:
+          description: "A preview of the current filter state has been returned"
+          schema:
+            $ref: '#/definitions/Preview'
+        400:
+          description: "No dimensions are present in the filter blue print"
+        404:
+          description: "The filter id was not found"
+        500:
+          $ref: '#/responses/InternalError'
   /filter-outputs/{filter_id}:
     parameters:
       - $ref: '#/parameters/filter_id'
@@ -540,4 +561,34 @@ definitions:
           id:
             description: "An ID of the version being filtered"
             example: "de3bc0b6-d6c4-4e20-917e-95d7ea8c91dc"
+            type: string
+      preview:
+        type: object
+        properties:
+          href:
+            description: "A URL to a preview of the current filter"
+            example: "http://localhost:8080/filters/DE3BC0B6-D6C4-4E20-917E-95D7EA8C91DC/preview"
+            type: string
+  Preview:
+    description: "A preview of the current filter state"
+    readOnly: true
+    type: object
+    properties:
+      headers:
+        description: "A list of all headers in the dataset"
+        type: array
+        items:
+          type: string
+      number_of_rows:
+        description: "The number of rows, this can be in the range of 0 - 20"
+        type: integer
+      number_of_columns:
+        description: "The number of columns"
+        type: integer
+      rows:
+        description: "A list of all rows for the preview as a two dimensional array"
+        type: array
+        items:
+          type: array
+          items:
             type: string
