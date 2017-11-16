@@ -530,6 +530,50 @@ func (api *FilterAPI) removeFilterBlueprintDimensionOption(w http.ResponseWriter
 	log.Info("delete filtered blueprint", log.Data{"filter_blueprint_id": filterID, "dimension": name})
 }
 
+func (api *FilterAPI) getFilterBluePrintPreview(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	filterID := vars["filter_blueprint_id"]
+	filterBluePrint, err := api.dataStore.GetFilter(filterID)
+	if err != nil {
+		log.ErrorC("failed to find filter blue print", err, log.Data{"filter_blueprint_id": filterID})
+		setErrorCode(w, err)
+		return
+	}
+
+	if len(filterBluePrint.Dimensions) == 0 {
+		log.Error(errors.New("no dimensions are present in the filter"), log.Data{"filter_blueprint_id": filterID})
+		http.Error(w, "no dimensions are present in the filter", http.StatusBadRequest)
+		return
+	}
+
+	data, err := api.preview.GetPreview(*filterBluePrint)
+	if err != nil {
+		log.ErrorC("failed to query the graph database", err, log.Data{"filter_blueprint_id": filterID})
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	bytes, err := json.Marshal(data)
+	if err != nil {
+		log.Error(err, log.Data{"filter_id": filterID})
+		http.Error(w, internalError, http.StatusInternalServerError)
+		return
+	}
+
+	setJSONContentType(w)
+	w.WriteHeader(http.StatusOK)
+	_, err = w.Write(bytes)
+	if err != nil {
+		log.Error(err, log.Data{"filter_id": filterID})
+		setErrorCode(w, err)
+		return
+	}
+
+	log.Info("data", log.Data{"data": data})
+
+	log.Info("preview filter blueprint", log.Data{"filter_blueprint_id": filterID, "dimensions": filterBluePrint.Dimensions})
+}
+
 func (api *FilterAPI) checkAuthentication(header string) (bool, error) {
 	if header != api.internalToken {
 		authorisationError := errors.New("Not authorised")

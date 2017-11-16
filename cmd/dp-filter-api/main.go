@@ -13,10 +13,13 @@ import (
 	"github.com/ONSdigital/dp-filter-api/dataset"
 	"github.com/ONSdigital/dp-filter-api/filterOutputQueue"
 	"github.com/ONSdigital/dp-filter-api/mongo"
+	"github.com/ONSdigital/dp-filter-api/preview"
+	"github.com/ONSdigital/dp-filter/observation"
 	"github.com/ONSdigital/go-ns/kafka"
 	"github.com/ONSdigital/go-ns/log"
 	mongoclosure "github.com/ONSdigital/go-ns/mongo"
 	"github.com/ONSdigital/go-ns/rchttp"
+	bolt "github.com/johnnadratowski/golang-neo4j-bolt-driver"
 )
 
 func main() {
@@ -39,8 +42,13 @@ func main() {
 
 	dataStore, err := mongo.CreateFilterStore(cfg.MongoDBURL, cfg.Host)
 	if err != nil {
-		log.ErrorC("could not connect to mongodb", err, log.Data{"url": cfg.MongoDBURL})
+		log.ErrorC("could not connect to mongodb", err, nil)
 		os.Exit(1)
+	}
+
+	neo4jDriver, err := bolt.NewDriver().OpenNeo(cfg.Neo4jURL)
+	if err != nil {
+		log.ErrorC("could not connect to neo4j", err, nil)
 	}
 
 	producer, err := kafka.NewProducer(cfg.Brokers, cfg.FilterOutputSubmittedTopic, int(envMax))
@@ -51,12 +59,13 @@ func main() {
 
 	client := rchttp.DefaultClient
 	datasetAPI := dataset.NewDatasetAPI(client, cfg.DatasetAPIURL, cfg.DatasetAPIAuthToken)
-
+	observationStore := observation.NewStore(neo4jDriver)
+	previewDatasets := preview.PreviewDatasetStore{Store: observationStore, Limit: 20}
 	outputQueue := filterOutputQueue.CreateOutputQueue(producer.Output())
 
 	apiErrors := make(chan error, 1)
 
-	api.CreateFilterAPI(cfg.SecretKey, cfg.Host, cfg.BindAddr, dataStore, &outputQueue, apiErrors, datasetAPI)
+	api.CreateFilterAPI(cfg.SecretKey, cfg.Host, cfg.BindAddr, dataStore, &outputQueue, apiErrors, datasetAPI, &previewDatasets)
 
 	// Gracefully shutdown the application closing any open resources.
 	gracefulShutdown := func() {
@@ -69,6 +78,10 @@ func main() {
 
 		// mongo.Close() may use all remaining time in the context
 		if err = mongoclosure.Close(ctx, dataStore.Session); err != nil {
+			log.Error(err, nil)
+		}
+
+		if err = neo4jDriver.Close(); err != nil {
 			log.Error(err, nil)
 		}
 

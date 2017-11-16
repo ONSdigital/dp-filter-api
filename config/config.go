@@ -18,6 +18,7 @@ type Config struct {
 	ShutdownTimeout            time.Duration `envconfig:"SHUTDOWN_TIMEOUT"`
 	DatasetAPIURL              string        `envconfig:"DATASET_API_URL"`
 	DatasetAPIAuthToken        string        `envconfig:"DATASET_API_AUTH_TOKEN"`
+	Neo4jURL                   string        `envconfig:"NEO4J_BIND_ADDR"`
 }
 
 var cfg *Config
@@ -39,6 +40,7 @@ func Get() (*Config, error) {
 		ShutdownTimeout:            5 * time.Second,
 		DatasetAPIURL:              "http://localhost:22000",
 		DatasetAPIAuthToken:        "FD0108EA-825D-411C-9B1D-41EF7727F465",
+		Neo4jURL:                   "bolt://localhost:7687",
 	}
 
 	return cfg, envconfig.Process("", cfg)

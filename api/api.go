@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/ONSdigital/dp-filter-api/models"
+	"github.com/ONSdigital/dp-filter-api/preview"
 	"github.com/ONSdigital/go-ns/log"
 	"github.com/ONSdigital/go-ns/server"
 	"github.com/gorilla/mux"
@@ -16,6 +17,13 @@ type OutputQueue interface {
 	Queue(output *models.Filter) error
 }
 
+//go:generate moq -out datastoretest/preview.go -pkg datastoretest . PreviewDataset
+
+// DELETE / MOVE
+type PreviewDataset interface {
+	GetPreview(filter models.Filter) (*preview.FilterPreview, error)
+}
+
 // FilterAPI manages importing filters against a dataset
 type FilterAPI struct {
 	host          string
@@ -24,12 +32,13 @@ type FilterAPI struct {
 	outputQueue   OutputQueue
 	router        *mux.Router
 	datasetAPI    DatasetAPIer
+	preview       PreviewDataset
 }
 
 // CreateFilterAPI manages all the routes configured to API
-func CreateFilterAPI(secretKey, host, bindAddr string, datastore DataStore, outputQueue OutputQueue, errorChan chan error, datasetAPI DatasetAPIer) {
+func CreateFilterAPI(secretKey, host, bindAddr string, datastore DataStore, outputQueue OutputQueue, errorChan chan error, datasetAPI DatasetAPIer, preview PreviewDataset) {
 	router := mux.NewRouter()
-	routes(secretKey, host, router, datastore, outputQueue, datasetAPI)
+	routes(secretKey, host, router, datastore, outputQueue, datasetAPI, preview)
 
 	httpServer = server.New(bindAddr, router)
 	// Disable this here to allow main to manage graceful shutdown of the entire app.
@@ -45,8 +54,8 @@ func CreateFilterAPI(secretKey, host, bindAddr string, datastore DataStore, outp
 }
 
 // routes contain all endpoints for API
-func routes(secretKey, host string, router *mux.Router, dataStore DataStore, outputQueue OutputQueue, datasetAPI DatasetAPIer) *FilterAPI {
-	api := FilterAPI{internalToken: secretKey, host: host, dataStore: dataStore, router: router, outputQueue: outputQueue, datasetAPI: datasetAPI}
+func routes(secretKey, host string, router *mux.Router, dataStore DataStore, outputQueue OutputQueue, datasetAPI DatasetAPIer, preview PreviewDataset) *FilterAPI {
+	api := FilterAPI{internalToken: secretKey, host: host, dataStore: dataStore, router: router, outputQueue: outputQueue, datasetAPI: datasetAPI, preview: preview}
 
 	router.Path("/healthcheck").Methods("GET").HandlerFunc(api.healthCheck)
 
@@ -61,6 +70,7 @@ func routes(secretKey, host string, router *mux.Router, dataStore DataStore, out
 	api.router.HandleFunc("/filters/{filter_blueprint_id}/dimensions/{name}/options/{option}", api.getFilterBlueprintDimensionOption).Methods("GET")
 	api.router.HandleFunc("/filters/{filter_blueprint_id}/dimensions/{name}/options/{option}", api.addFilterBlueprintDimensionOption).Methods("POST")
 	api.router.HandleFunc("/filters/{filter_blueprint_id}/dimensions/{name}/options/{option}", api.removeFilterBlueprintDimensionOption).Methods("DELETE")
+	api.router.HandleFunc("/filters/{filter_blueprint_id}/preview", api.getFilterBluePrintPreview).Methods("GET")
 
 	api.router.HandleFunc("/filter-outputs/{filter_output_id}", api.getFilterOutput).Methods("GET")
 	api.router.HandleFunc("/filter-outputs/{filter_output_id}", api.updateFilterOutput).Methods("PUT")
