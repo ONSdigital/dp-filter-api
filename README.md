@@ -13,6 +13,9 @@ dp-filter-api
 * Run ```./kafka-server-start.sh ../config/server.properties```
 
 ### Configuration
+* Run ```brew install neo4j```
+* Disable authentication
+* Run ```brew services start neo4j```
 
 | Environment variable       | Default                                   | Description
 | -------------------------- | ----------------------------------------- | -----------
@@ -26,6 +29,7 @@ dp-filter-api
 | SHUTDOWN_TIMEOUT           | 5                                         | The graceful shutdown timeout in seconds
 | DATASET_API_URL            | http://localhost:22000                    | The URL of the Dataset API
 | DATASET_API_AUTH_TOKEN     | FD0108EA-825D-411C-9B1D-41EF7727F465      | The token used to access the Dataset API
+| NEO4J_BIND_ADDR            | bolt://localhost:7687                     | URL to a neo4j services
 
 ### Contributing
 
