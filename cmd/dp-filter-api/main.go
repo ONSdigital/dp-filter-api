@@ -49,6 +49,7 @@ func main() {
 	neo4jDriver, err := bolt.NewDriver().OpenNeo(cfg.Neo4jURL)
 	if err != nil {
 		log.ErrorC("could not connect to neo4j", err, nil)
+		os.Exit(1)
 	}
 
 	producer, err := kafka.NewProducer(cfg.Brokers, cfg.FilterOutputSubmittedTopic, int(envMax))

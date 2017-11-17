@@ -569,8 +569,6 @@ func (api *FilterAPI) getFilterBluePrintPreview(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	log.Info("data", log.Data{"data": data})
-
 	log.Info("preview filter blueprint", log.Data{"filter_blueprint_id": filterID, "dimensions": filterBluePrint.Dimensions})
 }
 

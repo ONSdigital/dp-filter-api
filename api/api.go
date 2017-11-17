@@ -19,7 +19,7 @@ type OutputQueue interface {
 
 //go:generate moq -out datastoretest/preview.go -pkg datastoretest . PreviewDataset
 
-// DELETE / MOVE
+// PreviewDataset An interface used to generate previews
 type PreviewDataset interface {
 	GetPreview(filter models.Filter) (*preview.FilterPreview, error)
 }

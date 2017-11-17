@@ -46,7 +46,9 @@ func (preview *PreviewDatasetStore) GetPreview(bluePrint models.Filter) (*Filter
 	if err != nil {
 		return nil, err
 	}
-	results.Headers = strings.Split(strings.TrimSpace(row), ",")
+	headers := strings.Split(strings.TrimSpace(row), ",")
+	results.Headers = headers
+	results.NumberOfColumns = len(headers)
 	for true {
 		row, err = rows.Read()
 		if err != nil {
@@ -56,6 +58,7 @@ func (preview *PreviewDatasetStore) GetPreview(bluePrint models.Filter) (*Filter
 			return nil, err
 		}
 		results.Rows = append(results.Rows, strings.Split(strings.TrimSpace(row), ","))
+		results.NumberOfRows++
 	}
 
 	return &results, nil

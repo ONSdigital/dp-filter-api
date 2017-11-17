@@ -37,6 +37,8 @@ func TestPreviewDatasetStore_GetPreview(t *testing.T) {
 
 		results, err := previewDataset.GetPreview(models.Filter{})
 		So(len(results.Headers), ShouldEqual, 7)
+		So(results.NumberOfColumns, ShouldEqual, 7)
+		So(results.NumberOfRows, ShouldEqual, 3)
 		So(err, ShouldBeNil)
 		So(len(results.Rows), ShouldEqual, 3)
 
@@ -67,6 +69,8 @@ func TestPreviewDatasetStore_GetPreview(t *testing.T) {
 
 		results, err := previewDataset.GetPreview(models.Filter{})
 		So(len(results.Headers), ShouldEqual, 7)
+		So(results.NumberOfColumns, ShouldEqual, 7)
+		So(results.NumberOfRows, ShouldEqual, 0)
 		So(err, ShouldBeNil)
 		So(len(results.Rows), ShouldEqual, 0)
 	})
