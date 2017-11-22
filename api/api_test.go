@@ -915,7 +915,7 @@ func TestFailedToUpdateFilterOutput(t *testing.T) {
 func TestSuccessfulGetPreview(t *testing.T) {
 	t.Parallel()
 	Convey("Successfully requesting a valid preview", t, func() {
-		r, err := http.NewRequest("GET", "http://localhost:22100/filters/21312/preview", nil)
+		r, err := http.NewRequest("GET", "http://localhost:22100/filter-outputs/21312/preview", nil)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
@@ -928,7 +928,7 @@ func TestSuccessfulGetPreview(t *testing.T) {
 func TestFailedGetPreview(t *testing.T) {
 	t.Parallel()
 	Convey("Requesting a preview with invalid filter", t, func() {
-		r, err := http.NewRequest("GET", "http://localhost:22100/filters/21312/preview", nil)
+		r, err := http.NewRequest("GET", "http://localhost:22100/filter-outputs/21312/preview", nil)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
@@ -938,7 +938,7 @@ func TestFailedGetPreview(t *testing.T) {
 	})
 
 	Convey("Requesting a preview with no mongodb database connection", t, func() {
-		r, err := http.NewRequest("GET", "http://localhost:22100/filters/21312/preview", nil)
+		r, err := http.NewRequest("GET", "http://localhost:22100/filter-outputs/21312/preview", nil)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
@@ -953,7 +953,7 @@ func TestFailedGetPreview(t *testing.T) {
 				return nil, errors.New("internal error")
 			},
 		}
-		r, err := http.NewRequest("GET", "http://localhost:22100/filters/21312/preview", nil)
+		r, err := http.NewRequest("GET", "http://localhost:22100/filter-outputs/21312/preview", nil)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
@@ -963,7 +963,7 @@ func TestFailedGetPreview(t *testing.T) {
 	})
 
 	Convey("Requesting a preview with no dimensions", t, func() {
-		r, err := http.NewRequest("GET", "http://localhost:22100/filters/21312/preview", nil)
+		r, err := http.NewRequest("GET", "http://localhost:22100/filter-outputs/21312/preview", nil)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()

@@ -21,7 +21,7 @@ func TestPreviewDatasetStore_GetPreview(t *testing.T) {
 					return "", io.EOF
 				}
 				rowCount++
-				return "V4_0,Time_codelist,Time,Geography_codelist,Geography,Aggregate_codelist,Aggregate", nil
+				return "V4_0,Time_codelist,Time,Geography_codelist,Geography,Aggregate_codelist,Aggregate\n", nil
 			},
 			CloseFunc: func() error {
 				return nil

@@ -182,7 +182,11 @@ func (ds *DataStore) GetFilterOutput(filterID string) (*models.Filter, error) {
 		return nil, internalServerError
 	}
 
-	return &models.Filter{InstanceID: "12345678", FilterID: filterID, State: "created"}, nil
+	if ds.BadRequest {
+		return &models.Filter{InstanceID: "12345678", FilterID: filterID, State: "created"}, nil
+	}
+
+	return &models.Filter{InstanceID: "12345678", FilterID: filterID, State: "created", Dimensions: []models.Dimension{{Name: "time"}}}, nil
 }
 
 func (ds *DataStore) RemoveFilterDimension(string, string) error {

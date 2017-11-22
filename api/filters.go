@@ -530,25 +530,25 @@ func (api *FilterAPI) removeFilterBlueprintDimensionOption(w http.ResponseWriter
 	log.Info("delete filtered blueprint", log.Data{"filter_blueprint_id": filterID, "dimension": name})
 }
 
-func (api *FilterAPI) getFilterBluePrintPreview(w http.ResponseWriter, r *http.Request) {
+func (api *FilterAPI) getFilterOutputPreview(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	filterID := vars["filter_blueprint_id"]
-	filterBluePrint, err := api.dataStore.GetFilter(filterID)
+	filterID := vars["filter_output_id"]
+	filterOuput, err := api.dataStore.GetFilterOutput(filterID)
 	if err != nil {
-		log.ErrorC("failed to find filter blue print", err, log.Data{"filter_blueprint_id": filterID})
+		log.ErrorC("failed to find filter output", err, log.Data{"filter_output_id": filterID})
 		setErrorCode(w, err)
 		return
 	}
 
-	if len(filterBluePrint.Dimensions) == 0 {
-		log.Error(errors.New("no dimensions are present in the filter"), log.Data{"filter_blueprint_id": filterID})
+	if len(filterOuput.Dimensions) == 0 {
+		log.Error(errors.New("no dimensions are present in the filter"), log.Data{"filter_output_id": filterID})
 		http.Error(w, "no dimensions are present in the filter", http.StatusBadRequest)
 		return
 	}
 
-	data, err := api.preview.GetPreview(*filterBluePrint)
+	data, err := api.preview.GetPreview(*filterOuput)
 	if err != nil {
-		log.ErrorC("failed to query the graph database", err, log.Data{"filter_blueprint_id": filterID})
+		log.ErrorC("failed to query the graph database", err, log.Data{"filter_output_id": filterID})
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
@@ -569,7 +569,7 @@ func (api *FilterAPI) getFilterBluePrintPreview(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	log.Info("preview filter blueprint", log.Data{"filter_blueprint_id": filterID, "dimensions": filterBluePrint.Dimensions})
+	log.Info("preview filter output", log.Data{"filter_output_id": filterID, "dimensions": filterOuput.Dimensions})
 }
 
 func (api *FilterAPI) checkAuthentication(header string) (bool, error) {

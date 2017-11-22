@@ -1,10 +1,11 @@
 package preview
 
 import (
+	"bytes"
+	"encoding/csv"
 	"github.com/ONSdigital/dp-filter-api/models"
 	"github.com/ONSdigital/dp-filter/observation"
 	"io"
-	"strings"
 )
 
 //go:generate moq -out previewtest/observationstore.go -pkg observationstoretest . ObservationStore
@@ -41,25 +42,52 @@ func (preview *PreviewDatasetStore) GetPreview(bluePrint models.Filter) (*Filter
 		return nil, err
 	}
 	defer rows.Close()
-	var results FilterPreview
-	row, err := rows.Read()
+
+	csvReader, err := convertRowReaderToCSVReader(rows)
 	if err != nil {
 		return nil, err
 	}
-	headers := strings.Split(strings.TrimSpace(row), ",")
-	results.Headers = headers
-	results.NumberOfColumns = len(headers)
+
+	return buildResults(csvReader)
+}
+
+func convertRowReaderToCSVReader(rows observation.CSVRowReader) (*csv.Reader, error) {
+	var buffer bytes.Buffer
 	for true {
-		row, err = rows.Read()
+		row, err := rows.Read()
 		if err != nil {
 			if err == io.EOF {
 				break // We read the end of the stream
 			}
 			return nil, err
 		}
-		results.Rows = append(results.Rows, strings.Split(strings.TrimSpace(row), ","))
+		buffer.WriteString(row)
+	}
+	csvReader := csv.NewReader(bytes.NewReader(buffer.Bytes()))
+	return csvReader, nil
+}
+
+func buildResults(csvReader *csv.Reader) (*FilterPreview, error) {
+	var results FilterPreview
+	row, err := csvReader.Read()
+	if err != nil {
+		return nil, err
+	}
+	headers := row
+	results.Headers = headers
+	// Replace the V4 header withe values
+	results.Headers[0] = "Values"
+	results.NumberOfColumns = len(headers)
+	for true {
+		row, err = csvReader.Read()
+		if err != nil {
+			if err == io.EOF {
+				break // We read the end of the stream
+			}
+			return nil, err
+		}
+		results.Rows = append(results.Rows, row)
 		results.NumberOfRows++
 	}
-
 	return &results, nil
 }
