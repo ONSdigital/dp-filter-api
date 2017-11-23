@@ -3,6 +3,7 @@ package observation
 import (
 	"bytes"
 	"fmt"
+	"github.com/ONSdigital/go-ns/log"
 	bolt "github.com/johnnadratowski/golang-neo4j-bolt-driver"
 	"strconv"
 )
@@ -11,44 +12,62 @@ import (
 
 // Store represents storage for observation data.
 type Store struct {
-	dBConnection DBConnection
+	pool DBPool
 }
 
-// DBConnection provides a connection to the database.
-type DBConnection interface {
-	QueryNeo(query string, params map[string]interface{}) (bolt.Rows, error)
+// DBPool provides a pool of database connections
+type DBPool interface {
+	OpenPool() (bolt.Conn, error)
 }
 
 // NewStore returns a new store instace using the given DB connection.
-func NewStore(dBConnection DBConnection) *Store {
+func NewStore(pool DBPool) *Store {
 	return &Store{
-		dBConnection: dBConnection,
+		pool: pool,
 	}
 }
 
 // GetCSVRows returns a reader allowing individual CSV rows to be read. Rows returned
-// can be limited, to stop this pass in nil.
+// can be limited, to stop this pass in nil. If filter.DimensionFilters is nil, empty or contains only empty values then
+// a CSVRowReader for the entire dataset will be returned.
 func (store *Store) GetCSVRows(filter *Filter, limit *int) (CSVRowReader, error) {
 
 	headerRowQuery := fmt.Sprintf("MATCH (i:`_%s_Instance`) RETURN i.header as row", filter.InstanceID)
-	rowsQuery := createObservationQuery(filter)
 
-	unionQuery := headerRowQuery + " UNION ALL " + rowsQuery
+	unionQuery := headerRowQuery + " UNION ALL " + createObservationQuery(filter)
 
 	if limit != nil {
 		limitAsString := strconv.Itoa(*limit)
 		unionQuery += " LIMIT " + limitAsString
 	}
 
-	rows, err := store.dBConnection.QueryNeo(unionQuery, nil)
+	log.Info("neo4j query", log.Data{
+		"filterID":   filter.FilterID,
+		"instanceID": filter.InstanceID,
+		"query":      unionQuery,
+	})
+	conn, err := store.pool.OpenPool()
 	if err != nil {
 		return nil, err
 	}
 
-	return NewBoltRowReader(rows), nil
+	rows, err := conn.QueryNeo(unionQuery, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return NewBoltRowReader(rows, conn), nil
 }
 
 func createObservationQuery(filter *Filter) string {
+	if filter.IsEmpty() {
+		// if no dimension filter are specified than match all observations
+		log.Info("no dimension filters supplied, generating entire dataset query", log.Data{
+			"filterID":   filter.FilterID,
+			"instanceID": filter.InstanceID,
+		})
+		return fmt.Sprintf("MATCH(o: `_%s_observation`) return o.value as row", filter.InstanceID)
+	}
 
 	matchDimensions := "MATCH "
 	where := " WHERE "

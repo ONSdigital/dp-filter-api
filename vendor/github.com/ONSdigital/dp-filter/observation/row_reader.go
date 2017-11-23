@@ -17,15 +17,22 @@ type CSVRowReader interface {
 	Close() error
 }
 
+// DBConnection provides a method to close the connection once all the rows have been read
+type DBConnection interface {
+	Close() error
+}
+
 // BoltRowReader translates Neo4j rows to CSV rows.
 type BoltRowReader struct {
-	rows BoltRows
+	rows       BoltRows
+	connection DBConnection
 }
 
 // NewBoltRowReader returns a new reader instace for the given bolt rows.
-func NewBoltRowReader(rows BoltRows) *BoltRowReader {
+func NewBoltRowReader(rows BoltRows, connection DBConnection) *BoltRowReader {
 	return &BoltRowReader{
-		rows: rows,
+		rows:       rows,
+		connection: connection,
 	}
 }
 
@@ -53,7 +60,11 @@ func (reader *BoltRowReader) Read() (string, error) {
 	return "", ErrUnrecognisedType
 }
 
-// Close the reader.
+// Close the reader and the connection (For pooled connections this will release it back into the pool)
 func (reader *BoltRowReader) Close() error {
-	return reader.rows.Close()
+	err := reader.rows.Close()
+	if err != nil {
+		return err
+	}
+	return reader.connection.Close()
 }
