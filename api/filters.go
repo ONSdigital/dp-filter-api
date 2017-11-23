@@ -12,6 +12,7 @@ import (
 	"fmt"
 
 	uuid "github.com/satori/go.uuid"
+	"strconv"
 )
 
 var (
@@ -534,28 +535,38 @@ func (api *FilterAPI) getFilterOutputPreview(w http.ResponseWriter, r *http.Requ
 	vars := mux.Vars(r)
 	filterID := vars["filter_output_id"]
 	filterOuput, err := api.dataStore.GetFilterOutput(filterID)
+	requestedLimit := r.URL.Query().Get("limit")
+	var limit int64 = 20
+	if requestedLimit != "" {
+		limit, err = strconv.ParseInt(requestedLimit, 10, 64)
+		if err != nil {
+			log.Error(errors.New("requested limit is not a number"), log.Data{"filter_output_id": filterID, "limit": limit})
+			http.Error(w, "requested limit is not a number", http.StatusBadRequest)
+			return
+		}
+	}
 	if err != nil {
-		log.ErrorC("failed to find filter output", err, log.Data{"filter_output_id": filterID})
+		log.ErrorC("failed to find filter output", err, log.Data{"filter_output_id": filterID, "limit": limit})
 		setErrorCode(w, err)
 		return
 	}
 
 	if len(filterOuput.Dimensions) == 0 {
-		log.Error(errors.New("no dimensions are present in the filter"), log.Data{"filter_output_id": filterID})
+		log.Error(errors.New("no dimensions are present in the filter"), log.Data{"filter_output_id": filterID, "limit": limit})
 		http.Error(w, "no dimensions are present in the filter", http.StatusBadRequest)
 		return
 	}
 
-	data, err := api.preview.GetPreview(*filterOuput)
+	data, err := api.preview.GetPreview(filterOuput, limit)
 	if err != nil {
-		log.ErrorC("failed to query the graph database", err, log.Data{"filter_output_id": filterID})
+		log.ErrorC("failed to query the graph database", err, log.Data{"filter_output_id": filterID, "limit": limit})
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
 	bytes, err := json.Marshal(data)
 	if err != nil {
-		log.Error(err, log.Data{"filter_id": filterID})
+		log.Error(err, log.Data{"filter_output_id": filterID, "limit": limit})
 		http.Error(w, internalError, http.StatusInternalServerError)
 		return
 	}
@@ -564,12 +575,12 @@ func (api *FilterAPI) getFilterOutputPreview(w http.ResponseWriter, r *http.Requ
 	w.WriteHeader(http.StatusOK)
 	_, err = w.Write(bytes)
 	if err != nil {
-		log.Error(err, log.Data{"filter_id": filterID})
+		log.Error(err, log.Data{"filter_id": filterID, "limit": limit})
 		setErrorCode(w, err)
 		return
 	}
 
-	log.Info("preview filter output", log.Data{"filter_output_id": filterID, "dimensions": filterOuput.Dimensions})
+	log.Info("preview filter output", log.Data{"filter_output_id": filterID, "limit": limit, "dimensions": filterOuput.Dimensions})
 }
 
 func (api *FilterAPI) checkAuthentication(header string) (bool, error) {

@@ -26,7 +26,7 @@ var (
 )
 
 var previewMock = &datastoretest.PreviewDatasetMock{
-	GetPreviewFunc: func(filter models.Filter) (*preview.FilterPreview, error) {
+	GetPreviewFunc: func(filter *models.Filter, limit int64) (*preview.FilterPreview, error) {
 		return &preview.FilterPreview{}, nil
 	},
 }
@@ -949,7 +949,7 @@ func TestFailedGetPreview(t *testing.T) {
 
 	Convey("Requesting a preview with no neo4j database connection", t, func() {
 		previewMockInternalError := &datastoretest.PreviewDatasetMock{
-			GetPreviewFunc: func(filter models.Filter) (*preview.FilterPreview, error) {
+			GetPreviewFunc: func(filter *models.Filter, limit int64) (*preview.FilterPreview, error) {
 				return nil, errors.New("internal error")
 			},
 		}
@@ -964,6 +964,16 @@ func TestFailedGetPreview(t *testing.T) {
 
 	Convey("Requesting a preview with no dimensions", t, func() {
 		r, err := http.NewRequest("GET", "http://localhost:22100/filter-outputs/21312/preview", nil)
+		So(err, ShouldBeNil)
+
+		w := httptest.NewRecorder()
+		api := routes(authHeader, host, mux.NewRouter(), &mocks.DataStore{BadRequest: true}, &mocks.FilterJob{}, datasetAPI, previewMock)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusBadRequest)
+	})
+
+	Convey("Requesting a preview with an invalid limit", t, func() {
+		r, err := http.NewRequest("GET", "http://localhost:22100/filter-outputs/21312/preview?limit=a", nil)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()

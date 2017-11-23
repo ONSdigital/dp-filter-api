@@ -18,7 +18,6 @@ type ObservationStore interface {
 // PreviewDatasetStore used to query observations for previews
 type PreviewDatasetStore struct {
 	Store ObservationStore
-	Limit int
 }
 
 // FilterPreview contains the results of a requested preview
@@ -30,30 +29,32 @@ type FilterPreview struct {
 }
 
 // GetPreview generates a preview using the data stored in the graph database
-func (preview *PreviewDatasetStore) GetPreview(bluePrint models.Filter) (*FilterPreview, error) {
+func (preview *PreviewDatasetStore) GetPreview(bluePrint *models.Filter, limit int64) (*FilterPreview, error) {
 	var filter = observation.Filter{}
 	filter.InstanceID = bluePrint.InstanceID
 	for _, dimension := range bluePrint.Dimensions {
 		d := observation.DimensionFilter{Name: dimension.Name, Options: dimension.Options}
 		filter.DimensionFilters = append(filter.DimensionFilters, &d)
 	}
-	rows, err := preview.Store.GetCSVRows(&filter, &preview.Limit)
+	previewLimit := int(limit)
+	rows, err := preview.Store.GetCSVRows(&filter, &previewLimit)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
 
 	csvReader, err := convertRowReaderToCSVReader(rows)
 	if err != nil {
 		return nil, err
 	}
 
-	return buildResults(csvReader)
+	results, err := buildResults(csvReader)
+	rows.Close()
+	return results, err
 }
 
 func convertRowReaderToCSVReader(rows observation.CSVRowReader) (*csv.Reader, error) {
 	var buffer bytes.Buffer
-	for true {
+	for {
 		row, err := rows.Read()
 		if err != nil {
 			if err == io.EOF {
@@ -78,7 +79,7 @@ func buildResults(csvReader *csv.Reader) (*FilterPreview, error) {
 	// Replace the V4 header withe values
 	results.Headers[0] = "Values"
 	results.NumberOfColumns = len(headers)
-	for true {
+	for {
 		row, err = csvReader.Read()
 		if err != nil {
 			if err == io.EOF {

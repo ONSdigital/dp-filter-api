@@ -35,7 +35,7 @@ func TestPreviewDatasetStore_GetPreview(t *testing.T) {
 		}
 		previewDataset := PreviewDatasetStore{Store: mockedObservationStore, Limit: 3}
 
-		results, err := previewDataset.GetPreview(models.Filter{})
+		results, err := previewDataset.GetPreview(&models.Filter{}, 0)
 		So(len(results.Headers), ShouldEqual, 7)
 		So(results.NumberOfColumns, ShouldEqual, 7)
 		So(results.NumberOfRows, ShouldEqual, 3)
@@ -67,7 +67,7 @@ func TestPreviewDatasetStore_GetPreview(t *testing.T) {
 		limit := 3
 		previewDataset := PreviewDatasetStore{Store: mockedObservationStore, Limit: limit}
 
-		results, err := previewDataset.GetPreview(models.Filter{})
+		results, err := previewDataset.GetPreview(&models.Filter{}, 0)
 		So(len(results.Headers), ShouldEqual, 7)
 		So(results.NumberOfColumns, ShouldEqual, 7)
 		So(results.NumberOfRows, ShouldEqual, 0)
@@ -85,7 +85,7 @@ func TestPreviewDatasetStore_GetPreview_ErrorStates(t *testing.T) {
 			},
 		}
 		previewDataset := PreviewDatasetStore{Store: mockedObservationStore, Limit: 3}
-		_, err := previewDataset.GetPreview(models.Filter{})
+		_, err := previewDataset.GetPreview(&models.Filter{}, 0)
 		So(err, ShouldEqual, expectedError)
 	})
 
@@ -107,7 +107,7 @@ func TestPreviewDatasetStore_GetPreview_ErrorStates(t *testing.T) {
 			},
 		}
 		previewDataset := PreviewDatasetStore{Store: mockedObservationStore, Limit: 3}
-		_, err := previewDataset.GetPreview(models.Filter{})
+		_, err := previewDataset.GetPreview(&models.Filter{}, 0)
 		So(err, ShouldEqual, expectedError)
 	})
 

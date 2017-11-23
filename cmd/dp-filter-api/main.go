@@ -46,7 +46,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	neo4jDriver, err := bolt.NewDriver().OpenNeo(cfg.Neo4jURL)
+	pool, err := bolt.NewClosableDriverPool(cfg.Neo4jURL, cfg.Neo4jPoolSize)
 	if err != nil {
 		log.ErrorC("could not connect to neo4j", err, nil)
 		os.Exit(1)
@@ -60,8 +60,9 @@ func main() {
 
 	client := rchttp.DefaultClient
 	datasetAPI := dataset.NewDatasetAPI(client, cfg.DatasetAPIURL, cfg.DatasetAPIAuthToken)
-	observationStore := observation.NewStore(neo4jDriver)
-	previewDatasets := preview.PreviewDatasetStore{Store: observationStore, Limit: 20}
+	pool.OpenPool()
+	observationStore := observation.NewStore(pool)
+	previewDatasets := preview.PreviewDatasetStore{Store: observationStore}
 	outputQueue := filterOutputQueue.CreateOutputQueue(producer.Output())
 
 	apiErrors := make(chan error, 1)
@@ -82,7 +83,7 @@ func main() {
 			log.Error(err, nil)
 		}
 
-		if err = neo4jDriver.Close(); err != nil {
+		if err = pool.Close(); err != nil {
 			log.Error(err, nil)
 		}
 
