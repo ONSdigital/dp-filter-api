@@ -21,7 +21,7 @@ type OutputQueue interface {
 
 // PreviewDataset An interface used to generate previews
 type PreviewDataset interface {
-	GetPreview(filter *models.Filter, limit int64) (*preview.FilterPreview, error)
+	GetPreview(filter *models.Filter, limit int) (*preview.FilterPreview, error)
 }
 
 // FilterAPI manages importing filters against a dataset

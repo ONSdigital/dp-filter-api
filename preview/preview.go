@@ -29,14 +29,14 @@ type FilterPreview struct {
 }
 
 // GetPreview generates a preview using the data stored in the graph database
-func (preview *PreviewDatasetStore) GetPreview(bluePrint *models.Filter, limit int64) (*FilterPreview, error) {
+func (preview *PreviewDatasetStore) GetPreview(bluePrint *models.Filter, limit int) (*FilterPreview, error) {
 	var filter = observation.Filter{}
 	filter.InstanceID = bluePrint.InstanceID
 	for _, dimension := range bluePrint.Dimensions {
 		d := observation.DimensionFilter{Name: dimension.Name, Options: dimension.Options}
 		filter.DimensionFilters = append(filter.DimensionFilters, &d)
 	}
-	previewLimit := int(limit)
+	previewLimit := limit
 	rows, err := preview.Store.GetCSVRows(&filter, &previewLimit)
 	if err != nil {
 		return nil, err

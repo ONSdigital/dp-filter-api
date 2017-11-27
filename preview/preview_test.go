@@ -9,6 +9,8 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 	"io"
 	"testing"
+	"encoding/csv"
+	"strings"
 )
 
 func TestPreviewDatasetStore_GetPreview(t *testing.T) {
@@ -110,4 +112,16 @@ func TestPreviewDatasetStore_GetPreview_ErrorStates(t *testing.T) {
 		So(err, ShouldEqual, expectedError)
 	})
 
+}
+
+func TestPreviewDatasetStore_buildPreview(t *testing.T) {
+	Convey("When a building the preview results with as CSV cell containing a quoted commas", t, func() {
+		csvReader := csv.NewReader(strings.NewReader("\",\",2,3\n1,2,3"))
+
+		results, err := buildResults(csvReader)
+		So(err, ShouldBeNil)
+		So(len(results.Headers), ShouldEqual, 3)
+		So(len(results.Rows[0]), ShouldEqual, 3)
+
+	})
 }

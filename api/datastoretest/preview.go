@@ -19,7 +19,7 @@ var (
 //
 //         // make and configure a mocked PreviewDataset
 //         mockedPreviewDataset := &PreviewDatasetMock{
-//             GetPreviewFunc: func(filter *models.Filter, limit int64) (*preview.FilterPreview, error) {
+//             GetPreviewFunc: func(filter *models.Filter, limit int) (*preview.FilterPreview, error) {
 // 	               panic("TODO: mock out the GetPreview method")
 //             },
 //         }
@@ -30,7 +30,7 @@ var (
 //     }
 type PreviewDatasetMock struct {
 	// GetPreviewFunc mocks the GetPreview method.
-	GetPreviewFunc func(filter *models.Filter, limit int64) (*preview.FilterPreview, error)
+	GetPreviewFunc func(filter *models.Filter, limit int) (*preview.FilterPreview, error)
 
 	// calls tracks calls to the methods.
 	calls struct {
@@ -39,19 +39,19 @@ type PreviewDatasetMock struct {
 			// Filter is the filter argument value.
 			Filter *models.Filter
 			// Limit is the limit argument value.
-			Limit int64
+			Limit int
 		}
 	}
 }
 
 // GetPreview calls GetPreviewFunc.
-func (mock *PreviewDatasetMock) GetPreview(filter *models.Filter, limit int64) (*preview.FilterPreview, error) {
+func (mock *PreviewDatasetMock) GetPreview(filter *models.Filter, limit int) (*preview.FilterPreview, error) {
 	if mock.GetPreviewFunc == nil {
 		panic("moq: PreviewDatasetMock.GetPreviewFunc is nil but PreviewDataset.GetPreview was just called")
 	}
 	callInfo := struct {
 		Filter *models.Filter
-		Limit  int64
+		Limit  int
 	}{
 		Filter: filter,
 		Limit:  limit,
@@ -67,11 +67,11 @@ func (mock *PreviewDatasetMock) GetPreview(filter *models.Filter, limit int64) (
 //     len(mockedPreviewDataset.GetPreviewCalls())
 func (mock *PreviewDatasetMock) GetPreviewCalls() []struct {
 	Filter *models.Filter
-	Limit  int64
+	Limit  int
 } {
 	var calls []struct {
 		Filter *models.Filter
-		Limit  int64
+		Limit  int
 	}
 	lockPreviewDatasetMockGetPreview.RLock()
 	calls = mock.calls.GetPreview

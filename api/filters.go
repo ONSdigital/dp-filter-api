@@ -535,9 +535,10 @@ func (api *FilterAPI) getFilterOutputPreview(w http.ResponseWriter, r *http.Requ
 	vars := mux.Vars(r)
 	filterID := vars["filter_output_id"]
 	requestedLimit := r.URL.Query().Get("limit")
-	var limit int64 = 20
+	var limit int = 20
+	var err error
 	if requestedLimit != "" {
-		limit, err := strconv.ParseInt(requestedLimit, 10, 64)
+		limit, err = strconv.Atoi(requestedLimit)
 		if err != nil {
 			log.Error(errors.New("requested limit is not a number"), log.Data{"filter_output_id": filterID, "limit": limit})
 			http.Error(w, "requested limit is not a number", http.StatusBadRequest)
