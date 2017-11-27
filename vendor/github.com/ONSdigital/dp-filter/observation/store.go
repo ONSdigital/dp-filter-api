@@ -8,7 +8,7 @@ import (
 	"strconv"
 )
 
-//go:generate moq -out observationtest/db_connection.go -pkg observationtest . DBConnection
+//go:generate moq -out observationtest/db_pool.go -pkg observationtest . DBPool
 
 // Store represents storage for observation data.
 type Store struct {
@@ -55,7 +55,8 @@ func (store *Store) GetCSVRows(filter *Filter, limit *int) (CSVRowReader, error)
 	if err != nil {
 		return nil, err
 	}
-
+	// The connection can only be closed once the results have been read, so the row reader is responsible for
+	// releasing the connection back into the pool
 	return NewBoltRowReader(rows, conn), nil
 }
 

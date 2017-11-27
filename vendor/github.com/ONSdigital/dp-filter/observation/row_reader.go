@@ -7,6 +7,7 @@ import (
 
 //go:generate moq -out observationtest/bolt_rows.go -pkg observationtest . BoltRows
 //go:generate moq -out observationtest/row_reader.go -pkg observationtest . CSVRowReader
+//go:generate moq -out observationtest/db_connection.go -pkg observationtest . DBConnection
 
 // BoltRows provides an interface to each row of results returned from the database.
 type BoltRows bolt.Rows
