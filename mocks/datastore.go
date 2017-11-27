@@ -15,7 +15,6 @@ var (
 	dimensionionNotFoundError = errors.New("Dimension not found")
 	optionNotFoundError       = errors.New("Option not found")
 	filterOutputNotFoundError = errors.New("Filter output not found")
-	InstanceFoundError        = errors.New("Instance not found")
 )
 
 type DataStore struct {
@@ -91,7 +90,12 @@ func (ds *DataStore) GetFilter(filterID string) (*models.Filter, error) {
 	if ds.InternalError {
 		return nil, internalServerError
 	}
-	return &models.Filter{InstanceID: "12345678"}, nil
+
+	if ds.BadRequest {
+		return &models.Filter{InstanceID: "12345678"}, nil
+	}
+
+	return &models.Filter{InstanceID: "12345678", Dimensions: []models.Dimension{{Name: "time"}}}, nil
 }
 
 func (ds *DataStore) GetFilterDimensions(filterID string) ([]models.Dimension, error) {
@@ -178,7 +182,11 @@ func (ds *DataStore) GetFilterOutput(filterID string) (*models.Filter, error) {
 		return nil, internalServerError
 	}
 
-	return &models.Filter{InstanceID: "12345678", FilterID: filterID, State: "created"}, nil
+	if ds.BadRequest {
+		return &models.Filter{InstanceID: "12345678", FilterID: filterID, State: "created"}, nil
+	}
+
+	return &models.Filter{InstanceID: "12345678", FilterID: filterID, State: "created", Dimensions: []models.Dimension{{Name: "time"}}}, nil
 }
 
 func (ds *DataStore) RemoveFilterDimension(string, string) error {
