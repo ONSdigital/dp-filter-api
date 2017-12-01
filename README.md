@@ -30,6 +30,7 @@ dp-filter-api
 | DATASET_API_URL            | http://localhost:22000                    | The URL of the Dataset API
 | DATASET_API_AUTH_TOKEN     | FD0108EA-825D-411C-9B1D-41EF7727F465      | The token used to access the Dataset API
 | NEO4J_BIND_ADDR            | bolt://localhost:7687                     | URL to a neo4j services
+| NEO4J_POOL_SIZE            | 30                                        | Number of connections in the pool
 
 ### Contributing
 
