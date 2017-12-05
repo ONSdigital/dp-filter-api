@@ -60,7 +60,7 @@ func main() {
 
 	client := rchttp.DefaultClient
 	datasetAPI := dataset.NewDatasetAPI(client, cfg.DatasetAPIURL, cfg.DatasetAPIAuthToken)
-	pool.OpenPool()
+
 	observationStore := observation.NewStore(pool)
 	previewDatasets := preview.PreviewDatasetStore{Store: observationStore}
 	outputQueue := filterOutputQueue.CreateOutputQueue(producer.Output())
