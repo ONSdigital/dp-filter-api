@@ -51,6 +51,32 @@ func (api *FilterAPI) addFilterBlueprint(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	// TODO Call dimension endpoint
+	datasetDimensions := api.datasetAPI.GetVersionDimensions(r.Context(), instance.DimensionID <- made up)
+
+	if err := models.ValidateFilterDimensions(newFilter.Dimensions, datasetDimensions); err != nil {
+		log.Error(err, nil)
+		http.Error(w, badRequest, http.StatusBadRequest)
+		return
+	}
+
+	var incorrectDimensionOptions []string
+	for _, datasetDimension := range datasetDimensions {
+		// TODO Call dimension options endpoint
+		datasetDimensionOptions := api.datasetAPI.GetVersionDimensionOptions(r.Context(), instance.DimensionOptionID <- made up)
+
+		incorrectOptions := models.ValidateFilterDimensionOptions(filterDimensionOptions, datasetDimensionOptions)
+		if incorrectOptions != nil {
+			incorrectDimensionOptions = append(incorrectDimensionOptions, incorrectOptions)
+		}
+	}
+
+	if incorrectDimensionOptions != nil {
+		log.ErrorC("Incorrect dimension options chosen", log.Data{"dimension_options": incorrectDimensionOptions})
+		http.Error(w, badRequest, http.StatusBadRequest)
+		return
+	}
+
 	links := models.LinkMap{
 		Dimensions: models.LinkObject{
 			HRef: fmt.Sprintf("%s/filters/%s/dimensions", api.host, newFilter.FilterID),
