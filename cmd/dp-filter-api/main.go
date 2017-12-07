@@ -19,11 +19,11 @@ import (
 	"github.com/ONSdigital/go-ns/log"
 	mongoclosure "github.com/ONSdigital/go-ns/mongo"
 	"github.com/ONSdigital/go-ns/rchttp"
-	bolt "github.com/johnnadratowski/golang-neo4j-bolt-driver"
+	bolt "github.com/ONSdigital/golang-neo4j-bolt-driver"
 )
 
 func main() {
-	log.Namespace = "filter-api"
+	log.Namespace = "dp-filter-api"
 
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM)

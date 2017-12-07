@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/ONSdigital/go-ns/log"
-	bolt "github.com/johnnadratowski/golang-neo4j-bolt-driver"
+	bolt "github.com/ONSdigital/golang-neo4j-bolt-driver"
 	"strconv"
 )
 
@@ -53,6 +53,8 @@ func (store *Store) GetCSVRows(filter *Filter, limit *int) (CSVRowReader, error)
 
 	rows, err := conn.QueryNeo(unionQuery, nil)
 	if err != nil {
+		// Before returning the error "close" the open connection to release it back into the pool.
+		conn.Close()
 		return nil, err
 	}
 	// The connection can only be closed once the results have been read, so the row reader is responsible for
