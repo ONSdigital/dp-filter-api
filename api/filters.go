@@ -661,14 +661,18 @@ func (api *FilterAPI) checkFilterOptions(ctx context.Context, newFilter *models.
 	// Call dimensions list endpoint
 	datasetDimensions, err := api.datasetAPI.GetVersionDimensions(ctx, instance.Links.Dataset.ID, instance.Links.Edition.ID, instance.Links.Version.ID)
 	if err != nil {
-		log.ErrorC("failed to retreive a list of dimensions from the dataset API", err, log.Data{"new_filter": newFilter})
+		log.ErrorC("failed to retreive a list of dimensions from the dataset API", err, log.Data{"new_filter": newFilter, "instance": instance})
 		return err
 	}
+
+	log.Info("dimensions retreived from dataset API", log.Data{"dataset_dimensions": datasetDimensions})
 
 	if err := models.ValidateFilterDimensions(newFilter.Dimensions, datasetDimensions); err != nil {
 		log.Error(err, nil)
 		return err
 	}
+
+	log.Info("successfully validated filter dimensions", log.Data{"filter_dimensions": newFilter.Dimensions})
 
 	var incorrectDimensionOptions []string
 	for _, filterDimension := range newFilter.Dimensions {
@@ -678,6 +682,8 @@ func (api *FilterAPI) checkFilterOptions(ctx context.Context, newFilter *models.
 			log.ErrorC("failed to retreive a list of dimension options from dataset API", err, log.Data{"new_filter": newFilter, "filter_dimension": filterDimension})
 			return err
 		}
+
+		log.Info("dimension options retreived from dataset API", log.Data{"dimension": filterDimension, "dataset_dimension_option": datasetDimensionOptions})
 
 		incorrectOptions := models.ValidateFilterDimensionOptions(filterDimension.Options, datasetDimensionOptions)
 		if incorrectOptions != nil {

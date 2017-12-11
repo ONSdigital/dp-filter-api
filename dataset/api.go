@@ -90,7 +90,7 @@ func (api *DatasetAPI) GetVersionDimensions(ctx context.Context, datasetID, edit
 
 // GetVersionDimensionOptions queries the Dataset API to get a list of dimension options
 func (api *DatasetAPI) GetVersionDimensionOptions(ctx context.Context, datasetID, edition, version, dimension string) (options *models.DatasetDimensionOptionResults, err error) {
-	path := api.url + "/datasets/" + datasetID + "/editions/" + edition + "/versions/" + version + "/dimensions/" + dimension
+	path := api.url + "/datasets/" + datasetID + "/editions/" + edition + "/versions/" + version + "/dimensions/" + dimension + "/options"
 	logData := log.Data{"func": "GetVersionDimensions", "URL": path, "dataset_id": datasetID, "edition": edition, "version": version, "dimension": dimension}
 
 	jsonResult, httpCode, err := api.get(ctx, path, nil)
