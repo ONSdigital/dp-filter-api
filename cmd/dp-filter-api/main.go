@@ -46,11 +46,15 @@ func main() {
 		os.Exit(1)
 	}
 
-	pool, err := bolt.NewClosableDriverPool(cfg.Neo4jURL, cfg.Neo4jPoolSize)
+	// Driver pool will never return an error as a bolt connection is never created. So we test it by creating
+	// a connection.
+	pool, _ := bolt.NewClosableDriverPool(cfg.Neo4jURL, cfg.Neo4jPoolSize)
+	conn, err := pool.OpenPool()
 	if err != nil {
 		log.ErrorC("could not connect to neo4j", err, nil)
 		os.Exit(1)
 	}
+	conn.Close()
 
 	producer, err := kafka.NewProducer(cfg.Brokers, cfg.FilterOutputSubmittedTopic, int(envMax))
 	if err != nil {
