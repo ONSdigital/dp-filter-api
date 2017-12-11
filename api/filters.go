@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -11,8 +12,9 @@ import (
 
 	"fmt"
 
-	uuid "github.com/satori/go.uuid"
 	"strconv"
+
+	uuid "github.com/satori/go.uuid"
 )
 
 var (
@@ -51,29 +53,8 @@ func (api *FilterAPI) addFilterBlueprint(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	// TODO Call dimension endpoint
-	datasetDimensions := api.datasetAPI.GetVersionDimensions(r.Context(), instance.DimensionID <- made up)
-
-	if err := models.ValidateFilterDimensions(newFilter.Dimensions, datasetDimensions); err != nil {
-		log.Error(err, nil)
-		http.Error(w, badRequest, http.StatusBadRequest)
-		return
-	}
-
-	var incorrectDimensionOptions []string
-	for _, datasetDimension := range datasetDimensions {
-		// TODO Call dimension options endpoint
-		datasetDimensionOptions := api.datasetAPI.GetVersionDimensionOptions(r.Context(), instance.DimensionOptionID <- made up)
-
-		incorrectOptions := models.ValidateFilterDimensionOptions(filterDimensionOptions, datasetDimensionOptions)
-		if incorrectOptions != nil {
-			incorrectDimensionOptions = append(incorrectDimensionOptions, incorrectOptions)
-		}
-	}
-
-	if incorrectDimensionOptions != nil {
-		log.ErrorC("Incorrect dimension options chosen", log.Data{"dimension_options": incorrectDimensionOptions})
-		http.Error(w, badRequest, http.StatusBadRequest)
+	if err = api.checkFilterOptions(r.Context(), newFilter, instance); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
@@ -244,6 +225,28 @@ func (api *FilterAPI) addFilterBlueprintDimension(w http.ResponseWriter, r *http
 		Options:  options,
 	}
 
+	// get filter blueprint to retreive instance id
+	filterBlueprint, err := api.dataStore.GetFilter(addDimension.FilterID)
+	if err != nil {
+		log.Error(err, log.Data{"filter_blueprint_id": addDimension.FilterID})
+		setErrorCode(w, err)
+		return
+	}
+
+	// get instance to retrieve dataset id, edition and version
+	instance, err := api.datasetAPI.GetInstance(r.Context(), filterBlueprint.InstanceID)
+	if err != nil {
+		log.Error(err, log.Data{"filter_blueprint_id": addDimension.FilterID, "instance_id": filterBlueprint.InstanceID})
+		setErrorCode(w, err)
+		return
+	}
+
+	if err = api.checkNewFilterDimension(r.Context(), addDimension, instance); err != nil {
+		log.Error(err, nil)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
 	if err = api.dataStore.AddFilterDimension(addDimension); err != nil {
 		log.Error(err, log.Data{"dimension": addDimension})
 		setErrorCode(w, err)
@@ -315,6 +318,36 @@ func (api *FilterAPI) addFilterBlueprintDimensionOption(w http.ResponseWriter, r
 		Option:   vars["option"],
 	}
 
+	// get filter blueprint to retreive instance id
+	filterBlueprint, err := api.dataStore.GetFilter(addDimensionOption.FilterID)
+	if err != nil {
+		log.Error(err, log.Data{"filter_blueprint_id": addDimensionOption.FilterID})
+		setErrorCode(w, err)
+		return
+	}
+
+	// get instance to retrieve dataset id, edition and version
+	instance, err := api.datasetAPI.GetInstance(r.Context(), filterBlueprint.InstanceID)
+	if err != nil {
+		log.Error(err, log.Data{"filter_blueprint_id": addDimensionOption.FilterID, "instance_id": filterBlueprint.InstanceID})
+		setErrorCode(w, err)
+		return
+	}
+
+	// FIXME - Once dataset API has an endpoint to check single option exists,
+	// refactor code below instead of creating an AddDimension object from the
+	// AddDimensionOption object (to be able to use checkNewFilterDimension method)
+	addDimensionOptions := &models.AddDimension{
+		Name:    addDimensionOption.Name,
+		Options: []string{addDimensionOption.Option},
+	}
+
+	if err = api.checkNewFilterDimension(r.Context(), addDimensionOptions, instance); err != nil {
+		log.Error(err, nil)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
 	if err := api.dataStore.AddFilterDimensionOption(addDimensionOption); err != nil {
 		log.Error(err, log.Data{"dimension_option": addDimensionOption})
 		setErrorCode(w, err)
@@ -367,6 +400,12 @@ func (api *FilterAPI) updateFilterBlueprint(w http.ResponseWriter, r *http.Reque
 
 		newFilter.InstanceID = filter.InstanceID
 		newFilter.Links.Version.HRef = instance.Links.Version.HRef
+
+		// Check existing dimensions work for new instance
+		if err = api.checkFilterOptions(r.Context(), newFilter, instance); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
 	}
 
 	if filter.Events.Error != nil {
@@ -421,7 +460,6 @@ func (api *FilterAPI) updateFilterBlueprint(w http.ResponseWriter, r *http.Reque
 func (api *FilterAPI) getFilterOutput(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	filterOutputID := vars["filter_output_id"]
-	log.Info("got here", nil)
 
 	filterOutput, err := api.dataStore.GetFilterOutput(filterOutputID)
 	if err != nil {
@@ -617,6 +655,85 @@ func (api *FilterAPI) checkAuthentication(header string) (bool, error) {
 	}
 
 	return true, nil
+}
+
+func (api *FilterAPI) checkFilterOptions(ctx context.Context, newFilter *models.Filter, instance *models.Instance) error {
+	// Call dimensions list endpoint
+	datasetDimensions, err := api.datasetAPI.GetVersionDimensions(ctx, instance.Links.Dataset.ID, instance.Links.Edition.ID, instance.Links.Version.ID)
+	if err != nil {
+		log.ErrorC("failed to retreive a list of dimensions from the dataset API", err, log.Data{"new_filter": newFilter})
+		return err
+	}
+
+	if err := models.ValidateFilterDimensions(newFilter.Dimensions, datasetDimensions); err != nil {
+		log.Error(err, nil)
+		return err
+	}
+
+	var incorrectDimensionOptions []string
+	for _, filterDimension := range newFilter.Dimensions {
+		// Call dimension options list endpoint
+		datasetDimensionOptions, err := api.datasetAPI.GetVersionDimensionOptions(ctx, instance.Links.Dataset.ID, instance.Links.Edition.ID, instance.Links.Version.ID, filterDimension.Name)
+		if err != nil {
+			log.ErrorC("failed to retreive a list of dimension options from dataset API", err, log.Data{"new_filter": newFilter, "filter_dimension": filterDimension})
+			return err
+		}
+
+		incorrectOptions := models.ValidateFilterDimensionOptions(filterDimension.Options, datasetDimensionOptions)
+		if incorrectOptions != nil {
+			incorrectDimensionOptions = append(incorrectDimensionOptions, incorrectOptions...)
+		}
+	}
+
+	if incorrectDimensionOptions != nil {
+		err = fmt.Errorf("Bad request - Incorrect dimension options chosen: %v", incorrectDimensionOptions)
+		log.ErrorC("Incorrect dimension options chosen", err, log.Data{"dimension_options": incorrectDimensionOptions})
+		return err
+	}
+
+	return nil
+}
+
+func (api *FilterAPI) checkNewFilterDimension(ctx context.Context, newDimension *models.AddDimension, instance *models.Instance) error {
+	// FIXME - We should be calling dimension endpoint on dataset API to check if
+	// dimension exists but this endpoint doesn't exist yet so call dimension
+	// list endpoint and iterate over items to find if dimension exists
+	datasetDimensions, err := api.datasetAPI.GetVersionDimensions(ctx, instance.Links.Dataset.ID, instance.Links.Edition.ID, instance.Links.Version.ID)
+	if err != nil {
+		log.ErrorC("failed to retreive a list of dimensions from the dataset API", err, log.Data{"instance": instance})
+		return err
+	}
+
+	dimension := models.Dimension{
+		Name:    newDimension.Name,
+		Options: newDimension.Options,
+	}
+
+	if err := models.ValidateFilterDimensions([]models.Dimension{dimension}, datasetDimensions); err != nil {
+		log.Error(err, nil)
+		return err
+	}
+
+	// Call dimension options endpoint
+	datasetDimensionOptions, err := api.datasetAPI.GetVersionDimensionOptions(ctx, instance.Links.Dataset.ID, instance.Links.Edition.ID, instance.Links.Version.ID, dimension.Name)
+	if err != nil {
+		log.ErrorC("failed to retreive a list of dimension options from the dataset API", err, log.Data{"instance": instance})
+		return err
+	}
+
+	var incorrectDimensionOptions []string
+	incorrectOptions := models.ValidateFilterDimensionOptions(dimension.Options, datasetDimensionOptions)
+	if incorrectOptions != nil {
+		incorrectDimensionOptions = append(incorrectDimensionOptions, incorrectOptions...)
+	}
+
+	if incorrectDimensionOptions != nil {
+		err = fmt.Errorf("Bad request - Incorrect dimension options chosen: %v", incorrectDimensionOptions)
+		log.ErrorC("Incorrect dimension options chosen", err, log.Data{"dimension_options": incorrectDimensionOptions})
+		return err
+	}
+
+	return nil
 }
 
 func checkFilterOutputQuery(previousFilterOutput, filterOutput *models.Filter) *models.Filter {

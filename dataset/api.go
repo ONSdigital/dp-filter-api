@@ -66,6 +66,50 @@ func (api *DatasetAPI) GetInstance(ctx context.Context, instanceID string) (inst
 	return
 }
 
+// GetVersionDimensions queries the Dataset API to get a list of dimensions
+func (api *DatasetAPI) GetVersionDimensions(ctx context.Context, datasetID, edition, version string) (dimensions *models.DatasetDimensionResults, err error) {
+	path := api.url + "/datasets/" + datasetID + "/editions/" + edition + "/versions/" + version + "/dimensions"
+	logData := log.Data{"func": "GetVersionDimensions", "URL": path, "dataset_id": datasetID, "edition": edition, "version": version}
+
+	jsonResult, httpCode, err := api.get(ctx, path, nil)
+	logData["httpCode"] = httpCode
+	logData["jsonResult"] = jsonResult
+	if err != nil {
+		log.ErrorC("api get", err, logData)
+		return nil, handleError(httpCode, err)
+	}
+
+	dimensions = &models.DatasetDimensionResults{}
+	if err = json.Unmarshal(jsonResult, dimensions); err != nil {
+		log.ErrorC("unmarshal", err, logData)
+		return
+	}
+
+	return
+}
+
+// GetVersionDimensionOptions queries the Dataset API to get a list of dimension options
+func (api *DatasetAPI) GetVersionDimensionOptions(ctx context.Context, datasetID, edition, version, dimension string) (options *models.DatasetDimensionOptionResults, err error) {
+	path := api.url + "/datasets/" + datasetID + "/editions/" + edition + "/versions/" + version + "/dimensions/" + dimension
+	logData := log.Data{"func": "GetVersionDimensions", "URL": path, "dataset_id": datasetID, "edition": edition, "version": version, "dimension": dimension}
+
+	jsonResult, httpCode, err := api.get(ctx, path, nil)
+	logData["httpCode"] = httpCode
+	logData["jsonResult"] = jsonResult
+	if err != nil {
+		log.ErrorC("api get", err, logData)
+		return nil, handleError(httpCode, err)
+	}
+
+	options = &models.DatasetDimensionOptionResults{}
+	if err = json.Unmarshal(jsonResult, options); err != nil {
+		log.ErrorC("unmarshal", err, logData)
+		return
+	}
+
+	return
+}
+
 func (api *DatasetAPI) get(ctx context.Context, path string, vars url.Values) ([]byte, int, error) {
 	return api.callDatasetAPI(ctx, "GET", path, vars)
 }

@@ -125,11 +125,11 @@ type DatasetDimension struct {
 	Name string `bson:"name,omitempty"          json:"dimension,omitempty"`
 }
 
-// ValidateFilterDimension checks the selected filter dimension
+// ValidateFilterDimensions checks the selected filter dimension
 // are valid for a version of a dataset
-func ValidateFilterDimensions(filterDimensions []Dimension, datasetDimensions []DatasetDimension) error {
+func ValidateFilterDimensions(filterDimensions []Dimension, datasetDimensions *DatasetDimensionResults) error {
 	dimensionNames := make(map[string]string)
-	for _, datasetDimension := range datasetDimensions {
+	for _, datasetDimension := range datasetDimensions.Items {
 		dimensionNames[datasetDimension.Name] = datasetDimension.Name
 	}
 
@@ -141,7 +141,7 @@ func ValidateFilterDimensions(filterDimensions []Dimension, datasetDimensions []
 	}
 
 	if incorrectDimensions != nil {
-		return fmt.Errorf("Incorrect dimensions chosen: %v", incorrectDimensions)
+		return fmt.Errorf("Bad request - Incorrect dimensions chosen: %v", incorrectDimensions)
 	}
 
 	return nil
@@ -161,9 +161,9 @@ type PublicDimensionOption struct {
 
 // ValidateFilterDimensionOptions checks the selected filter dimension options
 // are valid for a dimension of a single version of a dataset
-func ValidateFilterDimensionOptions(filterDimensionOptions []string, datasetDimensionOptions []PublicDimensionOption) []string {
+func ValidateFilterDimensionOptions(filterDimensionOptions []string, datasetDimensionOptions *DatasetDimensionOptionResults) []string {
 	dimensionOptions := make(map[string]string)
-	for _, datasetOption := range datasetDimensionOptions {
+	for _, datasetOption := range datasetDimensionOptions.Items {
 		dimensionOptions[datasetOption.Option] = datasetOption.Option
 	}
 

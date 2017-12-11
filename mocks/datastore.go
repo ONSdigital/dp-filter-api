@@ -18,14 +18,16 @@ var (
 )
 
 type DataStore struct {
-	NotFound          bool
-	DimensionNotFound bool
-	OptionNotFound    bool
-	InstanceNotFound  bool
-	BadRequest        bool
-	Forbidden         bool
-	Unauthorised      bool
-	InternalError     bool
+	NotFound               bool
+	DimensionNotFound      bool
+	OptionNotFound         bool
+	InstanceNotFound       bool
+	BadRequest             bool
+	Forbidden              bool
+	Unauthorised           bool
+	InternalError          bool
+	ChangeInstanceRequest  bool
+	InvalidDimensionOption bool
 }
 
 func (ds *DataStore) AddFilter(host string, filterJob *models.Filter) (*models.Filter, error) {
@@ -93,6 +95,14 @@ func (ds *DataStore) GetFilter(filterID string) (*models.Filter, error) {
 
 	if ds.BadRequest {
 		return &models.Filter{InstanceID: "12345678"}, nil
+	}
+
+	if ds.ChangeInstanceRequest {
+		return &models.Filter{InstanceID: "12345678", Dimensions: []models.Dimension{{Name: "age", Options: []string{"33"}}}}, nil
+	}
+
+	if ds.InvalidDimensionOption {
+		return &models.Filter{InstanceID: "12345678", Dimensions: []models.Dimension{{Name: "age", Options: []string{"28"}}}}, nil
 	}
 
 	return &models.Filter{InstanceID: "12345678", Dimensions: []models.Dimension{{Name: "time"}}}, nil
