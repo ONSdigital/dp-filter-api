@@ -8,11 +8,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ONSdigital/dp-filter-api/mocks"
 	"github.com/ONSdigital/go-ns/rchttp"
 	"github.com/gorilla/mux"
 
 	"github.com/ONSdigital/dp-filter-api/api/datastoretest"
+	"github.com/ONSdigital/dp-filter-api/mocks"
 	"github.com/ONSdigital/dp-filter-api/models"
 	"github.com/ONSdigital/dp-filter-api/preview"
 	. "github.com/smartystreets/goconvey/convey"
@@ -54,7 +54,7 @@ func TestSuccessfulAddFilterBlueprint(t *testing.T) {
 		So(w.Code, ShouldEqual, http.StatusCreated)
 	})
 
-	// TODO check test doesn't actually write job to queue?
+	//	TODO check test doesn't actually write job to queue?
 	Convey("Successfully submit a filter blueprint", t, func() {
 		reader := strings.NewReader(`{"instance_id":"12345678"}`)
 		r, err := http.NewRequest("POST", "http://localhost:22100/filters?submitted=true", reader)
@@ -171,7 +171,7 @@ func TestFailedToAddFilterBlueprint(t *testing.T) {
 
 		bodyBytes, _ := ioutil.ReadAll(w.Body)
 		response := string(bodyBytes)
-		So(response, ShouldResemble, "Bad request - Incorrect dimensions chosen: [weight]\n")
+		So(response, ShouldResemble, "Bad request - incorrect dimensions chosen: [weight]\n")
 	})
 
 	Convey("When a json message contains a dimension option that does not exist for a valid dimension, a bad request is returned", t, func() {
@@ -186,7 +186,7 @@ func TestFailedToAddFilterBlueprint(t *testing.T) {
 
 		bodyBytes, _ := ioutil.ReadAll(w.Body)
 		response := string(bodyBytes)
-		So(response, ShouldResemble, "Bad request - Incorrect dimension options chosen: [29]\n")
+		So(response, ShouldResemble, "Bad request - incorrect dimension options chosen: [29]\n")
 	})
 }
 
@@ -285,7 +285,7 @@ func TestFailedToAddFilterBlueprintDimension(t *testing.T) {
 
 		bodyBytes, _ := ioutil.ReadAll(w.Body)
 		response := string(bodyBytes)
-		So(response, ShouldResemble, "Bad request - Incorrect dimensions chosen: [wealth]\n")
+		So(response, ShouldResemble, "Bad request - incorrect dimensions chosen: [wealth]\n")
 	})
 
 	Convey("When a json body contains a dimension option that does not exist for a valid dimension, a bad request is returned", t, func() {
@@ -300,7 +300,7 @@ func TestFailedToAddFilterBlueprintDimension(t *testing.T) {
 
 		bodyBytes, _ := ioutil.ReadAll(w.Body)
 		response := string(bodyBytes)
-		So(response, ShouldResemble, "Bad request - Incorrect dimension options chosen: [22]\n")
+		So(response, ShouldResemble, "Bad request - incorrect dimension options chosen: [22]\n")
 	})
 }
 
@@ -354,11 +354,11 @@ func TestFailedToAddFilterBlueprintDimensionOption(t *testing.T) {
 		w := httptest.NewRecorder()
 		api := routes(authHeader, host, mux.NewRouter(), &mocks.DataStore{NotFound: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
 		api.router.ServeHTTP(w, r)
-		So(w.Code, ShouldEqual, http.StatusNotFound)
+		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
 		bodyBytes, _ := ioutil.ReadAll(w.Body)
 		response := string(bodyBytes)
-		So(response, ShouldResemble, "Filter blueprint not found\n")
+		So(response, ShouldResemble, "Bad request - filter blueprint not found\n")
 	})
 
 	Convey("When the dimension option for filter blueprint does not exist, a bad request status is returned", t, func() {
@@ -372,7 +372,7 @@ func TestFailedToAddFilterBlueprintDimensionOption(t *testing.T) {
 
 		bodyBytes, _ := ioutil.ReadAll(w.Body)
 		response := string(bodyBytes)
-		So(response, ShouldResemble, "Bad request - Incorrect dimension options chosen: [66]\n")
+		So(response, ShouldResemble, "Bad request - incorrect dimension options chosen: [66]\n")
 	})
 }
 
@@ -515,7 +515,7 @@ func TestFailedToUpdateFilterBlueprint(t *testing.T) {
 
 		bodyBytes, _ := ioutil.ReadAll(w.Body)
 		response := string(bodyBytes)
-		So(response, ShouldResemble, "Bad request - Incorrect dimensions chosen: [time]\n")
+		So(response, ShouldResemble, "Bad request - incorrect dimensions chosen: [time]\n")
 	})
 
 	Convey("When a json message is sent to change the instance id of a filter blueprint and the current dimensions do not match, a status of bad request is returned", t, func() {
@@ -530,7 +530,7 @@ func TestFailedToUpdateFilterBlueprint(t *testing.T) {
 
 		bodyBytes, _ := ioutil.ReadAll(w.Body)
 		response := string(bodyBytes)
-		So(response, ShouldResemble, "Bad request - Incorrect dimension options chosen: [28]\n")
+		So(response, ShouldResemble, "Bad request - incorrect dimension options chosen: [28]\n")
 	})
 }
 

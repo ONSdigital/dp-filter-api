@@ -31,8 +31,10 @@ func NewDatasetAPI(client *rchttp.Client, datasetAPIURL, datasetAPIAuthToken str
 }
 
 var (
-	ErrorUnexpectedStatusCode = errors.New("unexpected status code from api")
-	ErrorInstanceNotFound     = errors.New("Instance not found")
+	ErrorUnexpectedStatusCode     = errors.New("unexpected status code from api")
+	ErrorInstanceNotFound         = errors.New("Instance not found")
+	ErrorDimensionNotFound        = errors.New("Dimension not found")
+	ErrorDimensionOptionsNotFound = errors.New("Dimension options not found")
 
 	publishedState = "published"
 )
@@ -47,7 +49,7 @@ func (api *DatasetAPI) GetInstance(ctx context.Context, instanceID string) (inst
 	logData["jsonResult"] = jsonResult
 	if err != nil {
 		log.ErrorC("api get", err, logData)
-		return nil, handleError(httpCode, err)
+		return nil, handleError(httpCode, err, "instance")
 	}
 
 	instance = &models.Instance{}
@@ -76,7 +78,7 @@ func (api *DatasetAPI) GetVersionDimensions(ctx context.Context, datasetID, edit
 	logData["jsonResult"] = jsonResult
 	if err != nil {
 		log.ErrorC("api get", err, logData)
-		return nil, handleError(httpCode, err)
+		return nil, handleError(httpCode, err, "dimension")
 	}
 
 	dimensions = &models.DatasetDimensionResults{}
@@ -98,7 +100,7 @@ func (api *DatasetAPI) GetVersionDimensionOptions(ctx context.Context, datasetID
 	logData["jsonResult"] = jsonResult
 	if err != nil {
 		log.ErrorC("api get", err, logData)
-		return nil, handleError(httpCode, err)
+		return nil, handleError(httpCode, err, "dimension options")
 	}
 
 	options = &models.DatasetDimensionOptionResults{}
@@ -168,10 +170,16 @@ func (api *DatasetAPI) callDatasetAPI(ctx context.Context, method, path string, 
 	return jsonBody, resp.StatusCode, nil
 }
 
-func handleError(httpCode int, err error) error {
+func handleError(httpCode int, err error, typ string) error {
 	if err == ErrorUnexpectedStatusCode {
 		switch httpCode {
 		case http.StatusNotFound:
+			if typ == "dimension" {
+				return ErrorDimensionNotFound
+			}
+			if typ == "dimension option" {
+				return ErrorDimensionOptionsNotFound
+			}
 			return ErrorInstanceNotFound
 		}
 	}

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"regexp"
 
 	"github.com/ONSdigital/dp-filter-api/models"
 	"github.com/ONSdigital/go-ns/log"
@@ -18,10 +19,13 @@ import (
 )
 
 var (
-	internalError = "Failed to process the request due to an internal error"
-	badRequest    = "Bad request - Invalid request body"
-	unauthorised  = "Unauthorised, request lacks valid authentication credentials"
-	forbidden     = "Forbidden, the filter output has been locked as it has been submitted to be processed"
+	internalError    = "Failed to process the request due to an internal error"
+	badRequest       = "Bad request - Invalid request body"
+	unauthorised     = "Unauthorised, request lacks valid authentication credentials"
+	forbidden        = "Forbidden, the filter output has been locked as it has been submitted to be processed"
+	statusBadRequest = "bad request"
+
+	incorrectDimensionOptions = regexp.MustCompile("Bad request - incorrect dimension options chosen")
 )
 
 const internalToken = "Internal-Token"
@@ -322,7 +326,7 @@ func (api *FilterAPI) addFilterBlueprintDimensionOption(w http.ResponseWriter, r
 	filterBlueprint, err := api.dataStore.GetFilter(addDimensionOption.FilterID)
 	if err != nil {
 		log.Error(err, log.Data{"filter_blueprint_id": addDimensionOption.FilterID})
-		setErrorCode(w, err)
+		setErrorCode(w, err, "bad request")
 		return
 	}
 
@@ -330,7 +334,7 @@ func (api *FilterAPI) addFilterBlueprintDimensionOption(w http.ResponseWriter, r
 	instance, err := api.datasetAPI.GetInstance(r.Context(), filterBlueprint.InstanceID)
 	if err != nil {
 		log.Error(err, log.Data{"filter_blueprint_id": addDimensionOption.FilterID, "instance_id": filterBlueprint.InstanceID})
-		setErrorCode(w, err)
+		setErrorCode(w, err, "bad request")
 		return
 	}
 
@@ -344,7 +348,11 @@ func (api *FilterAPI) addFilterBlueprintDimensionOption(w http.ResponseWriter, r
 
 	if err = api.checkNewFilterDimension(r.Context(), addDimensionOptions, instance); err != nil {
 		log.Error(err, nil)
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		if incorrectDimensionOptions.MatchString(err.Error()) {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		setErrorCode(w, err, "bad request")
 		return
 	}
 
@@ -692,7 +700,7 @@ func (api *FilterAPI) checkFilterOptions(ctx context.Context, newFilter *models.
 	}
 
 	if incorrectDimensionOptions != nil {
-		err = fmt.Errorf("Bad request - Incorrect dimension options chosen: %v", incorrectDimensionOptions)
+		err = fmt.Errorf("Bad request - incorrect dimension options chosen: %v", incorrectDimensionOptions)
 		log.ErrorC("Incorrect dimension options chosen", err, log.Data{"dimension_options": incorrectDimensionOptions})
 		return err
 	}
@@ -734,15 +742,15 @@ func (api *FilterAPI) checkNewFilterDimension(ctx context.Context, newDimension 
 	}
 
 	if incorrectDimensionOptions != nil {
-		err = fmt.Errorf("Bad request - Incorrect dimension options chosen: %v", incorrectDimensionOptions)
-		log.ErrorC("Incorrect dimension options chosen", err, log.Data{"dimension_options": incorrectDimensionOptions})
+		err = fmt.Errorf("Bad request - incorrect dimension options chosen: %v", incorrectDimensionOptions)
+		log.ErrorC("incorrect dimension options chosen", err, log.Data{"dimension_options": incorrectDimensionOptions})
 		return err
 	}
 
 	return nil
 }
 
-func checkFilterOutputQuery(previousFilterOutput, filterOutput *models.Filter) *models.Filter {
+func checkFilterOutputQuery(previousFilterOutput, filterOutput *models.Filter, typ ...string) *models.Filter {
 	if previousFilterOutput.Downloads == nil {
 		return filterOutput
 	}
@@ -766,13 +774,21 @@ func setJSONContentType(w http.ResponseWriter) {
 	w.Header().Set("Content-Type", "application/json")
 }
 
-func setErrorCode(w http.ResponseWriter, err error) {
+func setErrorCode(w http.ResponseWriter, err error, typ ...string) {
 	log.Debug("error is", log.Data{"error": err})
 	switch {
 	case err.Error() == "Not found":
+		if typ != nil && typ[0] == statusBadRequest {
+			http.Error(w, "Bad request - filter blueprint not found", http.StatusBadRequest)
+			return
+		}
 		http.Error(w, "Filter blueprint not found", http.StatusNotFound)
 		return
 	case err.Error() == "Dimension not found":
+		if typ != nil && typ[0] == statusBadRequest {
+			http.Error(w, "Bad request - dimension not found", http.StatusBadRequest)
+			return
+		}
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	case err.Error() == "Option not found":
@@ -781,6 +797,10 @@ func setErrorCode(w http.ResponseWriter, err error) {
 	case err.Error() == "Filter output not found":
 		http.Error(w, err.Error(), http.StatusNotFound)
 	case err.Error() == "Instance not found":
+		if typ != nil && typ[0] == statusBadRequest {
+			http.Error(w, "Bad request - instance not found", http.StatusBadRequest)
+			return
+		}
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	case err.Error() == "Bad request - filter blueprint not found":
