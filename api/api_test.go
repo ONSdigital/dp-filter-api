@@ -488,7 +488,7 @@ func TestFailedToUpdateFilterBlueprint(t *testing.T) {
 		So(response, ShouldResemble, "Filter blueprint not found\n")
 	})
 
-	Convey("When a json message is sent to change the instance id of a filter blueprint and the instance does not exist, a status of not found is returned", t, func() {
+	Convey("When a json message is sent to change the instance id of a filter blueprint and the instance does not exist, a status of bad request is returned", t, func() {
 		reader := strings.NewReader(`{"instance_id":"44444"}`)
 		r, err := http.NewRequest("PUT", "http://localhost:22100/filters/21312", reader)
 		So(err, ShouldBeNil)
@@ -496,11 +496,11 @@ func TestFailedToUpdateFilterBlueprint(t *testing.T) {
 		w := httptest.NewRecorder()
 		api := routes(authHeader, host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{InstanceNotFound: true}, previewMock)
 		api.router.ServeHTTP(w, r)
-		So(w.Code, ShouldEqual, http.StatusNotFound)
+		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
 		bodyBytes, _ := ioutil.ReadAll(w.Body)
 		response := string(bodyBytes)
-		So(response, ShouldResemble, "Instance not found\n")
+		So(response, ShouldResemble, "Bad request - instance not found\n")
 	})
 
 	Convey("When a json message is sent to change the instance id of a filter blueprint and the current dimensions do not match, a status of bad request is returned", t, func() {

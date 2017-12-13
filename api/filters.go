@@ -19,11 +19,12 @@ import (
 )
 
 var (
-	internalError    = "Failed to process the request due to an internal error"
-	badRequest       = "Bad request - Invalid request body"
-	unauthorised     = "Unauthorised, request lacks valid authentication credentials"
-	forbidden        = "Forbidden, the filter output has been locked as it has been submitted to be processed"
-	statusBadRequest = "bad request"
+	internalError             = "Failed to process the request due to an internal error"
+	badRequest                = "Bad request - Invalid request body"
+	unauthorised              = "Unauthorised, request lacks valid authentication credentials"
+	forbidden                 = "Forbidden, the filter output has been locked as it has been submitted to be processed"
+	statusBadRequest          = "bad request"
+	statusUnprocessableEntity = "unprocessable entity"
 
 	incorrectDimensionOptions = regexp.MustCompile("Bad request - incorrect dimension options chosen")
 )
@@ -241,7 +242,7 @@ func (api *FilterAPI) addFilterBlueprintDimension(w http.ResponseWriter, r *http
 	instance, err := api.datasetAPI.GetInstance(r.Context(), filterBlueprint.InstanceID)
 	if err != nil {
 		log.Error(err, log.Data{"filter_blueprint_id": addDimension.FilterID, "instance_id": filterBlueprint.InstanceID})
-		setErrorCode(w, err)
+		setErrorCode(w, err, statusUnprocessableEntity)
 		return
 	}
 
@@ -326,7 +327,7 @@ func (api *FilterAPI) addFilterBlueprintDimensionOption(w http.ResponseWriter, r
 	filterBlueprint, err := api.dataStore.GetFilter(addDimensionOption.FilterID)
 	if err != nil {
 		log.Error(err, log.Data{"filter_blueprint_id": addDimensionOption.FilterID})
-		setErrorCode(w, err, "bad request")
+		setErrorCode(w, err, statusBadRequest)
 		return
 	}
 
@@ -334,7 +335,7 @@ func (api *FilterAPI) addFilterBlueprintDimensionOption(w http.ResponseWriter, r
 	instance, err := api.datasetAPI.GetInstance(r.Context(), filterBlueprint.InstanceID)
 	if err != nil {
 		log.Error(err, log.Data{"filter_blueprint_id": addDimensionOption.FilterID, "instance_id": filterBlueprint.InstanceID})
-		setErrorCode(w, err, "bad request")
+		setErrorCode(w, err, statusUnprocessableEntity)
 		return
 	}
 
@@ -352,7 +353,7 @@ func (api *FilterAPI) addFilterBlueprintDimensionOption(w http.ResponseWriter, r
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-		setErrorCode(w, err, "bad request")
+		setErrorCode(w, err, statusBadRequest)
 		return
 	}
 
@@ -402,7 +403,7 @@ func (api *FilterAPI) updateFilterBlueprint(w http.ResponseWriter, r *http.Reque
 		instance, err := api.datasetAPI.GetInstance(r.Context(), newFilter.InstanceID)
 		if err != nil {
 			log.Error(err, log.Data{"new_filter": newFilter})
-			setErrorCode(w, err)
+			setErrorCode(w, err, statusBadRequest)
 			return
 		}
 
@@ -797,9 +798,15 @@ func setErrorCode(w http.ResponseWriter, err error, typ ...string) {
 	case err.Error() == "Filter output not found":
 		http.Error(w, err.Error(), http.StatusNotFound)
 	case err.Error() == "Instance not found":
-		if typ != nil && typ[0] == statusBadRequest {
-			http.Error(w, "Bad request - instance not found", http.StatusBadRequest)
-			return
+		if typ != nil {
+			if typ[0] == statusBadRequest {
+				http.Error(w, "Bad request - instance not found", http.StatusBadRequest)
+				return
+			}
+			if typ[0] == statusUnprocessableEntity {
+				http.Error(w, "Unprocessable entity - instance for filter blueprint no longer exists", http.StatusUnprocessableEntity)
+				return
+			}
 		}
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return

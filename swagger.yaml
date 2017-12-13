@@ -147,6 +147,8 @@ paths:
           description: "Invalid request body"
         404:
           $ref: '#/responses/FilterNotFound'
+        422:
+          description: "Unprocessable entity - instance has been removed"
         500:
           $ref: '#/responses/InternalError'
   /filters/{filter_id}/dimensions:
@@ -203,6 +205,8 @@ paths:
           description: "Invalid request body"
         404:
           description: "Filter job was not found"
+        422:
+          description: "Unprocessable entity - instance has been removed"
         500:
           $ref: '#/responses/InternalError'
     delete:
@@ -272,6 +276,8 @@ paths:
           description: "Filter blueprint was not found"
         404:
           description: " Dimension name was not found"
+        422:
+          description: "Unprocessable entity - instance has been removed"
         500:
           $ref: '#/responses/InternalError'
     delete:
