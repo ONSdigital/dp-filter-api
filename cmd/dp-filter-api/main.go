@@ -19,11 +19,11 @@ import (
 	"github.com/ONSdigital/go-ns/log"
 	mongoclosure "github.com/ONSdigital/go-ns/mongo"
 	"github.com/ONSdigital/go-ns/rchttp"
-	bolt "github.com/johnnadratowski/golang-neo4j-bolt-driver"
+	bolt "github.com/ONSdigital/golang-neo4j-bolt-driver"
 )
 
 func main() {
-	log.Namespace = "filter-api"
+	log.Namespace = "dp-filter-api"
 
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM)
@@ -46,11 +46,15 @@ func main() {
 		os.Exit(1)
 	}
 
-	pool, err := bolt.NewClosableDriverPool(cfg.Neo4jURL, cfg.Neo4jPoolSize)
+	// Driver pool will never return an error as a bolt connection is never created. So we test it by creating
+	// a connection.
+	pool, _ := bolt.NewClosableDriverPool(cfg.Neo4jURL, cfg.Neo4jPoolSize)
+	conn, err := pool.OpenPool()
 	if err != nil {
 		log.ErrorC("could not connect to neo4j", err, nil)
 		os.Exit(1)
 	}
+	conn.Close()
 
 	producer, err := kafka.NewProducer(cfg.Brokers, cfg.FilterOutputSubmittedTopic, int(envMax))
 	if err != nil {
@@ -60,7 +64,7 @@ func main() {
 
 	client := rchttp.DefaultClient
 	datasetAPI := dataset.NewDatasetAPI(client, cfg.DatasetAPIURL, cfg.DatasetAPIAuthToken)
-	pool.OpenPool()
+
 	observationStore := observation.NewStore(pool)
 	previewDatasets := preview.PreviewDatasetStore{Store: observationStore}
 	outputQueue := filterOutputQueue.CreateOutputQueue(producer.Output())
