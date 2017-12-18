@@ -44,7 +44,7 @@ func (api *FilterAPI) addFilterBlueprint(w http.ResponseWriter, r *http.Request)
 	// Create unique id
 	newFilter.FilterID = uuid.NewV4().String()
 
-	if err := newFilter.ValidateFilterBlueprint(); err != nil {
+	if err = newFilter.ValidateFilterBlueprint(); err != nil {
 		log.Error(err, nil)
 		http.Error(w, badRequest, http.StatusBadRequest)
 		return
@@ -574,7 +574,7 @@ func (api *FilterAPI) createFilterOutputResource(newFilter *models.Filter, filte
 	}
 
 	// Remove dimension url from output filter resource
-	for i, _ := range newFilter.Dimensions {
+	for i := range newFilter.Dimensions {
 		filterOutput.Dimensions[i].URL = ""
 	}
 
@@ -608,7 +608,7 @@ func (api *FilterAPI) getFilterOutputPreview(w http.ResponseWriter, r *http.Requ
 	vars := mux.Vars(r)
 	filterID := vars["filter_output_id"]
 	requestedLimit := r.URL.Query().Get("limit")
-	var limit int = 20
+	var limit = 20
 	var err error
 	if requestedLimit != "" {
 		limit, err = strconv.Atoi(requestedLimit)
@@ -777,27 +777,27 @@ func setJSONContentType(w http.ResponseWriter) {
 
 func setErrorCode(w http.ResponseWriter, err error, typ ...string) {
 	log.Debug("error is", log.Data{"error": err})
-	switch {
-	case err.Error() == "Not found":
+	switch err.Error() {
+	case "Not found":
 		if typ != nil && typ[0] == statusBadRequest {
 			http.Error(w, "Bad request - filter blueprint not found", http.StatusBadRequest)
 			return
 		}
 		http.Error(w, "Filter blueprint not found", http.StatusNotFound)
 		return
-	case err.Error() == "Dimension not found":
+	case "Dimension not found":
 		if typ != nil && typ[0] == statusBadRequest {
 			http.Error(w, "Bad request - dimension not found", http.StatusBadRequest)
 			return
 		}
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
-	case err.Error() == "Option not found":
+	case "Option not found":
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
-	case err.Error() == "Filter output not found":
+	case "Filter output not found":
 		http.Error(w, err.Error(), http.StatusNotFound)
-	case err.Error() == "Instance not found":
+	case "Instance not found":
 		if typ != nil {
 			if typ[0] == statusBadRequest {
 				http.Error(w, "Bad request - instance not found", http.StatusBadRequest)
@@ -810,25 +810,25 @@ func setErrorCode(w http.ResponseWriter, err error, typ ...string) {
 		}
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
-	case err.Error() == "Bad request - filter blueprint not found":
+	case "Bad request - filter blueprint not found":
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
-	case err.Error() == "Bad request - filter dimension not found":
+	case "Bad request - filter dimension not found":
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
-	case err.Error() == "Bad request - filter or dimension not found":
+	case "Bad request - filter or dimension not found":
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
-	case err.Error() == "Bad request":
+	case "Bad request":
 		http.Error(w, "Bad request", http.StatusBadRequest)
 		return
-	case err.Error() == "Forbidden":
+	case "Forbidden":
 		http.Error(w, forbidden, http.StatusForbidden)
 		return
-	case err.Error() == "Not authorised":
+	case "Not authorised":
 		http.Error(w, unauthorised, http.StatusUnauthorized)
 		return
-	case err != nil:
+	default:
 		http.Error(w, internalError, http.StatusInternalServerError)
 		return
 	}

@@ -355,6 +355,7 @@ func (s *FilterStore) RemoveFilterDimensionOption(filterID string, name string, 
 	return nil
 }
 
+// CreateFilterOutput creates a filter ouput resource
 func (s *FilterStore) CreateFilterOutput(filter *models.Filter) error {
 	session := s.Session.Copy()
 	defer session.Close()
@@ -366,6 +367,7 @@ func (s *FilterStore) CreateFilterOutput(filter *models.Filter) error {
 	return nil
 }
 
+// GetFilterOutput returns a filter output resource
 func (s *FilterStore) GetFilterOutput(filterID string) (*models.Filter, error) {
 	session := s.Session.Copy()
 	defer session.Close()
@@ -384,6 +386,7 @@ func (s *FilterStore) GetFilterOutput(filterID string) (*models.Filter, error) {
 	return result, nil
 }
 
+// UpdateFilterOutput updates a filter output resource
 func (s *FilterStore) UpdateFilterOutput(filter *models.Filter) error {
 	session := s.Session.Copy()
 	defer session.Close()

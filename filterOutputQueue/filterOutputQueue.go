@@ -5,8 +5,9 @@ import (
 	"github.com/ONSdigital/dp-filter-api/schema"
 )
 
-type output struct {
-	filterOutputQueue chan []byte
+// Output is an object containng the filter output queue channel
+type Output struct {
+	FilterOutputQueue chan []byte
 }
 
 type filterOutput struct {
@@ -14,19 +15,19 @@ type filterOutput struct {
 }
 
 // CreateOutputQueue returns an object containing a channel for queueing filter outputs
-func CreateOutputQueue(filterOutputQueue chan []byte) output {
-	return output{filterOutputQueue: filterOutputQueue}
+func CreateOutputQueue(filterOutputQueue chan []byte) Output {
+	return Output{FilterOutputQueue: filterOutputQueue}
 }
 
 // Queue represents a mechanism to add messages to the filter jobs queue
-func (filter *output) Queue(outputFilter *models.Filter) error {
+func (filter *Output) Queue(outputFilter *models.Filter) error {
 	message := filterOutput{FilterOutputID: outputFilter.FilterID}
 	bytes, err := schema.FilterSubmittedSchema.Marshal(message)
 	if err != nil {
 		return err
 	}
 
-	filter.filterOutputQueue <- bytes
+	filter.FilterOutputQueue <- bytes
 
 	return nil
 }

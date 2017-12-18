@@ -7,6 +7,7 @@ import (
 	"github.com/ONSdigital/dp-filter-api/models"
 )
 
+// DatasetAPI represents a list of error flags to set error in mocked dataset API
 type DatasetAPI struct {
 	DimensionsNotFound       bool
 	DimensionOptionsNotFound bool
@@ -14,19 +15,21 @@ type DatasetAPI struct {
 	InternalServerError      bool
 }
 
+// A list of errors that can be returned by the mock package
 var (
-	instanceNotFoundError         = errors.New("Instance not found")
-	dimensionsNotFoundError       = errors.New("Dimensions not found")
-	dimensionOptionsNotFoundError = errors.New("Dimension options not found")
+	errorInstanceNotFound         = errors.New("Instance not found")
+	errorDimensionsNotFound       = errors.New("Dimensions not found")
+	errorDimensionOptionsNotFound = errors.New("Dimension options not found")
 )
 
+// GetInstance represents the mocked version of getting an instance document from dataset API
 func (ds *DatasetAPI) GetInstance(ctx context.Context, id string) (*models.Instance, error) {
 	if ds.InternalServerError {
-		return nil, internalServerError
+		return nil, errorInternalServer
 	}
 
 	if ds.InstanceNotFound {
-		return nil, instanceNotFoundError
+		return nil, errorInstanceNotFound
 	}
 
 	return &models.Instance{
@@ -44,13 +47,14 @@ func (ds *DatasetAPI) GetInstance(ctx context.Context, id string) (*models.Insta
 	}, nil
 }
 
+// GetVersionDimensions represents the mocked version of getting a list of dimensions from the dataset API
 func (ds *DatasetAPI) GetVersionDimensions(ctx context.Context, datasetID, edition, version string) (*models.DatasetDimensionResults, error) {
 	if ds.InternalServerError {
-		return nil, internalServerError
+		return nil, errorInternalServer
 	}
 
 	if ds.DimensionsNotFound {
-		return nil, dimensionsNotFoundError
+		return nil, errorDimensionsNotFound
 	}
 
 	dimension := models.DatasetDimension{
@@ -62,13 +66,14 @@ func (ds *DatasetAPI) GetVersionDimensions(ctx context.Context, datasetID, editi
 	}, nil
 }
 
+// GetVersionDimensionOptions represents the mocked version of getting a list of dimension options from the dataset API
 func (ds *DatasetAPI) GetVersionDimensionOptions(ctx context.Context, datasetID, edition, version, dimension string) (*models.DatasetDimensionOptionResults, error) {
 	if ds.InternalServerError {
-		return nil, internalServerError
+		return nil, errorInternalServer
 	}
 
 	if ds.DimensionOptionsNotFound {
-		return nil, dimensionOptionsNotFoundError
+		return nil, errorDimensionOptionsNotFound
 	}
 
 	dimensionOptionOne := models.PublicDimensionOption{

@@ -6,17 +6,19 @@ import (
 	"github.com/ONSdigital/dp-filter-api/models"
 )
 
+// A list of errors that can be returned by mock package
 var (
-	internalServerError       = errors.New("DataStore internal error")
-	unauthorisedError         = errors.New("Unauthorised")
-	badRequestError           = errors.New("Bad request")
-	forbiddenError            = errors.New("Forbidden")
-	notFoundError             = errors.New("Not found")
-	dimensionionNotFoundError = errors.New("Dimension not found")
-	optionNotFoundError       = errors.New("Option not found")
-	filterOutputNotFoundError = errors.New("Filter output not found")
+	errorInternalServer       = errors.New("DataStore internal error")
+	errorUnauthorised         = errors.New("Unauthorised")
+	errorBadRequest           = errors.New("Bad request")
+	errorForbidden            = errors.New("Forbidden")
+	errorNotFound             = errors.New("Not found")
+	errorDimensionionNotFound = errors.New("Dimension not found")
+	errorOptionNotFound       = errors.New("Option not found")
+	errorFilterOutputNotFound = errors.New("Filter output not found")
 )
 
+// DataStore represents a list of error flags to set error in mocked datastore
 type DataStore struct {
 	NotFound               bool
 	DimensionNotFound      bool
@@ -30,67 +32,72 @@ type DataStore struct {
 	InvalidDimensionOption bool
 }
 
+// AddFilter represents the mocked version of creating a filter blueprint to the datastore
 func (ds *DataStore) AddFilter(host string, filterJob *models.Filter) (*models.Filter, error) {
 	if ds.InternalError {
-		return nil, internalServerError
+		return nil, errorInternalServer
 	}
 	return &models.Filter{InstanceID: "12345678"}, nil
 }
 
+// AddFilterDimension represents the mocked version of creating a filter dimension to the datastore
 func (ds *DataStore) AddFilterDimension(dimension *models.AddDimension) error {
 	if ds.InternalError {
-		return internalServerError
+		return errorInternalServer
 	}
 
 	if ds.NotFound {
-		return notFoundError
+		return errorNotFound
 	}
 
 	if ds.Forbidden {
-		return forbiddenError
+		return errorForbidden
 	}
 
 	return nil
 }
 
+// AddFilterDimensionOption represents the mocked version of creating a filter dimension option to the datastore
 func (ds *DataStore) AddFilterDimensionOption(dimension *models.AddDimensionOption) error {
 	if ds.InternalError {
-		return internalServerError
+		return errorInternalServer
 	}
 
 	if ds.NotFound {
-		return notFoundError
+		return errorNotFound
 	}
 
 	if ds.BadRequest {
-		return badRequestError
+		return errorBadRequest
 	}
 
 	if ds.Forbidden {
-		return forbiddenError
+		return errorForbidden
 	}
 
 	return nil
 }
 
+// CreateFilterOutput represents the mocked version of creating a filter output to the datastore
 func (ds *DataStore) CreateFilterOutput(filterJob *models.Filter) error {
 	if ds.InternalError {
-		return internalServerError
+		return errorInternalServer
 	}
 
 	if ds.Unauthorised {
-		return unauthorisedError
+		return errorUnauthorised
 	}
 	return nil
 }
 
+// GetFilter represents the mocked version of getting a filter blueprint from the datastore
 func (ds *DataStore) GetFilter(filterID string) (*models.Filter, error) {
 	if ds.NotFound {
-		return nil, notFoundError
+		return nil, errorNotFound
 	}
 
 	if ds.InternalError {
-		return nil, internalServerError
+		return nil, errorInternalServer
 	}
 
 	if ds.BadRequest {
@@ -108,15 +115,16 @@ func (ds *DataStore) GetFilter(filterID string) (*models.Filter, error) {
 	return &models.Filter{InstanceID: "12345678", Dimensions: []models.Dimension{{Name: "time"}}}, nil
 }
 
+// GetFilterDimensions represents the mocked version of getting a list of filter dimensions from the datastore
 func (ds *DataStore) GetFilterDimensions(filterID string) ([]models.Dimension, error) {
 	dimensions := []models.Dimension{}
 
 	if ds.NotFound {
-		return nil, notFoundError
+		return nil, errorNotFound
 	}
 
 	if ds.InternalError {
-		return nil, internalServerError
+		return nil, errorInternalServer
 	}
 
 	dimensions = append(dimensions, models.Dimension{Name: "1_age", URL: "/filters/123/dimensions/1_age"})
@@ -124,37 +132,39 @@ func (ds *DataStore) GetFilterDimensions(filterID string) ([]models.Dimension, e
 	return dimensions, nil
 }
 
-func (ds *DataStore) GetFilterDimension(filterID string, name string) error {
+// GetFilterDimension represents the mocked version of getting a filter dimension from the datastore
+func (ds *DataStore) GetFilterDimension(filterID, name string) error {
 	if ds.DimensionNotFound {
-		return dimensionionNotFoundError
+		return errorDimensionionNotFound
 	}
 
 	if ds.BadRequest {
-		return badRequestError
+		return errorBadRequest
 	}
 
 	if ds.InternalError {
-		return internalServerError
+		return errorInternalServer
 	}
 
 	return nil
 }
 
-func (ds *DataStore) GetFilterDimensionOptions(filterID string, name string) ([]models.DimensionOption, error) {
+// GetFilterDimensionOptions represents the mocked version of getting a list of filter dimension options from the datastore
+func (ds *DataStore) GetFilterDimensionOptions(filterID, name string) ([]models.DimensionOption, error) {
 	var (
 		options []models.DimensionOption
 	)
 
 	if ds.BadRequest {
-		return nil, badRequestError
+		return nil, errorBadRequest
 	}
 
 	if ds.DimensionNotFound {
-		return nil, dimensionionNotFoundError
+		return nil, errorDimensionionNotFound
 	}
 
 	if ds.InternalError {
-		return nil, internalServerError
+		return nil, errorInternalServer
 	}
 
 	option := models.DimensionOption{
@@ -167,29 +177,31 @@ func (ds *DataStore) GetFilterDimensionOptions(filterID string, name string) ([]
 	return options, nil
 }
 
-func (ds *DataStore) GetFilterDimensionOption(filterID string, name string, option string) error {
+// GetFilterDimensionOption represents the mocked version of getting a filter dimension option from the datastore
+func (ds *DataStore) GetFilterDimensionOption(filterID, name, option string) error {
 	if ds.BadRequest {
-		return badRequestError
+		return errorBadRequest
 	}
 
 	if ds.OptionNotFound {
-		return optionNotFoundError
+		return errorOptionNotFound
 	}
 
 	if ds.InternalError {
-		return internalServerError
+		return errorInternalServer
 	}
 
 	return nil
 }
 
+// GetFilterOutput represents the mocked version of getting a filter output from the datastore
 func (ds *DataStore) GetFilterOutput(filterID string) (*models.Filter, error) {
 	if ds.NotFound {
-		return nil, filterOutputNotFoundError
+		return nil, errorFilterOutputNotFound
 	}
 
 	if ds.InternalError {
-		return nil, internalServerError
+		return nil, errorInternalServer
 	}
 
 	if ds.BadRequest {
@@ -199,76 +211,80 @@ func (ds *DataStore) GetFilterOutput(filterID string) (*models.Filter, error) {
 	return &models.Filter{InstanceID: "12345678", FilterID: filterID, State: "created", Dimensions: []models.Dimension{{Name: "time"}}}, nil
 }
 
+// RemoveFilterDimension represents the mocked version of removing a filter dimension from the datastore
 func (ds *DataStore) RemoveFilterDimension(string, string) error {
 	if ds.InternalError {
-		return internalServerError
+		return errorInternalServer
 	}
 
 	if ds.BadRequest {
-		return badRequestError
+		return errorBadRequest
 	}
 
 	if ds.Forbidden {
-		return forbiddenError
+		return errorForbidden
 	}
 
 	if ds.NotFound {
-		return notFoundError
+		return errorNotFound
 	}
 
 	return nil
 }
 
-func (ds *DataStore) RemoveFilterDimensionOption(filterJobId string, name string, option string) error {
+// RemoveFilterDimensionOption represents the mocked version of removing a filter dimension option from the datastore
+func (ds *DataStore) RemoveFilterDimensionOption(filterJobID, name, option string) error {
 	if ds.InternalError {
-		return internalServerError
+		return errorInternalServer
 	}
 
 	if ds.BadRequest {
-		return badRequestError
+		return errorBadRequest
 	}
 
 	if ds.Forbidden {
-		return forbiddenError
+		return errorForbidden
 	}
 
 	if ds.DimensionNotFound {
-		return dimensionionNotFoundError
+		return errorDimensionionNotFound
 	}
 
 	return nil
 }
 
+// UpdateFilter represents the mocked version of updating a filter blueprint from the datastore
 func (ds *DataStore) UpdateFilter(filterJob *models.Filter) error {
 	if ds.InternalError {
-		return internalServerError
+		return errorInternalServer
 	}
 
 	if ds.BadRequest {
-		return badRequestError
+		return errorBadRequest
 	}
 
 	if ds.NotFound {
-		return filterOutputNotFoundError
+		return errorFilterOutputNotFound
 	}
 
 	if ds.InstanceNotFound {
-		return instanceNotFoundError
+		return errorInstanceNotFound
 	}
 	return nil
 }
 
+// UpdateFilterOutput represents the mocked version of updating a filter output from the datastore
 func (ds *DataStore) UpdateFilterOutput(filterJob *models.Filter) error {
 	if ds.InternalError {
-		return internalServerError
+		return errorInternalServer
 	}
 
 	if ds.BadRequest {
-		return badRequestError
+		return errorBadRequest
 	}
 
 	if ds.NotFound {
-		return notFoundError
+		return errorNotFound
 	}
 
 	return nil

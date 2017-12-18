@@ -3,9 +3,10 @@ package preview
 import (
 	"bytes"
 	"encoding/csv"
+	"io"
+
 	"github.com/ONSdigital/dp-filter-api/models"
 	"github.com/ONSdigital/dp-filter/observation"
-	"io"
 )
 
 //go:generate moq -out previewtest/observationstore.go -pkg observationstoretest . ObservationStore
@@ -15,8 +16,8 @@ type ObservationStore interface {
 	GetCSVRows(*observation.Filter, *int) (observation.CSVRowReader, error)
 }
 
-// PreviewDatasetStore used to query observations for previews
-type PreviewDatasetStore struct {
+// DatasetStore used to query observations for previews
+type DatasetStore struct {
 	Store ObservationStore
 }
 
@@ -29,7 +30,7 @@ type FilterPreview struct {
 }
 
 // GetPreview generates a preview using the data stored in the graph database
-func (preview *PreviewDatasetStore) GetPreview(bluePrint *models.Filter, limit int) (*FilterPreview, error) {
+func (preview *DatasetStore) GetPreview(bluePrint *models.Filter, limit int) (*FilterPreview, error) {
 	var filter = observation.Filter{}
 	filter.InstanceID = bluePrint.InstanceID
 	for _, dimension := range bluePrint.Dimensions {
