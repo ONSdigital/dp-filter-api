@@ -90,6 +90,7 @@ type DimensionOption struct {
 	Option             string `json:"option"`
 }
 
+// A list of errors returned from package
 var (
 	ErrorReadingBody = errors.New("Failed to read message body")
 	ErrorParsingBody = errors.New("Failed to parse json body")
@@ -114,7 +115,70 @@ func (filter *Filter) ValidateFilterBlueprint() error {
 	return nil
 }
 
-// ValidateFilterOutputIpdate checks the content of the filter structure
+// DatasetDimensionResults represents a structure for a list of dimensions
+type DatasetDimensionResults struct {
+	Items []DatasetDimension `json:"items"`
+}
+
+// DatasetDimension represents an overview for a single dimension. This includes a link to the code list API
+// which provides metadata about the dimension and all possible values.
+type DatasetDimension struct {
+	Name string `bson:"name,omitempty"          json:"dimension,omitempty"`
+}
+
+// ValidateFilterDimensions checks the selected filter dimension
+// are valid for a version of a dataset
+func ValidateFilterDimensions(filterDimensions []Dimension, datasetDimensions *DatasetDimensionResults) error {
+	dimensionNames := make(map[string]int)
+	for _, datasetDimension := range datasetDimensions.Items {
+		dimensionNames[datasetDimension.Name] = 1
+	}
+
+	var incorrectDimensions []string
+	for _, filterDimension := range filterDimensions {
+		if _, ok := dimensionNames[filterDimension.Name]; !ok {
+			incorrectDimensions = append(incorrectDimensions, filterDimension.Name)
+		}
+	}
+
+	if incorrectDimensions != nil {
+		return fmt.Errorf("Bad request - incorrect dimensions chosen: %v", incorrectDimensions)
+	}
+
+	return nil
+}
+
+// DatasetDimensionOptionResults represents a structure for a list of dimension options
+type DatasetDimensionOptionResults struct {
+	Items []PublicDimensionOption `json:"items"`
+}
+
+// PublicDimensionOption hides values which are only used by interval services
+type PublicDimensionOption struct {
+	Name   string `bson:"name,omitempty"           json:"dimension"`
+	Label  string `bson:"label,omitempty"          json:"label"`
+	Option string `bson:"option,omitempty"         json:"option"`
+}
+
+// ValidateFilterDimensionOptions checks the selected filter dimension options
+// are valid for a dimension of a single version of a dataset
+func ValidateFilterDimensionOptions(filterDimensionOptions []string, datasetDimensionOptions *DatasetDimensionOptionResults) []string {
+	dimensionOptions := make(map[string]int)
+	for _, datasetOption := range datasetDimensionOptions.Items {
+		dimensionOptions[datasetOption.Option] = 1
+	}
+
+	var incorrectDimensionOptions []string
+	for _, filterOption := range filterDimensionOptions {
+		if _, ok := dimensionOptions[filterOption]; !ok {
+			incorrectDimensionOptions = append(incorrectDimensionOptions, filterOption)
+		}
+	}
+
+	return incorrectDimensionOptions
+}
+
+// ValidateFilterOutputUpdate checks the content of the filter structure
 func (filter *Filter) ValidateFilterOutputUpdate() error {
 
 	// Only downloads, events and state can be updated, any attempt to update other

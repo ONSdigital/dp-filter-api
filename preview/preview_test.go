@@ -1,16 +1,17 @@
 package preview
 
 import (
+	"encoding/csv"
 	"errors"
+	"io"
+	"strings"
+	"testing"
+
 	"github.com/ONSdigital/dp-filter-api/models"
 	"github.com/ONSdigital/dp-filter-api/preview/previewtest"
 	"github.com/ONSdigital/dp-filter/observation"
 	"github.com/ONSdigital/dp-filter/observation/observationtest"
 	. "github.com/smartystreets/goconvey/convey"
-	"io"
-	"testing"
-	"encoding/csv"
-	"strings"
 )
 
 func TestPreviewDatasetStore_GetPreview(t *testing.T) {
@@ -35,7 +36,7 @@ func TestPreviewDatasetStore_GetPreview(t *testing.T) {
 				return mockRowReader, nil
 			},
 		}
-		previewDataset := PreviewDatasetStore{Store: mockedObservationStore}
+		previewDataset := DatasetStore{Store: mockedObservationStore}
 
 		results, err := previewDataset.GetPreview(&models.Filter{}, 0)
 		So(len(results.Headers), ShouldEqual, 7)
@@ -66,7 +67,7 @@ func TestPreviewDatasetStore_GetPreview(t *testing.T) {
 				return mockRowReader, nil
 			},
 		}
-		previewDataset := PreviewDatasetStore{Store: mockedObservationStore}
+		previewDataset := DatasetStore{Store: mockedObservationStore}
 
 		results, err := previewDataset.GetPreview(&models.Filter{}, 0)
 		So(len(results.Headers), ShouldEqual, 7)
@@ -85,7 +86,7 @@ func TestPreviewDatasetStore_GetPreview_ErrorStates(t *testing.T) {
 				return nil, expectedError
 			},
 		}
-		previewDataset := PreviewDatasetStore{Store: mockedObservationStore}
+		previewDataset := DatasetStore{Store: mockedObservationStore}
 		_, err := previewDataset.GetPreview(&models.Filter{}, 0)
 		So(err, ShouldEqual, expectedError)
 	})
@@ -107,7 +108,7 @@ func TestPreviewDatasetStore_GetPreview_ErrorStates(t *testing.T) {
 				return mockRowReader, nil
 			},
 		}
-		previewDataset := PreviewDatasetStore{Store: mockedObservationStore}
+		previewDataset := DatasetStore{Store: mockedObservationStore}
 		_, err := previewDataset.GetPreview(&models.Filter{}, 0)
 		So(err, ShouldEqual, expectedError)
 	})

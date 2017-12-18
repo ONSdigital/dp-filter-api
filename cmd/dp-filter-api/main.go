@@ -66,7 +66,7 @@ func main() {
 	datasetAPI := dataset.NewDatasetAPI(client, cfg.DatasetAPIURL, cfg.DatasetAPIAuthToken)
 
 	observationStore := observation.NewStore(pool)
-	previewDatasets := preview.PreviewDatasetStore{Store: observationStore}
+	previewDatasets := preview.DatasetStore{Store: observationStore}
 	outputQueue := filterOutputQueue.CreateOutputQueue(producer.Output())
 
 	apiErrors := make(chan error, 1)
@@ -78,7 +78,7 @@ func main() {
 		log.Info(fmt.Sprintf("Shutdown with timeout: %s", cfg.ShutdownTimeout), nil)
 		ctx, cancel := context.WithTimeout(context.Background(), cfg.ShutdownTimeout)
 
-		if err := api.Close(ctx); err != nil {
+		if err = api.Close(ctx); err != nil {
 			log.Error(err, nil)
 		}
 

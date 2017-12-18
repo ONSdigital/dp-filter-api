@@ -77,6 +77,7 @@ func routes(secretKey, host string, router *mux.Router, dataStore DataStore, out
 	return &api
 }
 
+// Close represents the graceful shutting down of the http server
 func Close(ctx context.Context) error {
 	if err := httpServer.Shutdown(ctx); err != nil {
 		return err
