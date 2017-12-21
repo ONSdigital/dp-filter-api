@@ -33,6 +33,12 @@ job "dp-filter-api" {
         name = "dp-filter-api"
         port = "http"
         tags = ["web"]
+        check {
+          type     = "http"
+          path     = "/healthcheck"
+          interval = "10s"
+          timeout  = "2s"
+        }
       }
 
       resources {
