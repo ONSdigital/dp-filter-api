@@ -20,6 +20,7 @@ type Config struct {
 	DatasetAPIAuthToken        string        `envconfig:"DATASET_API_AUTH_TOKEN"`
 	Neo4jURL                   string        `envconfig:"NEO4J_BIND_ADDR"`
 	Neo4jPoolSize              int           `envconfig:"NEO4J_POOL_SIZE"`
+	HealthCheckInterval        time.Duration `envconfig:"HEALTHCHECK_INTERVAL"`
 }
 
 var cfg *Config
@@ -43,6 +44,7 @@ func Get() (*Config, error) {
 		DatasetAPIAuthToken:        "FD0108EA-825D-411C-9B1D-41EF7727F465",
 		Neo4jURL:                   "bolt://localhost:7687",
 		Neo4jPoolSize:              30,
+		HealthCheckInterval:        30 * time.Second,
 	}
 
 	return cfg, envconfig.Process("", cfg)

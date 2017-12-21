@@ -15,9 +15,11 @@ import (
 	"github.com/ONSdigital/dp-filter-api/mongo"
 	"github.com/ONSdigital/dp-filter-api/preview"
 	"github.com/ONSdigital/dp-filter/observation"
+	"github.com/ONSdigital/go-ns/healthcheck"
 	"github.com/ONSdigital/go-ns/kafka"
 	"github.com/ONSdigital/go-ns/log"
-	mongoclosure "github.com/ONSdigital/go-ns/mongo"
+	mongolib "github.com/ONSdigital/go-ns/mongo"
+	neo4jhealth "github.com/ONSdigital/go-ns/neo4j"
 	"github.com/ONSdigital/go-ns/rchttp"
 	bolt "github.com/ONSdigital/golang-neo4j-bolt-driver"
 )
@@ -69,6 +71,13 @@ func main() {
 	previewDatasets := preview.DatasetStore{Store: observationStore}
 	outputQueue := filterOutputQueue.CreateOutputQueue(producer.Output())
 
+	healthTicker := healthcheck.NewTicker(
+		cfg.HealthCheckInterval,
+		neo4jhealth.NewHealthCheckClient(pool),
+		mongolib.NewHealthCheckClient(dataStore.Session),
+		datasetAPI.GetHealthCheckClient(),
+	)
+
 	apiErrors := make(chan error, 1)
 
 	api.CreateFilterAPI(cfg.SecretKey, cfg.Host, cfg.BindAddr, dataStore, &outputQueue, apiErrors, datasetAPI, &previewDatasets)
@@ -83,7 +92,7 @@ func main() {
 		}
 
 		// mongo.Close() may use all remaining time in the context
-		if err = mongoclosure.Close(ctx, dataStore.Session); err != nil {
+		if err = mongolib.Close(ctx, dataStore.Session); err != nil {
 			log.Error(err, nil)
 		}
 
@@ -98,6 +107,8 @@ func main() {
 		}
 
 		cancel()
+
+		healthTicker.Close()
 
 		log.Info("Shutdown complete", nil)
 		os.Exit(1)

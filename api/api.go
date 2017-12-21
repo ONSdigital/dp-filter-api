@@ -5,6 +5,7 @@ import (
 
 	"github.com/ONSdigital/dp-filter-api/models"
 	"github.com/ONSdigital/dp-filter-api/preview"
+	"github.com/ONSdigital/go-ns/healthcheck"
 	"github.com/ONSdigital/go-ns/log"
 	"github.com/ONSdigital/go-ns/server"
 	"github.com/gorilla/mux"
@@ -57,7 +58,7 @@ func CreateFilterAPI(secretKey, host, bindAddr string, datastore DataStore, outp
 func routes(secretKey, host string, router *mux.Router, dataStore DataStore, outputQueue OutputQueue, datasetAPI DatasetAPIer, preview PreviewDataset) *FilterAPI {
 	api := FilterAPI{internalToken: secretKey, host: host, dataStore: dataStore, router: router, outputQueue: outputQueue, datasetAPI: datasetAPI, preview: preview}
 
-	router.Path("/healthcheck").Methods("GET").HandlerFunc(api.healthCheck)
+	router.Path("/healthcheck").Methods("GET").HandlerFunc(healthcheck.Do)
 
 	api.router.HandleFunc("/filters", api.addFilterBlueprint).Methods("POST")
 	api.router.HandleFunc("/filters/{filter_blueprint_id}", api.getFilterBlueprint).Methods("GET")
