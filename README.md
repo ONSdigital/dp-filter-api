@@ -4,18 +4,18 @@ dp-filter-api
 ### Getting started
 
 #### mongo
-* Run ```brew install mongodb```
-* Run ```brew services start mongodb```
+* Run `brew install mongodb`
+* Run `brew services start mongodb`
 
 #### Kafka
-* Run ```brew install zookeeper ```
+* Run `brew install zookeeper`
 * Download kafka version 0.10.2.1
-* Run ```./kafka-server-start.sh ../config/server.properties```
+* Run `./kafka-server-start.sh ../config/server.properties`
 
 ### Configuration
-* Run ```brew install neo4j```
+* Run `brew install neo4j`
 * Disable authentication
-* Run ```brew services start neo4j```
+* Run `brew services start neo4j`
 
 | Environment variable       | Default                                   | Description
 | -------------------------- | ----------------------------------------- | -----------
@@ -32,6 +32,14 @@ dp-filter-api
 | NEO4J_BIND_ADDR            | bolt://localhost:7687                     | URL to a neo4j services
 | NEO4J_POOL_SIZE            | 30                                        | Number of connections in the pool
 | HEALTHCHECK_INTERVAL       | 30s                                       | Time between self-healthchecks (`time.Duration` format)
+
+### Healthchecking
+
+Currently checked each `$HEALTHCHECK_INTERVAL` and reported on endpoint `/healthcheck`:
+
+* Neo4j
+* MongoDB
+* DatasetAPI
 
 ### Contributing
 
