@@ -25,10 +25,10 @@ type Config struct {
 
 // MongoConfig contains the config required to connect to MongoDB.
 type MongoConfig struct {
-	BindAddr         string `envconfig:"MONGODB_BIND_ADDR"`
-	Database         string `envconfig:"MONGODB_DATABASE"`
-	FilterCollection string `envconfig:"MONGODB_FILTERS_COLLECTION"`
-	OutputCollection string `envconfig:"MONGODB_OUTPUT_COLLECTION"`
+	BindAddr          string `envconfig:"MONGODB_BIND_ADDR"`
+	Database          string `envconfig:"MONGODB_DATABASE"`
+	FiltersCollection string `envconfig:"MONGODB_FILTERS_COLLECTION"`
+	OutputsCollection string `envconfig:"MONGODB_OUTPUT_COLLECTION"`
 }
 
 var cfg *Config
@@ -53,10 +53,10 @@ func Get() (*Config, error) {
 		Neo4jPoolSize:              30,
 		HealthCheckInterval:        30 * time.Second,
 		MongoConfig: MongoConfig{
-			BindAddr:         "localhost:27017",
-			Database:         "filters",
-			FilterCollection: "filters",
-			OutputCollection: "filterOutputs",
+			BindAddr:          "localhost:27017",
+			Database:          "filters",
+			FiltersCollection: "filters",
+			OutputsCollection: "filterOutputs",
 		},
 	}
 
