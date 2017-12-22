@@ -91,6 +91,8 @@ func main() {
 			log.Error(err, nil)
 		}
 
+		healthTicker.Close()
+
 		// mongo.Close() may use all remaining time in the context
 		if err = mongolib.Close(ctx, dataStore.Session); err != nil {
 			log.Error(err, nil)
@@ -107,8 +109,6 @@ func main() {
 		}
 
 		cancel()
-
-		healthTicker.Close()
 
 		log.Info("Shutdown complete", nil)
 		os.Exit(1)
