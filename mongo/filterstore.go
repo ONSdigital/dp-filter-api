@@ -422,19 +422,24 @@ func createUpdateFilterBlueprint(filter *models.Filter, currentTime time.Time) b
 func createUpdateFilterOutput(filter *models.Filter, currentTime time.Time) bson.M {
 
 	var downloads models.Downloads
-
+	state := "created"
 	var update bson.M
+	if filter.Downloads != nil {
+		if filter.Downloads.XLS.URL != "" {
+			downloads.XLS = filter.Downloads.XLS
+		}
 
-	if filter.Downloads.XLS.URL != "" {
-		downloads.XLS = filter.Downloads.XLS
+		if filter.Downloads.CSV.URL != "" {
+			downloads.CSV = filter.Downloads.CSV
+		}
+
+		if filter.Downloads.JSON.URL != "" {
+			downloads.JSON = filter.Downloads.JSON
+		}
 	}
 
-	if filter.Downloads.CSV.URL != "" {
-		downloads.CSV = filter.Downloads.CSV
-	}
-
-	if filter.Downloads.JSON.URL != "" {
-		downloads.JSON = filter.Downloads.JSON
+	if filter.State != "" {
+		state = filter.State
 	}
 
 	// Don't bother checking for JSON as it doesn't get generated at the moment
@@ -452,6 +457,7 @@ func createUpdateFilterOutput(filter *models.Filter, currentTime time.Time) bson
 	} else {
 		update = bson.M{
 			"$set": bson.M{
+				"state":     state,
 				"downloads": downloads,
 				"events":    filter.Events,
 			},

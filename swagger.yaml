@@ -440,9 +440,10 @@ definitions:
           The state of the job can be in five states;
           * created - The job is ready to be updated with filters. (default state)
           * submitted - The job has been submitted to be processed. This will lock the job and no further changes can be done
-          * in progress -
-          * completed - The job has been completed and can be downloaded using the `downloadUrl`
-          * failed - The job failed to be processed
+          * completed - The job has been completed, if the filter created results the download links will contain links. It is
+                        possible that a job gets marked as completed but no download URLs are present, this is due to the filter job
+                        returning no results. See the information events for more information.
+          * failed - The job failed to be processed, See error events for more information
       downloads:
         $ref: '#/definitions/Downloads'
       events:
