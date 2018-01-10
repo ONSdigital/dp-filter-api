@@ -14,6 +14,7 @@ type Config struct {
 	Host                       string        `envconfig:"HOST"`
 	KafkaMaxBytes              string        `envconfig:"KAFKA_MAX_BYTES"`
 	MongoDBURL                 string        `envconfig:"MONGODB_BIND_ADDR"`
+	MongoDatabase              string        `envconfig:"MONGODB_FILTERS_DATABASE"`
 	SecretKey                  string        `envconfig:"SECRET_KEY"`
 	ShutdownTimeout            time.Duration `envconfig:"SHUTDOWN_TIMEOUT"`
 	DatasetAPIURL              string        `envconfig:"DATASET_API_URL"`
@@ -37,6 +38,7 @@ func Get() (*Config, error) {
 		FilterOutputSubmittedTopic: "filter-job-submitted",
 		KafkaMaxBytes:              "2000000",
 		MongoDBURL:                 "localhost:27017",
+		MongoDatabase:              "filters",
 		SecretKey:                  "FD0108EA-825D-411C-9B1D-41EF7727F465",
 		ShutdownTimeout:            5 * time.Second,
 		DatasetAPIURL:              "http://localhost:22000",

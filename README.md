@@ -25,6 +25,7 @@ dp-filter-api
 | FILTER_JOB_SUBMITTED_TOPIC | filter-job-submitted                      | The kafka topic to write messages to
 | KAFKA_MAX_BYTES            | 2000000                                   | The maximum permitted size of a message. Should be set equal to or smaller than the broker's `message.max.bytes`
 | MONGODB_BIND_ADDR          | localhost:27017                           | URL to a mongodb services
+| MONGODB_FILTERS_DATABASE   | "filters"                               | The mongodb database to store filters
 | SECRET_KEY                 | FD0108EA-825D-411C-9B1D-41EF7727F465      | A secret key used authentication
 | SHUTDOWN_TIMEOUT           | 5                                         | The graceful shutdown timeout in seconds
 | DATASET_API_URL            | http://localhost:22000                    | The URL of the Dataset API

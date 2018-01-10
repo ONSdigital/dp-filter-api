@@ -12,7 +12,6 @@ import (
 
 //Database variables
 const (
-	database                = "filters"
 	filtersCollection       = "filters"
 	filterOutputsCollection = "filterOutputs"
 )
@@ -40,17 +39,18 @@ var (
 
 // FilterStore containing all filter jobs stored in mongodb
 type FilterStore struct {
-	Session *mgo.Session
-	host    string
+	Database string
+	Session  *mgo.Session
+	host     string
 }
 
 // CreateFilterStore which can store, update and fetch filter jobs
-func CreateFilterStore(url, host string) (*FilterStore, error) {
+func CreateFilterStore(url, host, database string) (*FilterStore, error) {
 	session, err := mgo.Dial(url)
 	if err != nil {
 		return nil, err
 	}
-	return &FilterStore{Session: session, host: host}, nil
+	return &FilterStore{Session: session, host: host, Database: database}, nil
 }
 
 // AddFilter to the data store
@@ -58,7 +58,7 @@ func (s *FilterStore) AddFilter(host string, filter *models.Filter) (*models.Fil
 	session := s.Session.Copy()
 	defer session.Close()
 
-	if err := session.DB(database).C(filtersCollection).Insert(filter); err != nil {
+	if err := session.DB(s.Database).C(filtersCollection).Insert(filter); err != nil {
 		return nil, err
 	}
 
@@ -74,7 +74,7 @@ func (s *FilterStore) GetFilter(filterID string) (*models.Filter, error) {
 	query := bson.M{"filter_id": filterID}
 	var result models.Filter
 
-	if err := session.DB(database).C(filtersCollection).Find(query).One(&result); err != nil {
+	if err := session.DB(s.Database).C(filtersCollection).Find(query).One(&result); err != nil {
 		if err == mgo.ErrNotFound {
 			return nil, errNotFound
 		}
@@ -93,7 +93,7 @@ func (s *FilterStore) UpdateFilter(updatedFilter *models.Filter) error {
 	update := createUpdateFilterBlueprint(updatedFilter, time.Now())
 
 	selector := bson.M{"filter_id": updatedFilter.FilterID}
-	if err := session.DB(database).C(filtersCollection).Update(selector, update); err != nil {
+	if err := session.DB(s.Database).C(filtersCollection).Update(selector, update); err != nil {
 		if err == mgo.ErrNotFound {
 			return errNotFound
 		}
@@ -112,7 +112,7 @@ func (s *FilterStore) GetFilterDimensions(filterID string) ([]models.Dimension, 
 	dimensionSelect := bson.M{"dimensions": 1}
 	var result models.Filter
 
-	if err := session.DB(database).C(filtersCollection).Find(query).Select(dimensionSelect).One(&result); err != nil {
+	if err := session.DB(s.Database).C(filtersCollection).Find(query).Select(dimensionSelect).One(&result); err != nil {
 		if err == mgo.ErrNotFound {
 			return nil, errNotFound
 		}
@@ -132,14 +132,14 @@ func (s *FilterStore) GetFilterDimension(filterID string, name string) error {
 	dimensionSelect := bson.M{"dimensions": 1}
 	var result models.Filter
 
-	if err := session.DB(database).C(filtersCollection).Find(queryFilter).Select(dimensionSelect).One(&result); err != nil {
+	if err := session.DB(s.Database).C(filtersCollection).Find(queryFilter).Select(dimensionSelect).One(&result); err != nil {
 		if err == mgo.ErrNotFound {
 			return errFilterBadRequest
 		}
 		return err
 	}
 
-	if err := session.DB(database).C(filtersCollection).Find(queryDimension).Select(dimensionSelect).One(&result); err != nil {
+	if err := session.DB(s.Database).C(filtersCollection).Find(queryDimension).Select(dimensionSelect).One(&result); err != nil {
 		if err == mgo.ErrNotFound {
 			return errDimensionNotFound
 		}
@@ -182,7 +182,7 @@ func (s *FilterStore) AddFilterDimension(dimension *models.AddDimension) error {
 	queryFilter := bson.M{"filter_id": dimension.FilterID}
 	update := bson.M{"$set": bson.M{"dimensions": list}}
 
-	if err := session.DB(database).C(filtersCollection).Update(queryFilter, update); err != nil {
+	if err := session.DB(s.Database).C(filtersCollection).Update(queryFilter, update); err != nil {
 		if err == mgo.ErrNotFound {
 			return errNotFound
 		}
@@ -207,7 +207,7 @@ func (s *FilterStore) RemoveFilterDimension(filterID string, name string) error 
 	queryFilter := bson.M{"filter_id": filterID}
 	update := bson.M{"$pull": bson.M{"dimensions": bson.M{"name": name}}}
 
-	info, err := session.DB(database).C(filtersCollection).UpdateAll(queryFilter, update)
+	info, err := session.DB(s.Database).C(filtersCollection).UpdateAll(queryFilter, update)
 	if err != nil {
 		if err == mgo.ErrNotFound {
 			return errNotFound
@@ -237,7 +237,7 @@ func (s *FilterStore) AddFilterDimensionOption(newOption *models.AddDimensionOpt
 	queryOptions := bson.M{"filter_id": newOption.FilterID, "dimensions": bson.M{"$elemMatch": bson.M{"name": newOption.Name}}}
 	update := bson.M{"$addToSet": bson.M{"dimensions.$.options": newOption.Option}}
 
-	if err := session.DB(database).C(filtersCollection).Update(queryOptions, update); err != nil {
+	if err := session.DB(s.Database).C(filtersCollection).Update(queryOptions, update); err != nil {
 		if err == mgo.ErrNotFound {
 			return errDimensionNotFound
 		}
@@ -255,7 +255,7 @@ func (s *FilterStore) GetFilterDimensionOptions(filterID string, name string) ([
 	queryFilter := bson.M{"filter_id": filterID}
 	var result models.Filter
 
-	if err := session.DB(database).C(filtersCollection).Find(queryFilter).One(&result); err != nil {
+	if err := session.DB(s.Database).C(filtersCollection).Find(queryFilter).One(&result); err != nil {
 		if err == mgo.ErrNotFound {
 			return nil, errFilterBadRequest
 		}
@@ -288,7 +288,7 @@ func (s *FilterStore) GetFilterDimensionOption(filterID string, name string, opt
 	dimensionSelect := bson.M{"dimensions": 1}
 	var result models.Filter
 
-	if err := session.DB(database).C(filtersCollection).Find(queryDimension).Select(dimensionSelect).One(&result); err != nil {
+	if err := session.DB(s.Database).C(filtersCollection).Find(queryDimension).Select(dimensionSelect).One(&result); err != nil {
 		if err == mgo.ErrNotFound {
 			return errFilterOrDimensionNotFound
 		}
@@ -339,7 +339,7 @@ func (s *FilterStore) RemoveFilterDimensionOption(filterID string, name string, 
 	queryOptions := bson.M{"filter_id": filterID, "dimensions": bson.M{"$elemMatch": bson.M{"name": name}}}
 	update := bson.M{"$pull": bson.M{"dimensions.$.options": option}}
 
-	info, err := session.DB(database).C(filtersCollection).UpdateAll(queryOptions, update)
+	info, err := session.DB(s.Database).C(filtersCollection).UpdateAll(queryOptions, update)
 	if err != nil {
 		if err == mgo.ErrNotFound {
 			return errOptionNotFound
@@ -360,7 +360,7 @@ func (s *FilterStore) CreateFilterOutput(filter *models.Filter) error {
 	session := s.Session.Copy()
 	defer session.Close()
 
-	if err := session.DB(database).C(filterOutputsCollection).Insert(filter); err != nil {
+	if err := session.DB(s.Database).C(filterOutputsCollection).Insert(filter); err != nil {
 		return err
 	}
 
@@ -375,7 +375,7 @@ func (s *FilterStore) GetFilterOutput(filterID string) (*models.Filter, error) {
 	query := bson.M{"filter_id": filterID}
 	var result *models.Filter
 
-	if err := session.DB(database).C(filterOutputsCollection).Find(query).One(&result); err != nil {
+	if err := session.DB(s.Database).C(filterOutputsCollection).Find(query).One(&result); err != nil {
 		if err == mgo.ErrNotFound {
 			return nil, errFilterOutputNotFound
 		}
@@ -393,7 +393,7 @@ func (s *FilterStore) UpdateFilterOutput(filter *models.Filter) error {
 
 	update := createUpdateFilterOutput(filter, time.Now())
 
-	if err := session.DB(database).C(filterOutputsCollection).
+	if err := session.DB(s.Database).C(filterOutputsCollection).
 		Update(bson.M{"filter_id": filter.FilterID}, update); err != nil {
 		return err
 	}

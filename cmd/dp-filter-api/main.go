@@ -40,7 +40,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	dataStore, err := mongo.CreateFilterStore(cfg.MongoDBURL, cfg.Host)
+	dataStore, err := mongo.CreateFilterStore(cfg.MongoDBURL, cfg.Host, cfg.MongoDatabase)
 	if err != nil {
 		log.ErrorC("could not connect to mongodb", err, nil)
 		os.Exit(1)
