@@ -10,6 +10,7 @@ import (
 	"net/url"
 
 	"github.com/ONSdigital/dp-filter-api/models"
+	datasetclient "github.com/ONSdigital/go-ns/clients/dataset"
 	"github.com/ONSdigital/go-ns/log"
 	"github.com/ONSdigital/go-ns/rchttp"
 )
@@ -169,6 +170,11 @@ func (api *API) callDatasetAPI(ctx context.Context, method, path string, payload
 	}
 
 	return jsonBody, resp.StatusCode, nil
+}
+
+// GetHealthCheckClient returns a healthcheck-compatible client
+func (api *API) GetHealthCheckClient() *datasetclient.Client {
+	return datasetclient.New(api.url)
 }
 
 func handleError(httpCode int, err error, typ string) error {
