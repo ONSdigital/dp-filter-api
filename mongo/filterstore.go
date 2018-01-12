@@ -11,12 +11,6 @@ import (
 	"gopkg.in/mgo.v2/bson"
 )
 
-// Filter job states
-const (
-	submitted = "submitted"
-	completed = "completed"
-)
-
 // Error codes
 var (
 	errNotAuthorised = errors.New("Not authorised")
@@ -422,7 +416,7 @@ func createUpdateFilterBlueprint(filter *models.Filter, currentTime time.Time) b
 func createUpdateFilterOutput(filter *models.Filter, currentTime time.Time) bson.M {
 
 	var downloads models.Downloads
-	state := "created"
+	state := models.CreatedState
 	var update bson.M
 	if filter.Downloads != nil {
 		if filter.Downloads.XLS.URL != "" {
@@ -448,7 +442,7 @@ func createUpdateFilterOutput(filter *models.Filter, currentTime time.Time) bson
 			"$set": bson.M{
 				"downloads": downloads,
 				"events":    filter.Events,
-				"state":     completed,
+				"state":     models.CompletedState,
 			},
 			"$setOnInsert": bson.M{
 				"last_updated": currentTime,
@@ -476,7 +470,7 @@ func (s *FilterStore) checkFilterState(filterID string) error {
 		return err
 	}
 
-	if filter.State == submitted {
+	if filter.State == models.SubmittedState {
 		return errForbidden
 	}
 

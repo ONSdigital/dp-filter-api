@@ -9,6 +9,12 @@ import (
 	"time"
 )
 
+const (
+	CreatedState   = "created"
+	SubmittedState = "submitted"
+	CompletedState = "completed"
+)
+
 // Filter represents a structure for a filter job
 type Filter struct {
 	InstanceID  string      `bson:"instance_id"          json:"instance_id"`

@@ -556,7 +556,7 @@ func (api *FilterAPI) updateFilterOutput(w http.ResponseWriter, r *http.Request)
 func (api *FilterAPI) createFilterOutputResource(newFilter *models.Filter, filterBlueprintID string) models.Filter {
 	filterOutput := *newFilter
 	filterOutput.FilterID = uuid.NewV4().String()
-	filterOutput.State = "created"
+	filterOutput.State = models.CreatedState
 	filterOutput.Links.Self.HRef = fmt.Sprintf("%s/filter-outputs/%s", api.host, filterOutput.FilterID)
 	filterOutput.Links.Dimensions.HRef = ""
 	filterOutput.Links.FilterBlueprint.HRef = fmt.Sprintf("%s/filters/%s", api.host, filterBlueprintID)
