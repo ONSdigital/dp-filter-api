@@ -13,6 +13,8 @@ build:
 	go build -o $(BUILD_ARCH)/$(BIN_DIR)/dp-filter-api cmd/$(MAIN)/main.go
 debug: build
 	HUMAN_LOG=1 go run -race cmd/$(MAIN)/main.go
+acceptance: build
+	 MONGODB_FILTERS_DATABASE=test HUMAN_LOG=1 go run -race cmd/$(MAIN)/main.go
 test:
 	go test -cover $(shell go list ./... | grep -v /vendor/)
 .PHONY: build debug test
