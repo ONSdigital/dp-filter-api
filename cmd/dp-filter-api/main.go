@@ -10,7 +10,6 @@ import (
 
 	"github.com/ONSdigital/dp-filter-api/api"
 	"github.com/ONSdigital/dp-filter-api/config"
-	"github.com/ONSdigital/dp-filter-api/dataset"
 	"github.com/ONSdigital/dp-filter-api/filterOutputQueue"
 	"github.com/ONSdigital/dp-filter-api/mongo"
 	"github.com/ONSdigital/dp-filter-api/preview"
@@ -65,7 +64,7 @@ func main() {
 	}
 
 	client := rchttp.DefaultClient
-	datasetAPI := dataset.NewDatasetAPI(client, cfg.DatasetAPIURL, cfg.DatasetAPIAuthToken)
+	datasetAPI := api.NewDatasetAPI(client, cfg.DatasetAPIURL, cfg.DatasetAPIAuthToken)
 
 	observationStore := observation.NewStore(pool)
 	previewDatasets := preview.DatasetStore{Store: observationStore}

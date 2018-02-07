@@ -15,4 +15,8 @@ debug: build
 	HUMAN_LOG=1 go run -race cmd/$(MAIN)/main.go
 test:
 	go test -cover $(shell go list ./... | grep -v /vendor/)
+
+test-api:
+	MONGODB_DATABASE="test" go run cmd/$(MAIN)/main.go
+
 .PHONY: build debug test

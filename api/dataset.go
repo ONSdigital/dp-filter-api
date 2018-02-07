@@ -17,7 +17,7 @@ import (
 
 // DatasetAPIer - An interface used to access the DatasetAPI
 type DatasetAPIer interface {
-	GetInstance(ctx context.Context, instanceID string) (*models.Instance, error)
+	GetInstance(ctx context.Context, instanceID string, isAuthenticated bool) (*models.Instance, error)
 	GetVersionDimensions(ctx context.Context, datasetID, edition, version string) (*models.DatasetDimensionResults, error)
 	GetVersionDimensionOptions(ctx context.Context, datasetID, edition, version, dimension string) (*models.DatasetDimensionOptionResults, error)
 }
@@ -49,7 +49,7 @@ var (
 )
 
 // GetInstance queries the Dataset API to get an instance
-func (api *DatasetAPI) GetInstance(ctx context.Context, instanceID string) (instance *models.Instance, err error) {
+func (api *DatasetAPI) GetInstance(ctx context.Context, instanceID string, isAuthenticated bool) (instance *models.Instance, err error) {
 	path := api.url + "/instances/" + instanceID
 	logData := log.Data{"func": "GetInstance", "URL": path, "instance_id": instanceID}
 
@@ -70,7 +70,9 @@ func (api *DatasetAPI) GetInstance(ctx context.Context, instanceID string) (inst
 	// External facing customers should NOT be able to filter an unpublished instance
 	// TODO If authorised (internal user or precanned results) should be able to filter
 	// instances which have a state of edition-confirmed, associated and published
-	if instance.State != publishedState {
+
+	if instance.State != publishedState && !isAuthenticated {
+		log.Error(errors.New("invalid authorization, returning not found status"), log.Data{"instance_id": instanceID})
 		return instance, ErrorInstanceNotFound
 	}
 
