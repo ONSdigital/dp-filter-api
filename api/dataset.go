@@ -40,10 +40,10 @@ func NewDatasetAPI(client *rchttp.Client, datasetAPIURL, datasetAPIAuthToken str
 
 // A list of errors that the dataset package could return
 var (
-	ErrorUnexpectedStatusCode     = errors.New("unexpected status code from api")
-	ErrorInstanceNotFound         = errors.New("Instance not found")
-	ErrorDimensionNotFound        = errors.New("Dimension not found")
-	ErrorDimensionOptionsNotFound = errors.New("Dimension options not found")
+	ErrUnexpectedStatusCode     = errors.New("unexpected status code from api")
+	ErrInstanceNotFound         = errors.New("Instance not found")
+	ErrDimensionNotFound        = errors.New("Dimension not found")
+	ErrDimensionOptionsNotFound = errors.New("Dimension options not found")
 
 	publishedState = "published"
 )
@@ -73,7 +73,7 @@ func (api *DatasetAPI) GetInstance(ctx context.Context, instanceID string, isAut
 
 	if instance.State != publishedState && !isAuthenticated {
 		log.Error(errors.New("invalid authorization, returning not found status"), log.Data{"instance_id": instanceID})
-		return instance, ErrorInstanceNotFound
+		return instance, ErrInstanceNotFound
 	}
 
 	return
@@ -169,7 +169,7 @@ func (api *DatasetAPI) callDatasetAPI(ctx context.Context, method, path string, 
 
 	logData["httpCode"] = resp.StatusCode
 	if resp.StatusCode < http.StatusOK || resp.StatusCode >= 300 {
-		return nil, resp.StatusCode, ErrorUnexpectedStatusCode
+		return nil, resp.StatusCode, ErrUnexpectedStatusCode
 	}
 
 	jsonBody, err := ioutil.ReadAll(resp.Body)
@@ -187,16 +187,16 @@ func (api *DatasetAPI) GetHealthCheckClient() *dataset.Client {
 }
 
 func handleError(httpCode int, err error, typ string) error {
-	if err == ErrorUnexpectedStatusCode {
+	if err == ErrUnexpectedStatusCode {
 		switch httpCode {
 		case http.StatusNotFound:
 			if typ == "dimension" {
-				return ErrorDimensionNotFound
+				return ErrDimensionNotFound
 			}
 			if typ == "dimension option" {
-				return ErrorDimensionOptionsNotFound
+				return ErrDimensionOptionsNotFound
 			}
-			return ErrorInstanceNotFound
+			return ErrInstanceNotFound
 		}
 	}
 
