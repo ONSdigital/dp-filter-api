@@ -51,15 +51,17 @@ func (api *FilterAPI) addFilterBlueprint(w http.ResponseWriter, r *http.Request)
 	}
 
 	// add version information from datasetAPI
-	auth := api.isAuthenticated(r.Header.Get(internalToken))
-	instance, err := api.datasetAPI.GetInstance(r.Context(), newFilter.InstanceID, auth)
+	header := r.Header.Get(internalToken)
+	ctx := context.WithValue(r.Context(), internalToken, header)
+	auth := api.isAuthenticated(header)
+	instance, err := api.datasetAPI.GetInstance(ctx, newFilter.InstanceID, auth)
 	if err != nil {
 		log.Error(err, log.Data{"new_filter": newFilter})
 		setErrorCode(w, err)
 		return
 	}
 
-	if err = api.checkFilterOptions(r.Context(), newFilter, instance); err != nil {
+	if err = api.checkFilterOptions(ctx, newFilter, instance); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
