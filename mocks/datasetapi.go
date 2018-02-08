@@ -23,7 +23,7 @@ var (
 )
 
 // GetInstance represents the mocked version of getting an instance document from dataset API
-func (ds *DatasetAPI) GetInstance(ctx context.Context, id string, isAuthenticated bool) (*models.Instance, error) {
+func (ds *DatasetAPI) GetInstance(ctx context.Context, id string) (*models.Instance, error) {
 	if ds.InternalServerError {
 		return nil, errorInternalServer
 	}

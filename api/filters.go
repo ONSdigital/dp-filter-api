@@ -29,8 +29,6 @@ var (
 	incorrectDimensionOptions = regexp.MustCompile("Bad request - incorrect dimension options chosen")
 )
 
-const internalToken = "Internal-Token"
-
 func (api *FilterAPI) addFilterBlueprint(w http.ResponseWriter, r *http.Request) {
 	submitted := r.FormValue("submitted")
 
@@ -51,17 +49,14 @@ func (api *FilterAPI) addFilterBlueprint(w http.ResponseWriter, r *http.Request)
 	}
 
 	// add version information from datasetAPI
-	header := r.Header.Get(internalToken)
-	ctx := context.WithValue(r.Context(), internalToken, header)
-	auth := api.isAuthenticated(header)
-	instance, err := api.datasetAPI.GetInstance(ctx, newFilter.InstanceID, auth)
+	instance, err := api.datasetAPI.GetInstance(r.Context(), newFilter.InstanceID)
 	if err != nil {
 		log.Error(err, log.Data{"new_filter": newFilter})
 		setErrorCode(w, err)
 		return
 	}
 
-	if err = api.checkFilterOptions(ctx, newFilter, instance); err != nil {
+	if err = api.checkFilterOptions(r.Context(), newFilter, instance); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -242,8 +237,7 @@ func (api *FilterAPI) addFilterBlueprintDimension(w http.ResponseWriter, r *http
 	}
 
 	// get instance to retrieve dataset id, edition and version
-	auth := api.isAuthenticated(r.Header.Get(internalToken))
-	instance, err := api.datasetAPI.GetInstance(r.Context(), filterBlueprint.InstanceID, auth)
+	instance, err := api.datasetAPI.GetInstance(r.Context(), filterBlueprint.InstanceID)
 	if err != nil {
 		log.Error(err, log.Data{"filter_blueprint_id": addDimension.FilterID, "instance_id": filterBlueprint.InstanceID})
 		setErrorCode(w, err, statusUnprocessableEntity)
@@ -336,8 +330,7 @@ func (api *FilterAPI) addFilterBlueprintDimensionOption(w http.ResponseWriter, r
 	}
 
 	// get instance to retrieve dataset id, edition and version
-	auth := api.isAuthenticated(r.Header.Get(internalToken))
-	instance, err := api.datasetAPI.GetInstance(r.Context(), filterBlueprint.InstanceID, auth)
+	instance, err := api.datasetAPI.GetInstance(r.Context(), filterBlueprint.InstanceID)
 	if err != nil {
 		log.Error(err, log.Data{"filter_blueprint_id": addDimensionOption.FilterID, "instance_id": filterBlueprint.InstanceID})
 		setErrorCode(w, err, statusUnprocessableEntity)
@@ -405,8 +398,7 @@ func (api *FilterAPI) updateFilterBlueprint(w http.ResponseWriter, r *http.Reque
 	if filter.InstanceID != "" {
 
 		// add version information from datasetAPI for new instance
-		auth := api.isAuthenticated(r.Header.Get(internalToken))
-		instance, err := api.datasetAPI.GetInstance(r.Context(), newFilter.InstanceID, auth)
+		instance, err := api.datasetAPI.GetInstance(r.Context(), newFilter.InstanceID)
 		if err != nil {
 			log.Error(err, log.Data{"new_filter": newFilter})
 			setErrorCode(w, err, statusBadRequest)
@@ -506,7 +498,7 @@ func (api *FilterAPI) updateFilterOutput(w http.ResponseWriter, r *http.Request)
 	vars := mux.Vars(r)
 	filterOutputID := vars["filter_output_id"]
 
-	if !api.isAuthenticated(r.Header.Get(internalToken)) {
+	if r.Context().Value(internalToken) != true {
 		err := errors.New("Not authorised")
 		log.Error(err, log.Data{"filter_output_id": filterOutputID})
 		setErrorCode(w, err)
@@ -652,14 +644,6 @@ func (api *FilterAPI) getFilterOutputPreview(w http.ResponseWriter, r *http.Requ
 	}
 
 	log.Info("preview filter output", log.Data{"filter_output_id": filterID, "limit": limit, "dimensions": filterOutput.Dimensions})
-}
-
-func (api *FilterAPI) isAuthenticated(header string) bool {
-	if header == api.internalToken {
-		return true
-	}
-
-	return false
 }
 
 func (api *FilterAPI) checkFilterOptions(ctx context.Context, newFilter *models.Filter, instance *models.Instance) error {
