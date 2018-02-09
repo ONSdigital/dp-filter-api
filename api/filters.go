@@ -29,8 +29,6 @@ var (
 	incorrectDimensionOptions = regexp.MustCompile("Bad request - incorrect dimension options chosen")
 )
 
-const internalToken = "Internal-Token"
-
 func (api *FilterAPI) addFilterBlueprint(w http.ResponseWriter, r *http.Request) {
 	submitted := r.FormValue("submitted")
 
@@ -500,19 +498,10 @@ func (api *FilterAPI) updateFilterOutput(w http.ResponseWriter, r *http.Request)
 	vars := mux.Vars(r)
 	filterOutputID := vars["filter_output_id"]
 
-	authenticationHeader := r.Header.Get(internalToken)
-
-	isAuthenticated, err := api.checkAuthentication(authenticationHeader)
-	if err != nil {
-		log.Error(err, log.Data{"filter_output_id": filterOutputID})
-		setErrorCode(w, err)
-		return
-	}
-
-	if !isAuthenticated {
+	if r.Context().Value(internalToken) != true {
 		err := errors.New("Not authorised")
 		log.Error(err, log.Data{"filter_output_id": filterOutputID})
-		http.Error(w, unauthorised, http.StatusUnauthorized)
+		setErrorCode(w, err)
 		return
 	}
 
@@ -655,15 +644,6 @@ func (api *FilterAPI) getFilterOutputPreview(w http.ResponseWriter, r *http.Requ
 	}
 
 	log.Info("preview filter output", log.Data{"filter_output_id": filterID, "limit": limit, "dimensions": filterOutput.Dimensions})
-}
-
-func (api *FilterAPI) checkAuthentication(header string) (bool, error) {
-	if header != api.internalToken {
-		authorisationError := errors.New("Not authorised")
-		return false, authorisationError
-	}
-
-	return true, nil
 }
 
 func (api *FilterAPI) checkFilterOptions(ctx context.Context, newFilter *models.Filter, instance *models.Instance) error {
