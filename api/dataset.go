@@ -70,7 +70,7 @@ func (api *DatasetAPI) GetInstance(ctx context.Context, instanceID string) (inst
 	// External facing customers should NOT be able to filter an unpublished instance
 	if instance.State != publishedState && ctx.Value(internalToken) != true {
 		log.Error(errors.New("invalid authorization, returning not found status"), log.Data{"instance_id": instanceID})
-		return instance, ErrInstanceNotFound
+		return nil, ErrInstanceNotFound
 	}
 
 	return
