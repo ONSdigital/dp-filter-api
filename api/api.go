@@ -64,7 +64,7 @@ func routes(secretKey, host string, router *mux.Router, dataStore DataStore, out
 
 	api.router.HandleFunc("/filters", a.authenticate(api.addFilterBlueprint)).Methods("POST")
 	api.router.HandleFunc("/filters/{filter_blueprint_id}", api.getFilterBlueprint).Methods("GET")
-	api.router.HandleFunc("/filters/{filter_blueprint_id}", api.updateFilterBlueprint).Methods("PUT")
+	api.router.HandleFunc("/filters/{filter_blueprint_id}", a.authenticate(api.updateFilterBlueprint)).Methods("PUT")
 	api.router.HandleFunc("/filters/{filter_blueprint_id}/dimensions", api.getFilterBlueprintDimensions).Methods("GET")
 	api.router.HandleFunc("/filters/{filter_blueprint_id}/dimensions/{name}", api.getFilterBlueprintDimension).Methods("GET")
 	api.router.HandleFunc("/filters/{filter_blueprint_id}/dimensions/{name}", a.authenticate(api.addFilterBlueprintDimension)).Methods("POST")
