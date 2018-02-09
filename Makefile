@@ -11,8 +11,10 @@ export GOARCH?=$(shell go env GOARCH)
 build:
 	@mkdir -p $(BUILD_ARCH)/$(BIN_DIR)
 	go build -o $(BUILD_ARCH)/$(BIN_DIR)/dp-filter-api cmd/$(MAIN)/main.go
-debug: build
+debug:
 	HUMAN_LOG=1 go run -race cmd/$(MAIN)/main.go
+acceptance:
+	 MONGODB_FILTERS_DATABASE=test HUMAN_LOG=1 go run -race cmd/$(MAIN)/main.go
 test:
 	go test -cover $(shell go list ./... | grep -v /vendor/)
-.PHONY: build debug test
+.PHONY: build debug acceptance test
