@@ -154,13 +154,14 @@ func (api *DatasetAPI) callDatasetAPI(ctx context.Context, method, path string, 
 			logData["payload"] = payload.(url.Values)
 		}
 	}
+
 	// check req, above, didn't error
 	if err != nil {
 		log.ErrorC("failed to create request for dataset api", err, logData)
 		return nil, 0, err
 	}
 
-	req.Header.Set("Internal-token", api.authToken)
+	req.WithContext(ctx)
 	resp, err := api.client.Do(ctx, req)
 	if err != nil {
 		log.ErrorC("Failed to action dataset api", err, logData)

@@ -15,12 +15,10 @@ var (
 	lockDataStoreMockCreateFilterOutput          sync.RWMutex
 	lockDataStoreMockGetFilter                   sync.RWMutex
 	lockDataStoreMockGetFilterDimension          sync.RWMutex
-	lockDataStoreMockGetFilterDimensionOption    sync.RWMutex
-	lockDataStoreMockGetFilterDimensionOptions   sync.RWMutex
-	lockDataStoreMockGetFilterDimensions         sync.RWMutex
 	lockDataStoreMockGetFilterOutput             sync.RWMutex
 	lockDataStoreMockRemoveFilterDimension       sync.RWMutex
 	lockDataStoreMockRemoveFilterDimensionOption sync.RWMutex
+	lockDataStoreMockSetPublished                sync.RWMutex
 	lockDataStoreMockUpdateFilter                sync.RWMutex
 	lockDataStoreMockUpdateFilterOutput          sync.RWMutex
 )
@@ -34,10 +32,10 @@ var (
 //             AddFilterFunc: func(host string, filter *models.Filter) (*models.Filter, error) {
 // 	               panic("TODO: mock out the AddFilter method")
 //             },
-//             AddFilterDimensionFunc: func(in1 *models.AddDimension) error {
+//             AddFilterDimensionFunc: func(filterID string, name string, options []string, dimensions []models.Dimension) error {
 // 	               panic("TODO: mock out the AddFilterDimension method")
 //             },
-//             AddFilterDimensionOptionFunc: func(in1 *models.AddDimensionOption) error {
+//             AddFilterDimensionOptionFunc: func(filterID string, name string, option string) error {
 // 	               panic("TODO: mock out the AddFilterDimensionOption method")
 //             },
 //             CreateFilterOutputFunc: func(filter *models.Filter) error {
@@ -49,15 +47,6 @@ var (
 //             GetFilterDimensionFunc: func(filterID string, name string) error {
 // 	               panic("TODO: mock out the GetFilterDimension method")
 //             },
-//             GetFilterDimensionOptionFunc: func(filterID string, name string, option string) error {
-// 	               panic("TODO: mock out the GetFilterDimensionOption method")
-//             },
-//             GetFilterDimensionOptionsFunc: func(filterID string, name string) ([]models.DimensionOption, error) {
-// 	               panic("TODO: mock out the GetFilterDimensionOptions method")
-//             },
-//             GetFilterDimensionsFunc: func(filterID string) ([]models.Dimension, error) {
-// 	               panic("TODO: mock out the GetFilterDimensions method")
-//             },
 //             GetFilterOutputFunc: func(filterOutputID string) (*models.Filter, error) {
 // 	               panic("TODO: mock out the GetFilterOutput method")
 //             },
@@ -66,6 +55,9 @@ var (
 //             },
 //             RemoveFilterDimensionOptionFunc: func(filterID string, name string, option string) error {
 // 	               panic("TODO: mock out the RemoveFilterDimensionOption method")
+//             },
+//             SetPublishedFunc: func(filterID string) error {
+// 	               panic("TODO: mock out the SetPublished method")
 //             },
 //             UpdateFilterFunc: func(filter *models.Filter) error {
 // 	               panic("TODO: mock out the UpdateFilter method")
@@ -84,10 +76,10 @@ type DataStoreMock struct {
 	AddFilterFunc func(host string, filter *models.Filter) (*models.Filter, error)
 
 	// AddFilterDimensionFunc mocks the AddFilterDimension method.
-	AddFilterDimensionFunc func(in1 *models.AddDimension) error
+	AddFilterDimensionFunc func(filterID string, name string, options []string, dimensions []models.Dimension) error
 
 	// AddFilterDimensionOptionFunc mocks the AddFilterDimensionOption method.
-	AddFilterDimensionOptionFunc func(in1 *models.AddDimensionOption) error
+	AddFilterDimensionOptionFunc func(filterID string, name string, option string) error
 
 	// CreateFilterOutputFunc mocks the CreateFilterOutput method.
 	CreateFilterOutputFunc func(filter *models.Filter) error
@@ -98,15 +90,6 @@ type DataStoreMock struct {
 	// GetFilterDimensionFunc mocks the GetFilterDimension method.
 	GetFilterDimensionFunc func(filterID string, name string) error
 
-	// GetFilterDimensionOptionFunc mocks the GetFilterDimensionOption method.
-	GetFilterDimensionOptionFunc func(filterID string, name string, option string) error
-
-	// GetFilterDimensionOptionsFunc mocks the GetFilterDimensionOptions method.
-	GetFilterDimensionOptionsFunc func(filterID string, name string) ([]models.DimensionOption, error)
-
-	// GetFilterDimensionsFunc mocks the GetFilterDimensions method.
-	GetFilterDimensionsFunc func(filterID string) ([]models.Dimension, error)
-
 	// GetFilterOutputFunc mocks the GetFilterOutput method.
 	GetFilterOutputFunc func(filterOutputID string) (*models.Filter, error)
 
@@ -115,6 +98,9 @@ type DataStoreMock struct {
 
 	// RemoveFilterDimensionOptionFunc mocks the RemoveFilterDimensionOption method.
 	RemoveFilterDimensionOptionFunc func(filterID string, name string, option string) error
+
+	// SetPublishedFunc mocks the SetPublished method.
+	SetPublishedFunc func(filterID string) error
 
 	// UpdateFilterFunc mocks the UpdateFilter method.
 	UpdateFilterFunc func(filter *models.Filter) error
@@ -133,13 +119,23 @@ type DataStoreMock struct {
 		}
 		// AddFilterDimension holds details about calls to the AddFilterDimension method.
 		AddFilterDimension []struct {
-			// In1 is the in1 argument value.
-			In1 *models.AddDimension
+			// FilterID is the filterID argument value.
+			FilterID string
+			// Name is the name argument value.
+			Name string
+			// Options is the options argument value.
+			Options []string
+			// Dimensions is the dimensions argument value.
+			Dimensions []models.Dimension
 		}
 		// AddFilterDimensionOption holds details about calls to the AddFilterDimensionOption method.
 		AddFilterDimensionOption []struct {
-			// In1 is the in1 argument value.
-			In1 *models.AddDimensionOption
+			// FilterID is the filterID argument value.
+			FilterID string
+			// Name is the name argument value.
+			Name string
+			// Option is the option argument value.
+			Option string
 		}
 		// CreateFilterOutput holds details about calls to the CreateFilterOutput method.
 		CreateFilterOutput []struct {
@@ -157,27 +153,6 @@ type DataStoreMock struct {
 			FilterID string
 			// Name is the name argument value.
 			Name string
-		}
-		// GetFilterDimensionOption holds details about calls to the GetFilterDimensionOption method.
-		GetFilterDimensionOption []struct {
-			// FilterID is the filterID argument value.
-			FilterID string
-			// Name is the name argument value.
-			Name string
-			// Option is the option argument value.
-			Option string
-		}
-		// GetFilterDimensionOptions holds details about calls to the GetFilterDimensionOptions method.
-		GetFilterDimensionOptions []struct {
-			// FilterID is the filterID argument value.
-			FilterID string
-			// Name is the name argument value.
-			Name string
-		}
-		// GetFilterDimensions holds details about calls to the GetFilterDimensions method.
-		GetFilterDimensions []struct {
-			// FilterID is the filterID argument value.
-			FilterID string
 		}
 		// GetFilterOutput holds details about calls to the GetFilterOutput method.
 		GetFilterOutput []struct {
@@ -199,6 +174,11 @@ type DataStoreMock struct {
 			Name string
 			// Option is the option argument value.
 			Option string
+		}
+		// SetPublished holds details about calls to the SetPublished method.
+		SetPublished []struct {
+			// FilterID is the filterID argument value.
+			FilterID string
 		}
 		// UpdateFilter holds details about calls to the UpdateFilter method.
 		UpdateFilter []struct {
@@ -249,29 +229,41 @@ func (mock *DataStoreMock) AddFilterCalls() []struct {
 }
 
 // AddFilterDimension calls AddFilterDimensionFunc.
-func (mock *DataStoreMock) AddFilterDimension(in1 *models.AddDimension) error {
+func (mock *DataStoreMock) AddFilterDimension(filterID string, name string, options []string, dimensions []models.Dimension) error {
 	if mock.AddFilterDimensionFunc == nil {
 		panic("moq: DataStoreMock.AddFilterDimensionFunc is nil but DataStore.AddFilterDimension was just called")
 	}
 	callInfo := struct {
-		In1 *models.AddDimension
+		FilterID   string
+		Name       string
+		Options    []string
+		Dimensions []models.Dimension
 	}{
-		In1: in1,
+		FilterID:   filterID,
+		Name:       name,
+		Options:    options,
+		Dimensions: dimensions,
 	}
 	lockDataStoreMockAddFilterDimension.Lock()
 	mock.calls.AddFilterDimension = append(mock.calls.AddFilterDimension, callInfo)
 	lockDataStoreMockAddFilterDimension.Unlock()
-	return mock.AddFilterDimensionFunc(in1)
+	return mock.AddFilterDimensionFunc(filterID, name, options, dimensions)
 }
 
 // AddFilterDimensionCalls gets all the calls that were made to AddFilterDimension.
 // Check the length with:
 //     len(mockedDataStore.AddFilterDimensionCalls())
 func (mock *DataStoreMock) AddFilterDimensionCalls() []struct {
-	In1 *models.AddDimension
+	FilterID   string
+	Name       string
+	Options    []string
+	Dimensions []models.Dimension
 } {
 	var calls []struct {
-		In1 *models.AddDimension
+		FilterID   string
+		Name       string
+		Options    []string
+		Dimensions []models.Dimension
 	}
 	lockDataStoreMockAddFilterDimension.RLock()
 	calls = mock.calls.AddFilterDimension
@@ -280,29 +272,37 @@ func (mock *DataStoreMock) AddFilterDimensionCalls() []struct {
 }
 
 // AddFilterDimensionOption calls AddFilterDimensionOptionFunc.
-func (mock *DataStoreMock) AddFilterDimensionOption(in1 *models.AddDimensionOption) error {
+func (mock *DataStoreMock) AddFilterDimensionOption(filterID string, name string, option string) error {
 	if mock.AddFilterDimensionOptionFunc == nil {
 		panic("moq: DataStoreMock.AddFilterDimensionOptionFunc is nil but DataStore.AddFilterDimensionOption was just called")
 	}
 	callInfo := struct {
-		In1 *models.AddDimensionOption
+		FilterID string
+		Name     string
+		Option   string
 	}{
-		In1: in1,
+		FilterID: filterID,
+		Name:     name,
+		Option:   option,
 	}
 	lockDataStoreMockAddFilterDimensionOption.Lock()
 	mock.calls.AddFilterDimensionOption = append(mock.calls.AddFilterDimensionOption, callInfo)
 	lockDataStoreMockAddFilterDimensionOption.Unlock()
-	return mock.AddFilterDimensionOptionFunc(in1)
+	return mock.AddFilterDimensionOptionFunc(filterID, name, option)
 }
 
 // AddFilterDimensionOptionCalls gets all the calls that were made to AddFilterDimensionOption.
 // Check the length with:
 //     len(mockedDataStore.AddFilterDimensionOptionCalls())
 func (mock *DataStoreMock) AddFilterDimensionOptionCalls() []struct {
-	In1 *models.AddDimensionOption
+	FilterID string
+	Name     string
+	Option   string
 } {
 	var calls []struct {
-		In1 *models.AddDimensionOption
+		FilterID string
+		Name     string
+		Option   string
 	}
 	lockDataStoreMockAddFilterDimensionOption.RLock()
 	calls = mock.calls.AddFilterDimensionOption
@@ -404,111 +404,6 @@ func (mock *DataStoreMock) GetFilterDimensionCalls() []struct {
 	lockDataStoreMockGetFilterDimension.RLock()
 	calls = mock.calls.GetFilterDimension
 	lockDataStoreMockGetFilterDimension.RUnlock()
-	return calls
-}
-
-// GetFilterDimensionOption calls GetFilterDimensionOptionFunc.
-func (mock *DataStoreMock) GetFilterDimensionOption(filterID string, name string, option string) error {
-	if mock.GetFilterDimensionOptionFunc == nil {
-		panic("moq: DataStoreMock.GetFilterDimensionOptionFunc is nil but DataStore.GetFilterDimensionOption was just called")
-	}
-	callInfo := struct {
-		FilterID string
-		Name     string
-		Option   string
-	}{
-		FilterID: filterID,
-		Name:     name,
-		Option:   option,
-	}
-	lockDataStoreMockGetFilterDimensionOption.Lock()
-	mock.calls.GetFilterDimensionOption = append(mock.calls.GetFilterDimensionOption, callInfo)
-	lockDataStoreMockGetFilterDimensionOption.Unlock()
-	return mock.GetFilterDimensionOptionFunc(filterID, name, option)
-}
-
-// GetFilterDimensionOptionCalls gets all the calls that were made to GetFilterDimensionOption.
-// Check the length with:
-//     len(mockedDataStore.GetFilterDimensionOptionCalls())
-func (mock *DataStoreMock) GetFilterDimensionOptionCalls() []struct {
-	FilterID string
-	Name     string
-	Option   string
-} {
-	var calls []struct {
-		FilterID string
-		Name     string
-		Option   string
-	}
-	lockDataStoreMockGetFilterDimensionOption.RLock()
-	calls = mock.calls.GetFilterDimensionOption
-	lockDataStoreMockGetFilterDimensionOption.RUnlock()
-	return calls
-}
-
-// GetFilterDimensionOptions calls GetFilterDimensionOptionsFunc.
-func (mock *DataStoreMock) GetFilterDimensionOptions(filterID string, name string) ([]models.DimensionOption, error) {
-	if mock.GetFilterDimensionOptionsFunc == nil {
-		panic("moq: DataStoreMock.GetFilterDimensionOptionsFunc is nil but DataStore.GetFilterDimensionOptions was just called")
-	}
-	callInfo := struct {
-		FilterID string
-		Name     string
-	}{
-		FilterID: filterID,
-		Name:     name,
-	}
-	lockDataStoreMockGetFilterDimensionOptions.Lock()
-	mock.calls.GetFilterDimensionOptions = append(mock.calls.GetFilterDimensionOptions, callInfo)
-	lockDataStoreMockGetFilterDimensionOptions.Unlock()
-	return mock.GetFilterDimensionOptionsFunc(filterID, name)
-}
-
-// GetFilterDimensionOptionsCalls gets all the calls that were made to GetFilterDimensionOptions.
-// Check the length with:
-//     len(mockedDataStore.GetFilterDimensionOptionsCalls())
-func (mock *DataStoreMock) GetFilterDimensionOptionsCalls() []struct {
-	FilterID string
-	Name     string
-} {
-	var calls []struct {
-		FilterID string
-		Name     string
-	}
-	lockDataStoreMockGetFilterDimensionOptions.RLock()
-	calls = mock.calls.GetFilterDimensionOptions
-	lockDataStoreMockGetFilterDimensionOptions.RUnlock()
-	return calls
-}
-
-// GetFilterDimensions calls GetFilterDimensionsFunc.
-func (mock *DataStoreMock) GetFilterDimensions(filterID string) ([]models.Dimension, error) {
-	if mock.GetFilterDimensionsFunc == nil {
-		panic("moq: DataStoreMock.GetFilterDimensionsFunc is nil but DataStore.GetFilterDimensions was just called")
-	}
-	callInfo := struct {
-		FilterID string
-	}{
-		FilterID: filterID,
-	}
-	lockDataStoreMockGetFilterDimensions.Lock()
-	mock.calls.GetFilterDimensions = append(mock.calls.GetFilterDimensions, callInfo)
-	lockDataStoreMockGetFilterDimensions.Unlock()
-	return mock.GetFilterDimensionsFunc(filterID)
-}
-
-// GetFilterDimensionsCalls gets all the calls that were made to GetFilterDimensions.
-// Check the length with:
-//     len(mockedDataStore.GetFilterDimensionsCalls())
-func (mock *DataStoreMock) GetFilterDimensionsCalls() []struct {
-	FilterID string
-} {
-	var calls []struct {
-		FilterID string
-	}
-	lockDataStoreMockGetFilterDimensions.RLock()
-	calls = mock.calls.GetFilterDimensions
-	lockDataStoreMockGetFilterDimensions.RUnlock()
 	return calls
 }
 
@@ -614,6 +509,37 @@ func (mock *DataStoreMock) RemoveFilterDimensionOptionCalls() []struct {
 	lockDataStoreMockRemoveFilterDimensionOption.RLock()
 	calls = mock.calls.RemoveFilterDimensionOption
 	lockDataStoreMockRemoveFilterDimensionOption.RUnlock()
+	return calls
+}
+
+// SetPublished calls SetPublishedFunc.
+func (mock *DataStoreMock) SetPublished(filterID string) error {
+	if mock.SetPublishedFunc == nil {
+		panic("moq: DataStoreMock.SetPublishedFunc is nil but DataStore.SetPublished was just called")
+	}
+	callInfo := struct {
+		FilterID string
+	}{
+		FilterID: filterID,
+	}
+	lockDataStoreMockSetPublished.Lock()
+	mock.calls.SetPublished = append(mock.calls.SetPublished, callInfo)
+	lockDataStoreMockSetPublished.Unlock()
+	return mock.SetPublishedFunc(filterID)
+}
+
+// SetPublishedCalls gets all the calls that were made to SetPublished.
+// Check the length with:
+//     len(mockedDataStore.SetPublishedCalls())
+func (mock *DataStoreMock) SetPublishedCalls() []struct {
+	FilterID string
+} {
+	var calls []struct {
+		FilterID string
+	}
+	lockDataStoreMockSetPublished.RLock()
+	calls = mock.calls.SetPublished
+	lockDataStoreMockSetPublished.RUnlock()
 	return calls
 }
 

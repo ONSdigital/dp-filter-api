@@ -44,6 +44,7 @@ func (ds *DatasetAPI) GetInstance(ctx context.Context, id string) (*models.Insta
 				ID: "1",
 			},
 		},
+		State: "published",
 	}, nil
 }
 

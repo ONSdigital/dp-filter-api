@@ -21,9 +21,7 @@ var (
 	errOptionNotFound            = errors.New("Option not found")
 	errFilterOrDimensionNotFound = errors.New("Bad request - filter or dimension not found")
 	errFilterOutputNotFound      = errors.New("Filter output not found")
-
-	errFilterBadRequest    = errors.New("Bad request - filter blueprint not found")
-	errDimensionBadRequest = errors.New("Bad request - filter dimension not found")
+	errFilterBadRequest          = errors.New("Bad request - filter blueprint not found")
 )
 
 // FilterStore containing all filter jobs stored in mongodb
@@ -100,23 +98,29 @@ func (s *FilterStore) UpdateFilter(updatedFilter *models.Filter) error {
 	return nil
 }
 
-// GetFilterDimensions returns a list of dimensions from a filter, if the filter is not found an error is returned
-func (s *FilterStore) GetFilterDimensions(filterID string) ([]models.Dimension, error) {
+// SetPublished removes the unpublished indicator from a filter
+func (s *FilterStore) SetPublished(filterID string) error {
 	session := s.Session.Copy()
 	defer session.Close()
 
-	query := bson.M{"filter_id": filterID}
-	dimensionSelect := bson.M{"dimensions": 1}
-	var result models.Filter
-
-	if err := session.DB(s.db).C(s.filtersCollection).Find(query).Select(dimensionSelect).One(&result); err != nil {
-		if err == mgo.ErrNotFound {
-			return nil, errNotFound
-		}
-		return nil, err
+	update := bson.M{
+		"$set": bson.M{
+			"published": true,
+		},
+		"$setOnInsert": bson.M{
+			"last_updated": time.Now(),
+		},
 	}
 
-	return result.Dimensions, nil
+	selector := bson.M{"filter_id": filterID}
+	if err := session.DB(s.db).C(s.filtersCollection).Update(selector, update); err != nil {
+		if err == mgo.ErrNotFound {
+			return errNotFound
+		}
+		return err
+	}
+
+	return nil
 }
 
 // GetFilterDimension return a single dimension
@@ -124,17 +128,9 @@ func (s *FilterStore) GetFilterDimension(filterID string, name string) error {
 	session := s.Session.Copy()
 	defer session.Close()
 
-	queryFilter := bson.M{"filter_id": filterID}
 	queryDimension := bson.M{"filter_id": filterID, "dimensions": bson.M{"$elemMatch": bson.M{"name": name}}}
 	dimensionSelect := bson.M{"dimensions": 1}
 	var result models.Filter
-
-	if err := session.DB(s.db).C(s.filtersCollection).Find(queryFilter).Select(dimensionSelect).One(&result); err != nil {
-		if err == mgo.ErrNotFound {
-			return errFilterBadRequest
-		}
-		return err
-	}
 
 	if err := session.DB(s.db).C(s.filtersCollection).Find(queryDimension).Select(dimensionSelect).One(&result); err != nil {
 		if err == mgo.ErrNotFound {
@@ -147,22 +143,14 @@ func (s *FilterStore) GetFilterDimension(filterID string, name string) error {
 }
 
 // AddFilterDimension to a filter
-func (s *FilterStore) AddFilterDimension(dimension *models.AddDimension) error {
-	if err := s.checkFilterState(dimension.FilterID); err != nil {
-		return err
-	}
-
+func (s *FilterStore) AddFilterDimension(filterID, name string, options []string, dimensions []models.Dimension) error {
 	session := s.Session.Copy()
 	defer session.Close()
 
-	list, err := s.GetFilterDimensions(dimension.FilterID)
-	if err != nil && err != errNotFound {
-		return errFilterBadRequest
-	}
+	url := fmt.Sprintf("%s/filters/%s/dimensions/%s", s.host, filterID, name)
+	d := models.Dimension{Name: name, Options: options, URL: url}
 
-	url := fmt.Sprintf("%s/filters/%s/dimensions/%s", s.host, dimension.FilterID, dimension.Name)
-	d := models.Dimension{Name: dimension.Name, Options: dimension.Options, URL: url}
-
+	list := dimensions
 	var found bool
 	for i, item := range list {
 		if item.Name == d.Name {
@@ -176,7 +164,7 @@ func (s *FilterStore) AddFilterDimension(dimension *models.AddDimension) error {
 		list = append(list, d)
 	}
 
-	queryFilter := bson.M{"filter_id": dimension.FilterID}
+	queryFilter := bson.M{"filter_id": filterID}
 	update := bson.M{"$set": bson.M{"dimensions": list}}
 
 	if err := session.DB(s.db).C(s.filtersCollection).Update(queryFilter, update); err != nil {
@@ -190,14 +178,7 @@ func (s *FilterStore) AddFilterDimension(dimension *models.AddDimension) error {
 }
 
 // RemoveFilterDimension from a filter
-func (s *FilterStore) RemoveFilterDimension(filterID string, name string) error {
-	if err := s.checkFilterState(filterID); err != nil {
-		if err == errNotFound {
-			return errFilterBadRequest
-		}
-		return err
-	}
-
+func (s *FilterStore) RemoveFilterDimension(filterID, name string) error {
 	session := s.Session.Copy()
 	defer session.Close()
 
@@ -220,19 +201,12 @@ func (s *FilterStore) RemoveFilterDimension(filterID string, name string) error 
 }
 
 // AddFilterDimensionOption to a filter
-func (s *FilterStore) AddFilterDimensionOption(newOption *models.AddDimensionOption) error {
-	if err := s.checkFilterState(newOption.FilterID); err != nil {
-		if err == errNotFound {
-			return errFilterBadRequest
-		}
-		return err
-	}
-
+func (s *FilterStore) AddFilterDimensionOption(filterID, name, option string) error {
 	session := s.Session.Copy()
 	defer session.Close()
 
-	queryOptions := bson.M{"filter_id": newOption.FilterID, "dimensions": bson.M{"$elemMatch": bson.M{"name": newOption.Name}}}
-	update := bson.M{"$addToSet": bson.M{"dimensions.$.options": newOption.Option}}
+	queryOptions := bson.M{"filter_id": filterID, "dimensions": bson.M{"$elemMatch": bson.M{"name": name}}}
+	update := bson.M{"$addToSet": bson.M{"dimensions.$.options": option}}
 
 	if err := session.DB(s.db).C(s.filtersCollection).Update(queryOptions, update); err != nil {
 		if err == mgo.ErrNotFound {
@@ -244,92 +218,8 @@ func (s *FilterStore) AddFilterDimensionOption(newOption *models.AddDimensionOpt
 	return nil
 }
 
-// GetFilterDimensionOptions return a list of dimension options
-func (s *FilterStore) GetFilterDimensionOptions(filterID string, name string) ([]models.DimensionOption, error) {
-	session := s.Session.Copy()
-	defer session.Close()
-
-	queryFilter := bson.M{"filter_id": filterID}
-	var result models.Filter
-
-	if err := session.DB(s.db).C(s.filtersCollection).Find(queryFilter).One(&result); err != nil {
-		if err == mgo.ErrNotFound {
-			return nil, errFilterBadRequest
-		}
-		return nil, err
-	}
-
-	for _, dimension := range result.Dimensions {
-		var options []models.DimensionOption
-
-		if dimension.Name == name {
-			for _, option := range dimension.Options {
-				url := fmt.Sprintf("%s/filter/%s/dimensions/%s/option/%s", s.host, filterID, dimension.Name, option)
-				dimensionOption := models.DimensionOption{Option: option, DimensionOptionURL: url}
-				options = append(options, dimensionOption)
-			}
-
-			return options, nil
-		}
-	}
-
-	return nil, errDimensionNotFound
-}
-
-// GetFilterDimensionOption return a single dimension option
-func (s *FilterStore) GetFilterDimensionOption(filterID string, name string, option string) error {
-	session := s.Session.Copy()
-	defer session.Close()
-
-	queryDimension := bson.M{"filter_id": filterID, "dimensions": bson.M{"$elemMatch": bson.M{"name": name}}}
-	dimensionSelect := bson.M{"dimensions": 1}
-	var result models.Filter
-
-	if err := session.DB(s.db).C(s.filtersCollection).Find(queryDimension).Select(dimensionSelect).One(&result); err != nil {
-		if err == mgo.ErrNotFound {
-			return errFilterOrDimensionNotFound
-		}
-		return err
-	}
-
-	for _, d := range result.Dimensions {
-		if d.Name == name {
-			for _, o := range d.Options {
-				if o == option {
-					return nil
-				}
-			}
-		}
-	}
-
-	return errOptionNotFound
-}
-
 // RemoveFilterDimensionOption from a filter
 func (s *FilterStore) RemoveFilterDimensionOption(filterID string, name string, option string) error {
-	// Check if filter exists
-	dimensions, err := s.GetFilterDimensions(filterID)
-	if err != nil {
-		if err == errNotFound {
-			return errFilterBadRequest
-		}
-		return err
-	}
-
-	var hasDimension bool
-
-	// Check if dimension exists
-	for _, dimension := range dimensions {
-		if dimension.Name == name {
-			hasDimension = true
-			break
-		}
-	}
-
-	if !hasDimension {
-		return errDimensionBadRequest
-	}
-
 	session := s.Session.Copy()
 	defer session.Close()
 
@@ -404,6 +294,7 @@ func createUpdateFilterBlueprint(filter *models.Filter, currentTime time.Time) b
 		"$set": bson.M{
 			"filter.events":      filter.Events,
 			"filter.instance_id": filter.InstanceID,
+			"filter.published":   filter.Published,
 		},
 		"$setOnInsert": bson.M{
 			"last_updated": currentTime,
@@ -414,7 +305,6 @@ func createUpdateFilterBlueprint(filter *models.Filter, currentTime time.Time) b
 }
 
 func createUpdateFilterOutput(filter *models.Filter, currentTime time.Time) bson.M {
-
 	var downloads models.Downloads
 	state := models.CreatedState
 	var update bson.M
@@ -443,6 +333,7 @@ func createUpdateFilterOutput(filter *models.Filter, currentTime time.Time) bson
 				"downloads": downloads,
 				"events":    filter.Events,
 				"state":     models.CompletedState,
+				"published": filter.Published,
 			},
 			"$setOnInsert": bson.M{
 				"last_updated": currentTime,
@@ -454,6 +345,7 @@ func createUpdateFilterOutput(filter *models.Filter, currentTime time.Time) bson
 				"state":     state,
 				"downloads": downloads,
 				"events":    filter.Events,
+				"published": filter.Published,
 			},
 			"$setOnInsert": bson.M{
 				"last_updated": currentTime,
@@ -462,19 +354,6 @@ func createUpdateFilterOutput(filter *models.Filter, currentTime time.Time) bson
 	}
 
 	return update
-}
-
-func (s *FilterStore) checkFilterState(filterID string) error {
-	filter, err := s.GetFilter(filterID)
-	if err != nil {
-		return err
-	}
-
-	if filter.State == models.SubmittedState {
-		return errForbidden
-	}
-
-	return nil
 }
 
 func validateFilter(filter *models.Filter) {

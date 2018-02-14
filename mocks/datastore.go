@@ -40,8 +40,16 @@ func (ds *DataStore) AddFilter(host string, filterJob *models.Filter) (*models.F
 	return &models.Filter{InstanceID: "12345678"}, nil
 }
 
+// SetPublished represents the mocked version of setting the published flag on a filter blueprint
+func (ds *DataStore) SetPublished(filterID string) error {
+	if ds.InternalError {
+		return errorInternalServer
+	}
+	return nil
+}
+
 // AddFilterDimension represents the mocked version of creating a filter dimension to the datastore
-func (ds *DataStore) AddFilterDimension(dimension *models.AddDimension) error {
+func (ds *DataStore) AddFilterDimension(filterID, name string, options []string, dimensions []models.Dimension) error {
 	if ds.InternalError {
 		return errorInternalServer
 	}
@@ -58,7 +66,7 @@ func (ds *DataStore) AddFilterDimension(dimension *models.AddDimension) error {
 }
 
 // AddFilterDimensionOption represents the mocked version of creating a filter dimension option to the datastore
-func (ds *DataStore) AddFilterDimensionOption(dimension *models.AddDimensionOption) error {
+func (ds *DataStore) AddFilterDimensionOption(filterID, name, option string) error {
 	if ds.InternalError {
 		return errorInternalServer
 	}
@@ -101,35 +109,18 @@ func (ds *DataStore) GetFilter(filterID string) (*models.Filter, error) {
 	}
 
 	if ds.BadRequest {
-		return &models.Filter{InstanceID: "12345678"}, nil
+		return nil, errorBadRequest
 	}
 
 	if ds.ChangeInstanceRequest {
-		return &models.Filter{InstanceID: "12345678", Dimensions: []models.Dimension{{Name: "age", Options: []string{"33"}}}}, nil
+		return &models.Filter{FilterID: filterID, InstanceID: "12345678", Dimensions: []models.Dimension{{Name: "age", Options: []string{"33"}}}}, nil
 	}
 
 	if ds.InvalidDimensionOption {
-		return &models.Filter{InstanceID: "12345678", Dimensions: []models.Dimension{{Name: "age", Options: []string{"28"}}}}, nil
+		return &models.Filter{FilterID: filterID, InstanceID: "12345678", Dimensions: []models.Dimension{{Name: "age", Options: []string{"28"}}}}, nil
 	}
 
-	return &models.Filter{InstanceID: "12345678", Dimensions: []models.Dimension{{Name: "time"}}}, nil
-}
-
-// GetFilterDimensions represents the mocked version of getting a list of filter dimensions from the datastore
-func (ds *DataStore) GetFilterDimensions(filterID string) ([]models.Dimension, error) {
-	dimensions := []models.Dimension{}
-
-	if ds.NotFound {
-		return nil, errorNotFound
-	}
-
-	if ds.InternalError {
-		return nil, errorInternalServer
-	}
-
-	dimensions = append(dimensions, models.Dimension{Name: "1_age", URL: "/filters/123/dimensions/1_age"})
-
-	return dimensions, nil
+	return &models.Filter{FilterID: filterID, InstanceID: "12345678", Dimensions: []models.Dimension{{Name: "time", Options: []string{"2014", "2015"}}}}, nil
 }
 
 // GetFilterDimension represents the mocked version of getting a filter dimension from the datastore
@@ -140,51 +131,6 @@ func (ds *DataStore) GetFilterDimension(filterID, name string) error {
 
 	if ds.BadRequest {
 		return errorBadRequest
-	}
-
-	if ds.InternalError {
-		return errorInternalServer
-	}
-
-	return nil
-}
-
-// GetFilterDimensionOptions represents the mocked version of getting a list of filter dimension options from the datastore
-func (ds *DataStore) GetFilterDimensionOptions(filterID, name string) ([]models.DimensionOption, error) {
-	var (
-		options []models.DimensionOption
-	)
-
-	if ds.BadRequest {
-		return nil, errorBadRequest
-	}
-
-	if ds.DimensionNotFound {
-		return nil, errorDimensionionNotFound
-	}
-
-	if ds.InternalError {
-		return nil, errorInternalServer
-	}
-
-	option := models.DimensionOption{
-		DimensionOptionURL: "/filters/123/dimensions/1_age/options/26",
-		Option:             "26",
-	}
-
-	options = append(options, option)
-
-	return options, nil
-}
-
-// GetFilterDimensionOption represents the mocked version of getting a filter dimension option from the datastore
-func (ds *DataStore) GetFilterDimensionOption(filterID, name, option string) error {
-	if ds.BadRequest {
-		return errorBadRequest
-	}
-
-	if ds.OptionNotFound {
-		return errorOptionNotFound
 	}
 
 	if ds.InternalError {

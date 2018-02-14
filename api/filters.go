@@ -25,8 +25,13 @@ var (
 	forbidden                 = "Forbidden, the filter output has been locked as it has been submitted to be processed"
 	statusBadRequest          = "bad request"
 	statusUnprocessableEntity = "unprocessable entity"
+	errNotFound               = errors.New("Not found")
+	errForbidden              = errors.New("Forbidden")
+	errDimensionBadRequest    = errors.New("Bad request - filter dimension not found")
+	errDimensionNotFound      = errors.New("Dimension not found")
+	errOptionNotFound         = errors.New("Option not found")
 
-	incorrectDimensionOptions = regexp.MustCompile("Bad request - incorrect dimension options chosen")
+	incorrectDimensionOptions = regexp.MustCompile("Bad request - incorrect dimension")
 )
 
 func (api *FilterAPI) addFilterBlueprint(w http.ResponseWriter, r *http.Request) {
@@ -73,7 +78,9 @@ func (api *FilterAPI) addFilterBlueprint(w http.ResponseWriter, r *http.Request)
 
 	newFilter.Links = links
 
-	log.Info("newFilter", log.Data{"new-filter": newFilter})
+	if instance.State == "published" {
+		newFilter.Published = true
+	}
 
 	_, err = api.dataStore.AddFilter(api.host, newFilter)
 	if err != nil {
@@ -83,7 +90,6 @@ func (api *FilterAPI) addFilterBlueprint(w http.ResponseWriter, r *http.Request)
 	}
 
 	if submitted == "true" {
-
 		// Create filter output resource and use id to pass into kafka
 		filterOutput := api.createFilterOutputResource(newFilter, newFilter.FilterID)
 		log.Info("filter output id sent in message to kafka", log.Data{"filter_output_id": filterOutput.FilterID})
@@ -91,8 +97,6 @@ func (api *FilterAPI) addFilterBlueprint(w http.ResponseWriter, r *http.Request)
 		newFilter.Links = links
 		newFilter.Links.FilterOutput.HRef = filterOutput.Links.Self.HRef
 		newFilter.Links.FilterOutput.ID = filterOutput.FilterID
-
-		log.Info("newFilter 2", log.Data{"new-filter": newFilter})
 	}
 
 	bytes, err := json.Marshal(newFilter)
@@ -118,7 +122,7 @@ func (api *FilterAPI) getFilterBlueprint(w http.ResponseWriter, r *http.Request)
 	vars := mux.Vars(r)
 	filterID := vars["filter_blueprint_id"]
 
-	filterBlueprint, err := api.dataStore.GetFilter(filterID)
+	filterBlueprint, err := api.getFilter(filterID, r.Context())
 	if err != nil {
 		log.Error(err, log.Data{"filter_id": filterID})
 		setErrorCode(w, err)
@@ -150,14 +154,20 @@ func (api *FilterAPI) getFilterBlueprintDimensions(w http.ResponseWriter, r *htt
 	vars := mux.Vars(r)
 	filterID := vars["filter_blueprint_id"]
 
-	dimensions, err := api.dataStore.GetFilterDimensions(filterID)
+	filter, err := api.getFilter(filterID, r.Context())
 	if err != nil {
 		log.Error(err, log.Data{"filter_blueprint_id": filterID})
 		setErrorCode(w, err)
 		return
 	}
 
-	bytes, err := json.Marshal(dimensions)
+	if len(filter.Dimensions) == 0 {
+		log.Error(errDimensionNotFound, log.Data{"filter_blueprint_id": filterID})
+		setErrorCode(w, errDimensionNotFound)
+		return
+	}
+
+	bytes, err := json.Marshal(filter.Dimensions)
 	if err != nil {
 		log.Error(err, log.Data{"filter_blueprint_id": filterID})
 		http.Error(w, internalError, http.StatusInternalServerError)
@@ -168,12 +178,12 @@ func (api *FilterAPI) getFilterBlueprintDimensions(w http.ResponseWriter, r *htt
 	w.WriteHeader(http.StatusOK)
 	_, err = w.Write(bytes)
 	if err != nil {
-		log.Error(err, log.Data{"filter_blueprint_id": filterID, "dimensions": dimensions})
+		log.Error(err, log.Data{"filter_blueprint_id": filterID, "dimensions": filter.Dimensions})
 		setErrorCode(w, err)
 		return
 	}
 
-	log.Info("got filtered blueprint", log.Data{"filter_blueprint_id": filterID, "dimensions": dimensions})
+	log.Info("got filtered blueprint", log.Data{"filter_blueprint_id": filterID, "dimensions": filter.Dimensions})
 }
 
 func (api *FilterAPI) getFilterBlueprintDimension(w http.ResponseWriter, r *http.Request) {
@@ -181,8 +191,13 @@ func (api *FilterAPI) getFilterBlueprintDimension(w http.ResponseWriter, r *http
 	filterID := vars["filter_blueprint_id"]
 	name := vars["name"]
 
-	err := api.dataStore.GetFilterDimension(filterID, name)
-	if err != nil {
+	if _, err := api.getFilter(filterID, r.Context()); err != nil {
+		log.Error(err, log.Data{"filter_blueprint_id": filterID})
+		setErrorCode(w, err)
+		return
+	}
+
+	if err := api.dataStore.GetFilterDimension(filterID, name); err != nil {
 		log.Error(err, log.Data{"filter_blueprint_id": filterID, "dimension": name})
 		setErrorCode(w, err)
 		return
@@ -199,8 +214,20 @@ func (api *FilterAPI) removeFilterBlueprintDimension(w http.ResponseWriter, r *h
 	filterID := vars["filter_blueprint_id"]
 	name := vars["name"]
 
-	err := api.dataStore.RemoveFilterDimension(filterID, name)
+	filter, err := api.getFilter(filterID, r.Context())
 	if err != nil {
+		log.Error(err, log.Data{"filter_blueprint_id": filterID})
+		setErrorCode(w, err)
+		return
+	}
+
+	if filter.State == models.SubmittedState {
+		log.Error(errForbidden, log.Data{"filter_blueprint_id": filterID})
+		setErrorCode(w, errForbidden)
+		return
+	}
+
+	if err := api.dataStore.RemoveFilterDimension(filterID, name); err != nil {
 		log.Error(err, log.Data{"filter_blueprint_id": filterID, "dimension": name})
 		setErrorCode(w, err)
 		return
@@ -214,6 +241,8 @@ func (api *FilterAPI) removeFilterBlueprintDimension(w http.ResponseWriter, r *h
 
 func (api *FilterAPI) addFilterBlueprintDimension(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
+	filterID := vars["filter_blueprint_id"]
+	name := vars["name"]
 
 	options, err := models.CreateDimensionOptions(r.Body)
 	if err != nil {
@@ -222,36 +251,36 @@ func (api *FilterAPI) addFilterBlueprintDimension(w http.ResponseWriter, r *http
 		return
 	}
 
-	addDimension := &models.AddDimension{
-		FilterID: vars["filter_blueprint_id"],
-		Name:     vars["name"],
-		Options:  options,
-	}
-
 	// get filter blueprint to retreive instance id
-	filterBlueprint, err := api.dataStore.GetFilter(addDimension.FilterID)
+	filter, err := api.getFilter(filterID, r.Context())
 	if err != nil {
-		log.Error(err, log.Data{"filter_blueprint_id": addDimension.FilterID})
+		log.Error(err, log.Data{"filter_blueprint_id": filterID})
 		setErrorCode(w, err)
 		return
 	}
 
+	if filter.State == models.SubmittedState {
+		log.Error(errForbidden, log.Data{"filter_blueprint_id": filterID})
+		setErrorCode(w, errForbidden)
+		return
+	}
+
 	// get instance to retrieve dataset id, edition and version
-	instance, err := api.datasetAPI.GetInstance(r.Context(), filterBlueprint.InstanceID)
+	instance, err := api.datasetAPI.GetInstance(r.Context(), filter.InstanceID)
 	if err != nil {
-		log.Error(err, log.Data{"filter_blueprint_id": addDimension.FilterID, "instance_id": filterBlueprint.InstanceID})
+		log.Error(err, log.Data{"filter_blueprint_id": filterID, "instance_id": filter.InstanceID})
 		setErrorCode(w, err, statusUnprocessableEntity)
 		return
 	}
 
-	if err = api.checkNewFilterDimension(r.Context(), addDimension, instance); err != nil {
+	if err = api.checkNewFilterDimension(r.Context(), name, options, instance); err != nil {
 		log.Error(err, nil)
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	if err = api.dataStore.AddFilterDimension(addDimension); err != nil {
-		log.Error(err, log.Data{"dimension": addDimension})
+	if err = api.dataStore.AddFilterDimension(filterID, name, options, filter.Dimensions); err != nil {
+		log.Error(err, log.Data{"dimension_name": name, "dimension_options": options})
 		setErrorCode(w, err)
 		return
 	}
@@ -259,7 +288,7 @@ func (api *FilterAPI) addFilterBlueprintDimension(w http.ResponseWriter, r *http
 	setJSONContentType(w)
 	w.WriteHeader(http.StatusCreated)
 
-	log.Info("created new dimension for filter blueprint", log.Data{"dimension": addDimension})
+	log.Info("created new dimension for filter blueprint", log.Data{"dimension_name": name, "dimension_options": options})
 }
 
 func (api *FilterAPI) getFilterBlueprintDimensionOptions(w http.ResponseWriter, r *http.Request) {
@@ -267,16 +296,37 @@ func (api *FilterAPI) getFilterBlueprintDimensionOptions(w http.ResponseWriter, 
 	filterID := vars["filter_blueprint_id"]
 	name := vars["name"]
 
-	dimensionOptions, err := api.dataStore.GetFilterDimensionOptions(filterID, name)
+	filter, err := api.getFilter(filterID, r.Context())
 	if err != nil {
 		log.Error(err, log.Data{"filter_blueprint_id": filterID})
 		setErrorCode(w, err)
 		return
 	}
 
-	bytes, err := json.Marshal(dimensionOptions)
+	var options []models.DimensionOption
+	for _, dimension := range filter.Dimensions {
+
+		if dimension.Name == name {
+			for _, option := range dimension.Options {
+				url := fmt.Sprintf("%s/filter/%s/dimensions/%s/option/%s", api.host, filterID, dimension.Name, option)
+				dimensionOption := models.DimensionOption{Option: option, DimensionOptionURL: url}
+				options = append(options, dimensionOption)
+			}
+
+		}
+	}
+
+	if len(options) == 0 {
+		log.Error(errDimensionNotFound, log.Data{"filter_blueprint_id": filterID, "dimension_name": name})
+		setErrorCode(w, errDimensionNotFound)
+		return
+	}
+
+	logData := log.Data{"filter_blueprint_id": filterID, "dimension_options": options}
+
+	bytes, err := json.Marshal(options)
 	if err != nil {
-		log.Error(err, log.Data{"filter_blueprint_id": filterID, "dimension_options": dimensionOptions})
+		log.Error(err, logData)
 		http.Error(w, internalError, http.StatusInternalServerError)
 		return
 	}
@@ -285,12 +335,12 @@ func (api *FilterAPI) getFilterBlueprintDimensionOptions(w http.ResponseWriter, 
 	w.WriteHeader(http.StatusOK)
 	_, err = w.Write(bytes)
 	if err != nil {
-		log.Error(err, log.Data{"filter_blueprint_id": filterID, "dimension_options": dimensionOptions})
+		log.Error(err, logData)
 		setErrorCode(w, err)
 		return
 	}
 
-	log.Info("got filtered blueprint", log.Data{"filter_blueprint_id": filterID, "dimension_options": dimensionOptions})
+	log.Info("got dimension options", logData)
 }
 
 func (api *FilterAPI) getFilterBlueprintDimensionOption(w http.ResponseWriter, r *http.Request) {
@@ -299,54 +349,73 @@ func (api *FilterAPI) getFilterBlueprintDimensionOption(w http.ResponseWriter, r
 	name := vars["name"]
 	option := vars["option"]
 
-	err := api.dataStore.GetFilterDimensionOption(filterID, name, option)
+	logData := log.Data{"filter_blueprint_id": filterID, "dimension": name, "option": option}
+
+	filter, err := api.getFilter(filterID, r.Context())
 	if err != nil {
-		log.Error(err, log.Data{"filter_blueprint_id": filterID, "dimension": name, "option": option})
+		log.Error(err, log.Data{"filter_blueprint_id": filterID})
 		setErrorCode(w, err)
+		return
+	}
+
+	found := false
+	for _, d := range filter.Dimensions {
+		if d.Name == name {
+			for _, o := range d.Options {
+				if o == option {
+					found = true
+				}
+			}
+		}
+	}
+
+	if !found {
+		log.Error(errOptionNotFound, logData)
+		setErrorCode(w, errOptionNotFound)
 		return
 	}
 
 	setJSONContentType(w)
 	w.WriteHeader(http.StatusNoContent)
 
-	log.Info("got filtered blueprint", log.Data{"filter_blueprint_id": filterID, "dimension": name, "option": option})
+	log.Info("got dimension option", logData)
 }
 
 func (api *FilterAPI) addFilterBlueprintDimensionOption(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-
-	addDimensionOption := &models.AddDimensionOption{
-		FilterID: vars["filter_blueprint_id"],
-		Name:     vars["name"],
-		Option:   vars["option"],
-	}
+	filterID := vars["filter_blueprint_id"]
+	name := vars["name"]
+	option := vars["option"]
 
 	// get filter blueprint to retreive instance id
-	filterBlueprint, err := api.dataStore.GetFilter(addDimensionOption.FilterID)
+	filterBlueprint, err := api.getFilter(filterID, r.Context())
 	if err != nil {
-		log.Error(err, log.Data{"filter_blueprint_id": addDimensionOption.FilterID})
-		setErrorCode(w, err, statusBadRequest)
+		log.Error(err, log.Data{"filter_blueprint_id": filterID})
+		setErrorCode(w, err)
+		return
+	}
+
+	if filterBlueprint.State == models.SubmittedState {
+		log.Error(errForbidden, log.Data{"filter_blueprint_id": filterID})
+		setErrorCode(w, errForbidden, filterBlueprint.State)
 		return
 	}
 
 	// get instance to retrieve dataset id, edition and version
 	instance, err := api.datasetAPI.GetInstance(r.Context(), filterBlueprint.InstanceID)
 	if err != nil {
-		log.Error(err, log.Data{"filter_blueprint_id": addDimensionOption.FilterID, "instance_id": filterBlueprint.InstanceID})
+		log.Error(err, log.Data{"filter_blueprint_id": filterID, "instance_id": filterBlueprint.InstanceID})
 		setErrorCode(w, err, statusUnprocessableEntity)
 		return
 	}
 
+	logData := log.Data{"filter_id": filterID, "dimension_name": name, "dimension_option": option}
+
 	// FIXME - Once dataset API has an endpoint to check single option exists,
 	// refactor code below instead of creating an AddDimension object from the
 	// AddDimensionOption object (to be able to use checkNewFilterDimension method)
-	addDimensionOptions := &models.AddDimension{
-		Name:    addDimensionOption.Name,
-		Options: []string{addDimensionOption.Option},
-	}
-
-	if err = api.checkNewFilterDimension(r.Context(), addDimensionOptions, instance); err != nil {
-		log.Error(err, nil)
+	if err = api.checkNewFilterDimension(r.Context(), name, []string{option}, instance); err != nil {
+		log.Error(err, logData)
 		if incorrectDimensionOptions.MatchString(err.Error()) {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
@@ -355,8 +424,8 @@ func (api *FilterAPI) addFilterBlueprintDimensionOption(w http.ResponseWriter, r
 		return
 	}
 
-	if err := api.dataStore.AddFilterDimensionOption(addDimensionOption); err != nil {
-		log.Error(err, log.Data{"dimension_option": addDimensionOption})
+	if err := api.dataStore.AddFilterDimensionOption(filterID, name, option); err != nil {
+		log.Error(err, logData)
 		setErrorCode(w, err)
 		return
 	}
@@ -364,7 +433,55 @@ func (api *FilterAPI) addFilterBlueprintDimensionOption(w http.ResponseWriter, r
 	setJSONContentType(w)
 	w.WriteHeader(http.StatusCreated)
 
-	log.Info("created new dimension option for filter blueprint", log.Data{"dimension_option": addDimensionOption})
+	log.Info("created new dimension option for filter blueprint", logData)
+}
+
+func (api *FilterAPI) removeFilterBlueprintDimensionOption(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	filterID := vars["filter_blueprint_id"]
+	name := vars["name"]
+	option := vars["option"]
+
+	filterBlueprint, err := api.getFilter(filterID, r.Context())
+	if err != nil {
+		log.Error(err, log.Data{"filter_id": filterID})
+		setErrorCode(w, err)
+		return
+	}
+
+	// Check if dimension exists
+	var hasDimension bool
+	for _, dimension := range filterBlueprint.Dimensions {
+		if dimension.Name == name {
+			hasDimension = true
+			break
+		}
+	}
+
+	logData := log.Data{"filter_blueprint_id": filterID, "dimension_name": name, "dimension_option": option}
+
+	if !hasDimension {
+		log.Error(errDimensionNotFound, logData)
+		setErrorCode(w, errDimensionNotFound)
+		return
+	}
+
+	if filterBlueprint.State == models.SubmittedState {
+		log.Error(errForbidden, logData)
+		setErrorCode(w, errForbidden)
+		return
+	}
+
+	if err = api.dataStore.RemoveFilterDimensionOption(filterID, name, option); err != nil {
+		log.Error(err, logData)
+		setErrorCode(w, err)
+		return
+	}
+
+	setJSONContentType(w)
+	w.WriteHeader(http.StatusOK)
+
+	log.Info("delete dimension option on filtered blueprint", logData)
 }
 
 func (api *FilterAPI) updateFilterBlueprint(w http.ResponseWriter, r *http.Request) {
@@ -375,7 +492,6 @@ func (api *FilterAPI) updateFilterBlueprint(w http.ResponseWriter, r *http.Reque
 
 	filter, err := models.CreateFilter(r.Body)
 	if err != nil {
-
 		// When filter blueprint has query parameter `submitted` set to true then
 		// request can have an empty json in body for this PUT request
 		if submitted != "true" || err != models.ErrorNoData {
@@ -385,16 +501,16 @@ func (api *FilterAPI) updateFilterBlueprint(w http.ResponseWriter, r *http.Reque
 		}
 	}
 
-	filter.FilterID = filterID
-
-	currentFilter, err := api.dataStore.GetFilter(filterID)
+	currentFilter, err := api.getFilter(filterID, r.Context())
 	if err != nil {
-		log.Error(err, log.Data{"filter_blueprint": filter, "filter_blueprint_id": filterID})
+		log.Error(err, log.Data{"filter_blueprint_id": filterID})
 		setErrorCode(w, err)
 		return
 	}
 
 	newFilter := currentFilter
+
+	//where the request provides a new instance id
 	if filter.InstanceID != "" {
 
 		// add version information from datasetAPI for new instance
@@ -403,6 +519,11 @@ func (api *FilterAPI) updateFilterBlueprint(w http.ResponseWriter, r *http.Reque
 			log.Error(err, log.Data{"new_filter": newFilter})
 			setErrorCode(w, err, statusBadRequest)
 			return
+		}
+
+		newFilter.Published = false
+		if instance.State == "published" {
+			newFilter.Published = true
 		}
 
 		newFilter.InstanceID = filter.InstanceID
@@ -468,7 +589,7 @@ func (api *FilterAPI) getFilterOutput(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	filterOutputID := vars["filter_output_id"]
 
-	filterOutput, err := api.dataStore.GetFilterOutput(filterOutputID)
+	filterOutput, err := api.getOutput(filterOutputID, r.Context())
 	if err != nil {
 		log.Error(err, log.Data{"filter_output_id": filterOutputID})
 		setErrorCode(w, err)
@@ -567,30 +688,15 @@ func (api *FilterAPI) createFilterOutputResource(newFilter *models.Filter, filte
 		filterOutput.Dimensions[i].URL = ""
 	}
 
+	if newFilter.Published {
+		filterOutput.Published = true
+	}
+
 	api.dataStore.CreateFilterOutput(&filterOutput)
 
 	api.outputQueue.Queue(&filterOutput)
 
 	return filterOutput
-}
-
-func (api *FilterAPI) removeFilterBlueprintDimensionOption(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	filterID := vars["filter_blueprint_id"]
-	name := vars["name"]
-	option := vars["option"]
-
-	err := api.dataStore.RemoveFilterDimensionOption(filterID, name, option)
-	if err != nil {
-		log.Error(err, log.Data{"filter_blueprint_id": filterID, "dimension": name})
-		setErrorCode(w, err)
-		return
-	}
-
-	setJSONContentType(w)
-	w.WriteHeader(http.StatusOK)
-
-	log.Info("delete filtered blueprint", log.Data{"filter_blueprint_id": filterID, "dimension": name})
 }
 
 func (api *FilterAPI) getFilterOutputPreview(w http.ResponseWriter, r *http.Request) {
@@ -599,6 +705,7 @@ func (api *FilterAPI) getFilterOutputPreview(w http.ResponseWriter, r *http.Requ
 	requestedLimit := r.URL.Query().Get("limit")
 	var limit = 20
 	var err error
+
 	if requestedLimit != "" {
 		limit, err = strconv.Atoi(requestedLimit)
 		if err != nil {
@@ -607,7 +714,8 @@ func (api *FilterAPI) getFilterOutputPreview(w http.ResponseWriter, r *http.Requ
 			return
 		}
 	}
-	filterOutput, err := api.dataStore.GetFilterOutput(filterID)
+
+	filterOutput, err := api.getOutput(filterID, r.Context())
 	if err != nil {
 		log.ErrorC("failed to find filter output", err, log.Data{"filter_output_id": filterID, "limit": limit})
 		setErrorCode(w, err)
@@ -615,8 +723,8 @@ func (api *FilterAPI) getFilterOutputPreview(w http.ResponseWriter, r *http.Requ
 	}
 
 	if len(filterOutput.Dimensions) == 0 {
-		log.Error(errors.New("no dimensions are present in the filter"), log.Data{"filter_output_id": filterID, "limit": limit})
-		http.Error(w, "no dimensions are present in the filter", http.StatusBadRequest)
+		log.Error(errDimensionBadRequest, log.Data{"filter_output_id": filterID, "limit": limit})
+		setErrorCode(w, errDimensionBadRequest)
 		return
 	}
 
@@ -644,6 +752,74 @@ func (api *FilterAPI) getFilterOutputPreview(w http.ResponseWriter, r *http.Requ
 	}
 
 	log.Info("preview filter output", log.Data{"filter_output_id": filterID, "limit": limit, "dimensions": filterOutput.Dimensions})
+}
+
+func (api *FilterAPI) getFilter(filterID string, ctx context.Context) (*models.Filter, error) {
+	filter, err := api.dataStore.GetFilter(filterID)
+	if err != nil {
+		log.Error(err, log.Data{"filter_blueprint_id": filterID})
+		return nil, err
+	}
+
+	//only return the filter if it is for published data or via authenticated request
+	if filter.Published || ctx.Value(internalToken) == true {
+		return filter, nil
+	}
+
+	log.Info("unauthenticated request to access unpublished filter", log.Data{"filter_blueprint": filter})
+
+	instance, err := api.datasetAPI.GetInstance(ctx, filter.InstanceID)
+	if err != nil {
+		log.Error(errors.New("failed to retrieve instance from dataset api"), log.Data{"filter_blueprint": filter})
+		return nil, errNotFound
+	}
+
+	//instance has been published since filter was last requested, so update filter and return
+	if instance.State == "published" {
+		filter.Published = true
+		if err := api.dataStore.SetPublished(filterID); err != nil {
+			log.Error(err, log.Data{"filter_id": filterID})
+			return nil, errNotFound
+		}
+
+		return filter, nil
+	}
+
+	return nil, errNotFound
+}
+
+func (api *FilterAPI) getOutput(filterID string, ctx context.Context) (*models.Filter, error) {
+	output, err := api.dataStore.GetFilterOutput(filterID)
+	if err != nil {
+		log.Error(err, log.Data{"filter_blueprint_id": filterID})
+		return nil, err
+	}
+
+	//only return the filter if it is for published data or via authenticated request
+	if output.Published || ctx.Value(internalToken) == true {
+		return output, nil
+	}
+
+	log.Info("unauthenticated request to access unpublished filter output", log.Data{"filter_output": output})
+
+	filter, err := api.getFilter(output.Links.FilterBlueprint.ID, ctx)
+	if err != nil {
+		log.Error(errors.New("failed to retrieve filter blueprint"), log.Data{"filter_output": output, "filter_blueprint_id": output.Links.FilterBlueprint.ID})
+		return nil, errNotFound
+	}
+
+	//filter has been published since output was last requested, so update output and return
+	if filter.Published {
+		output.Published = true
+		if err := api.dataStore.UpdateFilterOutput(output); err != nil {
+			log.Error(err, log.Data{"filter_output_id": output.FilterID})
+			return nil, errNotFound
+		}
+
+		return output, nil
+	}
+
+	return nil, errNotFound
 }
 
 func (api *FilterAPI) checkFilterOptions(ctx context.Context, newFilter *models.Filter, instance *models.Instance) error {
@@ -689,10 +865,11 @@ func (api *FilterAPI) checkFilterOptions(ctx context.Context, newFilter *models.
 	return nil
 }
 
-func (api *FilterAPI) checkNewFilterDimension(ctx context.Context, newDimension *models.AddDimension, instance *models.Instance) error {
+func (api *FilterAPI) checkNewFilterDimension(ctx context.Context, name string, options []string, instance *models.Instance) error {
 	// FIXME - We should be calling dimension endpoint on dataset API to check if
 	// dimension exists but this endpoint doesn't exist yet so call dimension
 	// list endpoint and iterate over items to find if dimension exists
+
 	datasetDimensions, err := api.datasetAPI.GetVersionDimensions(ctx, instance.Links.Dataset.ID, instance.Links.Edition.ID, instance.Links.Version.ID)
 	if err != nil {
 		log.ErrorC("failed to retreive a list of dimensions from the dataset API", err, log.Data{"instance": instance})
@@ -700,8 +877,8 @@ func (api *FilterAPI) checkNewFilterDimension(ctx context.Context, newDimension 
 	}
 
 	dimension := models.Dimension{
-		Name:    newDimension.Name,
-		Options: newDimension.Options,
+		Name:    name,
+		Options: options,
 	}
 
 	if err := models.ValidateFilterDimensions([]models.Dimension{dimension}, datasetDimensions); err != nil {
@@ -731,7 +908,7 @@ func (api *FilterAPI) checkNewFilterDimension(ctx context.Context, newDimension 
 	return nil
 }
 
-func checkFilterOutputQuery(previousFilterOutput, filterOutput *models.Filter, typ ...string) *models.Filter {
+func checkFilterOutputQuery(previousFilterOutput, filterOutput *models.Filter) *models.Filter {
 	if previousFilterOutput.Downloads == nil {
 		return filterOutput
 	}
@@ -756,7 +933,6 @@ func setJSONContentType(w http.ResponseWriter) {
 }
 
 func setErrorCode(w http.ResponseWriter, err error, typ ...string) {
-	log.Debug("error is", log.Data{"error": err})
 	switch err.Error() {
 	case "Not found":
 		if typ != nil && typ[0] == statusBadRequest {
