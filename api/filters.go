@@ -19,17 +19,21 @@ import (
 )
 
 var (
-	internalError             = "Failed to process the request due to an internal error"
-	badRequest                = "Bad request - Invalid request body"
-	unauthorised              = "Unauthorised, request lacks valid authentication credentials"
-	forbidden                 = "Forbidden, the filter output has been locked as it has been submitted to be processed"
-	statusBadRequest          = "bad request"
-	statusUnprocessableEntity = "unprocessable entity"
-	errNotFound               = errors.New("Not found")
-	errForbidden              = errors.New("Forbidden")
-	errDimensionBadRequest    = errors.New("Bad request - filter dimension not found")
-	errDimensionNotFound      = errors.New("Dimension not found")
-	errOptionNotFound         = errors.New("Option not found")
+	internalError = "Failed to process the request due to an internal error"
+	badRequest    = "Bad request - Invalid request body"
+	unauthorised  = "Unauthorised, request lacks valid authentication credentials"
+	forbidden     = "Forbidden, the filter output has been locked as it has been submitted to be processed"
+
+	statusBadRequest          = "Bad request"
+	statusUnprocessableEntity = "Unprocessable entity"
+
+	errNotFound            = errors.New("Not found")
+	errForbidden           = errors.New("Forbidden")
+	errDimensionBadRequest = errors.New("Bad request - filter dimension not found")
+	errDimensionNotFound   = errors.New("Dimension not found")
+	errOptionNotFound      = errors.New("Option not found")
+	errUnauthorised        = errors.New(unauthorised)
+	errNoHeader            = errors.New("No auth header provided")
 
 	incorrectDimensionOptions = regexp.MustCompile("Bad request - incorrect dimension")
 )
@@ -628,7 +632,7 @@ func (api *FilterAPI) updateFilterOutput(w http.ResponseWriter, r *http.Request)
 	if r.Context().Value(internalToken) != true {
 		err := errors.New("Not authorised")
 		log.Error(err, log.Data{"filter_output_id": filterOutputID})
-		setErrorCode(w, err)
+		setErrorCode(w, errNoHeader)
 		return
 	}
 
@@ -866,7 +870,7 @@ func (api *FilterAPI) checkFilterOptions(ctx context.Context, newFilter *models.
 
 	if incorrectDimensionOptions != nil {
 		err = fmt.Errorf("Bad request - incorrect dimension options chosen: %v", incorrectDimensionOptions)
-		log.ErrorC("Incorrect dimension options chosen", err, log.Data{"dimension_options": incorrectDimensionOptions})
+		log.ErrorC("incorrect dimension options chosen", err, log.Data{"dimension_options": incorrectDimensionOptions})
 		return err
 	}
 
@@ -986,11 +990,11 @@ func setErrorCode(w http.ResponseWriter, err error, typ ...string) {
 	case "Bad request":
 		http.Error(w, "Bad request", http.StatusBadRequest)
 		return
-	case "Forbidden":
-		http.Error(w, forbidden, http.StatusForbidden)
+	case errNoHeader.Error():
+		http.Error(w, "resource not found", http.StatusNotFound)
 		return
-	case "Not authorised":
-		http.Error(w, unauthorised, http.StatusUnauthorized)
+	case errUnauthorised.Error():
+		http.Error(w, "resource not found", http.StatusNotFound)
 		return
 	default:
 		http.Error(w, internalError, http.StatusInternalServerError)

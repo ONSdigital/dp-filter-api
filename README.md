@@ -42,6 +42,15 @@ Currently checked each `$HEALTHCHECK_INTERVAL` and reported on endpoint `/health
 * MongoDB
 * DatasetAPI
 
+### Acceptance tests
+
+To run the acceptance tests for this project, use the following commands
+
+* Start Kafka and Mongodb 
+* Run the dp-filter-api using `make acceptance`
+* Run the tests in dp-api-test
+
+
 ### Contributing
 
 See [CONTRIBUTING](CONTRIBUTING.md) for details.

@@ -93,7 +93,7 @@ func TestFailedToAddFilterBlueprint(t *testing.T) {
 
 		bodyBytes, _ := ioutil.ReadAll(w.Body)
 		response := string(bodyBytes)
-		So(response, ShouldResemble, "Failed to process the request due to an internal error\n")
+		So(response, ShouldResemble, internalError+"\n")
 	})
 
 	Convey("When dataset API is unavailable, an internal error is returned", t, func() {
@@ -108,7 +108,7 @@ func TestFailedToAddFilterBlueprint(t *testing.T) {
 
 		bodyBytes, _ := ioutil.ReadAll(w.Body)
 		response := string(bodyBytes)
-		So(response, ShouldResemble, "Failed to process the request due to an internal error\n")
+		So(response, ShouldResemble, internalError+"\n")
 	})
 
 	Convey("When instance does not exist, a not found error is returned", t, func() {
@@ -153,7 +153,7 @@ func TestFailedToAddFilterBlueprint(t *testing.T) {
 
 		bodyBytes, _ := ioutil.ReadAll(w.Body)
 		response := string(bodyBytes)
-		So(response, ShouldResemble, "Bad request - Invalid request body\n")
+		So(response, ShouldResemble, badRequest+"\n")
 	})
 
 	Convey("When a empty json message is sent, a bad request is returned", t, func() {
@@ -168,7 +168,7 @@ func TestFailedToAddFilterBlueprint(t *testing.T) {
 
 		bodyBytes, _ := ioutil.ReadAll(w.Body)
 		response := string(bodyBytes)
-		So(response, ShouldResemble, "Bad request - Invalid request body\n")
+		So(response, ShouldResemble, badRequest+"\n")
 	})
 
 	Convey("When a json message is missing mandatory fields, a bad request is returned", t, func() {
@@ -183,7 +183,7 @@ func TestFailedToAddFilterBlueprint(t *testing.T) {
 
 		bodyBytes, _ := ioutil.ReadAll(w.Body)
 		response := string(bodyBytes)
-		So(response, ShouldResemble, "Bad request - Invalid request body\n")
+		So(response, ShouldResemble, badRequest+"\n")
 	})
 
 	Convey("When a json message contains a dimension that does not exist, a bad request is returned", t, func() {
@@ -279,7 +279,7 @@ func TestFailedToAddFilterBlueprintDimension(t *testing.T) {
 
 		bodyBytes, _ := ioutil.ReadAll(w.Body)
 		response := string(bodyBytes)
-		So(response, ShouldResemble, "Failed to process the request due to an internal error\n")
+		So(response, ShouldResemble, internalError+"\n")
 	})
 
 	Convey("When an invalid json message is sent, a bad request is returned", t, func() {
@@ -294,7 +294,7 @@ func TestFailedToAddFilterBlueprintDimension(t *testing.T) {
 
 		bodyBytes, _ := ioutil.ReadAll(w.Body)
 		response := string(bodyBytes)
-		So(response, ShouldResemble, "Bad request - Invalid request body\n")
+		So(response, ShouldResemble, badRequest+"\n")
 	})
 
 	Convey("When a filter blueprint does not exist, a not found is returned", t, func() {
@@ -395,7 +395,7 @@ func TestFailedToAddFilterBlueprintDimensionOption(t *testing.T) {
 
 		bodyBytes, _ := ioutil.ReadAll(w.Body)
 		response := string(bodyBytes)
-		So(response, ShouldResemble, "Failed to process the request due to an internal error\n")
+		So(response, ShouldResemble, internalError+"\n")
 	})
 
 	Convey("When the filter blueprint does not exist, a bad request status is returned", t, func() {
@@ -574,7 +574,7 @@ func TestFailedToUpdateFilterBlueprint(t *testing.T) {
 
 		bodyBytes, _ := ioutil.ReadAll(w.Body)
 		response := string(bodyBytes)
-		So(response, ShouldResemble, "Bad request - Invalid request body\n")
+		So(response, ShouldResemble, badRequest+"\n")
 	})
 
 	Convey("When an empty json message is sent, a bad request is returned", t, func() {
@@ -589,7 +589,7 @@ func TestFailedToUpdateFilterBlueprint(t *testing.T) {
 
 		bodyBytes, _ := ioutil.ReadAll(w.Body)
 		response := string(bodyBytes)
-		So(response, ShouldResemble, "Bad request - Invalid request body\n")
+		So(response, ShouldResemble, badRequest+"\n")
 	})
 
 	Convey("When a json message is sent to update filter blueprint that doesn't exist, a status of not found is returned", t, func() {
@@ -705,7 +705,7 @@ func TestFailedToGetFilterBlueprintDimensions(t *testing.T) {
 
 		bodyBytes, _ := ioutil.ReadAll(w.Body)
 		response := string(bodyBytes)
-		So(response, ShouldResemble, "Failed to process the request due to an internal error\n")
+		So(response, ShouldResemble, internalError+"\n")
 	})
 
 	Convey("When filter blueprint does not exist, a not found is returned", t, func() {
@@ -760,7 +760,7 @@ func TestFailedToGetFilterBlueprintDimension(t *testing.T) {
 
 		bodyBytes, _ := ioutil.ReadAll(w.Body)
 		response := string(bodyBytes)
-		So(response, ShouldResemble, "Failed to process the request due to an internal error\n")
+		So(response, ShouldResemble, internalError+"\n")
 	})
 
 	Convey("When filter blueprint does not exist, a bad request is returned", t, func() {
@@ -843,7 +843,7 @@ func TestFailedToGetFilterBlueprintDimensionOptions(t *testing.T) {
 
 		bodyBytes, _ := ioutil.ReadAll(w.Body)
 		response := string(bodyBytes)
-		So(response, ShouldResemble, "Failed to process the request due to an internal error\n")
+		So(response, ShouldResemble, internalError+"\n")
 	})
 
 	Convey("When filter blueprint does not exist, a not found is returned", t, func() {
@@ -926,7 +926,7 @@ func TestFailedToGetFilterBlueprintDimensionOption(t *testing.T) {
 
 		bodyBytes, _ := ioutil.ReadAll(w.Body)
 		response := string(bodyBytes)
-		So(response, ShouldResemble, "Failed to process the request due to an internal error\n")
+		So(response, ShouldResemble, internalError+"\n")
 	})
 
 	Convey("When filter blueprint does not exist, a bad request is returned", t, func() {
@@ -1009,7 +1009,7 @@ func TestFailedToRemoveFilterBlueprintDimension(t *testing.T) {
 
 		bodyBytes, _ := ioutil.ReadAll(w.Body)
 		response := string(bodyBytes)
-		So(response, ShouldResemble, "Failed to process the request due to an internal error\n")
+		So(response, ShouldResemble, internalError+"\n")
 	})
 
 	Convey("When filter blueprint does not exist, a bad request is returned", t, func() {
@@ -1092,7 +1092,7 @@ func TestFailedToRemoveFilterBlueprintDimensionOption(t *testing.T) {
 
 		bodyBytes, _ := ioutil.ReadAll(w.Body)
 		response := string(bodyBytes)
-		So(response, ShouldResemble, "Failed to process the request due to an internal error\n")
+		So(response, ShouldResemble, internalError+"\n")
 	})
 
 	Convey("When filter blueprint does not exist, a bad request is returned", t, func() {
@@ -1176,7 +1176,7 @@ func TestFailedToGetFilterOutput(t *testing.T) {
 
 		bodyBytes, _ := ioutil.ReadAll(w.Body)
 		response := string(bodyBytes)
-		So(response, ShouldResemble, "Failed to process the request due to an internal error\n")
+		So(response, ShouldResemble, internalError+"\n")
 	})
 
 	Convey("When filter output does not exist, a not found is returned", t, func() {
@@ -1266,7 +1266,7 @@ func TestFailedToUpdateFilterOutput(t *testing.T) {
 
 		bodyBytes, _ := ioutil.ReadAll(w.Body)
 		response := string(bodyBytes)
-		So(response, ShouldResemble, "Bad request - Invalid request body\n")
+		So(response, ShouldResemble, badRequest+"\n")
 	})
 
 	Convey("When an update to a filter output resource that does not exist, a not found is returned", t, func() {
@@ -1296,7 +1296,7 @@ func TestFailedToUpdateFilterOutput(t *testing.T) {
 
 		bodyBytes, _ := ioutil.ReadAll(w.Body)
 		response := string(bodyBytes)
-		So(response, ShouldResemble, "Bad request - Invalid request body\n")
+		So(response, ShouldResemble, badRequest+"\n")
 	})
 
 	Convey("When a json message contains fields that are not allowed to be updated, a forbidden status is returned", t, func() {
@@ -1327,11 +1327,11 @@ func TestFailedToUpdateFilterOutput(t *testing.T) {
 		w := httptest.NewRecorder()
 		api := routes(authHeader, host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
 		api.router.ServeHTTP(w, r)
-		So(w.Code, ShouldEqual, http.StatusUnauthorized)
+		So(w.Code, ShouldEqual, http.StatusNotFound)
 
 		bodyBytes, _ := ioutil.ReadAll(w.Body)
 		response := string(bodyBytes)
-		So(response, ShouldResemble, "Unauthorised, request lacks valid authentication credentials\n")
+		So(response, ShouldResemble, "resource not found\n")
 	})
 }
 
