@@ -35,7 +35,6 @@ func TestSuccessfulAddFilterBlueprint(t *testing.T) {
 	Convey("Successfully create a filter blueprint", t, func() {
 		reader := strings.NewReader(`{"instance_id":"12345678"}`)
 		r, err := http.NewRequest("POST", "http://localhost:22100/filters", reader)
-		r.Header.Add(internalToken, authHeader)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
@@ -44,10 +43,21 @@ func TestSuccessfulAddFilterBlueprint(t *testing.T) {
 		So(w.Code, ShouldEqual, http.StatusCreated)
 	})
 
+	Convey("Successfully create a filter blueprint for an unpublished instance", t, func() {
+		reader := strings.NewReader(`{"instance_id":"12345678"}`)
+		r, err := http.NewRequest("POST", "http://localhost:22100/filters", reader)
+		r.Header.Add(internalToken, authHeader)
+		So(err, ShouldBeNil)
+
+		w := httptest.NewRecorder()
+		api := routes(authHeader, host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusCreated)
+	})
+
 	Convey("Successfully create a filter blueprint with dimensions", t, func() {
 		reader := strings.NewReader(`{"instance_id":"12345678", "dimensions":[{"name": "age", "options": ["27","33"]}]}`)
 		r, err := http.NewRequest("POST", "http://localhost:22100/filters", reader)
-		r.Header.Add(internalToken, authHeader)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
@@ -60,7 +70,6 @@ func TestSuccessfulAddFilterBlueprint(t *testing.T) {
 	Convey("Successfully submit a filter blueprint", t, func() {
 		reader := strings.NewReader(`{"instance_id":"12345678"}`)
 		r, err := http.NewRequest("POST", "http://localhost:22100/filters?submitted=true", reader)
-		r.Header.Add(internalToken, authHeader)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
@@ -75,7 +84,6 @@ func TestFailedToAddFilterBlueprint(t *testing.T) {
 	Convey("When no data store is available, an internal error is returned", t, func() {
 		reader := strings.NewReader(`{"instance_id":"12345678"}`)
 		r, err := http.NewRequest("POST", "http://localhost:22100/filters", reader)
-		r.Header.Add(internalToken, authHeader)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
@@ -91,7 +99,6 @@ func TestFailedToAddFilterBlueprint(t *testing.T) {
 	Convey("When dataset API is unavailable, an internal error is returned", t, func() {
 		reader := strings.NewReader(`{"instance_id":"12345678"}`)
 		r, err := http.NewRequest("POST", "http://localhost:22100/filters", reader)
-		r.Header.Add(internalToken, authHeader)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
@@ -107,7 +114,6 @@ func TestFailedToAddFilterBlueprint(t *testing.T) {
 	Convey("When instance does not exist, a not found error is returned", t, func() {
 		reader := strings.NewReader(`{"instance_id":"12345678"}`)
 		r, err := http.NewRequest("POST", "http://localhost:22100/filters", reader)
-		r.Header.Add(internalToken, authHeader)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
@@ -120,10 +126,24 @@ func TestFailedToAddFilterBlueprint(t *testing.T) {
 		So(response, ShouldResemble, "Instance not found\n")
 	})
 
+	Convey("When instance is unpublished and the request is not authenticated, a not found error is returned", t, func() {
+		reader := strings.NewReader(`{"instance_id":"12345678"}`)
+		r, err := http.NewRequest("POST", "http://localhost:22100/filters", reader)
+		So(err, ShouldBeNil)
+
+		w := httptest.NewRecorder()
+		api := routes(authHeader, host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusBadRequest)
+
+		bodyBytes, _ := ioutil.ReadAll(w.Body)
+		response := string(bodyBytes)
+		So(response, ShouldResemble, "Bad request - Invalid request body\n")
+	})
+
 	Convey("When an invalid json message is sent, a bad request is returned", t, func() {
 		reader := strings.NewReader("{")
 		r, err := http.NewRequest("POST", "http://localhost:22100/filters", reader)
-		r.Header.Add(internalToken, authHeader)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
@@ -139,7 +159,6 @@ func TestFailedToAddFilterBlueprint(t *testing.T) {
 	Convey("When a empty json message is sent, a bad request is returned", t, func() {
 		reader := strings.NewReader("{}")
 		r, err := http.NewRequest("POST", "http://localhost:22100/filters", reader)
-		r.Header.Add(internalToken, authHeader)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
@@ -155,7 +174,6 @@ func TestFailedToAddFilterBlueprint(t *testing.T) {
 	Convey("When a json message is missing mandatory fields, a bad request is returned", t, func() {
 		reader := strings.NewReader(`{"dataset":"Census"}`)
 		r, err := http.NewRequest("POST", "http://localhost:22100/filters", reader)
-		r.Header.Add(internalToken, authHeader)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
@@ -171,7 +189,6 @@ func TestFailedToAddFilterBlueprint(t *testing.T) {
 	Convey("When a json message contains a dimension that does not exist, a bad request is returned", t, func() {
 		reader := strings.NewReader(`{"instance_id":"12345678", "dimensions":[{"name": "weight", "options": ["27","33"]}]}`)
 		r, err := http.NewRequest("POST", "http://localhost:22100/filters", reader)
-		r.Header.Add(internalToken, authHeader)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
@@ -187,7 +204,6 @@ func TestFailedToAddFilterBlueprint(t *testing.T) {
 	Convey("When a json message contains a dimension option that does not exist for a valid dimension, a bad request is returned", t, func() {
 		reader := strings.NewReader(`{"instance_id":"12345678", "dimensions":[{"name": "age", "options": ["29","33"]}]}`)
 		r, err := http.NewRequest("POST", "http://localhost:22100/filters", reader)
-		r.Header.Add(internalToken, authHeader)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
@@ -206,7 +222,6 @@ func TestSuccessfulAddFilterBlueprintDimension(t *testing.T) {
 	Convey("Successfully create a dimension with an empty request body", t, func() {
 		reader := strings.NewReader("")
 		r, err := http.NewRequest("POST", "http://localhost:22100/filters/12345678/dimensions/age", reader)
-		r.Header.Add(internalToken, authHeader)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
@@ -218,7 +233,6 @@ func TestSuccessfulAddFilterBlueprintDimension(t *testing.T) {
 	Convey("Successfully create a dimension with a request body but no options", t, func() {
 		reader := strings.NewReader("{}")
 		r, err := http.NewRequest("POST", "http://localhost:22100/filters/12345678/dimensions/age", reader)
-		r.Header.Add(internalToken, authHeader)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
@@ -230,11 +244,22 @@ func TestSuccessfulAddFilterBlueprintDimension(t *testing.T) {
 	Convey("Successfully create a dimension with options", t, func() {
 		reader := strings.NewReader(`{"options":["27","33"]}`)
 		r, err := http.NewRequest("POST", "http://localhost:22100/filters/12345678/dimensions/age", reader)
-		r.Header.Add(internalToken, authHeader)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
 		api := routes(authHeader, host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusCreated)
+	})
+
+	Convey("Successfully create a dimension with options for an unpublished filter", t, func() {
+		reader := strings.NewReader(`{"options":["27","33"]}`)
+		r, err := http.NewRequest("POST", "http://localhost:22100/filters/12345678/dimensions/age", reader)
+		r.Header.Add(internalToken, authHeader)
+		So(err, ShouldBeNil)
+
+		w := httptest.NewRecorder()
+		api := routes(authHeader, host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusCreated)
 	})
@@ -245,7 +270,6 @@ func TestFailedToAddFilterBlueprintDimension(t *testing.T) {
 	Convey("When no data store is available, an internal error is returned", t, func() {
 		reader := strings.NewReader(`{"options":["22","17"]}`)
 		r, err := http.NewRequest("POST", "http://localhost:22100/filters/12345678/dimensions/age", reader)
-		r.Header.Add(internalToken, authHeader)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
@@ -261,7 +285,6 @@ func TestFailedToAddFilterBlueprintDimension(t *testing.T) {
 	Convey("When an invalid json message is sent, a bad request is returned", t, func() {
 		reader := strings.NewReader("{")
 		r, err := http.NewRequest("POST", "http://localhost:22100/filters/12345678/dimensions/age", reader)
-		r.Header.Add(internalToken, authHeader)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
@@ -277,7 +300,6 @@ func TestFailedToAddFilterBlueprintDimension(t *testing.T) {
 	Convey("When a filter blueprint does not exist, a not found is returned", t, func() {
 		reader := strings.NewReader(`{"options":["22","17"]}`)
 		r, err := http.NewRequest("POST", "http://localhost:22100/filters/12345678/dimensions/age", reader)
-		r.Header.Add(internalToken, authHeader)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
@@ -290,10 +312,24 @@ func TestFailedToAddFilterBlueprintDimension(t *testing.T) {
 		So(response, ShouldResemble, "Filter blueprint not found\n")
 	})
 
+	Convey("When an unpublished filter blueprint does not exist, and the request is not authenticated, a not found is returned", t, func() {
+		reader := strings.NewReader(`{"options":["22","17"]}`)
+		r, err := http.NewRequest("POST", "http://localhost:22100/filters/12345678/dimensions/age", reader)
+		So(err, ShouldBeNil)
+
+		w := httptest.NewRecorder()
+		api := routes(authHeader, host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusNotFound)
+
+		bodyBytes, _ := ioutil.ReadAll(w.Body)
+		response := string(bodyBytes)
+		So(response, ShouldResemble, "Filter blueprint not found\n")
+	})
+
 	Convey("When the dimension does not exist against the dataset filtered on, a bad request is returned", t, func() {
 		reader := strings.NewReader(`{"options":["22","17"]}`)
 		r, err := http.NewRequest("POST", "http://localhost:22100/filters/12345678/dimensions/wealth", reader)
-		r.Header.Add(internalToken, authHeader)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
@@ -309,7 +345,6 @@ func TestFailedToAddFilterBlueprintDimension(t *testing.T) {
 	Convey("When a json body contains a dimension option that does not exist for a valid dimension, a bad request is returned", t, func() {
 		reader := strings.NewReader(`{"options":["22","33"]}`)
 		r, err := http.NewRequest("POST", "http://localhost:22100/filters/12345678/dimensions/age", reader)
-		r.Header.Add(internalToken, authHeader)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
@@ -325,13 +360,23 @@ func TestFailedToAddFilterBlueprintDimension(t *testing.T) {
 
 func TestSuccessfulAddFilterBlueprintDimensionOption(t *testing.T) {
 	t.Parallel()
-	Convey("Successfully send a valid json message", t, func() {
+	Convey("Successfully add a dimension option to a filter", t, func() {
+		r, err := http.NewRequest("POST", "http://localhost:22100/filters/12345678/dimensions/age/options/33", nil)
+		So(err, ShouldBeNil)
+
+		w := httptest.NewRecorder()
+		api := routes(authHeader, host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusCreated)
+	})
+
+	Convey("Successfully add a dimension option to an unpublished filter", t, func() {
 		r, err := http.NewRequest("POST", "http://localhost:22100/filters/12345678/dimensions/age/options/33", nil)
 		r.Header.Add(internalToken, authHeader)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := routes(authHeader, host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
+		api := routes(authHeader, host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusCreated)
 	})
@@ -341,7 +386,6 @@ func TestFailedToAddFilterBlueprintDimensionOption(t *testing.T) {
 	t.Parallel()
 	Convey("When no data store is available, an internal error is returned", t, func() {
 		r, err := http.NewRequest("POST", "http://localhost:22100/filters/12345678/dimensions/age/options/33", nil)
-		r.Header.Add(internalToken, authHeader)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
@@ -356,7 +400,6 @@ func TestFailedToAddFilterBlueprintDimensionOption(t *testing.T) {
 
 	Convey("When the filter blueprint does not exist, a bad request status is returned", t, func() {
 		r, err := http.NewRequest("POST", "http://localhost:22100/filters/12345678/dimensions/age/options/33", nil)
-		r.Header.Add(internalToken, authHeader)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
@@ -369,9 +412,22 @@ func TestFailedToAddFilterBlueprintDimensionOption(t *testing.T) {
 		So(response, ShouldResemble, "Bad request\n")
 	})
 
+	Convey("When the filter blueprint is unpublished, and the request is unauthenticated, a not found status is returned", t, func() {
+		r, err := http.NewRequest("POST", "http://localhost:22100/filters/12345678/dimensions/age/options/33", nil)
+		So(err, ShouldBeNil)
+
+		w := httptest.NewRecorder()
+		api := routes(authHeader, host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusNotFound)
+
+		bodyBytes, _ := ioutil.ReadAll(w.Body)
+		response := string(bodyBytes)
+		So(response, ShouldResemble, "Filter blueprint not found\n")
+	})
+
 	Convey("When a dimension for filter blueprint does not exist, a not found status is returned", t, func() {
 		r, err := http.NewRequest("POST", "http://localhost:22100/filters/12345678/dimensions/notage/options/33", nil)
-		r.Header.Add(internalToken, authHeader)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
@@ -386,7 +442,6 @@ func TestFailedToAddFilterBlueprintDimensionOption(t *testing.T) {
 
 	Convey("When the dimension option for filter blueprint does not exist, a bad request status is returned", t, func() {
 		r, err := http.NewRequest("POST", "http://localhost:22100/filters/12345678/dimensions/age/options/66", nil)
-		r.Header.Add(internalToken, authHeader)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
@@ -473,7 +528,6 @@ func TestSuccessfulUpdateFilterBlueprint(t *testing.T) {
 	Convey("Successfully send a valid json message", t, func() {
 		reader := strings.NewReader(`{"instance_id":"123"}`)
 		r, err := http.NewRequest("PUT", "http://localhost:22100/filters/21312", reader)
-		r.Header.Add(internalToken, authHeader)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
@@ -485,11 +539,22 @@ func TestSuccessfulUpdateFilterBlueprint(t *testing.T) {
 	Convey("Successfully send a request to submit filter blueprint", t, func() {
 		reader := strings.NewReader("{}")
 		r, err := http.NewRequest("PUT", "http://localhost:22100/filters/21312?submitted=true", reader)
-		r.Header.Add(internalToken, authHeader)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
 		api := routes(authHeader, host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusOK)
+	})
+
+	Convey("Successfully send a request to submit an unpublished filter blueprint", t, func() {
+		reader := strings.NewReader("{}")
+		r, err := http.NewRequest("PUT", "http://localhost:22100/filters/21312?submitted=true", reader)
+		r.Header.Add(internalToken, authHeader)
+		So(err, ShouldBeNil)
+
+		w := httptest.NewRecorder()
+		api := routes(authHeader, host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusOK)
 	})
@@ -500,7 +565,6 @@ func TestFailedToUpdateFilterBlueprint(t *testing.T) {
 	Convey("When an invalid json message is sent, a bad request is returned", t, func() {
 		reader := strings.NewReader("{")
 		r, err := http.NewRequest("PUT", "http://localhost:22100/filters/21312", reader)
-		r.Header.Add(internalToken, authHeader)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
@@ -516,7 +580,6 @@ func TestFailedToUpdateFilterBlueprint(t *testing.T) {
 	Convey("When an empty json message is sent, a bad request is returned", t, func() {
 		reader := strings.NewReader("{}")
 		r, err := http.NewRequest("PUT", "http://localhost:22100/filters/21312", reader)
-		r.Header.Add(internalToken, authHeader)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
@@ -532,7 +595,6 @@ func TestFailedToUpdateFilterBlueprint(t *testing.T) {
 	Convey("When a json message is sent to update filter blueprint that doesn't exist, a status of not found is returned", t, func() {
 		reader := strings.NewReader(`{"instance_id":"44444"}`)
 		r, err := http.NewRequest("PUT", "http://localhost:22100/filters/21312", reader)
-		r.Header.Add(internalToken, authHeader)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
@@ -545,10 +607,24 @@ func TestFailedToUpdateFilterBlueprint(t *testing.T) {
 		So(response, ShouldResemble, "Filter blueprint not found\n")
 	})
 
+	Convey("When no authentication is provided to update an unpublished filter, a not found is returned", t, func() {
+		reader := strings.NewReader(`{"instance_id":"44444"}`)
+		r, err := http.NewRequest("PUT", "http://localhost:22100/filters/21312", reader)
+		So(err, ShouldBeNil)
+
+		w := httptest.NewRecorder()
+		api := routes(authHeader, host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusNotFound)
+
+		bodyBytes, _ := ioutil.ReadAll(w.Body)
+		response := string(bodyBytes)
+		So(response, ShouldResemble, "Filter blueprint not found\n")
+	})
+
 	Convey("When a json message is sent to change the instance id of a filter blueprint and the instance does not exist, a status of bad request is returned", t, func() {
 		reader := strings.NewReader(`{"instance_id":"44444"}`)
 		r, err := http.NewRequest("PUT", "http://localhost:22100/filters/21312", reader)
-		r.Header.Add(internalToken, authHeader)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
@@ -564,7 +640,6 @@ func TestFailedToUpdateFilterBlueprint(t *testing.T) {
 	Convey("When a json message is sent to change the instance id of a filter blueprint and the current dimensions do not match, a status of bad request is returned", t, func() {
 		reader := strings.NewReader(`{"instance_id":"44444"}`)
 		r, err := http.NewRequest("PUT", "http://localhost:22100/filters/21312", reader)
-		r.Header.Add(internalToken, authHeader)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
@@ -580,7 +655,6 @@ func TestFailedToUpdateFilterBlueprint(t *testing.T) {
 	Convey("When a json message is sent to change the instance id of a filter blueprint and the current dimensions do not match, a status of bad request is returned", t, func() {
 		reader := strings.NewReader(`{"instance_id":"44444"}`)
 		r, err := http.NewRequest("PUT", "http://localhost:22100/filters/21312", reader)
-		r.Header.Add(internalToken, authHeader)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
@@ -902,11 +976,21 @@ func TestSuccessfulRemoveFilterBlueprintDimension(t *testing.T) {
 	t.Parallel()
 	Convey("Successfully remove a dimension for a filter blueprint, returns 200", t, func() {
 		r, err := http.NewRequest("DELETE", "http://localhost:22100/filters/12345678/dimensions/1_age", nil)
-		r.Header.Add(internalToken, authHeader)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
 		api := routes(authHeader, host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusOK)
+	})
+
+	Convey("Successfully remove a dimension for an unpublished filter blueprint, returns 200", t, func() {
+		r, err := http.NewRequest("DELETE", "http://localhost:22100/filters/12345678/dimensions/1_age", nil)
+		r.Header.Add(internalToken, authHeader)
+		So(err, ShouldBeNil)
+
+		w := httptest.NewRecorder()
+		api := routes(authHeader, host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusOK)
 	})
@@ -916,7 +1000,6 @@ func TestFailedToRemoveFilterBlueprintDimension(t *testing.T) {
 	t.Parallel()
 	Convey("When no data store is available, an internal error is returned", t, func() {
 		r, err := http.NewRequest("DELETE", "http://localhost:22100/filters/1234568/dimensions/1_age", nil)
-		r.Header.Add(internalToken, authHeader)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
@@ -931,7 +1014,6 @@ func TestFailedToRemoveFilterBlueprintDimension(t *testing.T) {
 
 	Convey("When filter blueprint does not exist, a bad request is returned", t, func() {
 		r, err := http.NewRequest("DELETE", "http://localhost:22100/filters/12345678/dimensions/1_age", nil)
-		r.Header.Add(internalToken, authHeader)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
@@ -944,9 +1026,22 @@ func TestFailedToRemoveFilterBlueprintDimension(t *testing.T) {
 		So(response, ShouldResemble, "Bad request\n")
 	})
 
+	Convey("When filter blueprint is unpublished, and request is not authenticated, a bad request is returned", t, func() {
+		r, err := http.NewRequest("DELETE", "http://localhost:22100/filters/12345678/dimensions/1_age", nil)
+		So(err, ShouldBeNil)
+
+		w := httptest.NewRecorder()
+		api := routes(authHeader, host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusNotFound)
+
+		bodyBytes, _ := ioutil.ReadAll(w.Body)
+		response := string(bodyBytes)
+		So(response, ShouldResemble, "Filter blueprint not found\n")
+	})
+
 	Convey("When dimension does not exist against filter blueprint, a not found is returned", t, func() {
 		r, err := http.NewRequest("DELETE", "http://localhost:22100/filters/12345678/dimensions/1_age", nil)
-		r.Header.Add(internalToken, authHeader)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
@@ -964,11 +1059,21 @@ func TestSuccessfulRemoveFilterBlueprintDimensionOption(t *testing.T) {
 	t.Parallel()
 	Convey("Successfully remove a option for a filter blueprint, returns 200", t, func() {
 		r, err := http.NewRequest("DELETE", "http://localhost:22100/filters/12345678/dimensions/time/options/2015", nil)
-		r.Header.Add(internalToken, authHeader)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
 		api := routes(authHeader, host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusOK)
+	})
+
+	Convey("Successfully remove a option for an unpublished filter blueprint, returns 200", t, func() {
+		r, err := http.NewRequest("DELETE", "http://localhost:22100/filters/12345678/dimensions/time/options/2015", nil)
+		r.Header.Add(internalToken, authHeader)
+		So(err, ShouldBeNil)
+
+		w := httptest.NewRecorder()
+		api := routes(authHeader, host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusOK)
 	})
@@ -978,7 +1083,6 @@ func TestFailedToRemoveFilterBlueprintDimensionOption(t *testing.T) {
 	t.Parallel()
 	Convey("When no data store is available, an internal error is returned", t, func() {
 		r, err := http.NewRequest("DELETE", "http://localhost:22100/filters/12345678/dimensions/1_age/options/26", nil)
-		r.Header.Add(internalToken, authHeader)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
@@ -993,7 +1097,6 @@ func TestFailedToRemoveFilterBlueprintDimensionOption(t *testing.T) {
 
 	Convey("When filter blueprint does not exist, a bad request is returned", t, func() {
 		r, err := http.NewRequest("DELETE", "http://localhost:22100/filters/12345678/dimensions/1_age/options/26", nil)
-		r.Header.Add(internalToken, authHeader)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
@@ -1006,9 +1109,22 @@ func TestFailedToRemoveFilterBlueprintDimensionOption(t *testing.T) {
 		So(response, ShouldResemble, "Bad request\n")
 	})
 
+	Convey("When filter blueprint is unpublished, and request is not authenticated, a not found is returned", t, func() {
+		r, err := http.NewRequest("DELETE", "http://localhost:22100/filters/12345678/dimensions/1_age/options/26", nil)
+		So(err, ShouldBeNil)
+
+		w := httptest.NewRecorder()
+		api := routes(authHeader, host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusNotFound)
+
+		bodyBytes, _ := ioutil.ReadAll(w.Body)
+		response := string(bodyBytes)
+		So(response, ShouldResemble, "Filter blueprint not found\n")
+	})
+
 	Convey("When dimension does not exist against filter blueprint, a not found is returned", t, func() {
 		r, err := http.NewRequest("DELETE", "http://localhost:22100/filters/12345678/dimensions/1_age/options/26", nil)
-		r.Header.Add(internalToken, authHeader)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
@@ -1103,6 +1219,19 @@ func TestSuccessfulUpdateFilterOutput(t *testing.T) {
 
 		w := httptest.NewRecorder()
 		api := routes(authHeader, host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusOK)
+	})
+
+	Convey("Successfully send a valid json message to update an unpublished filter output", t, func() {
+		reader := strings.NewReader(`{"downloads":{"csv":{"url":"s3-csv-location","size":"12mb"}}}`)
+		r, err := http.NewRequest("PUT", "http://localhost:22100/filter-outputs/21312", reader)
+		So(err, ShouldBeNil)
+
+		r.Header.Add(internalToken, "cake")
+
+		w := httptest.NewRecorder()
+		api := routes(authHeader, host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusOK)
 	})

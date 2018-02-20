@@ -61,6 +61,16 @@ func (api *FilterAPI) addFilterBlueprint(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	if instance.State != publishedState && r.Context().Value(internalToken) != true {
+		log.Info("unauthenticated request to filter unpublished instance", log.Data{"instance": newFilter.InstanceID, "state": instance.State})
+		http.Error(w, badRequest, http.StatusBadRequest)
+		return
+	}
+
+	if instance.State == publishedState {
+		newFilter.Published = true
+	}
+
 	if err = api.checkFilterOptions(r.Context(), newFilter, instance); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -77,10 +87,6 @@ func (api *FilterAPI) addFilterBlueprint(w http.ResponseWriter, r *http.Request)
 	}
 
 	newFilter.Links = links
-
-	if instance.State == "published" {
-		newFilter.Published = true
-	}
 
 	_, err = api.dataStore.AddFilter(api.host, newFilter)
 	if err != nil {
@@ -775,7 +781,7 @@ func (api *FilterAPI) getFilter(filterID string, ctx context.Context) (*models.F
 	}
 
 	//instance has been published since filter was last requested, so update filter and return
-	if instance.State == "published" {
+	if instance.State == publishedState {
 		filter.Published = true
 		if err := api.dataStore.UpdateFilter(filter); err != nil {
 			log.Error(err, log.Data{"filter_id": filterID})
