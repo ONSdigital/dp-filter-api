@@ -18,7 +18,6 @@ var (
 	lockDataStoreMockGetFilterOutput             sync.RWMutex
 	lockDataStoreMockRemoveFilterDimension       sync.RWMutex
 	lockDataStoreMockRemoveFilterDimensionOption sync.RWMutex
-	lockDataStoreMockSetPublished                sync.RWMutex
 	lockDataStoreMockUpdateFilter                sync.RWMutex
 	lockDataStoreMockUpdateFilterOutput          sync.RWMutex
 )
@@ -55,9 +54,6 @@ var (
 //             },
 //             RemoveFilterDimensionOptionFunc: func(filterID string, name string, option string) error {
 // 	               panic("TODO: mock out the RemoveFilterDimensionOption method")
-//             },
-//             SetPublishedFunc: func(filterID string) error {
-// 	               panic("TODO: mock out the SetPublished method")
 //             },
 //             UpdateFilterFunc: func(filter *models.Filter) error {
 // 	               panic("TODO: mock out the UpdateFilter method")
@@ -98,9 +94,6 @@ type DataStoreMock struct {
 
 	// RemoveFilterDimensionOptionFunc mocks the RemoveFilterDimensionOption method.
 	RemoveFilterDimensionOptionFunc func(filterID string, name string, option string) error
-
-	// SetPublishedFunc mocks the SetPublished method.
-	SetPublishedFunc func(filterID string) error
 
 	// UpdateFilterFunc mocks the UpdateFilter method.
 	UpdateFilterFunc func(filter *models.Filter) error
@@ -174,11 +167,6 @@ type DataStoreMock struct {
 			Name string
 			// Option is the option argument value.
 			Option string
-		}
-		// SetPublished holds details about calls to the SetPublished method.
-		SetPublished []struct {
-			// FilterID is the filterID argument value.
-			FilterID string
 		}
 		// UpdateFilter holds details about calls to the UpdateFilter method.
 		UpdateFilter []struct {
@@ -509,37 +497,6 @@ func (mock *DataStoreMock) RemoveFilterDimensionOptionCalls() []struct {
 	lockDataStoreMockRemoveFilterDimensionOption.RLock()
 	calls = mock.calls.RemoveFilterDimensionOption
 	lockDataStoreMockRemoveFilterDimensionOption.RUnlock()
-	return calls
-}
-
-// SetPublished calls SetPublishedFunc.
-func (mock *DataStoreMock) SetPublished(filterID string) error {
-	if mock.SetPublishedFunc == nil {
-		panic("moq: DataStoreMock.SetPublishedFunc is nil but DataStore.SetPublished was just called")
-	}
-	callInfo := struct {
-		FilterID string
-	}{
-		FilterID: filterID,
-	}
-	lockDataStoreMockSetPublished.Lock()
-	mock.calls.SetPublished = append(mock.calls.SetPublished, callInfo)
-	lockDataStoreMockSetPublished.Unlock()
-	return mock.SetPublishedFunc(filterID)
-}
-
-// SetPublishedCalls gets all the calls that were made to SetPublished.
-// Check the length with:
-//     len(mockedDataStore.SetPublishedCalls())
-func (mock *DataStoreMock) SetPublishedCalls() []struct {
-	FilterID string
-} {
-	var calls []struct {
-		FilterID string
-	}
-	lockDataStoreMockSetPublished.RLock()
-	calls = mock.calls.SetPublished
-	lockDataStoreMockSetPublished.RUnlock()
 	return calls
 }
 

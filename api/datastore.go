@@ -17,7 +17,6 @@ type DataStore interface {
 	GetFilterOutput(filterOutputID string) (*models.Filter, error)
 	RemoveFilterDimension(filterID string, name string) error
 	RemoveFilterDimensionOption(filterID string, name string, option string) error
-	SetPublished(filterID string) error
 	UpdateFilter(filter *models.Filter) error
 	UpdateFilterOutput(filterOutput *models.Filter) error
 }

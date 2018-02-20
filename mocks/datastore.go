@@ -30,6 +30,7 @@ type DataStore struct {
 	InternalError          bool
 	ChangeInstanceRequest  bool
 	InvalidDimensionOption bool
+	Unpublished            bool
 }
 
 // AddFilter represents the mocked version of creating a filter blueprint to the datastore
@@ -38,14 +39,6 @@ func (ds *DataStore) AddFilter(host string, filterJob *models.Filter) (*models.F
 		return nil, errorInternalServer
 	}
 	return &models.Filter{InstanceID: "12345678"}, nil
-}
-
-// SetPublished represents the mocked version of setting the published flag on a filter blueprint
-func (ds *DataStore) SetPublished(filterID string) error {
-	if ds.InternalError {
-		return errorInternalServer
-	}
-	return nil
 }
 
 // AddFilterDimension represents the mocked version of creating a filter dimension to the datastore
@@ -113,14 +106,19 @@ func (ds *DataStore) GetFilter(filterID string) (*models.Filter, error) {
 	}
 
 	if ds.ChangeInstanceRequest {
-		return &models.Filter{FilterID: filterID, InstanceID: "12345678", Dimensions: []models.Dimension{{Name: "age", Options: []string{"33"}}}}, nil
+		return &models.Filter{FilterID: filterID, InstanceID: "12345678", Published: true, Dimensions: []models.Dimension{{Name: "age", Options: []string{"33"}}}}, nil
 	}
 
 	if ds.InvalidDimensionOption {
-		return &models.Filter{FilterID: filterID, InstanceID: "12345678", Dimensions: []models.Dimension{{Name: "age", Options: []string{"28"}}}}, nil
+		return &models.Filter{FilterID: filterID, InstanceID: "12345678", Published: true, Dimensions: []models.Dimension{{Name: "age", Options: []string{"28"}}}}, nil
 	}
 
-	return &models.Filter{FilterID: filterID, InstanceID: "12345678", Dimensions: []models.Dimension{{Name: "time", Options: []string{"2014", "2015"}}}}, nil
+	if ds.Unpublished {
+		return &models.Filter{FilterID: filterID, InstanceID: "12345678", Dimensions: []models.Dimension{{Name: "time", Options: []string{"2014", "2015"}}}}, nil
+
+	}
+
+	return &models.Filter{FilterID: filterID, InstanceID: "12345678", Published: true, Dimensions: []models.Dimension{{Name: "time", Options: []string{"2014", "2015"}}}}, nil
 }
 
 // GetFilterDimension represents the mocked version of getting a filter dimension from the datastore
@@ -151,10 +149,15 @@ func (ds *DataStore) GetFilterOutput(filterID string) (*models.Filter, error) {
 	}
 
 	if ds.BadRequest {
-		return &models.Filter{InstanceID: "12345678", FilterID: filterID, State: "created"}, nil
+		return &models.Filter{InstanceID: "12345678", FilterID: filterID, Published: true, State: "created"}, nil
 	}
 
-	return &models.Filter{InstanceID: "12345678", FilterID: filterID, State: "created", Dimensions: []models.Dimension{{Name: "time"}}}, nil
+	if ds.Unpublished {
+		return &models.Filter{InstanceID: "12345678", FilterID: filterID, State: "created", Dimensions: []models.Dimension{{Name: "time"}}, Links: models.LinkMap{FilterBlueprint: models.LinkObject{ID: filterID}}}, nil
+
+	}
+
+	return &models.Filter{InstanceID: "12345678", FilterID: filterID, Published: true, State: "created", Dimensions: []models.Dimension{{Name: "time"}}}, nil
 }
 
 // RemoveFilterDimension represents the mocked version of removing a filter dimension from the datastore

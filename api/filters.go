@@ -777,7 +777,7 @@ func (api *FilterAPI) getFilter(filterID string, ctx context.Context) (*models.F
 	//instance has been published since filter was last requested, so update filter and return
 	if instance.State == "published" {
 		filter.Published = true
-		if err := api.dataStore.SetPublished(filterID); err != nil {
+		if err := api.dataStore.UpdateFilter(filter); err != nil {
 			log.Error(err, log.Data{"filter_id": filterID})
 			return nil, errNotFound
 		}
@@ -795,6 +795,8 @@ func (api *FilterAPI) getOutput(filterID string, ctx context.Context) (*models.F
 		return nil, err
 	}
 
+	errFilterOutputNotFound := errors.New("Filter output not found")
+
 	//only return the filter if it is for published data or via authenticated request
 	if output.Published || ctx.Value(internalToken) == true {
 		return output, nil
@@ -805,7 +807,7 @@ func (api *FilterAPI) getOutput(filterID string, ctx context.Context) (*models.F
 	filter, err := api.getFilter(output.Links.FilterBlueprint.ID, ctx)
 	if err != nil {
 		log.Error(errors.New("failed to retrieve filter blueprint"), log.Data{"filter_output": output, "filter_blueprint_id": output.Links.FilterBlueprint.ID})
-		return nil, errNotFound
+		return nil, errFilterOutputNotFound
 	}
 
 	//filter has been published since output was last requested, so update output and return
@@ -813,13 +815,13 @@ func (api *FilterAPI) getOutput(filterID string, ctx context.Context) (*models.F
 		output.Published = true
 		if err := api.dataStore.UpdateFilterOutput(output); err != nil {
 			log.Error(err, log.Data{"filter_output_id": output.FilterID})
-			return nil, errNotFound
+			return nil, errFilterOutputNotFound
 		}
 
 		return output, nil
 	}
 
-	return nil, errNotFound
+	return nil, errFilterOutputNotFound
 }
 
 func (api *FilterAPI) checkFilterOptions(ctx context.Context, newFilter *models.Filter, instance *models.Instance) error {

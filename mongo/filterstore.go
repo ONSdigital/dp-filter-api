@@ -98,31 +98,6 @@ func (s *FilterStore) UpdateFilter(updatedFilter *models.Filter) error {
 	return nil
 }
 
-// SetPublished removes the unpublished indicator from a filter
-func (s *FilterStore) SetPublished(filterID string) error {
-	session := s.Session.Copy()
-	defer session.Close()
-
-	update := bson.M{
-		"$set": bson.M{
-			"published": true,
-		},
-		"$setOnInsert": bson.M{
-			"last_updated": time.Now(),
-		},
-	}
-
-	selector := bson.M{"filter_id": filterID}
-	if err := session.DB(s.db).C(s.filtersCollection).Update(selector, update); err != nil {
-		if err == mgo.ErrNotFound {
-			return errNotFound
-		}
-		return err
-	}
-
-	return nil
-}
-
 // GetFilterDimension return a single dimension
 func (s *FilterStore) GetFilterDimension(filterID string, name string) error {
 	session := s.Session.Copy()

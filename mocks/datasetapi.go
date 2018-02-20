@@ -13,6 +13,7 @@ type DatasetAPI struct {
 	DimensionOptionsNotFound bool
 	InstanceNotFound         bool
 	InternalServerError      bool
+	Unpublished              bool
 }
 
 // A list of errors that can be returned by the mock package
@@ -30,6 +31,22 @@ func (ds *DatasetAPI) GetInstance(ctx context.Context, id string) (*models.Insta
 
 	if ds.InstanceNotFound {
 		return nil, errorInstanceNotFound
+	}
+
+	if ds.Unpublished {
+		return &models.Instance{
+			Links: models.InstanceLinks{
+				Dataset: models.LinkObject{
+					ID: "123",
+				},
+				Edition: models.LinkObject{
+					ID: "2017",
+				},
+				Version: models.LinkObject{
+					ID: "1",
+				},
+			},
+		}, nil
 	}
 
 	return &models.Instance{
