@@ -126,7 +126,7 @@ func TestFailedToAddFilterBlueprint(t *testing.T) {
 		So(response, ShouldResemble, "Instance not found\n")
 	})
 
-	Convey("When instance is unpublished and the request is not authenticated, a not found error is returned", t, func() {
+	Convey("When instance is unpublished and the request is not authenticated, a bad request error is returned", t, func() {
 		reader := strings.NewReader(`{"instance_id":"12345678"}`)
 		r, err := http.NewRequest("POST", "http://localhost:22100/filters", reader)
 		So(err, ShouldBeNil)
@@ -138,7 +138,7 @@ func TestFailedToAddFilterBlueprint(t *testing.T) {
 
 		bodyBytes, _ := ioutil.ReadAll(w.Body)
 		response := string(bodyBytes)
-		So(response, ShouldResemble, "Bad request - Invalid request body\n")
+		So(response, ShouldResemble, badRequest+"\n")
 	})
 
 	Convey("When an invalid json message is sent, a bad request is returned", t, func() {
@@ -409,7 +409,7 @@ func TestFailedToAddFilterBlueprintDimensionOption(t *testing.T) {
 
 		bodyBytes, _ := ioutil.ReadAll(w.Body)
 		response := string(bodyBytes)
-		So(response, ShouldResemble, "Bad request\n")
+		So(response, ShouldResemble, statusBadRequest+"\n")
 	})
 
 	Convey("When the filter blueprint is unpublished, and the request is unauthenticated, a not found status is returned", t, func() {
@@ -426,7 +426,7 @@ func TestFailedToAddFilterBlueprintDimensionOption(t *testing.T) {
 		So(response, ShouldResemble, "Filter blueprint not found\n")
 	})
 
-	Convey("When a dimension for filter blueprint does not exist, a not found status is returned", t, func() {
+	Convey("When a dimension for filter blueprint does not exist, a bad request status is returned", t, func() {
 		r, err := http.NewRequest("POST", "http://localhost:22100/filters/12345678/dimensions/notage/options/33", nil)
 		So(err, ShouldBeNil)
 
@@ -468,7 +468,7 @@ func TestSuccessfulGetFilterBlueprint(t *testing.T) {
 		So(w.Code, ShouldEqual, http.StatusOK)
 	})
 
-	Convey("Successfully get an unpublished filter blueprint with no authentication", t, func() {
+	Convey("Successfully get an unpublished filter blueprint with authentication", t, func() {
 		r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678", nil)
 		r.Header.Add(internalToken, authHeader)
 		So(err, ShouldBeNil)
@@ -492,6 +492,10 @@ func TestFailedToGetFilterBlueprint(t *testing.T) {
 
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusInternalServerError)
+
+		bodyBytes, _ := ioutil.ReadAll(w.Body)
+		response := string(bodyBytes)
+		So(response, ShouldResemble, internalError+"\n")
 	})
 
 	Convey("When filter blueprint does not exist, a not found is returned", t, func() {
@@ -774,7 +778,7 @@ func TestFailedToGetFilterBlueprintDimension(t *testing.T) {
 
 		bodyBytes, _ := ioutil.ReadAll(w.Body)
 		response := string(bodyBytes)
-		So(response, ShouldResemble, "Bad request\n")
+		So(response, ShouldResemble, statusBadRequest+"\n")
 	})
 
 	Convey("When filter blueprint is unpublished and request is unauthenticated, a not found is returned", t, func() {
@@ -940,7 +944,7 @@ func TestFailedToGetFilterBlueprintDimensionOption(t *testing.T) {
 
 		bodyBytes, _ := ioutil.ReadAll(w.Body)
 		response := string(bodyBytes)
-		So(response, ShouldResemble, "Bad request\n")
+		So(response, ShouldResemble, statusBadRequest+"\n")
 	})
 
 	Convey("When filter blueprint is unpublished, a not found is returned", t, func() {
@@ -1023,7 +1027,7 @@ func TestFailedToRemoveFilterBlueprintDimension(t *testing.T) {
 
 		bodyBytes, _ := ioutil.ReadAll(w.Body)
 		response := string(bodyBytes)
-		So(response, ShouldResemble, "Bad request\n")
+		So(response, ShouldResemble, statusBadRequest+"\n")
 	})
 
 	Convey("When filter blueprint is unpublished, and request is not authenticated, a bad request is returned", t, func() {
@@ -1106,7 +1110,7 @@ func TestFailedToRemoveFilterBlueprintDimensionOption(t *testing.T) {
 
 		bodyBytes, _ := ioutil.ReadAll(w.Body)
 		response := string(bodyBytes)
-		So(response, ShouldResemble, "Bad request\n")
+		So(response, ShouldResemble, statusBadRequest+"\n")
 	})
 
 	Convey("When filter blueprint is unpublished, and request is not authenticated, a not found is returned", t, func() {
@@ -1250,6 +1254,10 @@ func TestFailedToUpdateFilterOutput(t *testing.T) {
 		api := routes(authHeader, host, mux.NewRouter(), &mocks.DataStore{InternalError: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusInternalServerError)
+
+		bodyBytes, _ := ioutil.ReadAll(w.Body)
+		response := string(bodyBytes)
+		So(response, ShouldResemble, internalError+"\n")
 	})
 
 	Convey("When an invalid json message is sent, a bad request is returned", t, func() {
@@ -1387,6 +1395,10 @@ func TestFailedGetPreview(t *testing.T) {
 		api := routes(authHeader, host, mux.NewRouter(), &mocks.DataStore{NotFound: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
+
+		bodyBytes, _ := ioutil.ReadAll(w.Body)
+		response := string(bodyBytes)
+		So(response, ShouldResemble, "Filter output not found\n")
 	})
 
 	Convey("Requesting a preview with no mongodb database connection", t, func() {
@@ -1397,6 +1409,10 @@ func TestFailedGetPreview(t *testing.T) {
 		api := routes(authHeader, host, mux.NewRouter(), &mocks.DataStore{InternalError: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusInternalServerError)
+
+		bodyBytes, _ := ioutil.ReadAll(w.Body)
+		response := string(bodyBytes)
+		So(response, ShouldResemble, internalError+"\n")
 	})
 
 	Convey("Requesting a preview with no neo4j database connection", t, func() {
@@ -1412,6 +1428,10 @@ func TestFailedGetPreview(t *testing.T) {
 		api := routes(authHeader, host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMockInternalError)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusInternalServerError)
+
+		bodyBytes, _ := ioutil.ReadAll(w.Body)
+		response := string(bodyBytes)
+		So(response, ShouldResemble, "internal server error\n")
 	})
 
 	Convey("Requesting a preview with no dimensions", t, func() {
@@ -1422,6 +1442,10 @@ func TestFailedGetPreview(t *testing.T) {
 		api := routes(authHeader, host, mux.NewRouter(), &mocks.DataStore{BadRequest: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
+
+		bodyBytes, _ := ioutil.ReadAll(w.Body)
+		response := string(bodyBytes)
+		So(response, ShouldResemble, errDimensionBadRequest.Error()+"\n")
 	})
 
 	Convey("Requesting a preview with an invalid limit", t, func() {
@@ -1432,6 +1456,10 @@ func TestFailedGetPreview(t *testing.T) {
 		api := routes(authHeader, host, mux.NewRouter(), &mocks.DataStore{BadRequest: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
+
+		bodyBytes, _ := ioutil.ReadAll(w.Body)
+		response := string(bodyBytes)
+		So(response, ShouldResemble, "requested limit is not a number\n")
 	})
 
 	Convey("Requesting a preview with no authentication when the instance is unpublished", t, func() {
@@ -1442,5 +1470,9 @@ func TestFailedGetPreview(t *testing.T) {
 		api := routes(authHeader, host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
+
+		bodyBytes, _ := ioutil.ReadAll(w.Body)
+		response := string(bodyBytes)
+		So(response, ShouldResemble, "requested limit is not a number\n")
 	})
 }

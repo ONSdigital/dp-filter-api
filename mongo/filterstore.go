@@ -21,7 +21,6 @@ var (
 	errOptionNotFound            = errors.New("Option not found")
 	errFilterOrDimensionNotFound = errors.New("Bad request - filter or dimension not found")
 	errFilterOutputNotFound      = errors.New("Filter output not found")
-	errFilterBadRequest          = errors.New("Bad request - filter blueprint not found")
 )
 
 // FilterStore containing all filter jobs stored in mongodb
