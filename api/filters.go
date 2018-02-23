@@ -756,7 +756,6 @@ func setJSONContentType(w http.ResponseWriter) {
 }
 
 func setErrorCode(w http.ResponseWriter, err error, typ ...string) {
-	log.Debug("error is", log.Data{"error": err.Error()})
 	switch err.Error() {
 	case "Not found":
 		if typ != nil && typ[0] == statusBadRequest {
