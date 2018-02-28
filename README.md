@@ -42,12 +42,21 @@ Currently checked each `$HEALTHCHECK_INTERVAL` and reported on endpoint `/health
 * MongoDB
 * DatasetAPI
 
+### Acceptance tests
+
+To run the acceptance tests for this project, use the following commands
+
+* Start Kafka and Mongodb 
+* Run the dp-filter-api using `make acceptance`
+* Run the tests in dp-api-test
+
+
 ### Contributing
 
 See [CONTRIBUTING](CONTRIBUTING.md) for details.
 
 ### License
 
-Copyright © 2016-2017, Office for National Statistics (https://www.ons.gov.uk)
+Copyright © 2016-2018, Office for National Statistics (https://www.ons.gov.uk)
 
 Released under MIT license, see [LICENSE](LICENSE.md) for details.

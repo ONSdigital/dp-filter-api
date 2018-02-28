@@ -22,14 +22,12 @@ var (
 	internalError             = "Failed to process the request due to an internal error"
 	badRequest                = "Bad request - Invalid request body"
 	unauthorised              = "Unauthorised, request lacks valid authentication credentials"
-	forbidden                 = "Forbidden, the filter output has been locked as it has been submitted to be processed"
-	statusBadRequest          = "bad request"
-	statusUnprocessableEntity = "unprocessable entity"
-
+	statusBadRequest          = "Bad request"
+	statusUnprocessableEntity = "Unprocessable entity"
 	incorrectDimensionOptions = regexp.MustCompile("Bad request - incorrect dimension options chosen")
+	authError                 = errors.New(unauthorised)
+	noAuthHeaderError         = errors.New("No auth header provided")
 )
-
-const internalToken = "Internal-Token"
 
 func (api *FilterAPI) addFilterBlueprint(w http.ResponseWriter, r *http.Request) {
 	submitted := r.FormValue("submitted")
@@ -500,19 +498,10 @@ func (api *FilterAPI) updateFilterOutput(w http.ResponseWriter, r *http.Request)
 	vars := mux.Vars(r)
 	filterOutputID := vars["filter_output_id"]
 
-	authenticationHeader := r.Header.Get(internalToken)
-
-	isAuthenticated, err := api.checkAuthentication(authenticationHeader)
-	if err != nil {
-		log.Error(err, log.Data{"filter_output_id": filterOutputID})
-		setErrorCode(w, err)
-		return
-	}
-
-	if !isAuthenticated {
+	if r.Context().Value(internalToken) != true {
 		err := errors.New("Not authorised")
 		log.Error(err, log.Data{"filter_output_id": filterOutputID})
-		http.Error(w, unauthorised, http.StatusUnauthorized)
+		setErrorCode(w, noAuthHeaderError)
 		return
 	}
 
@@ -657,15 +646,6 @@ func (api *FilterAPI) getFilterOutputPreview(w http.ResponseWriter, r *http.Requ
 	log.Info("preview filter output", log.Data{"filter_output_id": filterID, "limit": limit, "dimensions": filterOutput.Dimensions})
 }
 
-func (api *FilterAPI) checkAuthentication(header string) (bool, error) {
-	if header != api.internalToken {
-		authorisationError := errors.New("Not authorised")
-		return false, authorisationError
-	}
-
-	return true, nil
-}
-
 func (api *FilterAPI) checkFilterOptions(ctx context.Context, newFilter *models.Filter, instance *models.Instance) error {
 	// Call dimensions list endpoint
 	datasetDimensions, err := api.datasetAPI.GetVersionDimensions(ctx, instance.Links.Dataset.ID, instance.Links.Edition.ID, instance.Links.Version.ID)
@@ -702,7 +682,7 @@ func (api *FilterAPI) checkFilterOptions(ctx context.Context, newFilter *models.
 
 	if incorrectDimensionOptions != nil {
 		err = fmt.Errorf("Bad request - incorrect dimension options chosen: %v", incorrectDimensionOptions)
-		log.ErrorC("Incorrect dimension options chosen", err, log.Data{"dimension_options": incorrectDimensionOptions})
+		log.ErrorC("incorrect dimension options chosen", err, log.Data{"dimension_options": incorrectDimensionOptions})
 		return err
 	}
 
@@ -822,11 +802,11 @@ func setErrorCode(w http.ResponseWriter, err error, typ ...string) {
 	case "Bad request":
 		http.Error(w, "Bad request", http.StatusBadRequest)
 		return
-	case "Forbidden":
-		http.Error(w, forbidden, http.StatusForbidden)
+	case noAuthHeaderError.Error():
+		http.Error(w, "resource not found", http.StatusNotFound)
 		return
-	case "Not authorised":
-		http.Error(w, unauthorised, http.StatusUnauthorized)
+	case authError.Error():
+		http.Error(w, "resource not found", http.StatusNotFound)
 		return
 	default:
 		http.Error(w, internalError, http.StatusInternalServerError)
