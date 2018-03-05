@@ -314,9 +314,11 @@ func (api *FilterAPI) getFilterBlueprintDimensionOptions(w http.ResponseWriter, 
 	}
 
 	var options []models.DimensionOption
+	dimensionFound := false
 	for _, dimension := range filter.Dimensions {
 
 		if dimension.Name == name {
+			dimensionFound = true
 			for _, option := range dimension.Options {
 				url := fmt.Sprintf("%s/filter/%s/dimensions/%s/option/%s", api.host, filterID, dimension.Name, option)
 				dimensionOption := models.DimensionOption{Option: option, DimensionOptionURL: url}
@@ -326,7 +328,7 @@ func (api *FilterAPI) getFilterBlueprintDimensionOptions(w http.ResponseWriter, 
 		}
 	}
 
-	if len(options) == 0 {
+	if !dimensionFound {
 		log.Error(errDimensionNotFound, log.Data{"filter_blueprint_id": filterID, "dimension_name": name})
 		setErrorCode(w, errDimensionNotFound)
 		return
@@ -368,18 +370,26 @@ func (api *FilterAPI) getFilterBlueprintDimensionOption(w http.ResponseWriter, r
 		return
 	}
 
-	found := false
+	dimensionFound := false
+	optionFound := false
 	for _, d := range filter.Dimensions {
 		if d.Name == name {
+			dimensionFound = true
 			for _, o := range d.Options {
 				if o == option {
-					found = true
+					optionFound = true
 				}
 			}
 		}
 	}
 
-	if !found {
+	if !dimensionFound {
+		log.Error(errDimensionNotFound, logData)
+		setErrorCode(w, errDimensionNotFound)
+		return
+	}
+
+	if !optionFound {
 		log.Error(errOptionNotFound, logData)
 		setErrorCode(w, errOptionNotFound)
 		return
@@ -524,7 +534,7 @@ func (api *FilterAPI) updateFilterBlueprint(w http.ResponseWriter, r *http.Reque
 	if filter.InstanceID != "" {
 
 		// add version information from datasetAPI for new instance
-		instance, err := api.datasetAPI.GetInstance(r.Context(), newFilter.InstanceID)
+		instance, err := api.datasetAPI.GetInstance(r.Context(), filter.InstanceID)
 		if err != nil {
 			log.Error(err, log.Data{"new_filter": newFilter})
 			setErrorCode(w, err, statusBadRequest)
