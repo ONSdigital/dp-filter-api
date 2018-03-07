@@ -23,7 +23,7 @@ var (
 )
 
 // GetInstance represents the mocked version of getting an instance document from dataset API
-func (ds *DatasetAPI) GetInstance(ctx context.Context, id string) (*models.Instance, error) {
+func (ds *DatasetAPI) GetVersion(ctx context.Context, dataset models.Dataset) (*models.Version, error) {
 	if ds.InternalServerError {
 		return nil, errorInternalServer
 	}
@@ -32,8 +32,8 @@ func (ds *DatasetAPI) GetInstance(ctx context.Context, id string) (*models.Insta
 		return nil, errorInstanceNotFound
 	}
 
-	return &models.Instance{
-		Links: models.InstanceLinks{
+	return &models.Version{
+		Links: models.VersionLinks{
 			Dataset: models.LinkObject{
 				ID: "123",
 			},
@@ -48,7 +48,7 @@ func (ds *DatasetAPI) GetInstance(ctx context.Context, id string) (*models.Insta
 }
 
 // GetVersionDimensions represents the mocked version of getting a list of dimensions from the dataset API
-func (ds *DatasetAPI) GetVersionDimensions(ctx context.Context, datasetID, edition, version string) (*models.DatasetDimensionResults, error) {
+func (ds *DatasetAPI) GetVersionDimensions(ctx context.Context, dataset models.Dataset) (*models.DatasetDimensionResults, error) {
 	if ds.InternalServerError {
 		return nil, errorInternalServer
 	}
@@ -67,7 +67,7 @@ func (ds *DatasetAPI) GetVersionDimensions(ctx context.Context, datasetID, editi
 }
 
 // GetVersionDimensionOptions represents the mocked version of getting a list of dimension options from the dataset API
-func (ds *DatasetAPI) GetVersionDimensionOptions(ctx context.Context, datasetID, edition, version, dimension string) (*models.DatasetDimensionOptionResults, error) {
+func (ds *DatasetAPI) GetVersionDimensionOptions(ctx context.Context, dataset models.Dataset, dimension string) (*models.DatasetDimensionOptionResults, error) {
 	if ds.InternalServerError {
 		return nil, errorInternalServer
 	}

@@ -9,6 +9,10 @@ import (
 	"net/http"
 	"net/url"
 
+	"fmt"
+
+	"strconv"
+
 	"github.com/ONSdigital/dp-filter-api/models"
 	"github.com/ONSdigital/go-ns/clients/dataset"
 	"github.com/ONSdigital/go-ns/log"
@@ -17,9 +21,9 @@ import (
 
 // DatasetAPIer - An interface used to access the DatasetAPI
 type DatasetAPIer interface {
-	GetInstance(ctx context.Context, instanceID string) (*models.Instance, error)
-	GetVersionDimensions(ctx context.Context, datasetID, edition, version string) (*models.DatasetDimensionResults, error)
-	GetVersionDimensionOptions(ctx context.Context, datasetID, edition, version, dimension string) (*models.DatasetDimensionOptionResults, error)
+	GetVersionDimensions(ctx context.Context, dataset models.Dataset) (*models.DatasetDimensionResults, error)
+	GetVersionDimensionOptions(ctx context.Context, dataset models.Dataset, dimension string) (*models.DatasetDimensionOptionResults, error)
+	GetVersion(ctx context.Context, dataset models.Dataset) (version *models.Version, err error)
 }
 
 // DatasetAPI aggregates a client and URL and other common data for accessing the API
@@ -48,28 +52,28 @@ var (
 	publishedState = "published"
 )
 
-// GetInstance queries the Dataset API to get an instance
-func (api *DatasetAPI) GetInstance(ctx context.Context, instanceID string) (instance *models.Instance, err error) {
-	path := api.url + "/instances/" + instanceID
-	logData := log.Data{"func": "GetInstance", "URL": path, "instance_id": instanceID}
+// GetVersion queries the Dataset API to get an version
+func (api *DatasetAPI) GetVersion(ctx context.Context, d models.Dataset) (version *models.Version, err error) {
+	path := fmt.Sprintf("%s/datasets/%s/editions/%s/versions/%d", api.url, d.DatasetId, d.Edition, d.Version)
+	logData := log.Data{"func": "GetInstance", "URL": path, "dataset": d}
 
 	jsonResult, httpCode, err := api.get(ctx, path, nil)
 	logData["httpCode"] = httpCode
 	logData["jsonResult"] = jsonResult
 	if err != nil {
 		log.ErrorC("api get", err, logData)
-		return nil, handleError(httpCode, err, "instance")
+		return nil, handleError(httpCode, err, "dataset")
 	}
 
-	instance = &models.Instance{}
-	if err = json.Unmarshal(jsonResult, instance); err != nil {
+	version = &models.Version{}
+	if err = json.Unmarshal(jsonResult, version); err != nil {
 		log.ErrorC("unmarshal", err, logData)
 		return
 	}
 
-	// External facing customers should NOT be able to filter an unpublished instance
-	if instance.State != publishedState && ctx.Value(internalToken) != true {
-		log.Error(errors.New("invalid authorization, returning not found status"), log.Data{"instance_id": instanceID})
+	// External facing customers should NOT be able to filter an unpublished version
+	if version.State != publishedState && ctx.Value(internalToken) != true {
+		log.Error(errors.New("invalid authorization, returning not found status"), log.Data{"dataset": d})
 		return nil, ErrInstanceNotFound
 	}
 
@@ -77,9 +81,9 @@ func (api *DatasetAPI) GetInstance(ctx context.Context, instanceID string) (inst
 }
 
 // GetVersionDimensions queries the Dataset API to get a list of dimensions
-func (api *DatasetAPI) GetVersionDimensions(ctx context.Context, datasetID, edition, version string) (dimensions *models.DatasetDimensionResults, err error) {
-	path := api.url + "/datasets/" + datasetID + "/editions/" + edition + "/versions/" + version + "/dimensions"
-	logData := log.Data{"func": "GetVersionDimensions", "URL": path, "dataset_id": datasetID, "edition": edition, "version": version}
+func (api *DatasetAPI) GetVersionDimensions(ctx context.Context, dataset models.Dataset) (dimensions *models.DatasetDimensionResults, err error) {
+	path := api.url + "/datasets/" + dataset.DatasetId + "/editions/" + dataset.Edition + "/versions/" + strconv.Itoa(dataset.Version) + "/dimensions"
+	logData := log.Data{"func": "GetVersionDimensions", "URL": path, "dataset": dataset}
 
 	jsonResult, httpCode, err := api.get(ctx, path, nil)
 	logData["httpCode"] = httpCode
@@ -99,9 +103,9 @@ func (api *DatasetAPI) GetVersionDimensions(ctx context.Context, datasetID, edit
 }
 
 // GetVersionDimensionOptions queries the Dataset API to get a list of dimension options
-func (api *DatasetAPI) GetVersionDimensionOptions(ctx context.Context, datasetID, edition, version, dimension string) (options *models.DatasetDimensionOptionResults, err error) {
-	path := api.url + "/datasets/" + datasetID + "/editions/" + edition + "/versions/" + version + "/dimensions/" + dimension + "/options"
-	logData := log.Data{"func": "GetVersionDimensions", "URL": path, "dataset_id": datasetID, "edition": edition, "version": version, "dimension": dimension}
+func (api *DatasetAPI) GetVersionDimensionOptions(ctx context.Context, dataset models.Dataset, dimension string) (options *models.DatasetDimensionOptionResults, err error) {
+	path := api.url + "/datasets/" + dataset.DatasetId + "/editions/" + dataset.Edition + "/versions/" + strconv.Itoa(dataset.Version) + "/dimensions/" + dimension + "/options"
+	logData := log.Data{"func": "GetVersionDimensions", "URL": path, "dataset": dataset, "dimension": dimension}
 
 	jsonResult, httpCode, err := api.get(ctx, path, nil)
 	logData["httpCode"] = httpCode
@@ -166,7 +170,12 @@ func (api *DatasetAPI) callDatasetAPI(ctx context.Context, method, path string, 
 		log.ErrorC("Failed to action dataset api", err, logData)
 		return nil, 0, err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		err := resp.Body.Close()
+		if err != nil {
+			log.ErrorC("error cleaning up request body", err, logData)
+		}
+	}()
 
 	logData["httpCode"] = resp.StatusCode
 	if resp.StatusCode < http.StatusOK || resp.StatusCode >= 300 {

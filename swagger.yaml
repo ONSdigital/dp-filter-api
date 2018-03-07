@@ -382,6 +382,7 @@ definitions:
   NewBlueprintRequest:
     description: "A model used to create new filter blueprints. Dimensions are optional"
     allOf:
+    - $ref: '#/definitions/Dataset'
     - $ref: '#/definitions/JobState'
     - type: object
       properties:
@@ -458,9 +459,6 @@ definitions:
         readOnly: true
         type: string
         description: "A unique id for this resource"
-      instance_id:
-        type: string
-        description: 'An instance ID for he specific dataset version to be filtered'
       dimension_list_url:
         readOnly: true
         type: string
@@ -469,6 +467,18 @@ definitions:
         $ref: '#/definitions/FilterLinks'
       events:
         $ref: '#/definitions/Events'
+  Dataset:
+    type: object
+    properties:
+      dataset_id:
+        type: string
+        description: "An unique dataset id"
+      edition:
+        type: string
+        description: "An edition of a dataset"
+      version:
+        type: string
+        description: "A version of a dataset"
   Dimension:
     type: object
     description: "A dimension to filter on a dataset. Information on a dimension can be gathered using the `Dataset API`"

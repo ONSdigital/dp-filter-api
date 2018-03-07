@@ -15,8 +15,21 @@ const (
 	CompletedState = "completed"
 )
 
+type Dataset struct {
+	DatasetId string `json:"dataset_id"`
+	Edition   string `json:"edition"`
+	Version   int    `json:"version"`
+}
+
+// NewFilter creates a filter by using the dataset_id, edition and version
+type NewFilter struct {
+	Dataset    Dataset     `json:"dataset"`
+	Dimensions []Dimension `json:"dimensions,omitempty"`
+}
+
 // Filter represents a structure for a filter job
 type Filter struct {
+	Dataset     Dataset     `bson:"dataset"              json:"-"`
 	InstanceID  string      `bson:"instance_id"          json:"instance_id"`
 	Dimensions  []Dimension `bson:"dimensions,omitempty" json:"dimensions,omitempty"`
 	Downloads   *Downloads  `bson:"downloads,omitempty"  json:"downloads,omitempty"`
@@ -104,14 +117,20 @@ var (
 )
 
 // ValidateFilterBlueprint checks the content of the filter structure
-func (filter *Filter) ValidateFilterBlueprint() error {
+func (filter *NewFilter) ValidateNewFilter() error {
 	// FilterBluePrint should not have state
-	filter.State = ""
-
 	var missingFields []string
 
-	if filter.InstanceID == "" {
-		missingFields = append(missingFields, "instance_id")
+	if filter.Dataset.Version == 0 {
+		missingFields = append(missingFields, "version")
+	}
+
+	if filter.Dataset.Edition == "" {
+		missingFields = append(missingFields, "edition")
+	}
+
+	if filter.Dataset.DatasetId == "" {
+		missingFields = append(missingFields, "dataset_id")
 	}
 
 	if missingFields != nil {
@@ -251,4 +270,24 @@ func CreateDimensionOptions(reader io.Reader) ([]string, error) {
 	}
 
 	return dimension.Options, nil
+}
+
+func CreateNewFilter(reader io.Reader) (*NewFilter, error) {
+	bytes, err := ioutil.ReadAll(reader)
+	if err != nil {
+		return nil, ErrorReadingBody
+	}
+
+	var filter NewFilter
+	err = json.Unmarshal(bytes, &filter)
+	if err != nil {
+		return nil, ErrorParsingBody
+	}
+
+	// This should be the last check before returning filter
+	if len(bytes) == 2 {
+		return &filter, ErrorNoData
+	}
+
+	return &filter, nil
 }

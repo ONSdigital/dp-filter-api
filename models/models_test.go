@@ -19,35 +19,26 @@ func (f reader) Read(bytes []byte) (int, error) {
 
 func TestCreateFilterBlueprintWithValidJSON(t *testing.T) {
 	Convey("When a filter blueprint has a valid json body, a message is returned", t, func() {
-		reader := strings.NewReader(`{"instance_id":"12345678"}`)
-		filter, err := CreateFilter(reader)
+		reader := strings.NewReader(`{"dataset":{"version":1, "edition":"1", "dataset_id":"1"} }`)
+		filter, err := CreateNewFilter(reader)
 		So(err, ShouldBeNil)
-		So(filter.ValidateFilterBlueprint(), ShouldBeNil)
-		So(filter.FilterID, ShouldNotBeNil)
-		So(filter.InstanceID, ShouldEqual, "12345678")
-		So(filter.State, ShouldEqual, "")
-	})
-
-	Convey("When a filter blueprint has a valid json body with a state, a message is returned", t, func() {
-		reader := strings.NewReader(`{"instance_id":"12345678","state":"created"}`)
-		filter, err := CreateFilter(reader)
-		So(err, ShouldBeNil)
-		So(filter.ValidateFilterBlueprint(), ShouldBeNil)
-		So(filter.FilterID, ShouldNotBeNil)
-		So(filter.InstanceID, ShouldEqual, "12345678")
-		So(filter.State, ShouldEqual, "")
+		So(filter.ValidateNewFilter(), ShouldBeNil)
+		So(filter.Dataset, ShouldNotBeNil)
+		So(filter.Dataset.DatasetId, ShouldEqual, "1")
+		So(filter.Dataset.Edition, ShouldEqual, "1")
+		So(filter.Dataset.Version, ShouldEqual, 1)
 	})
 }
 
 func TestCreateFilterWithNoBody(t *testing.T) {
 	Convey("When a filter message has no body, an error is returned", t, func() {
-		_, err := CreateFilter(reader{})
+		_, err := CreateNewFilter(reader{})
 		So(err, ShouldNotBeNil)
 		So(err, ShouldEqual, ErrorReadingBody)
 	})
 
 	Convey("When a filter message has an empty body, an error is returned", t, func() {
-		filter, err := CreateFilter(strings.NewReader("{}"))
+		filter, err := CreateNewFilter(strings.NewReader("{}"))
 		So(err, ShouldNotBeNil)
 		So(err, ShouldResemble, ErrorNoData)
 		So(filter, ShouldNotBeNil)
@@ -55,22 +46,22 @@ func TestCreateFilterWithNoBody(t *testing.T) {
 }
 
 func TestCreateFilterBlueprintWithInvalidJson(t *testing.T) {
-	Convey("When a filter blueprint message is missing instance_id field, an error is returned", t, func() {
-		filter, err := CreateFilter(strings.NewReader(`{"state":"created"}`))
+	Convey("When a filter blueprint message is missing dataset fields, an error is returned", t, func() {
+		filter, err := CreateNewFilter(strings.NewReader(`{"dataset":{"version":1} }`))
 		So(err, ShouldBeNil)
 
-		err = filter.ValidateFilterBlueprint()
-		missingFields := []string{"instance_id"}
+		err = filter.ValidateNewFilter()
+		missingFields := []string{"edition", "dataset_id"}
 		So(err, ShouldNotBeNil)
 		So(err, ShouldResemble, fmt.Errorf("Missing mandatory fields: %v", missingFields))
 	})
 
 	Convey("When a filter blueprint message has an empty json body, an error is returned", t, func() {
-		filter, err := CreateFilter(strings.NewReader("{ }"))
+		filter, err := CreateNewFilter(strings.NewReader("{ }"))
 		So(err, ShouldBeNil)
 
-		err = filter.ValidateFilterBlueprint()
-		missingFields := []string{"instance_id"}
+		err = filter.ValidateNewFilter()
+		missingFields := []string{"version", "edition", "dataset_id"}
 		So(err, ShouldNotBeNil)
 		So(err, ShouldResemble, fmt.Errorf("Missing mandatory fields: %v", missingFields))
 	})
