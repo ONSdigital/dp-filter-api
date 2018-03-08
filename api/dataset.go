@@ -68,7 +68,7 @@ func (api *DatasetAPI) GetInstance(ctx context.Context, instanceID string) (inst
 	}
 
 	// External facing customers should NOT be able to filter an unpublished instance
-	if instance.State != publishedState && ctx.Value(internalToken) != true {
+	if instance.State != publishedState && ctx.Value(internalTokenKey) != true {
 		log.Error(errors.New("invalid authorization, returning not found status"), log.Data{"instance_id": instanceID})
 		return nil, ErrInstanceNotFound
 	}
@@ -121,8 +121,8 @@ func (api *DatasetAPI) GetVersionDimensionOptions(ctx context.Context, datasetID
 }
 
 func (api *DatasetAPI) get(ctx context.Context, path string, vars url.Values) ([]byte, int, error) {
-	if ctx.Value(internalToken) == true {
-		ctx = context.WithValue(ctx, internalToken, api.authToken)
+	if ctx.Value(internalTokenKey) == true {
+		ctx = context.WithValue(ctx, internalTokenKey, api.authToken)
 	}
 
 	return api.callDatasetAPI(ctx, "GET", path, vars)
@@ -161,7 +161,7 @@ func (api *DatasetAPI) callDatasetAPI(ctx context.Context, method, path string, 
 		return nil, 0, err
 	}
 
-	req.Header.Set("Internal-token", api.authToken)
+	req.Header.Set(string(internalTokenKey), api.authToken)
 	resp, err := api.client.Do(ctx, req)
 	if err != nil {
 		log.ErrorC("Failed to action dataset api", err, logData)

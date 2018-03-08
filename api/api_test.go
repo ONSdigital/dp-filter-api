@@ -46,7 +46,7 @@ func TestSuccessfulAddFilterBlueprint(t *testing.T) {
 	Convey("Successfully create a filter blueprint for an unpublished instance", t, func() {
 		reader := strings.NewReader(`{"instance_id":"12345678"}`)
 		r, err := http.NewRequest("POST", "http://localhost:22100/filters", reader)
-		r.Header.Add(internalToken, authHeader)
+		r.Header.Add(string(internalTokenKey), authHeader)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
@@ -255,7 +255,7 @@ func TestSuccessfulAddFilterBlueprintDimension(t *testing.T) {
 	Convey("Successfully create a dimension with options for an unpublished filter", t, func() {
 		reader := strings.NewReader(`{"options":["27","33"]}`)
 		r, err := http.NewRequest("POST", "http://localhost:22100/filters/12345678/dimensions/age", reader)
-		r.Header.Add(internalToken, authHeader)
+		r.Header.Add(string(internalTokenKey), authHeader)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
@@ -372,7 +372,7 @@ func TestSuccessfulAddFilterBlueprintDimensionOption(t *testing.T) {
 
 	Convey("Successfully add a dimension option to an unpublished filter", t, func() {
 		r, err := http.NewRequest("POST", "http://localhost:22100/filters/12345678/dimensions/age/options/33", nil)
-		r.Header.Add(internalToken, authHeader)
+		r.Header.Add(string(internalTokenKey), authHeader)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
@@ -470,7 +470,7 @@ func TestSuccessfulGetFilterBlueprint(t *testing.T) {
 
 	Convey("Successfully get an unpublished filter blueprint with authentication", t, func() {
 		r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678", nil)
-		r.Header.Add(internalToken, authHeader)
+		r.Header.Add(string(internalTokenKey), authHeader)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
@@ -554,7 +554,7 @@ func TestSuccessfulUpdateFilterBlueprint(t *testing.T) {
 	Convey("Successfully send a request to submit an unpublished filter blueprint", t, func() {
 		reader := strings.NewReader("{}")
 		r, err := http.NewRequest("PUT", "http://localhost:22100/filters/21312?submitted=true", reader)
-		r.Header.Add(internalToken, authHeader)
+		r.Header.Add(string(internalTokenKey), authHeader)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
@@ -686,7 +686,7 @@ func TestSuccessfulGetFilterBlueprintDimensions(t *testing.T) {
 
 	Convey("Successfully get a list of dimensions for an unpublished filter blueprint", t, func() {
 		r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678/dimensions", nil)
-		r.Header.Add(internalToken, authHeader)
+		r.Header.Add(string(internalTokenKey), authHeader)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
@@ -741,7 +741,7 @@ func TestSuccessfulGetFilterBlueprintDimension(t *testing.T) {
 
 	Convey("Successfully get a dimension for an unpublished filter blueprint, returns 204", t, func() {
 		r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678/dimensions/1_age", nil)
-		r.Header.Add(internalToken, authHeader)
+		r.Header.Add(string(internalTokenKey), authHeader)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
@@ -824,7 +824,7 @@ func TestSuccessfulGetFilterBlueprintDimensionOptions(t *testing.T) {
 
 	Convey("Successfully get a list of dimension options for an unpublished filter blueprint", t, func() {
 		r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678/dimensions/time/options", nil)
-		r.Header.Add(internalToken, authHeader)
+		r.Header.Add(string(internalTokenKey), authHeader)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
@@ -907,7 +907,7 @@ func TestSuccessfulGetFilterBlueprintDimensionOption(t *testing.T) {
 
 	Convey("Successfully get a single dimension option for an unpublished filter blueprint", t, func() {
 		r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678/dimensions/time/options/2015", nil)
-		r.Header.Add(internalToken, authHeader)
+		r.Header.Add(string(internalTokenKey), authHeader)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
@@ -962,11 +962,11 @@ func TestFailedToGetFilterBlueprintDimensionOption(t *testing.T) {
 	})
 
 	Convey("When option does not exist against filter blueprint, an option not found is returned", t, func() {
-		r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678/dimensions/1_age/options/26", nil)
+		r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678/dimensions/age/options/notanage", nil)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := routes(authHeader, host, mux.NewRouter(), &mocks.DataStore{OptionNotFound: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
+		api := routes(authHeader, host, mux.NewRouter(), &mocks.DataStore{InvalidDimensionOption: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
@@ -990,7 +990,7 @@ func TestSuccessfulRemoveFilterBlueprintDimension(t *testing.T) {
 
 	Convey("Successfully remove a dimension for an unpublished filter blueprint, returns 200", t, func() {
 		r, err := http.NewRequest("DELETE", "http://localhost:22100/filters/12345678/dimensions/1_age", nil)
-		r.Header.Add(internalToken, authHeader)
+		r.Header.Add(string(internalTokenKey), authHeader)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
@@ -1073,7 +1073,7 @@ func TestSuccessfulRemoveFilterBlueprintDimensionOption(t *testing.T) {
 
 	Convey("Successfully remove a option for an unpublished filter blueprint, returns 200", t, func() {
 		r, err := http.NewRequest("DELETE", "http://localhost:22100/filters/12345678/dimensions/time/options/2015", nil)
-		r.Header.Add(internalToken, authHeader)
+		r.Header.Add(string(internalTokenKey), authHeader)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
@@ -1156,7 +1156,7 @@ func TestSuccessfulGetFilterOutput(t *testing.T) {
 
 	Convey("Successfully get an unpublished filter output", t, func() {
 		r, err := http.NewRequest("GET", "http://localhost:22100/filter-outputs/12345678", nil)
-		r.Header.Add(internalToken, authHeader)
+		r.Header.Add(string(internalTokenKey), authHeader)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
@@ -1219,7 +1219,7 @@ func TestSuccessfulUpdateFilterOutput(t *testing.T) {
 		r, err := http.NewRequest("PUT", "http://localhost:22100/filter-outputs/21312", reader)
 		So(err, ShouldBeNil)
 
-		r.Header.Add(internalToken, "cake")
+		r.Header.Add(string(internalTokenKey), "cake")
 
 		w := httptest.NewRecorder()
 		api := routes(authHeader, host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
@@ -1232,7 +1232,7 @@ func TestSuccessfulUpdateFilterOutput(t *testing.T) {
 		r, err := http.NewRequest("PUT", "http://localhost:22100/filter-outputs/21312", reader)
 		So(err, ShouldBeNil)
 
-		r.Header.Add(internalToken, "cake")
+		r.Header.Add(string(internalTokenKey), "cake")
 
 		w := httptest.NewRecorder()
 		api := routes(authHeader, host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock)
@@ -1248,7 +1248,7 @@ func TestFailedToUpdateFilterOutput(t *testing.T) {
 		r, err := http.NewRequest("PUT", "http://localhost:22100/filter-outputs/21312", reader)
 		So(err, ShouldBeNil)
 
-		r.Header.Add(internalToken, "cake")
+		r.Header.Add(string(internalTokenKey), "cake")
 
 		w := httptest.NewRecorder()
 		api := routes(authHeader, host, mux.NewRouter(), &mocks.DataStore{InternalError: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
@@ -1265,7 +1265,7 @@ func TestFailedToUpdateFilterOutput(t *testing.T) {
 		r, err := http.NewRequest("PUT", "http://localhost:22100/filter-outputs/21312", reader)
 		So(err, ShouldBeNil)
 
-		r.Header.Add(internalToken, "cake")
+		r.Header.Add(string(internalTokenKey), "cake")
 
 		w := httptest.NewRecorder()
 		api := routes(authHeader, host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
@@ -1282,7 +1282,7 @@ func TestFailedToUpdateFilterOutput(t *testing.T) {
 		r, err := http.NewRequest("PUT", "http://localhost:22100/filter-outputs/21312", reader)
 		So(err, ShouldBeNil)
 
-		r.Header.Add(internalToken, "cake")
+		r.Header.Add(string(internalTokenKey), "cake")
 
 		w := httptest.NewRecorder()
 		api := routes(authHeader, host, mux.NewRouter(), &mocks.DataStore{NotFound: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
@@ -1295,7 +1295,7 @@ func TestFailedToUpdateFilterOutput(t *testing.T) {
 		r, err := http.NewRequest("PUT", "http://localhost:22100/filter-outputs/21312", reader)
 		So(err, ShouldBeNil)
 
-		r.Header.Add(internalToken, "cake")
+		r.Header.Add(string(internalTokenKey), "cake")
 
 		w := httptest.NewRecorder()
 		api := routes(authHeader, host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
@@ -1312,7 +1312,7 @@ func TestFailedToUpdateFilterOutput(t *testing.T) {
 		r, err := http.NewRequest("PUT", "http://localhost:22100/filter-outputs/21312", reader)
 		So(err, ShouldBeNil)
 
-		r.Header.Add(internalToken, "cake")
+		r.Header.Add(string(internalTokenKey), "cake")
 
 		w := httptest.NewRecorder()
 		api := routes(authHeader, host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
@@ -1330,7 +1330,7 @@ func TestFailedToUpdateFilterOutput(t *testing.T) {
 		r, err := http.NewRequest("PUT", "http://localhost:22100/filter-outputs/21312", reader)
 		So(err, ShouldBeNil)
 
-		r.Header.Add(internalToken, "cookie")
+		r.Header.Add(string(internalTokenKey), "cookie")
 
 		w := httptest.NewRecorder()
 		api := routes(authHeader, host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
@@ -1358,7 +1358,7 @@ func TestSuccessfulGetPreview(t *testing.T) {
 
 	Convey("Successfully requesting a valid preview for unpublished instance filters", t, func() {
 		r, err := http.NewRequest("GET", "http://localhost:22100/filter-outputs/21312/preview", nil)
-		r.Header.Add(internalToken, authHeader)
+		r.Header.Add(string(internalTokenKey), authHeader)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()

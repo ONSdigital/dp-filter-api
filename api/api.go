@@ -14,7 +14,9 @@ import (
 
 var httpServer *server.Server
 
-const internalToken = "Internal-Token"
+type key string
+
+const internalTokenKey key = "Internal-Token"
 
 // OutputQueue - An interface used to queue filter outputs
 type OutputQueue interface {
@@ -100,8 +102,8 @@ func (a *auth) authenticate(handle func(http.ResponseWriter, *http.Request)) htt
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 
-		if r.Header.Get(internalToken) == a.key {
-			ctx = context.WithValue(ctx, internalToken, true)
+		if r.Header.Get(string(internalTokenKey)) == a.key {
+			ctx = context.WithValue(ctx, internalTokenKey, true)
 		}
 		handle(w, r.WithContext(ctx))
 	})
