@@ -243,7 +243,8 @@ func CreateFilter(reader io.Reader) (*Filter, error) {
 		return nil, ErrorParsingBody
 	}
 
-	// This should be the last check before returning filter
+	// This should be the last check before returning filter, as we want to check if a empty json `{}` message has been
+	// sent from the client
 	if len(bytes) == 2 {
 		return &filter, ErrorNoData
 	}

@@ -17,7 +17,7 @@ type DatasetAPI struct {
 
 // A list of errors that can be returned by the mock package
 var (
-	errorInstanceNotFound         = errors.New("Instance not found")
+	errorInstanceNotFound         = errors.New("Version not found")
 	errorDimensionsNotFound       = errors.New("Dimensions not found")
 	errorDimensionOptionsNotFound = errors.New("Dimension options not found")
 )

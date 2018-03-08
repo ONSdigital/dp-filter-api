@@ -109,7 +109,7 @@ func TestFailedToAddFilterBlueprint(t *testing.T) {
 
 		bodyBytes, _ := ioutil.ReadAll(w.Body)
 		response := string(bodyBytes)
-		So(response, ShouldResemble, "Instance not found\n")
+		So(response, ShouldResemble, "Version not found\n")
 	})
 
 	Convey("When an invalid json message is sent, a bad request is returned", t, func() {

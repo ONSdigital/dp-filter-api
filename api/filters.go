@@ -772,7 +772,7 @@ func setErrorCode(w http.ResponseWriter, err error, typ ...string) {
 		return
 	case "Filter output not found":
 		http.Error(w, err.Error(), http.StatusNotFound)
-	case "Instance not found":
+	case "Version not found":
 		if typ != nil {
 			if typ[0] == statusBadRequest {
 				http.Error(w, "Bad request - version not found", http.StatusBadRequest)

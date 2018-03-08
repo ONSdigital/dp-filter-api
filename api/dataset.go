@@ -45,7 +45,7 @@ func NewDatasetAPI(client *rchttp.Client, datasetAPIURL, datasetAPIAuthToken str
 // A list of errors that the dataset package could return
 var (
 	ErrUnexpectedStatusCode     = errors.New("unexpected status code from api")
-	ErrInstanceNotFound         = errors.New("Instance not found")
+	ErrVersionNotFound          = errors.New("Version not found")
 	ErrDimensionNotFound        = errors.New("Dimension not found")
 	ErrDimensionOptionsNotFound = errors.New("Dimension options not found")
 
@@ -55,7 +55,7 @@ var (
 // GetVersion queries the Dataset API to get an version
 func (api *DatasetAPI) GetVersion(ctx context.Context, d models.Dataset) (version *models.Version, err error) {
 	path := fmt.Sprintf("%s/datasets/%s/editions/%s/versions/%d", api.url, d.DatasetId, d.Edition, d.Version)
-	logData := log.Data{"func": "GetInstance", "URL": path, "dataset": d}
+	logData := log.Data{"func": "GetDataset", "URL": path, "dataset": d}
 
 	jsonResult, httpCode, err := api.get(ctx, path, nil)
 	logData["httpCode"] = httpCode
@@ -74,7 +74,7 @@ func (api *DatasetAPI) GetVersion(ctx context.Context, d models.Dataset) (versio
 	// External facing customers should NOT be able to filter an unpublished version
 	if version.State != publishedState && ctx.Value(internalToken) != true {
 		log.Error(errors.New("invalid authorization, returning not found status"), log.Data{"dataset": d})
-		return nil, ErrInstanceNotFound
+		return nil, ErrVersionNotFound
 	}
 
 	return
@@ -206,7 +206,7 @@ func handleError(httpCode int, err error, typ string) error {
 			if typ == "dimension option" {
 				return ErrDimensionOptionsNotFound
 			}
-			return ErrInstanceNotFound
+			return ErrVersionNotFound
 		}
 	}
 
