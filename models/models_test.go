@@ -19,12 +19,12 @@ func (f reader) Read(bytes []byte) (int, error) {
 
 func TestCreateFilterBlueprintWithValidJSON(t *testing.T) {
 	Convey("When a filter blueprint has a valid json body, a message is returned", t, func() {
-		reader := strings.NewReader(`{"dataset":{"version":1, "edition":"1", "dataset_id":"1"} }`)
+		reader := strings.NewReader(`{"dataset":{"version":1, "edition":"1", "id":"1"} }`)
 		filter, err := CreateNewFilter(reader)
 		So(err, ShouldBeNil)
 		So(filter.ValidateNewFilter(), ShouldBeNil)
 		So(filter.Dataset, ShouldNotBeNil)
-		So(filter.Dataset.DatasetId, ShouldEqual, "1")
+		So(filter.Dataset.ID, ShouldEqual, "1")
 		So(filter.Dataset.Edition, ShouldEqual, "1")
 		So(filter.Dataset.Version, ShouldEqual, 1)
 	})
@@ -51,7 +51,7 @@ func TestCreateFilterBlueprintWithInvalidJson(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		err = filter.ValidateNewFilter()
-		missingFields := []string{"edition", "dataset_id"}
+		missingFields := []string{"edition", "id"}
 		So(err, ShouldNotBeNil)
 		So(err, ShouldResemble, fmt.Errorf("Missing mandatory fields: %v", missingFields))
 	})
@@ -61,7 +61,7 @@ func TestCreateFilterBlueprintWithInvalidJson(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		err = filter.ValidateNewFilter()
-		missingFields := []string{"version", "edition", "dataset_id"}
+		missingFields := []string{"version", "edition", "id"}
 		So(err, ShouldNotBeNil)
 		So(err, ShouldResemble, fmt.Errorf("Missing mandatory fields: %v", missingFields))
 	})
@@ -138,6 +138,64 @@ func TestValidateFilterOutputUpdate(t *testing.T) {
 			err = filter.ValidateFilterOutputUpdate()
 			So(err, ShouldNotBeNil)
 			So(err, ShouldResemble, errors.New("Forbidden from updating the following fields: [instance_id dimensions filter_id]"))
+		})
+	})
+}
+
+func TestValidateFilterBlueprintUpdate(t *testing.T) {
+	Convey("Given the filter blueprint update doesn't contain any forbidden fields", t, func() {
+		reader := strings.NewReader(`{"dataset":{"version":2}}`)
+		filter, err := CreateFilter(reader)
+		So(err, ShouldBeNil)
+		So(filter.Dataset.Version, ShouldEqual, 2)
+
+		Convey("When filter is validated then no errors are returned", func() {
+
+			err = ValidateFilterBlueprintUpdate(filter)
+			So(err, ShouldBeNil)
+		})
+	})
+
+	Convey("Given the filter blueprint update contains dataset id", t, func() {
+		reader := strings.NewReader(`{"dataset":{"id":"123"}}`)
+		filter, err := CreateFilter(reader)
+		So(err, ShouldBeNil)
+		So(filter.Dataset.ID, ShouldEqual, "123")
+
+		Convey("When filter is validated then an error is returned", func() {
+
+			err = ValidateFilterBlueprintUpdate(filter)
+			So(err, ShouldNotBeNil)
+			So(err, ShouldResemble, errors.New("Forbidden from updating the following fields: [dataset.id]"))
+		})
+	})
+
+	Convey("Given the filter blueprint update contains dataset edition", t, func() {
+		reader := strings.NewReader(`{"dataset":{"edition":"2018"}}`)
+		filter, err := CreateFilter(reader)
+		So(err, ShouldBeNil)
+		So(filter.Dataset.Edition, ShouldEqual, "2018")
+
+		Convey("When filter is validated then an error is returned", func() {
+
+			err = ValidateFilterBlueprintUpdate(filter)
+			So(err, ShouldNotBeNil)
+			So(err, ShouldResemble, errors.New("Forbidden from updating the following fields: [dataset.edition]"))
+		})
+	})
+
+	Convey("Given the filter blueprint update contains both the dataset id and edition", t, func() {
+		reader := strings.NewReader(`{"dataset":{"id":"123", "edition":"2018"}}`)
+		filter, err := CreateFilter(reader)
+		So(err, ShouldBeNil)
+		So(filter.Dataset.ID, ShouldEqual, "123")
+		So(filter.Dataset.Edition, ShouldEqual, "2018")
+
+		Convey("When filter is validated then an error is returned", func() {
+
+			err = ValidateFilterBlueprintUpdate(filter)
+			So(err, ShouldNotBeNil)
+			So(err, ShouldResemble, errors.New("Forbidden from updating the following fields: [dataset.id dataset.edition]"))
 		})
 	})
 }

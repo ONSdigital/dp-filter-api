@@ -23,7 +23,7 @@ type DataStore struct {
 	NotFound               bool
 	DimensionNotFound      bool
 	OptionNotFound         bool
-	InstanceNotFound       bool
+	VersionNotFound        bool
 	BadRequest             bool
 	Forbidden              bool
 	Unauthorised           bool
@@ -267,8 +267,8 @@ func (ds *DataStore) UpdateFilter(filterJob *models.Filter) error {
 		return errorFilterOutputNotFound
 	}
 
-	if ds.InstanceNotFound {
-		return errorInstanceNotFound
+	if ds.VersionNotFound {
+		return errorVersionNotFound
 	}
 	return nil
 }

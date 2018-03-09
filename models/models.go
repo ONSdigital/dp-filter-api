@@ -16,20 +16,20 @@ const (
 )
 
 type Dataset struct {
-	DatasetId string `json:"dataset_id"`
-	Edition   string `json:"edition"`
-	Version   int    `json:"version"`
+	ID      string `bson:"id"        json:"id"`
+	Edition string `bson:"edition"   json:"edition"`
+	Version int    `bson:"version"   json:"version"`
 }
 
-// NewFilter creates a filter by using the dataset_id, edition and version
+// NewFilter creates a filter by using the dataset id, edition and version
 type NewFilter struct {
-	Dataset    Dataset     `json:"dataset"`
-	Dimensions []Dimension `json:"dimensions,omitempty"`
+	Dataset    Dataset     `bson:"dataset" json:"dataset"`
+	Dimensions []Dimension `bson:"dimensions,omitempty" json:"dimensions,omitempty"`
 }
 
 // Filter represents a structure for a filter job
 type Filter struct {
-	Dataset     Dataset     `bson:"dataset"              json:"-"`
+	Dataset     Dataset     `bson:"dataset"              json:"dataset"`
 	InstanceID  string      `bson:"instance_id"          json:"instance_id"`
 	Dimensions  []Dimension `bson:"dimensions,omitempty" json:"dimensions,omitempty"`
 	Downloads   *Downloads  `bson:"downloads,omitempty"  json:"downloads,omitempty"`
@@ -129,8 +129,8 @@ func (filter *NewFilter) ValidateNewFilter() error {
 		missingFields = append(missingFields, "edition")
 	}
 
-	if filter.Dataset.DatasetId == "" {
-		missingFields = append(missingFields, "dataset_id")
+	if filter.Dataset.ID == "" {
+		missingFields = append(missingFields, "id")
 	}
 
 	if missingFields != nil {
@@ -221,6 +221,30 @@ func (filter *Filter) ValidateFilterOutputUpdate() error {
 
 	if filter.FilterID != "" {
 		forbiddenFields = append(forbiddenFields, "filter_id")
+	}
+
+	if forbiddenFields != nil {
+		return fmt.Errorf("Forbidden from updating the following fields: %v", forbiddenFields)
+	}
+
+	return nil
+}
+
+// ValidateFilterBlueprintUpdate checks the content of the filter structure for
+// changes against the dataset
+func ValidateFilterBlueprintUpdate(filter *Filter) error {
+
+	// Only events and dataset version can be updated, any attempt to update the
+	// dataset id or edition will result in an error of bad request
+
+	var forbiddenFields []string
+
+	if filter.Dataset.ID != "" {
+		forbiddenFields = append(forbiddenFields, "dataset.id")
+	}
+
+	if filter.Dataset.Edition != "" {
+		forbiddenFields = append(forbiddenFields, "dataset.edition")
 	}
 
 	if forbiddenFields != nil {

@@ -382,10 +382,11 @@ definitions:
   NewBlueprintRequest:
     description: "A model used to create new filter blueprints. Dimensions are optional"
     allOf:
-    - $ref: '#/definitions/Dataset'
     - $ref: '#/definitions/JobState'
     - type: object
       properties:
+        dataset:
+          $ref: '#/definitions/Dataset'
         dimensions:
           readOnly: false
           type: array
@@ -398,6 +399,14 @@ definitions:
     - $ref: '#/definitions/JobState'
     - type: object
       properties:
+        dataset:
+          readOnly: false
+          type: object
+          description: 'A dataset to filter on'
+          properties:
+            version:
+              type: integer
+              description: "A version of the dataset to filter on"
         events:
           readOnly: false
           type: object
@@ -410,12 +419,17 @@ definitions:
     allOf:
     - $ref: '#/definitions/JobState'
     - type: object
+      properties:
+        dataset:
+          $ref: '#/definitions/Dataset'
   UpdateBlueprintResponse:
     description: "A model for the response body when updating a filter blueprint"
     allOf:
     - $ref: '#/definitions/JobState'
     - type: object
       properties:
+        dataset:
+          $ref: '#/definitions/Dataset'
         links:
           type: object
           properties:
@@ -468,11 +482,13 @@ definitions:
       events:
         $ref: '#/definitions/Events'
   Dataset:
+    readOnly: false
     type: object
+    description: "A version of an edition for a dataset to filter on."
     properties:
-      dataset_id:
+      id:
         type: string
-        description: "An unique dataset id"
+        description: "The unique identifier of a dataset"
       edition:
         type: string
         description: "An edition of a dataset"

@@ -11,25 +11,25 @@ import (
 type DatasetAPI struct {
 	DimensionsNotFound       bool
 	DimensionOptionsNotFound bool
-	InstanceNotFound         bool
+	VersionNotFound          bool
 	InternalServerError      bool
 }
 
 // A list of errors that can be returned by the mock package
 var (
-	errorInstanceNotFound         = errors.New("Instance not found")
+	errorVersionNotFound          = errors.New("Version not found")
 	errorDimensionsNotFound       = errors.New("Dimensions not found")
 	errorDimensionOptionsNotFound = errors.New("Dimension options not found")
 )
 
-// GetInstance represents the mocked version of getting an instance document from dataset API
+// GetVersion represents the mocked version of getting an version document from dataset API
 func (ds *DatasetAPI) GetVersion(ctx context.Context, dataset models.Dataset) (*models.Version, error) {
 	if ds.InternalServerError {
 		return nil, errorInternalServer
 	}
 
-	if ds.InstanceNotFound {
-		return nil, errorInstanceNotFound
+	if ds.VersionNotFound {
+		return nil, errorVersionNotFound
 	}
 
 	return &models.Version{
