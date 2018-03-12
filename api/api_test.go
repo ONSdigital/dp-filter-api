@@ -533,7 +533,7 @@ func TestFailedToUpdateFilterBlueprint(t *testing.T) {
 	})
 
 	Convey("When a json message is sent to change the datset version of a filter blueprint and the current dimensions do not match, a status of bad request is returned", t, func() {
-		reader := strings.NewReader(`{"dataset":{"version":1}}`)
+		reader := strings.NewReader(`{"dataset":{"version":2}}`)
 		r, err := http.NewRequest("PUT", "http://localhost:22100/filters/21312", reader)
 		So(err, ShouldBeNil)
 
@@ -548,7 +548,7 @@ func TestFailedToUpdateFilterBlueprint(t *testing.T) {
 	})
 
 	Convey("When a json message is sent to change the dataset version of a filter blueprint and the current dimension options do not match, a status of bad request is returned", t, func() {
-		reader := strings.NewReader(`{"dataset":{"version":1}}`)
+		reader := strings.NewReader(`{"dataset":{"version":2}}`)
 		r, err := http.NewRequest("PUT", "http://localhost:22100/filters/21312", reader)
 		So(err, ShouldBeNil)
 

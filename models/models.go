@@ -9,12 +9,14 @@ import (
 	"time"
 )
 
+// A list of states
 const (
 	CreatedState   = "created"
 	SubmittedState = "submitted"
 	CompletedState = "completed"
 )
 
+// Dataset contains the uniique identifiers that make a dataset unique
 type Dataset struct {
 	ID      string `bson:"id"        json:"id"`
 	Edition string `bson:"edition"   json:"edition"`
@@ -23,13 +25,13 @@ type Dataset struct {
 
 // NewFilter creates a filter by using the dataset id, edition and version
 type NewFilter struct {
-	Dataset    Dataset     `bson:"dataset" json:"dataset"`
+	Dataset    *Dataset    `bson:"dataset" json:"dataset"`
 	Dimensions []Dimension `bson:"dimensions,omitempty" json:"dimensions,omitempty"`
 }
 
 // Filter represents a structure for a filter job
 type Filter struct {
-	Dataset     Dataset     `bson:"dataset"              json:"dataset"`
+	Dataset     *Dataset    `bson:"dataset"              json:"dataset"`
 	InstanceID  string      `bson:"instance_id"          json:"instance_id"`
 	Dimensions  []Dimension `bson:"dimensions,omitempty" json:"dimensions,omitempty"`
 	Downloads   *Downloads  `bson:"downloads,omitempty"  json:"downloads,omitempty"`
@@ -116,21 +118,25 @@ var (
 	ErrorNoData      = errors.New("Bad request - Missing data in body")
 )
 
-// ValidateFilterBlueprint checks the content of the filter structure
+// ValidateNewFilter checks the content of the filter structure
 func (filter *NewFilter) ValidateNewFilter() error {
 	// FilterBluePrint should not have state
 	var missingFields []string
 
-	if filter.Dataset.Version == 0 {
-		missingFields = append(missingFields, "version")
-	}
+	if filter.Dataset != nil {
+		if filter.Dataset.Version == 0 {
+			missingFields = append(missingFields, "dataset.version")
+		}
 
-	if filter.Dataset.Edition == "" {
-		missingFields = append(missingFields, "edition")
-	}
+		if filter.Dataset.Edition == "" {
+			missingFields = append(missingFields, "dataset.edition")
+		}
 
-	if filter.Dataset.ID == "" {
-		missingFields = append(missingFields, "id")
+		if filter.Dataset.ID == "" {
+			missingFields = append(missingFields, "dataset.id")
+		}
+	} else {
+		missingFields = append(missingFields, "dataset.version", "dataset.edition", "dataset.id")
 	}
 
 	if missingFields != nil {
@@ -239,16 +245,18 @@ func ValidateFilterBlueprintUpdate(filter *Filter) error {
 
 	var forbiddenFields []string
 
-	if filter.Dataset.ID != "" {
-		forbiddenFields = append(forbiddenFields, "dataset.id")
-	}
+	if filter.Dataset != nil {
+		if filter.Dataset.ID != "" {
+			forbiddenFields = append(forbiddenFields, "dataset.id")
+		}
 
-	if filter.Dataset.Edition != "" {
-		forbiddenFields = append(forbiddenFields, "dataset.edition")
-	}
+		if filter.Dataset.Edition != "" {
+			forbiddenFields = append(forbiddenFields, "dataset.edition")
+		}
 
-	if forbiddenFields != nil {
-		return fmt.Errorf("Forbidden from updating the following fields: %v", forbiddenFields)
+		if forbiddenFields != nil {
+			return fmt.Errorf("Forbidden from updating the following fields: %v", forbiddenFields)
+		}
 	}
 
 	return nil
@@ -297,6 +305,7 @@ func CreateDimensionOptions(reader io.Reader) ([]string, error) {
 	return dimension.Options, nil
 }
 
+// CreateNewFilter manages the creation of a filter blueprint being updated (new filter)
 func CreateNewFilter(reader io.Reader) (*NewFilter, error) {
 	bytes, err := ioutil.ReadAll(reader)
 	if err != nil {

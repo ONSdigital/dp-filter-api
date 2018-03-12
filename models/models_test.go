@@ -51,7 +51,7 @@ func TestCreateFilterBlueprintWithInvalidJson(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		err = filter.ValidateNewFilter()
-		missingFields := []string{"edition", "id"}
+		missingFields := []string{"dataset.edition", "dataset.id"}
 		So(err, ShouldNotBeNil)
 		So(err, ShouldResemble, fmt.Errorf("Missing mandatory fields: %v", missingFields))
 	})
@@ -61,7 +61,7 @@ func TestCreateFilterBlueprintWithInvalidJson(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		err = filter.ValidateNewFilter()
-		missingFields := []string{"version", "edition", "id"}
+		missingFields := []string{"dataset.version", "dataset.edition", "dataset.id"}
 		So(err, ShouldNotBeNil)
 		So(err, ShouldResemble, fmt.Errorf("Missing mandatory fields: %v", missingFields))
 	})

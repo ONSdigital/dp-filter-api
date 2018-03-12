@@ -101,18 +101,18 @@ func (ds *DataStore) GetFilter(filterID string) (*models.Filter, error) {
 	}
 
 	if ds.BadRequest {
-		return &models.Filter{InstanceID: "12345678"}, nil
+		return &models.Filter{Dataset: &models.Dataset{ID: "123", Edition: "2017", Version: 1}, InstanceID: "12345678"}, errorBadRequest
 	}
 
 	if ds.ChangeInstanceRequest {
-		return &models.Filter{InstanceID: "12345678", Dimensions: []models.Dimension{{Name: "age", Options: []string{"33"}}}}, nil
+		return &models.Filter{Dataset: &models.Dataset{ID: "123", Edition: "2017", Version: 1}, InstanceID: "12345678", Dimensions: []models.Dimension{{Name: "age", Options: []string{"33"}}}}, nil
 	}
 
 	if ds.InvalidDimensionOption {
-		return &models.Filter{InstanceID: "12345678", Dimensions: []models.Dimension{{Name: "age", Options: []string{"28"}}}}, nil
+		return &models.Filter{Dataset: &models.Dataset{ID: "123", Edition: "2017", Version: 1}, InstanceID: "12345678", Dimensions: []models.Dimension{{Name: "age", Options: []string{"28"}}}}, nil
 	}
 
-	return &models.Filter{InstanceID: "12345678", Dimensions: []models.Dimension{{Name: "time"}}}, nil
+	return &models.Filter{Dataset: &models.Dataset{ID: "123", Edition: "2017", Version: 1}, InstanceID: "12345678", Dimensions: []models.Dimension{{Name: "time"}}}, nil
 }
 
 // GetFilterDimensions represents the mocked version of getting a list of filter dimensions from the datastore

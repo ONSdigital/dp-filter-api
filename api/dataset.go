@@ -188,6 +188,7 @@ func (api *DatasetAPI) callDatasetAPI(ctx context.Context, method, path string, 
 			log.ErrorC("error cleaning up request body", err, logData)
 		}
 	}()
+	logData["httpCode"] = resp.StatusCode
 
 	jsonBody, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
@@ -195,7 +196,6 @@ func (api *DatasetAPI) callDatasetAPI(ctx context.Context, method, path string, 
 		return nil, resp.StatusCode, err
 	}
 
-	logData["httpCode"] = resp.StatusCode
 	if resp.StatusCode < http.StatusOK || resp.StatusCode >= 300 {
 		return jsonBody, resp.StatusCode, ErrUnexpectedStatusCode
 	}
