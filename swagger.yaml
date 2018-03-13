@@ -385,6 +385,8 @@ definitions:
     - $ref: '#/definitions/JobState'
     - type: object
       properties:
+        dataset:
+          $ref: '#/definitions/Dataset'
         dimensions:
           readOnly: false
           type: array
@@ -397,6 +399,14 @@ definitions:
     - $ref: '#/definitions/JobState'
     - type: object
       properties:
+        dataset:
+          readOnly: false
+          type: object
+          description: 'A dataset to filter on'
+          properties:
+            version:
+              type: integer
+              description: "A version of the dataset to filter on"
         events:
           readOnly: false
           type: object
@@ -409,12 +419,17 @@ definitions:
     allOf:
     - $ref: '#/definitions/JobState'
     - type: object
+      properties:
+        dataset:
+          $ref: '#/definitions/Dataset'
   UpdateBlueprintResponse:
     description: "A model for the response body when updating a filter blueprint"
     allOf:
     - $ref: '#/definitions/JobState'
     - type: object
       properties:
+        dataset:
+          $ref: '#/definitions/Dataset'
         links:
           type: object
           properties:
@@ -458,9 +473,6 @@ definitions:
         readOnly: true
         type: string
         description: "A unique id for this resource"
-      instance_id:
-        type: string
-        description: 'An instance ID for he specific dataset version to be filtered'
       dimension_list_url:
         readOnly: true
         type: string
@@ -469,6 +481,20 @@ definitions:
         $ref: '#/definitions/FilterLinks'
       events:
         $ref: '#/definitions/Events'
+  Dataset:
+    readOnly: false
+    type: object
+    description: "A version of an edition for a dataset to filter on."
+    properties:
+      id:
+        type: string
+        description: "The unique identifier of a dataset"
+      edition:
+        type: string
+        description: "An edition of a dataset"
+      version:
+        type: string
+        description: "A version of a dataset"
   Dimension:
     type: object
     description: "A dimension to filter on a dataset. Information on a dimension can be gathered using the `Dataset API`"
