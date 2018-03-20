@@ -7,21 +7,19 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
-
-	"github.com/ONSdigital/go-ns/rchttp"
-	"github.com/gorilla/mux"
+	"time"
 
 	"github.com/ONSdigital/dp-filter-api/api/datastoretest"
 	"github.com/ONSdigital/dp-filter-api/mocks"
 	"github.com/ONSdigital/dp-filter-api/models"
 	"github.com/ONSdigital/dp-filter-api/preview"
+	"github.com/gorilla/mux"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
 var (
 	host       = "http://localhost:80"
 	authHeader = "cake"
-	client     = rchttp.DefaultClient
 )
 
 var previewMock = &datastoretest.PreviewDatasetMock{
@@ -33,7 +31,7 @@ var previewMock = &datastoretest.PreviewDatasetMock{
 func TestSuccessfulAddFilterBlueprint(t *testing.T) {
 	t.Parallel()
 	Convey("Successfully create a filter blueprint", t, func() {
-		reader := strings.NewReader(`{"instance_id":"12345678"}`)
+		reader := strings.NewReader(`{"dataset":{"version":1, "edition":"1", "id":"1"} }`)
 		r, err := http.NewRequest("POST", "http://localhost:22100/filters", reader)
 		So(err, ShouldBeNil)
 
@@ -43,8 +41,8 @@ func TestSuccessfulAddFilterBlueprint(t *testing.T) {
 		So(w.Code, ShouldEqual, http.StatusCreated)
 	})
 
-	Convey("Successfully create a filter blueprint for an unpublished instance", t, func() {
-		reader := strings.NewReader(`{"instance_id":"12345678"}`)
+	Convey("Successfully create a filter blueprint for an unpublished version", t, func() {
+		reader := strings.NewReader(`{"dataset":{"version":1, "edition":"1", "id":"1"}, "dimensions":[{"name": "age", "options": ["27","33"]}]}`)
 		r, err := http.NewRequest("POST", "http://localhost:22100/filters", reader)
 		r.Header.Add(string(internalTokenKey), authHeader)
 		So(err, ShouldBeNil)
@@ -56,7 +54,7 @@ func TestSuccessfulAddFilterBlueprint(t *testing.T) {
 	})
 
 	Convey("Successfully create a filter blueprint with dimensions", t, func() {
-		reader := strings.NewReader(`{"instance_id":"12345678", "dimensions":[{"name": "age", "options": ["27","33"]}]}`)
+		reader := strings.NewReader(`{"dataset":{"version":1, "edition":"1", "id":"1"}, "dimensions":[{"name": "age", "options": ["27","33"]}]}`)
 		r, err := http.NewRequest("POST", "http://localhost:22100/filters", reader)
 		So(err, ShouldBeNil)
 
@@ -68,7 +66,7 @@ func TestSuccessfulAddFilterBlueprint(t *testing.T) {
 
 	//	TODO check test doesn't actually write job to queue?
 	Convey("Successfully submit a filter blueprint", t, func() {
-		reader := strings.NewReader(`{"instance_id":"12345678"}`)
+		reader := strings.NewReader(`{"dataset":{"version":1, "edition":"1", "id":"1"} }`)
 		r, err := http.NewRequest("POST", "http://localhost:22100/filters?submitted=true", reader)
 		So(err, ShouldBeNil)
 
@@ -82,7 +80,7 @@ func TestSuccessfulAddFilterBlueprint(t *testing.T) {
 func TestFailedToAddFilterBlueprint(t *testing.T) {
 	t.Parallel()
 	Convey("When no data store is available, an internal error is returned", t, func() {
-		reader := strings.NewReader(`{"instance_id":"12345678"}`)
+		reader := strings.NewReader(`{"dataset":{"version":1, "edition":"1", "id":"1"} }`)
 		r, err := http.NewRequest("POST", "http://localhost:22100/filters", reader)
 		So(err, ShouldBeNil)
 
@@ -97,7 +95,7 @@ func TestFailedToAddFilterBlueprint(t *testing.T) {
 	})
 
 	Convey("When dataset API is unavailable, an internal error is returned", t, func() {
-		reader := strings.NewReader(`{"instance_id":"12345678"}`)
+		reader := strings.NewReader(`{"dataset":{"version":1, "edition":"1", "id":"1"} }`)
 		r, err := http.NewRequest("POST", "http://localhost:22100/filters", reader)
 		So(err, ShouldBeNil)
 
@@ -111,23 +109,23 @@ func TestFailedToAddFilterBlueprint(t *testing.T) {
 		So(response, ShouldResemble, internalError+"\n")
 	})
 
-	Convey("When instance does not exist, a not found error is returned", t, func() {
-		reader := strings.NewReader(`{"instance_id":"12345678"}`)
+	Convey("When version does not exist, a not found error is returned", t, func() {
+		reader := strings.NewReader(`{"dataset":{"version":1, "edition":"1", "id":"1"} }`)
 		r, err := http.NewRequest("POST", "http://localhost:22100/filters", reader)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := routes(authHeader, host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{InstanceNotFound: true}, previewMock)
+		api := routes(authHeader, host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{VersionNotFound: true}, previewMock)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
 		bodyBytes, _ := ioutil.ReadAll(w.Body)
 		response := string(bodyBytes)
-		So(response, ShouldResemble, "Instance not found\n")
+		So(response, ShouldResemble, "Version not found\n")
 	})
 
-	Convey("When instance is unpublished and the request is not authenticated, a bad request error is returned", t, func() {
-		reader := strings.NewReader(`{"instance_id":"12345678"}`)
+	Convey("When version is unpublished and the request is not authenticated, a bad request error is returned", t, func() {
+		reader := strings.NewReader(`{"dataset":{"version":1, "edition":"1", "id":"1"}, "dimensions":[{"name": "age", "options": ["27","33"]}]}`)
 		r, err := http.NewRequest("POST", "http://localhost:22100/filters", reader)
 		So(err, ShouldBeNil)
 
@@ -187,7 +185,7 @@ func TestFailedToAddFilterBlueprint(t *testing.T) {
 	})
 
 	Convey("When a json message contains a dimension that does not exist, a bad request is returned", t, func() {
-		reader := strings.NewReader(`{"instance_id":"12345678", "dimensions":[{"name": "weight", "options": ["27","33"]}]}`)
+		reader := strings.NewReader(`{"dataset":{"version":1, "edition":"1", "id":"1"} , "dimensions":[{"name": "weight", "options": ["27","33"]}]}`)
 		r, err := http.NewRequest("POST", "http://localhost:22100/filters", reader)
 		So(err, ShouldBeNil)
 
@@ -202,7 +200,7 @@ func TestFailedToAddFilterBlueprint(t *testing.T) {
 	})
 
 	Convey("When a json message contains a dimension option that does not exist for a valid dimension, a bad request is returned", t, func() {
-		reader := strings.NewReader(`{"instance_id":"12345678", "dimensions":[{"name": "age", "options": ["29","33"]}]}`)
+		reader := strings.NewReader(`{"dataset":{"version":1, "edition":"1", "id":"1"} , "dimensions":[{"name": "age", "options": ["29","33"]}]}`)
 		r, err := http.NewRequest("POST", "http://localhost:22100/filters", reader)
 		So(err, ShouldBeNil)
 
@@ -530,7 +528,23 @@ func TestFailedToGetFilterBlueprint(t *testing.T) {
 func TestSuccessfulUpdateFilterBlueprint(t *testing.T) {
 	t.Parallel()
 	Convey("Successfully send a valid json message", t, func() {
-		reader := strings.NewReader(`{"instance_id":"123"}`)
+		reader := strings.NewReader(`{"dataset":{"version":1}}`)
+		r, err := http.NewRequest("PUT", "http://localhost:22100/filters/21312", reader)
+		So(err, ShouldBeNil)
+
+		w := httptest.NewRecorder()
+		api := routes(authHeader, host, mux.NewRouter(), &mocks.DataStore{ChangeInstanceRequest: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusOK)
+	})
+
+	Convey("Successfully send a valid json message with events and dataset version update", t, func() {
+
+		updateBlueprintData := `{"dataset":{"version":1}, "events":{"info":[{"time":"` + time.Now().String() +
+			`","type":"something changed","message":"something happened"}],"error":[{"time":"` + time.Now().String() +
+			`","type":"errored","message":"something errored"}]}}`
+
+		reader := strings.NewReader(updateBlueprintData)
 		r, err := http.NewRequest("PUT", "http://localhost:22100/filters/21312", reader)
 		So(err, ShouldBeNil)
 
@@ -597,7 +611,7 @@ func TestFailedToUpdateFilterBlueprint(t *testing.T) {
 	})
 
 	Convey("When a json message is sent to update filter blueprint that doesn't exist, a status of not found is returned", t, func() {
-		reader := strings.NewReader(`{"instance_id":"44444"}`)
+		reader := strings.NewReader(`{"dataset":{"version":1}}`)
 		r, err := http.NewRequest("PUT", "http://localhost:22100/filters/21312", reader)
 		So(err, ShouldBeNil)
 
@@ -612,11 +626,12 @@ func TestFailedToUpdateFilterBlueprint(t *testing.T) {
 	})
 
 	Convey("When no authentication is provided to update an unpublished filter, a not found is returned", t, func() {
-		reader := strings.NewReader(`{"instance_id":"44444"}`)
+		reader := strings.NewReader(`{"dimensions":[]}`)
 		r, err := http.NewRequest("PUT", "http://localhost:22100/filters/21312", reader)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
+
 		api := routes(authHeader, host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
@@ -626,23 +641,23 @@ func TestFailedToUpdateFilterBlueprint(t *testing.T) {
 		So(response, ShouldResemble, "Filter blueprint not found\n")
 	})
 
-	Convey("When a json message is sent to change the instance id of a filter blueprint and the instance does not exist, a status of bad request is returned", t, func() {
-		reader := strings.NewReader(`{"instance_id":"44444"}`)
+	Convey("When a json message is sent to change the dataset version of a filter blueprint and the version does not exist, a status of bad request is returned", t, func() {
+		reader := strings.NewReader(`{"dataset":{"version":2}}`)
 		r, err := http.NewRequest("PUT", "http://localhost:22100/filters/21312", reader)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := routes(authHeader, host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{InstanceNotFound: true}, previewMock)
+		api := routes(authHeader, host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{VersionNotFound: true}, previewMock)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
 		bodyBytes, _ := ioutil.ReadAll(w.Body)
 		response := string(bodyBytes)
-		So(response, ShouldResemble, "Bad request - instance not found\n")
+		So(response, ShouldResemble, "Bad request - version not found\n")
 	})
 
-	Convey("When a json message is sent to change the instance id of a filter blueprint and the current dimensions do not match, a status of bad request is returned", t, func() {
-		reader := strings.NewReader(`{"instance_id":"44444"}`)
+	Convey("When a json message is sent to change the datset version of a filter blueprint and the current dimensions do not match, a status of bad request is returned", t, func() {
+		reader := strings.NewReader(`{"dataset":{"version":2}}`)
 		r, err := http.NewRequest("PUT", "http://localhost:22100/filters/21312", reader)
 		So(err, ShouldBeNil)
 
@@ -656,8 +671,8 @@ func TestFailedToUpdateFilterBlueprint(t *testing.T) {
 		So(response, ShouldResemble, "Bad request - incorrect dimensions chosen: [time]\n")
 	})
 
-	Convey("When a json message is sent to change the instance id of a filter blueprint and the current dimensions do not match, a status of bad request is returned", t, func() {
-		reader := strings.NewReader(`{"instance_id":"44444"}`)
+	Convey("When a json message is sent to change the dataset version of a filter blueprint and the current dimension options do not match, a status of bad request is returned", t, func() {
+		reader := strings.NewReader(`{"dataset":{"version":2}}`)
 		r, err := http.NewRequest("PUT", "http://localhost:22100/filters/21312", reader)
 		So(err, ShouldBeNil)
 
@@ -1308,7 +1323,7 @@ func TestFailedToUpdateFilterOutput(t *testing.T) {
 	})
 
 	Convey("When a json message contains fields that are not allowed to be updated, a forbidden status is returned", t, func() {
-		reader := strings.NewReader(`{"instance_id":"1234"}`)
+		reader := strings.NewReader(`{"dataset":{"version":1, "edition":"1", "id":"1"}}`)
 		r, err := http.NewRequest("PUT", "http://localhost:22100/filter-outputs/21312", reader)
 		So(err, ShouldBeNil)
 
@@ -1356,7 +1371,7 @@ func TestSuccessfulGetPreview(t *testing.T) {
 		So(previewMock.GetPreviewCalls()[0].Limit, ShouldEqual, 20)
 	})
 
-	Convey("Successfully requesting a valid preview for unpublished instance filters", t, func() {
+	Convey("Successfully requesting a valid preview for unpublished version filters", t, func() {
 		r, err := http.NewRequest("GET", "http://localhost:22100/filter-outputs/21312/preview", nil)
 		r.Header.Add(string(internalTokenKey), authHeader)
 		So(err, ShouldBeNil)
@@ -1462,7 +1477,7 @@ func TestFailedGetPreview(t *testing.T) {
 		So(response, ShouldResemble, "requested limit is not a number\n")
 	})
 
-	Convey("Requesting a preview with no authentication when the instance is unpublished", t, func() {
+	Convey("Requesting a preview with no authentication when the version is unpublished", t, func() {
 		r, err := http.NewRequest("GET", "http://localhost:22100/filter-outputs/21312/preview?limit=a", nil)
 		So(err, ShouldBeNil)
 

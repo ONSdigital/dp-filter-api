@@ -23,7 +23,7 @@ type DataStore struct {
 	NotFound               bool
 	DimensionNotFound      bool
 	OptionNotFound         bool
-	InstanceNotFound       bool
+	VersionNotFound        bool
 	BadRequest             bool
 	Forbidden              bool
 	Unauthorised           bool
@@ -102,23 +102,22 @@ func (ds *DataStore) GetFilter(filterID string) (*models.Filter, error) {
 	}
 
 	if ds.BadRequest {
-		return nil, errorBadRequest
+		return &models.Filter{Dataset: &models.Dataset{ID: "123", Edition: "2017", Version: 1}, InstanceID: "12345678"}, errorBadRequest
 	}
 
 	if ds.ChangeInstanceRequest {
-		return &models.Filter{FilterID: filterID, InstanceID: "12345678", Published: true, Dimensions: []models.Dimension{{Name: "age", Options: []string{"33"}}}}, nil
+		return &models.Filter{Dataset: &models.Dataset{ID: "123", Edition: "2017", Version: 1}, InstanceID: "12345678", Published: true, Dimensions: []models.Dimension{{Name: "age", Options: []string{"33"}}}}, nil
 	}
 
 	if ds.InvalidDimensionOption {
-		return &models.Filter{FilterID: filterID, InstanceID: "12345678", Published: true, Dimensions: []models.Dimension{{Name: "age", Options: []string{"28"}}}}, nil
+		return &models.Filter{Dataset: &models.Dataset{ID: "123", Edition: "2017", Version: 1}, InstanceID: "12345678", Published: true, Dimensions: []models.Dimension{{Name: "age", Options: []string{"28"}}}}, nil
 	}
 
 	if ds.Unpublished {
-		return &models.Filter{FilterID: filterID, InstanceID: "12345678", Dimensions: []models.Dimension{{Name: "time", Options: []string{"2014", "2015"}}}}, nil
-
+		return &models.Filter{Dataset: &models.Dataset{ID: "123", Edition: "2017", Version: 1}, InstanceID: "12345678", Dimensions: []models.Dimension{{Name: "time", Options: []string{"2014", "2015"}}}}, nil
 	}
 
-	return &models.Filter{FilterID: filterID, InstanceID: "12345678", Published: true, Dimensions: []models.Dimension{{Name: "time", Options: []string{"2014", "2015"}}}}, nil
+	return &models.Filter{Dataset: &models.Dataset{ID: "123", Edition: "2017", Version: 1}, InstanceID: "12345678", Published: true, Dimensions: []models.Dimension{{Name: "time", Options: []string{"2014", "2015"}}}}, nil
 }
 
 // GetFilterDimension represents the mocked version of getting a filter dimension from the datastore
@@ -216,8 +215,8 @@ func (ds *DataStore) UpdateFilter(filterJob *models.Filter) error {
 		return errorFilterOutputNotFound
 	}
 
-	if ds.InstanceNotFound {
-		return errorInstanceNotFound
+	if ds.VersionNotFound {
+		return errorVersionNotFound
 	}
 	return nil
 }
