@@ -1241,6 +1241,10 @@ func TestSuccessfulUpdateFilterOutput(t *testing.T) {
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusOK)
 	})
+}
+
+func TestSuccessfulUpdateFilterOutputUnpublished(t *testing.T) {
+	t.Parallel()
 
 	Convey("Successfully send a valid json message to update an unpublished filter output", t, func() {
 		reader := strings.NewReader(`{"downloads":{"csv":{"url":"s3-csv-location","size":"12mb"}}}`)
@@ -1460,7 +1464,7 @@ func TestFailedGetPreview(t *testing.T) {
 
 		bodyBytes, _ := ioutil.ReadAll(w.Body)
 		response := string(bodyBytes)
-		So(response, ShouldResemble, errDimensionBadRequest.Error()+"\n")
+		So(response, ShouldResemble, "no dimensions are present in the filter\n")
 	})
 
 	Convey("Requesting a preview with an invalid limit", t, func() {
