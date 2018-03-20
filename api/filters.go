@@ -6,6 +6,7 @@ import (
 	"errors"
 	"net/http"
 	"regexp"
+	"time"
 
 	"github.com/ONSdigital/dp-filter-api/models"
 	"github.com/ONSdigital/go-ns/log"
@@ -661,6 +662,7 @@ func (api *FilterAPI) createFilterOutputResource(newFilter *models.Filter, filte
 	filterOutput.Links.Dimensions.HRef = ""
 	filterOutput.Links.FilterBlueprint.HRef = fmt.Sprintf("%s/filters/%s", api.host, filterBlueprintID)
 	filterOutput.Links.FilterBlueprint.ID = filterBlueprintID
+	filterOutput.LastUpdated = time.Now()
 
 	// Clear out any event information to output document
 	filterOutput.Events = models.Events{}
