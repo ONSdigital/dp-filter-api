@@ -74,7 +74,7 @@ func (api *DatasetAPI) GetVersion(ctx context.Context, d models.Dataset) (versio
 	}
 
 	// External facing customers should NOT be able to filter an unpublished version
-	if version.State != publishedState && ctx.Value(string(internalTokenKey)) != true {
+	if version.State != publishedState && ctx.Value(internalTokenKey) != true {
 		log.Error(errors.New("invalid authorization, returning not found status"), log.Data{"dataset": d})
 		return nil, ErrVersionNotFound
 	}
