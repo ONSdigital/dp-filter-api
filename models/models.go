@@ -203,6 +203,20 @@ func (filter *Filter) ValidateFilterOutputUpdate() error {
 
 	var forbiddenFields []string
 
+	if filter.Dataset != nil {
+		if filter.Dataset.ID != "" {
+			forbiddenFields = append(forbiddenFields, "dataset.id")
+		}
+
+		if filter.Dataset.Edition != "" {
+			forbiddenFields = append(forbiddenFields, "dataset.edition")
+		}
+
+		if filter.Dataset.Version != 0 {
+			forbiddenFields = append(forbiddenFields, "dataset.version")
+		}
+	}
+
 	if filter.InstanceID != "" {
 		forbiddenFields = append(forbiddenFields, "instance_id")
 	}

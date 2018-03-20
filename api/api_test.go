@@ -380,6 +380,23 @@ func TestSuccessfulAddFilterBlueprintDimensionOption(t *testing.T) {
 	})
 }
 
+func TestFailedToAddFilterBlueprintDimensionOption_DimensionDoesNotExist(t *testing.T) {
+
+	Convey("When a dimension for filter blueprint does not exist, a bad request status is returned", t, func() {
+		r, err := http.NewRequest("POST", "http://localhost:22100/filters/12345678/dimensions/notage/options/33", nil)
+		So(err, ShouldBeNil)
+
+		w := httptest.NewRecorder()
+		api := routes(authHeader, host, mux.NewRouter(), &mocks.DataStore{InvalidDimensionOption: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusBadRequest)
+
+		bodyBytes, _ := ioutil.ReadAll(w.Body)
+		response := string(bodyBytes)
+		So(response, ShouldResemble, "Bad request - incorrect dimensions chosen: [notage]\n")
+	})
+}
+
 func TestFailedToAddFilterBlueprintDimensionOption(t *testing.T) {
 	t.Parallel()
 	Convey("When no data store is available, an internal error is returned", t, func() {
@@ -422,20 +439,6 @@ func TestFailedToAddFilterBlueprintDimensionOption(t *testing.T) {
 		bodyBytes, _ := ioutil.ReadAll(w.Body)
 		response := string(bodyBytes)
 		So(response, ShouldResemble, "Filter blueprint not found\n")
-	})
-
-	Convey("When a dimension for filter blueprint does not exist, a bad request status is returned", t, func() {
-		r, err := http.NewRequest("POST", "http://localhost:22100/filters/12345678/dimensions/notage/options/33", nil)
-		So(err, ShouldBeNil)
-
-		w := httptest.NewRecorder()
-		api := routes(authHeader, host, mux.NewRouter(), &mocks.DataStore{InvalidDimensionOption: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
-		api.router.ServeHTTP(w, r)
-		So(w.Code, ShouldEqual, http.StatusBadRequest)
-
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
-		So(response, ShouldResemble, "Bad request - incorrect dimensions chosen: [notage]\n")
 	})
 
 	Convey("When the dimension option for filter blueprint does not exist, a bad request status is returned", t, func() {
@@ -1340,7 +1343,7 @@ func TestFailedToUpdateFilterOutput(t *testing.T) {
 
 		bodyBytes, _ := ioutil.ReadAll(w.Body)
 		response := string(bodyBytes)
-		So(response, ShouldResemble, "Forbidden from updating the following fields: [instance_id]\n")
+		So(response, ShouldResemble, "Forbidden from updating the following fields: [dataset.id dataset.edition dataset.version]\n")
 	})
 
 	Convey("When a json message is sent to change a filter output with the wrong authorisation header, an unauthorised status is returned", t, func() {

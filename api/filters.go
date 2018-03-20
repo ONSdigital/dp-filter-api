@@ -28,7 +28,7 @@ var (
 	statusUnprocessableEntity = "Unprocessable entity"
 
 	incorrectDimensionOptions = regexp.MustCompile("Bad request - incorrect dimension options chosen")
-	incorrectDimension        = regexp.MustCompile("Dimension not found")
+	incorrectDimension        = regexp.MustCompile("Bad request - incorrect dimensions chosen")
 
 	errNotFound              = errors.New("Not found")
 	errForbidden             = errors.New("Forbidden")
@@ -492,7 +492,7 @@ func (api *FilterAPI) addFilterBlueprintDimensionOption(w http.ResponseWriter, r
 
 		if incorrectDimension.MatchString(err.Error()) {
 			log.ErrorC("failed to select valid filter dimension", err, logData)
-			setErrorCode(w, err, statusBadRequest)
+			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 
