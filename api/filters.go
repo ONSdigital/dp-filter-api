@@ -739,7 +739,7 @@ func (api *FilterAPI) updateFilterOutput(w http.ResponseWriter, r *http.Request)
 	logData := log.Data{"filter_output_id": filterOutputID}
 	log.Info("updating filter output", logData)
 
-	if r.Context().Value(string(internalTokenKey)) != true {
+	if r.Context().Value(internalTokenKey) != true {
 		err := errors.New("Not authorised")
 		log.ErrorC("failed to update filter output", err, logData)
 		setErrorCode(w, errNoAuthHeader)
