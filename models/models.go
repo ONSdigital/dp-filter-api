@@ -38,7 +38,7 @@ type Filter struct {
 	Events      Events      `bson:"events,omitempty"     json:"events,omitempty"`
 	FilterID    string      `bson:"filter_id"            json:"filter_id,omitempty"`
 	State       string      `bson:"state,omitempty"      json:"state,omitempty"`
-	Published   bool        `bson:"published,omitempty"   json:"-"`
+	Published   bool        `bson:"published,omitempty"  json:"-"`
 	Links       LinkMap     `bson:"links"                json:"links,omitempty"`
 	LastUpdated time.Time   `bson:"last_updated"         json:"-"`
 }
