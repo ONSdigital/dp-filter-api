@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"context"
 	"github.com/ONSdigital/dp-filter-api/api/datastoretest"
 	"github.com/ONSdigital/dp-filter-api/mocks"
 	"github.com/ONSdigital/dp-filter-api/models"
@@ -16,11 +17,10 @@ import (
 	"github.com/gorilla/mux"
 	. "github.com/smartystreets/goconvey/convey"
 	"io"
-	"context"
 )
 
 var (
-	host       = "http://localhost:80"
+	host = "http://localhost:80"
 )
 
 var previewMock = &datastoretest.PreviewDatasetMock{
@@ -1450,8 +1450,7 @@ func TestFailedGetPreview(t *testing.T) {
 	})
 }
 
-
-func createAuthenticatedRequest(method, url string, body io.Reader) (*http.Request) {
+func createAuthenticatedRequest(method, url string, body io.Reader) *http.Request {
 
 	r, err := http.NewRequest(method, url, body)
 	ctx := r.Context()

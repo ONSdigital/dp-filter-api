@@ -15,8 +15,8 @@ import (
 
 	"strconv"
 
-	uuid "github.com/satori/go.uuid"
 	"github.com/ONSdigital/go-ns/identity"
+	uuid "github.com/satori/go.uuid"
 )
 
 var (

@@ -5,9 +5,11 @@ import (
 	"github.com/ONSdigital/dp-filter-api/models"
 	"github.com/ONSdigital/dp-filter-api/preview"
 	"github.com/ONSdigital/go-ns/healthcheck"
+	"github.com/ONSdigital/go-ns/identity"
 	"github.com/ONSdigital/go-ns/log"
 	"github.com/ONSdigital/go-ns/server"
 	"github.com/gorilla/mux"
+	"github.com/justinas/alice"
 )
 
 var httpServer *server.Server
@@ -39,11 +41,14 @@ type FilterAPI struct {
 }
 
 // CreateFilterAPI manages all the routes configured to API
-func CreateFilterAPI(host, bindAddr string, datastore DataStore, outputQueue OutputQueue, errorChan chan error, datasetAPI DatasetAPIer, preview PreviewDataset) {
+func CreateFilterAPI(host, bindAddr, zebedeeURL string, datastore DataStore, outputQueue OutputQueue, errorChan chan error, datasetAPI DatasetAPIer, preview PreviewDataset) {
 	router := mux.NewRouter()
 	routes(host, router, datastore, outputQueue, datasetAPI, preview)
 
-	httpServer = server.New(bindAddr, router)
+	identityHandler := identity.Handler(true, zebedeeURL)
+	alice := alice.New(identityHandler).Then(router)
+
+	httpServer = server.New(bindAddr, alice)
 	// Disable this here to allow main to manage graceful shutdown of the entire app.
 	httpServer.HandleOSSignals = false
 
