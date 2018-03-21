@@ -79,7 +79,7 @@ func main() {
 
 	apiErrors := make(chan error, 1)
 
-	api.CreateFilterAPI(cfg.SecretKey, cfg.Host, cfg.BindAddr, dataStore, &outputQueue, apiErrors, datasetAPI, &previewDatasets)
+	api.CreateFilterAPI(cfg.Host, cfg.BindAddr, dataStore, &outputQueue, apiErrors, datasetAPI, &previewDatasets)
 
 	// Gracefully shutdown the application closing any open resources.
 	gracefulShutdown := func() {

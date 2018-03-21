@@ -13,7 +13,6 @@ type Config struct {
 	FilterOutputSubmittedTopic string        `envconfig:"FILTER_JOB_SUBMITTED_TOPIC"`
 	Host                       string        `envconfig:"HOST"`
 	KafkaMaxBytes              string        `envconfig:"KAFKA_MAX_BYTES"`
-	SecretKey                  string        `envconfig:"SECRET_KEY"`
 	ShutdownTimeout            time.Duration `envconfig:"SHUTDOWN_TIMEOUT"`
 	DatasetAPIURL              string        `envconfig:"DATASET_API_URL"`
 	DatasetAPIAuthToken        string        `envconfig:"DATASET_API_AUTH_TOKEN"`
@@ -45,7 +44,6 @@ func Get() (*Config, error) {
 		Brokers:                    []string{"localhost:9092"},
 		FilterOutputSubmittedTopic: "filter-job-submitted",
 		KafkaMaxBytes:              "2000000",
-		SecretKey:                  "FD0108EA-825D-411C-9B1D-41EF7727F465",
 		ShutdownTimeout:            5 * time.Second,
 		DatasetAPIURL:              "http://localhost:22000",
 		DatasetAPIAuthToken:        "FD0108EA-825D-411C-9B1D-41EF7727F465",

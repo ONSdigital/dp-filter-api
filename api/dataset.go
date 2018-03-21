@@ -18,6 +18,7 @@ import (
 	"github.com/ONSdigital/go-ns/clients/dataset"
 	"github.com/ONSdigital/go-ns/log"
 	"github.com/ONSdigital/go-ns/rchttp"
+	"github.com/ONSdigital/go-ns/identity"
 )
 
 // DatasetAPIer - An interface used to access the DatasetAPI
@@ -74,7 +75,8 @@ func (api *DatasetAPI) GetVersion(ctx context.Context, d models.Dataset) (versio
 	}
 
 	// External facing customers should NOT be able to filter an unpublished version
-	if version.State != publishedState && ctx.Value(internalTokenKey) != true {
+
+	if version.State != publishedState && !identity.IsPresent(ctx) {
 		log.Error(errors.New("invalid authorization, returning not found status"), log.Data{"dataset": d})
 		return nil, ErrVersionNotFound
 	}
@@ -137,10 +139,6 @@ func (api *DatasetAPI) GetVersionDimensionOptions(ctx context.Context, dataset m
 }
 
 func (api *DatasetAPI) get(ctx context.Context, path string, vars url.Values) ([]byte, int, error) {
-	if ctx.Value(internalTokenKey) == true {
-		ctx = context.WithValue(ctx, internalTokenKey, api.authToken)
-	}
-
 	return api.callDatasetAPI(ctx, "GET", path, vars)
 }
 
