@@ -9,7 +9,6 @@ import (
 	"testing"
 	"time"
 
-	"context"
 	"github.com/ONSdigital/dp-filter-api/api/datastoretest"
 	"github.com/ONSdigital/dp-filter-api/mocks"
 	"github.com/ONSdigital/dp-filter-api/models"
@@ -17,6 +16,7 @@ import (
 	"github.com/gorilla/mux"
 	. "github.com/smartystreets/goconvey/convey"
 	"io"
+	"github.com/ONSdigital/go-ns/identity"
 )
 
 var (
@@ -1454,7 +1454,7 @@ func createAuthenticatedRequest(method, url string, body io.Reader) *http.Reques
 
 	r, err := http.NewRequest(method, url, body)
 	ctx := r.Context()
-	ctx = context.WithValue(ctx, "Caller-Identity", "someone@ons.gov.uk")
+	ctx = identity.SetCaller(ctx, "someone@ons.gov.uk")
 	r = r.WithContext(ctx)
 
 	So(err, ShouldBeNil)

@@ -178,8 +178,9 @@ func (api *DatasetAPI) callDatasetAPI(ctx context.Context, method, path string, 
 	}
 
 	req.Header.Set(string(internalTokenKey), api.authToken)
-	req.Header.Add("Authorization", api.serviceAuthToken)
-	req.Header.Add("User-Identity", ctx.Value("User-Identity").(string))
+
+	identity.AddUserHeader(req, identity.User(ctx))
+	identity.AddServiceTokenHeader(req, api.serviceAuthToken)
 
 	resp, err := api.client.Do(ctx, req)
 	if err != nil {
