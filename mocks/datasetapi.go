@@ -13,6 +13,7 @@ type DatasetAPI struct {
 	DimensionOptionsNotFound bool
 	VersionNotFound          bool
 	InternalServerError      bool
+	Unpublished              bool
 }
 
 // A list of errors that can be returned by the mock package
@@ -32,6 +33,22 @@ func (ds *DatasetAPI) GetVersion(ctx context.Context, dataset models.Dataset) (*
 		return nil, errorVersionNotFound
 	}
 
+	if ds.Unpublished {
+		return &models.Version{
+			Links: models.VersionLinks{
+				Dataset: models.LinkObject{
+					ID: "123",
+				},
+				Edition: models.LinkObject{
+					ID: "2017",
+				},
+				Version: models.LinkObject{
+					ID: "1",
+				},
+			},
+		}, nil
+	}
+
 	return &models.Version{
 		Links: models.VersionLinks{
 			Dataset: models.LinkObject{
@@ -44,6 +61,7 @@ func (ds *DatasetAPI) GetVersion(ctx context.Context, dataset models.Dataset) (*
 				ID: "1",
 			},
 		},
+		State: "published",
 	}, nil
 }
 

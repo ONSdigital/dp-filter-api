@@ -14,7 +14,9 @@ import (
 
 var httpServer *server.Server
 
-const internalToken = "Internal-Token"
+type key string
+
+const internalTokenKey key = "Internal-Token"
 
 // OutputQueue - An interface used to queue filter outputs
 type OutputQueue interface {
@@ -63,20 +65,20 @@ func routes(secretKey, host string, router *mux.Router, dataStore DataStore, out
 	router.Path("/healthcheck").Methods("GET").HandlerFunc(healthcheck.Do)
 
 	api.router.HandleFunc("/filters", a.authenticate(api.addFilterBlueprint)).Methods("POST")
-	api.router.HandleFunc("/filters/{filter_blueprint_id}", api.getFilterBlueprint).Methods("GET")
+	api.router.HandleFunc("/filters/{filter_blueprint_id}", a.authenticate(api.getFilterBlueprint)).Methods("GET")
 	api.router.HandleFunc("/filters/{filter_blueprint_id}", a.authenticate(api.updateFilterBlueprint)).Methods("PUT")
-	api.router.HandleFunc("/filters/{filter_blueprint_id}/dimensions", api.getFilterBlueprintDimensions).Methods("GET")
-	api.router.HandleFunc("/filters/{filter_blueprint_id}/dimensions/{name}", api.getFilterBlueprintDimension).Methods("GET")
+	api.router.HandleFunc("/filters/{filter_blueprint_id}/dimensions", a.authenticate(api.getFilterBlueprintDimensions)).Methods("GET")
+	api.router.HandleFunc("/filters/{filter_blueprint_id}/dimensions/{name}", a.authenticate(api.getFilterBlueprintDimension)).Methods("GET")
 	api.router.HandleFunc("/filters/{filter_blueprint_id}/dimensions/{name}", a.authenticate(api.addFilterBlueprintDimension)).Methods("POST")
-	api.router.HandleFunc("/filters/{filter_blueprint_id}/dimensions/{name}", api.removeFilterBlueprintDimension).Methods("DELETE")
-	api.router.HandleFunc("/filters/{filter_blueprint_id}/dimensions/{name}/options", api.getFilterBlueprintDimensionOptions).Methods("GET")
-	api.router.HandleFunc("/filters/{filter_blueprint_id}/dimensions/{name}/options/{option}", api.getFilterBlueprintDimensionOption).Methods("GET")
+	api.router.HandleFunc("/filters/{filter_blueprint_id}/dimensions/{name}", a.authenticate(api.removeFilterBlueprintDimension)).Methods("DELETE")
+	api.router.HandleFunc("/filters/{filter_blueprint_id}/dimensions/{name}/options", a.authenticate(api.getFilterBlueprintDimensionOptions)).Methods("GET")
+	api.router.HandleFunc("/filters/{filter_blueprint_id}/dimensions/{name}/options/{option}", a.authenticate(api.getFilterBlueprintDimensionOption)).Methods("GET")
 	api.router.HandleFunc("/filters/{filter_blueprint_id}/dimensions/{name}/options/{option}", a.authenticate(api.addFilterBlueprintDimensionOption)).Methods("POST")
-	api.router.HandleFunc("/filters/{filter_blueprint_id}/dimensions/{name}/options/{option}", api.removeFilterBlueprintDimensionOption).Methods("DELETE")
+	api.router.HandleFunc("/filters/{filter_blueprint_id}/dimensions/{name}/options/{option}", a.authenticate(api.removeFilterBlueprintDimensionOption)).Methods("DELETE")
 
-	api.router.HandleFunc("/filter-outputs/{filter_output_id}", api.getFilterOutput).Methods("GET")
+	api.router.HandleFunc("/filter-outputs/{filter_output_id}", a.authenticate(api.getFilterOutput)).Methods("GET")
 	api.router.HandleFunc("/filter-outputs/{filter_output_id}", a.authenticate(api.updateFilterOutput)).Methods("PUT")
-	api.router.HandleFunc("/filter-outputs/{filter_output_id}/preview", api.getFilterOutputPreview).Methods("GET")
+	api.router.HandleFunc("/filter-outputs/{filter_output_id}/preview", a.authenticate(api.getFilterOutputPreview)).Methods("GET")
 	return &api
 }
 
@@ -99,8 +101,9 @@ type auth struct {
 func (a *auth) authenticate(handle func(http.ResponseWriter, *http.Request)) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
-		if r.Header.Get(internalToken) == a.key {
-			ctx = context.WithValue(ctx, internalToken, true)
+
+		if r.Header.Get(string(internalTokenKey)) == a.key {
+			ctx = context.WithValue(ctx, internalTokenKey, true)
 		}
 		handle(w, r.WithContext(ctx))
 	})

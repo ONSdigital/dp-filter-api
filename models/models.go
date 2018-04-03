@@ -38,6 +38,7 @@ type Filter struct {
 	Events      Events      `bson:"events,omitempty"     json:"events,omitempty"`
 	FilterID    string      `bson:"filter_id"            json:"filter_id,omitempty"`
 	State       string      `bson:"state,omitempty"      json:"state,omitempty"`
+	Published   bool        `bson:"published,omitempty"  json:"-"`
 	Links       LinkMap     `bson:"links"                json:"links,omitempty"`
 	LastUpdated time.Time   `bson:"last_updated"         json:"-"`
 }
@@ -88,21 +89,6 @@ type EventItem struct {
 	Message string `bson:"message" json:"message,omitempty"`
 	Time    string `bson:"time"    json:"time,omitempty"`
 	Type    string `bson:"type"    json:"type,omitempty"`
-}
-
-// AddDimension represents dimension information for storing a list of options for a dimension
-type AddDimension struct {
-	FilterID string
-	Name     string
-	Options  []string
-}
-
-// AddDimensionOption represents dimension option information for storing
-// an individual option for a given filter job dimension
-type AddDimensionOption struct {
-	FilterID string
-	Name     string
-	Option   string
 }
 
 // DimensionOption represents dimension option information
@@ -216,6 +202,20 @@ func (filter *Filter) ValidateFilterOutputUpdate() error {
 	// fields will result in an error of forbidden
 
 	var forbiddenFields []string
+
+	if filter.Dataset != nil {
+		if filter.Dataset.ID != "" {
+			forbiddenFields = append(forbiddenFields, "dataset.id")
+		}
+
+		if filter.Dataset.Edition != "" {
+			forbiddenFields = append(forbiddenFields, "dataset.edition")
+		}
+
+		if filter.Dataset.Version != 0 {
+			forbiddenFields = append(forbiddenFields, "dataset.version")
+		}
+	}
 
 	if filter.InstanceID != "" {
 		forbiddenFields = append(forbiddenFields, "instance_id")

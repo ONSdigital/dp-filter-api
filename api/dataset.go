@@ -74,7 +74,7 @@ func (api *DatasetAPI) GetVersion(ctx context.Context, d models.Dataset) (versio
 	}
 
 	// External facing customers should NOT be able to filter an unpublished version
-	if version.State != publishedState && ctx.Value(internalToken) != true {
+	if version.State != publishedState && ctx.Value(internalTokenKey) != true {
 		log.Error(errors.New("invalid authorization, returning not found status"), log.Data{"dataset": d})
 		return nil, ErrVersionNotFound
 	}
@@ -137,8 +137,8 @@ func (api *DatasetAPI) GetVersionDimensionOptions(ctx context.Context, dataset m
 }
 
 func (api *DatasetAPI) get(ctx context.Context, path string, vars url.Values) ([]byte, int, error) {
-	if ctx.Value(internalToken) == true {
-		ctx = context.WithValue(ctx, internalToken, api.authToken)
+	if ctx.Value(internalTokenKey) == true {
+		ctx = context.WithValue(ctx, internalTokenKey, api.authToken)
 	}
 
 	return api.callDatasetAPI(ctx, "GET", path, vars)
@@ -170,13 +170,14 @@ func (api *DatasetAPI) callDatasetAPI(ctx context.Context, method, path string, 
 			logData["payload"] = payload.(url.Values)
 		}
 	}
+
 	// check req, above, didn't error
 	if err != nil {
 		log.ErrorC("failed to create request for dataset api", err, logData)
 		return nil, 0, err
 	}
 
-	req.Header.Set("Internal-token", api.authToken)
+	req.Header.Set(string(internalTokenKey), api.authToken)
 	resp, err := api.client.Do(ctx, req)
 	if err != nil {
 		log.ErrorC("Failed to action dataset api", err, logData)
