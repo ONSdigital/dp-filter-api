@@ -16,6 +16,7 @@ import (
 
 	"github.com/ONSdigital/dp-filter-api/models"
 	"github.com/ONSdigital/go-ns/clients/dataset"
+	"github.com/ONSdigital/go-ns/identity"
 	"github.com/ONSdigital/go-ns/log"
 	"github.com/ONSdigital/go-ns/rchttp"
 )
@@ -29,17 +30,19 @@ type DatasetAPIer interface {
 
 // DatasetAPI aggregates a client and URL and other common data for accessing the API
 type DatasetAPI struct {
-	client    *rchttp.Client
-	url       string
-	authToken string
+	client           *rchttp.Client
+	url              string
+	authToken        string
+	serviceAuthToken string
 }
 
 // NewDatasetAPI creates an DatasetAPI object
-func NewDatasetAPI(client *rchttp.Client, datasetAPIURL, datasetAPIAuthToken string) *DatasetAPI {
+func NewDatasetAPI(client *rchttp.Client, datasetAPIURL, datasetAPIAuthToken, serviceAuthToken string) *DatasetAPI {
 	return &DatasetAPI{
-		client:    client,
-		url:       datasetAPIURL,
-		authToken: datasetAPIAuthToken,
+		client:           client,
+		url:              datasetAPIURL,
+		authToken:        datasetAPIAuthToken,
+		serviceAuthToken: serviceAuthToken,
 	}
 }
 
@@ -74,7 +77,8 @@ func (api *DatasetAPI) GetVersion(ctx context.Context, d models.Dataset) (versio
 	}
 
 	// External facing customers should NOT be able to filter an unpublished version
-	if version.State != publishedState && ctx.Value(internalTokenKey) != true {
+
+	if version.State != publishedState && !identity.IsPresent(ctx) {
 		log.Error(errors.New("invalid authorization, returning not found status"), log.Data{"dataset": d})
 		return nil, ErrVersionNotFound
 	}
@@ -137,10 +141,6 @@ func (api *DatasetAPI) GetVersionDimensionOptions(ctx context.Context, dataset m
 }
 
 func (api *DatasetAPI) get(ctx context.Context, path string, vars url.Values) ([]byte, int, error) {
-	if ctx.Value(internalTokenKey) == true {
-		ctx = context.WithValue(ctx, internalTokenKey, api.authToken)
-	}
-
 	return api.callDatasetAPI(ctx, "GET", path, vars)
 }
 
@@ -178,6 +178,10 @@ func (api *DatasetAPI) callDatasetAPI(ctx context.Context, method, path string, 
 	}
 
 	req.Header.Set(string(internalTokenKey), api.authToken)
+
+	identity.AddUserHeader(req, identity.User(ctx))
+	identity.AddServiceTokenHeader(req, api.serviceAuthToken)
+
 	resp, err := api.client.Do(ctx, req)
 	if err != nil {
 		log.ErrorC("Failed to action dataset api", err, logData)

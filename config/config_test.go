@@ -8,6 +8,7 @@ import (
 )
 
 func TestSpec(t *testing.T) {
+
 	Convey("Given an environment with no environment variables set", t, func() {
 		cfg, err := Get()
 
@@ -23,7 +24,6 @@ func TestSpec(t *testing.T) {
 				So(cfg.Brokers, ShouldResemble, []string{"localhost:9092"})
 				So(cfg.FilterOutputSubmittedTopic, ShouldEqual, "filter-job-submitted")
 				So(cfg.KafkaMaxBytes, ShouldEqual, "2000000")
-				So(cfg.SecretKey, ShouldEqual, "FD0108EA-825D-411C-9B1D-41EF7727F465")
 				So(cfg.ShutdownTimeout, ShouldEqual, 5*time.Second)
 				So(cfg.Neo4jPoolSize, ShouldEqual, 30)
 				So(cfg.Neo4jURL, ShouldEqual, "bolt://localhost:7687")
@@ -31,6 +31,8 @@ func TestSpec(t *testing.T) {
 				So(cfg.MongoConfig.Database, ShouldEqual, "filters")
 				So(cfg.MongoConfig.FiltersCollection, ShouldEqual, "filters")
 				So(cfg.MongoConfig.OutputsCollection, ShouldEqual, "filterOutputs")
+				So(cfg.ServiceAuthToken, ShouldEqual, "Bearer FD0108EA-825D-411C-9B1D-41EF7727F465")
+				So(cfg.ZebedeeURL, ShouldEqual, "http://localhost:8082")
 			})
 		})
 	})

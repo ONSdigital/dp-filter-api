@@ -13,19 +13,20 @@ type Config struct {
 	FilterOutputSubmittedTopic string        `envconfig:"FILTER_JOB_SUBMITTED_TOPIC"`
 	Host                       string        `envconfig:"HOST"`
 	KafkaMaxBytes              string        `envconfig:"KAFKA_MAX_BYTES"`
-	SecretKey                  string        `envconfig:"SECRET_KEY"`
 	ShutdownTimeout            time.Duration `envconfig:"SHUTDOWN_TIMEOUT"`
 	DatasetAPIURL              string        `envconfig:"DATASET_API_URL"`
-	DatasetAPIAuthToken        string        `envconfig:"DATASET_API_AUTH_TOKEN"`
-	Neo4jURL                   string        `envconfig:"NEO4J_BIND_ADDR"`
+	DatasetAPIAuthToken        string        `envconfig:"DATASET_API_AUTH_TOKEN"      json:"-"`
+	Neo4jURL                   string        `envconfig:"NEO4J_BIND_ADDR"             json:"-"`
 	Neo4jPoolSize              int           `envconfig:"NEO4J_POOL_SIZE"`
 	HealthCheckInterval        time.Duration `envconfig:"HEALTHCHECK_INTERVAL"`
 	MongoConfig                MongoConfig
+	ServiceAuthToken           string `envconfig:"SERVICE_AUTH_TOKEN"          json:"-"`
+	ZebedeeURL                 string `envconfig:"ZEBEDEE_URL"`
 }
 
 // MongoConfig contains the config required to connect to MongoDB.
 type MongoConfig struct {
-	BindAddr          string `envconfig:"MONGODB_BIND_ADDR"`
+	BindAddr          string `envconfig:"MONGODB_BIND_ADDR"           json:"-"`
 	Database          string `envconfig:"MONGODB_FILTERS_DATABASE"`
 	FiltersCollection string `envconfig:"MONGODB_FILTERS_COLLECTION"`
 	OutputsCollection string `envconfig:"MONGODB_OUTPUT_COLLECTION"`
@@ -45,7 +46,6 @@ func Get() (*Config, error) {
 		Brokers:                    []string{"localhost:9092"},
 		FilterOutputSubmittedTopic: "filter-job-submitted",
 		KafkaMaxBytes:              "2000000",
-		SecretKey:                  "FD0108EA-825D-411C-9B1D-41EF7727F465",
 		ShutdownTimeout:            5 * time.Second,
 		DatasetAPIURL:              "http://localhost:22000",
 		DatasetAPIAuthToken:        "FD0108EA-825D-411C-9B1D-41EF7727F465",
@@ -58,7 +58,16 @@ func Get() (*Config, error) {
 			FiltersCollection: "filters",
 			OutputsCollection: "filterOutputs",
 		},
+		ServiceAuthToken: "FD0108EA-825D-411C-9B1D-41EF7727F465",
+		ZebedeeURL:       "http://localhost:8082",
 	}
 
-	return cfg, envconfig.Process("", cfg)
+	err := envconfig.Process("", cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	cfg.ServiceAuthToken = "Bearer " + cfg.ServiceAuthToken
+
+	return cfg, nil
 }

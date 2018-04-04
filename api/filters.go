@@ -15,6 +15,7 @@ import (
 
 	"strconv"
 
+	"github.com/ONSdigital/go-ns/identity"
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -76,7 +77,7 @@ func (api *FilterAPI) addFilterBlueprint(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	if version.State != publishedState && r.Context().Value(internalTokenKey) != true {
+	if version.State != publishedState && !identity.IsPresent(r.Context()) {
 		log.Info("unauthenticated request to filter unpublished version", log.Data{"dataset": *filterParameters.Dataset, "state": version.State})
 		http.Error(w, badRequest, http.StatusBadRequest)
 		return
@@ -739,7 +740,7 @@ func (api *FilterAPI) updateFilterOutput(w http.ResponseWriter, r *http.Request)
 	logData := log.Data{"filter_output_id": filterOutputID}
 	log.Info("updating filter output", logData)
 
-	if r.Context().Value(internalTokenKey) != true {
+	if !identity.IsPresent(r.Context()) {
 		err := errors.New("Not authorised")
 		log.ErrorC("failed to update filter output", err, logData)
 		setErrorCode(w, errNoAuthHeader)
@@ -893,7 +894,7 @@ func (api *FilterAPI) getFilter(ctx context.Context, filterID string) (*models.F
 	}
 
 	//only return the filter if it is for published data or via authenticated request
-	if filter.Published || ctx.Value(internalTokenKey) == true {
+	if filter.Published || identity.IsPresent(ctx) {
 		return filter, nil
 	}
 
@@ -929,7 +930,7 @@ func (api *FilterAPI) getOutput(ctx context.Context, filterID string) (*models.F
 	errFilterOutputNotFound := errors.New("Filter output not found")
 
 	//only return the filter if it is for published data or via authenticated request
-	if output.Published || ctx.Value(internalTokenKey) == true {
+	if output.Published || identity.IsPresent(ctx) {
 		return output, nil
 	}
 
