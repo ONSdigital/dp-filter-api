@@ -527,8 +527,6 @@ definitions:
     properties:
       xls:
         $ref: '#/definitions/DownloadFile'
-      json:
-        $ref: '#/definitions/DownloadFile'
       csv:
         $ref: '#/definitions/DownloadFile'
   Option:
@@ -579,12 +577,18 @@ definitions:
   DownloadFile:
     type: object
     properties:
-      url:
+      href:
         type: string
         description: "The URL to the generated file"
       size:
         type: string
         description: "The size of the file in bytes"
+      public:
+        type: string
+        description: "The URL to a public-accessible download"
+      private:
+        type: string
+        description: "The URL to a non public-accessible download"
   FilterLinks:
     description: "A list of links related to this resource"
     readOnly: true

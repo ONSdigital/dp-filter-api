@@ -60,7 +60,7 @@ var (
 // GetVersion queries the Dataset API to get an version
 func (api *DatasetAPI) GetVersion(ctx context.Context, d models.Dataset) (version *models.Version, err error) {
 	path := fmt.Sprintf("%s/datasets/%s/editions/%s/versions/%d", api.url, d.ID, d.Edition, d.Version)
-	logData := log.Data{"func": "GetDataset", "URL": path, "dataset": d}
+	logData := log.Data{"func": "GetVersion", "URL": path, "dataset": d}
 
 	jsonResult, httpCode, err := api.get(ctx, path, nil)
 	logData["httpCode"] = httpCode
