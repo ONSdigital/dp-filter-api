@@ -52,10 +52,15 @@ func CreateFilterAPI(host, bindAddr, zebedeeURL string,
 	router := mux.NewRouter()
 	routes(host, router, datastore, outputQueue, datasetAPI, preview, enablePrivateEndpoints)
 
-	identityHandler := identity.Handler(true, zebedeeURL)
-	alice := alice.New(identityHandler).Then(router)
+	// Only add the identity middleware when running in publishing.
+	if enablePrivateEndpoints {
+		identityHandler := identity.Handler(true, zebedeeURL)
+		alice := alice.New(identityHandler).Then(router)
+		httpServer = server.New(bindAddr, alice)
+	} else {
+		httpServer = server.New(bindAddr, router)
+	}
 
-	httpServer = server.New(bindAddr, alice)
 	// Disable this here to allow main to manage graceful shutdown of the entire app.
 	httpServer.HandleOSSignals = false
 
