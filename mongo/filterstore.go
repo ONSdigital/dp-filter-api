@@ -283,16 +283,16 @@ func createUpdateFilterOutput(filter *models.Filter, currentTime time.Time) bson
 	state := models.CreatedState
 	var update bson.M
 	if filter.Downloads != nil {
-		if filter.Downloads.XLS.URL != "" {
-			downloads.XLS = filter.Downloads.XLS
+		if filter.Downloads.XLS != nil {
+			if filter.Downloads.XLS.HRef != "" {
+				downloads.XLS = filter.Downloads.XLS
+			}
 		}
 
-		if filter.Downloads.CSV.URL != "" {
-			downloads.CSV = filter.Downloads.CSV
-		}
-
-		if filter.Downloads.JSON.URL != "" {
-			downloads.JSON = filter.Downloads.JSON
+		if filter.Downloads.CSV != nil {
+			if filter.Downloads.CSV.HRef != "" {
+				downloads.CSV = filter.Downloads.CSV
+			}
 		}
 	}
 
@@ -301,7 +301,7 @@ func createUpdateFilterOutput(filter *models.Filter, currentTime time.Time) bson
 	}
 
 	// Don't bother checking for JSON as it doesn't get generated at the moment
-	if downloads.CSV.URL != "" && downloads.XLS.URL != "" {
+	if downloads.CSV != nil && downloads.CSV.HRef != "" && downloads.XLS != nil && downloads.XLS.HRef != "" {
 		update = bson.M{
 			"$set": bson.M{
 				"downloads": downloads,
