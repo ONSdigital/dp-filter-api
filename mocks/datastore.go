@@ -31,6 +31,7 @@ type DataStore struct {
 	ChangeInstanceRequest  bool
 	InvalidDimensionOption bool
 	Unpublished            bool
+	MissingPublicLinks     bool
 }
 
 // AddFilter represents the mocked version of creating a filter blueprint to the datastore
@@ -153,10 +154,29 @@ func (ds *DataStore) GetFilterOutput(filterID string) (*models.Filter, error) {
 
 	if ds.Unpublished {
 		return &models.Filter{InstanceID: "12345678", FilterID: filterID, State: "created", Dimensions: []models.Dimension{{Name: "time"}}, Links: models.LinkMap{FilterBlueprint: models.LinkObject{ID: filterID}}}, nil
-
 	}
 
-	return &models.Filter{InstanceID: "12345678", FilterID: filterID, Published: true, State: "created", Dimensions: []models.Dimension{{Name: "time"}}}, nil
+	downloads := &models.Downloads{
+		CSV: &models.DownloadItem{
+			HRef:    "ons-test-site.gov.uk/87654321.csv",
+			Private: "csv-private-link",
+			Size:    "12mb",
+		},
+		XLS: &models.DownloadItem{
+			HRef:    "ons-test-site.gov.uk/87654321.xls",
+			Private: "xls-private-link",
+			Size:    "24mb",
+		},
+	}
+
+	if ds.MissingPublicLinks {
+		return &models.Filter{InstanceID: "12345678", FilterID: filterID, Published: true, State: "completed", Dimensions: []models.Dimension{{Name: "time"}}, Downloads: downloads}, nil
+	}
+
+	downloads.CSV.Public = "csv-public-link"
+	downloads.XLS.Public = "xls-public-link"
+
+	return &models.Filter{InstanceID: "12345678", FilterID: filterID, Published: true, State: "completed", Dimensions: []models.Dimension{{Name: "time"}}, Downloads: downloads}, nil
 }
 
 // RemoveFilterDimension represents the mocked version of removing a filter dimension from the datastore

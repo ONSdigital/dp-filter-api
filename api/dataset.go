@@ -52,9 +52,14 @@ var (
 	ErrVersionNotFound          = errors.New("Version not found")
 	ErrDimensionNotFound        = errors.New("Dimension not found")
 	ErrDimensionOptionsNotFound = errors.New("Dimension options not found")
+)
 
+var (
 	publishedState  = "published"
 	versionNotFound = "Version not found"
+
+	dimensionType = "dimension"
+	versionType   = "version"
 )
 
 // GetVersion queries the Dataset API to get an version
@@ -97,9 +102,9 @@ func (api *DatasetAPI) GetVersionDimensions(ctx context.Context, dataset models.
 	logData["jsonResult"] = jsonResult
 	if err != nil {
 		log.ErrorC("GetVersionDimensions api get", err, logData)
-		typ := "dimension"
+		typ := dimensionType
 		if jsonResult == versionNotFound {
-			typ = "version"
+			typ = versionType
 		}
 		return nil, handleError(httpCode, err, typ)
 	}
@@ -124,9 +129,9 @@ func (api *DatasetAPI) GetVersionDimensionOptions(ctx context.Context, dataset m
 	logData["jsonResult"] = jsonResult
 	if err != nil {
 		log.ErrorC("GetVersionDimensionOptions api get", err, logData)
-		typ := "dimension"
+		typ := dimensionType
 		if jsonResult == versionNotFound {
-			typ = "version"
+			typ = versionType
 		}
 		return nil, handleError(httpCode, err, typ)
 	}
@@ -188,7 +193,7 @@ func (api *DatasetAPI) callDatasetAPI(ctx context.Context, method, path string, 
 		return nil, 0, err
 	}
 	defer func() {
-		err := resp.Body.Close()
+		err = resp.Body.Close()
 		if err != nil {
 			log.ErrorC("error cleaning up request body", err, logData)
 		}

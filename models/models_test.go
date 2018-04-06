@@ -78,13 +78,15 @@ func TestCreateBlueprintWithInvalidJson(t *testing.T) {
 
 func TestValidateFilterOutputUpdate(t *testing.T) {
 	Convey("Given the filterOutput doesn't contain any forbidden fields", t, func() {
-		reader := strings.NewReader(`{"downloads":{"csv":{"url":"some-test-url","size":"12mb"}}}`)
+		reader := strings.NewReader(`{"downloads":{"csv":{"href":"some-test-url","size":"12mb","private":"some-private-link"}}}`)
 		filter, err := CreateFilter(reader)
 		So(err, ShouldBeNil)
 
+		currentFilter := &Filter{Published: false}
+
 		Convey("When filter is validated then no errors are returned", func() {
 
-			err = filter.ValidateFilterOutputUpdate()
+			err = filter.ValidateFilterOutputUpdate(currentFilter)
 			So(err, ShouldBeNil)
 		})
 	})
@@ -94,9 +96,11 @@ func TestValidateFilterOutputUpdate(t *testing.T) {
 		filter, err := CreateFilter(reader)
 		So(err, ShouldBeNil)
 
+		currentFilter := &Filter{Published: false}
+
 		Convey("When filter is validated then an error is returned", func() {
 
-			err = filter.ValidateFilterOutputUpdate()
+			err = filter.ValidateFilterOutputUpdate(currentFilter)
 			So(err, ShouldNotBeNil)
 			So(err, ShouldResemble, errors.New("Forbidden from updating the following fields: [dimensions]"))
 		})
@@ -107,9 +111,11 @@ func TestValidateFilterOutputUpdate(t *testing.T) {
 		filter, err := CreateFilter(reader)
 		So(err, ShouldBeNil)
 
+		currentFilter := &Filter{Published: false}
+
 		Convey("When filter is validated then an error is returned", func() {
 
-			err = filter.ValidateFilterOutputUpdate()
+			err = filter.ValidateFilterOutputUpdate(currentFilter)
 			So(err, ShouldNotBeNil)
 			So(err, ShouldResemble, errors.New("Forbidden from updating the following fields: [instance_id]"))
 		})
@@ -120,9 +126,11 @@ func TestValidateFilterOutputUpdate(t *testing.T) {
 		filter, err := CreateFilter(reader)
 		So(err, ShouldBeNil)
 
+		currentFilter := &Filter{Published: false}
+
 		Convey("When filter is validated then an error is returned", func() {
 
-			err = filter.ValidateFilterOutputUpdate()
+			err = filter.ValidateFilterOutputUpdate(currentFilter)
 			So(err, ShouldNotBeNil)
 			So(err, ShouldResemble, errors.New("Forbidden from updating the following fields: [filter_id]"))
 		})
@@ -133,11 +141,144 @@ func TestValidateFilterOutputUpdate(t *testing.T) {
 		filter, err := CreateFilter(reader)
 		So(err, ShouldBeNil)
 
+		currentFilter := &Filter{Published: false}
+
 		Convey("When filter is validated then an error is returned", func() {
 
-			err = filter.ValidateFilterOutputUpdate()
+			err = filter.ValidateFilterOutputUpdate(currentFilter)
 			So(err, ShouldNotBeNil)
 			So(err, ShouldResemble, errors.New("Forbidden from updating the following fields: [instance_id dimensions filter_id]"))
+		})
+	})
+}
+
+func TestValidateFilterOutputDownloadsUpdate(t *testing.T) {
+	Convey("Given the version is published and the current filter has private"+
+		"downloads for csv and xls but not public ones", t, func() {
+		downloads := &Downloads{
+			CSV: &DownloadItem{
+				HRef:    "ons-test-site.gov.uk/87654321.csv",
+				Private: "private-link",
+				Size:    "12mb",
+			},
+			XLS: &DownloadItem{
+				HRef:    "ons-test-site.gov.uk/87654321.xls",
+				Private: "private-link",
+				Size:    "24mb",
+			},
+		}
+		currentFilter := &Filter{Published: true, Downloads: downloads}
+
+		Convey("When filter update contains csv private link", func() {
+			reader := strings.NewReader(`{"downloads":{"csv":{"href":"some-test-url","size":"12mb","private":"some-private-link"}}}`)
+			filter, err := CreateFilter(reader)
+			So(err, ShouldBeNil)
+
+			Convey("Then on validation an error is returned", func() {
+				err = filter.ValidateFilterOutputUpdate(currentFilter)
+				So(err, ShouldNotBeNil)
+				So(err, ShouldResemble, errors.New("Forbidden from updating the following fields: [downloads.csv.private]"))
+			})
+		})
+
+		Convey("When filter update contains xls private link", func() {
+			reader := strings.NewReader(`{"downloads":{"xls":{"href":"some-test-url","size":"12mb","private":"some-private-link"}}}`)
+			filter, err := CreateFilter(reader)
+			So(err, ShouldBeNil)
+
+			Convey("Then on validation an error is returned", func() {
+				err = filter.ValidateFilterOutputUpdate(currentFilter)
+				So(err, ShouldNotBeNil)
+				So(err, ShouldResemble, errors.New("Forbidden from updating the following fields: [downloads.xls.private]"))
+			})
+		})
+
+		Convey("When filter update contains csv and xls private link", func() {
+			reader := strings.NewReader(`{"downloads":{"xls":{"href":"some-test-url","size":"12mb","private":"some-private-link"}, "csv":{"href":"some-test-url","size":"12mb","private":"some-private-link"}}}`)
+			filter, err := CreateFilter(reader)
+			So(err, ShouldBeNil)
+
+			Convey("Then on validation an error is returned", func() {
+				err = filter.ValidateFilterOutputUpdate(currentFilter)
+				So(err, ShouldNotBeNil)
+				So(err, ShouldResemble, errors.New("Forbidden from updating the following fields: [downloads.csv.private downloads.xls.private]"))
+			})
+		})
+
+		Convey("When filter update contains a csv public link but not a private link", func() {
+			reader := strings.NewReader(`{"downloads":{"csv":{"href":"some-test-url","size":"12mb","public":"some-public-link"}}}`)
+			filter, err := CreateFilter(reader)
+			So(err, ShouldBeNil)
+
+			Convey("Then on validation NO error is returned", func() {
+				err = filter.ValidateFilterOutputUpdate(currentFilter)
+				So(err, ShouldBeNil)
+			})
+		})
+
+		Convey("When filter update contains a xls public link but not a private link", func() {
+			reader := strings.NewReader(`{"downloads":{"xls":{"href":"some-test-url","size":"12mb","public":"some-public-link"}}}`)
+			filter, err := CreateFilter(reader)
+			So(err, ShouldBeNil)
+
+			Convey("Then on validation NO error is returned", func() {
+				err = filter.ValidateFilterOutputUpdate(currentFilter)
+				So(err, ShouldBeNil)
+			})
+		})
+	})
+
+	Convey("Given the version is published and the current filter has public downloads link for csv and xls", t, func() {
+		downloads := &Downloads{
+			CSV: &DownloadItem{
+				HRef:    "ons-test-site.gov.uk/87654321.csv",
+				Private: "private-link",
+				Public:  "public-link",
+				Size:    "12mb",
+			},
+			XLS: &DownloadItem{
+				HRef:    "ons-test-site.gov.uk/87654321.xls",
+				Private: "private-link",
+				Public:  "public-link",
+				Size:    "24mb",
+			},
+		}
+		currentFilter := &Filter{Published: true, Downloads: downloads}
+
+		Convey("When filter update contains csv public link", func() {
+			reader := strings.NewReader(`{"downloads":{"csv":{"href":"some-test-url","size":"12mb","public":"some-public-link"}}}`)
+			filter, err := CreateFilter(reader)
+			So(err, ShouldBeNil)
+
+			Convey("Then on validation an error is returned", func() {
+				err = filter.ValidateFilterOutputUpdate(currentFilter)
+				So(err, ShouldNotBeNil)
+				So(err, ShouldResemble, errors.New("Forbidden from updating the following fields: [downloads.csv]"))
+			})
+		})
+
+		Convey("When filter update contains xls public link", func() {
+			reader := strings.NewReader(`{"downloads":{"xls":{"href":"some-test-url","size":"12mb","public":"some-public-link"}}}`)
+			filter, err := CreateFilter(reader)
+			So(err, ShouldBeNil)
+
+			Convey("Then on validation an error is returned", func() {
+				err = filter.ValidateFilterOutputUpdate(currentFilter)
+				So(err, ShouldNotBeNil)
+				So(err, ShouldResemble, errors.New("Forbidden from updating the following fields: [downloads.xls]"))
+			})
+		})
+
+		Convey("When filter update contains csv and xls public link", func() {
+			reader := strings.NewReader(`{"downloads":{"csv":{"href":"some-test-url","size":"12mb","public":"some-public-link"},"xls":{"href":"some-test-url","size":"12mb","public":"some-public-link"}}}`)
+			filter, err := CreateFilter(reader)
+			So(err, ShouldBeNil)
+
+			Convey("Then on validation an error is returned", func() {
+				err = filter.ValidateFilterOutputUpdate(currentFilter)
+				So(err, ShouldNotBeNil)
+				So(err, ShouldResemble, errors.New("Forbidden from updating the following fields: [downloads.csv downloads.xls]"))
+			})
 		})
 	})
 }

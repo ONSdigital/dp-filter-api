@@ -42,7 +42,7 @@ var (
 	errMissingDimensions     = errors.New("missing dimensions")
 )
 
-const FilterSubmitted = "true"
+const filterSubmitted = "true"
 
 func (api *FilterAPI) addFilterBlueprint(w http.ResponseWriter, r *http.Request) {
 	submitted := r.FormValue("submitted")
@@ -117,9 +117,10 @@ func (api *FilterAPI) addFilterBlueprint(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	if submitted == FilterSubmitted {
+	if submitted == filterSubmitted {
+		var filterOutput models.Filter
 		// Create filter output resource and use id to pass into kafka
-		filterOutput, err := api.createFilterOutputResource(&newFilter, newFilter.FilterID)
+		filterOutput, err = api.createFilterOutputResource(&newFilter, newFilter.FilterID)
 		if err != nil {
 			log.ErrorC("failed to create new filter output", err, logData)
 			setErrorCode(w, err)
@@ -578,7 +579,7 @@ func (api *FilterAPI) updateFilterBlueprint(w http.ResponseWriter, r *http.Reque
 	if err != nil {
 		// When filter blueprint has query parameter `submitted` set to true then
 		// request can have an empty json in body for this PUT request
-		if submitted != FilterSubmitted || err != models.ErrorNoData {
+		if submitted != filterSubmitted || err != models.ErrorNoData {
 			log.ErrorC("unable to unmarshal request body", err, logData)
 			http.Error(w, badRequest, http.StatusBadRequest)
 			return
@@ -608,8 +609,10 @@ func (api *FilterAPI) updateFilterBlueprint(w http.ResponseWriter, r *http.Reque
 
 	if versionHasChanged {
 		log.Info("finding new version details for filter after version change", logData)
+
+		var version *models.Version
 		// add version information from datasetAPI for new version
-		version, err := api.datasetAPI.GetVersion(r.Context(), *newFilter.Dataset)
+		version, err = api.datasetAPI.GetVersion(r.Context(), *newFilter.Dataset)
 		if err != nil {
 			log.ErrorC("unable to retrieve version document", err, logData)
 			setErrorCode(w, err, statusBadRequest)
@@ -639,11 +642,12 @@ func (api *FilterAPI) updateFilterBlueprint(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	if submitted == FilterSubmitted {
+	if submitted == filterSubmitted {
 		outputFilter := newFilter
 
+		var filterOutput models.Filter
 		// Create filter output resource and use id to pass into kafka
-		filterOutput, err := api.createFilterOutputResource(outputFilter, filterID)
+		filterOutput, err = api.createFilterOutputResource(outputFilter, filterID)
 		if err != nil {
 			log.ErrorC("failed to create new filter output", err, logData)
 			setErrorCode(w, err)
@@ -755,15 +759,7 @@ func (api *FilterAPI) updateFilterOutput(w http.ResponseWriter, r *http.Request)
 	}
 	logData["filter_output"] = filterOutput
 
-	if err = filterOutput.ValidateFilterOutputUpdate(); err != nil {
-		log.ErrorC("filter output failed validation", err, logData)
-		http.Error(w, err.Error(), http.StatusForbidden)
-		return
-	}
-
-	filterOutput.FilterID = filterOutputID
-
-	// TODO check filter output resource for current downloads
+	// check filter output resource for current downloads and published flag
 	previousFilterOutput, err := api.dataStore.GetFilterOutput(filterOutputID)
 	if err != nil {
 		log.ErrorC("unable to get current filter output", err, logData)
@@ -771,10 +767,15 @@ func (api *FilterAPI) updateFilterOutput(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	updatedFilterOutput := checkFilterOutputQuery(previousFilterOutput, filterOutput)
-	logData["filter_output_update"] = updatedFilterOutput
+	if err = filterOutput.ValidateFilterOutputUpdate(previousFilterOutput); err != nil {
+		log.ErrorC("filter output failed validation", err, logData)
+		http.Error(w, err.Error(), http.StatusForbidden)
+		return
+	}
 
-	if err = api.dataStore.UpdateFilterOutput(updatedFilterOutput); err != nil {
+	filterOutput.FilterID = filterOutputID
+
+	if err = api.dataStore.UpdateFilterOutput(filterOutput); err != nil {
 		log.ErrorC("unable to update filter blueprint", err, logData)
 		setErrorCode(w, err)
 		return
@@ -801,9 +802,8 @@ func (api *FilterAPI) createFilterOutputResource(newFilter *models.Filter, filte
 	// Downloads object should exist for filter output resource
 	// even if it they are empty
 	filterOutput.Downloads = &models.Downloads{
-		CSV:  models.DownloadItem{},
-		XLS:  models.DownloadItem{},
-		JSON: models.DownloadItem{},
+		CSV: &models.DownloadItem{},
+		XLS: &models.DownloadItem{},
 	}
 
 	// Remove dimension url from output filter resource
@@ -929,6 +929,18 @@ func (api *FilterAPI) getOutput(ctx context.Context, filterID string) (*models.F
 
 	errFilterOutputNotFound := errors.New("Filter output not found")
 
+	// Hide private download links if request is not authenticated
+	if !identity.IsPresent(ctx) {
+		if output.Downloads != nil {
+			if output.Downloads.CSV != nil {
+				output.Downloads.CSV.Private = ""
+			}
+			if output.Downloads.XLS != nil {
+				output.Downloads.XLS.Private = ""
+			}
+		}
+	}
+
 	//only return the filter if it is for published data or via authenticated request
 	if output.Published || identity.IsPresent(ctx) {
 		return output, nil
@@ -980,8 +992,9 @@ func (api *FilterAPI) checkFilterOptions(ctx context.Context, newFilter *models.
 	for _, filterDimension := range newFilter.Dimensions {
 		localData := logData
 
+		var datasetDimensionOptions *models.DatasetDimensionOptionResults
 		// Call dimension options list endpoint
-		datasetDimensionOptions, err := api.datasetAPI.GetVersionDimensionOptions(ctx, *newFilter.Dataset, filterDimension.Name)
+		datasetDimensionOptions, err = api.datasetAPI.GetVersionDimensionOptions(ctx, *newFilter.Dataset, filterDimension.Name)
 		if err != nil {
 			localData["dimension"] = filterDimension
 			log.ErrorC("failed to retreive a list of dimension options from dataset API", err, localData)
@@ -1050,26 +1063,6 @@ func (api *FilterAPI) checkNewFilterDimension(ctx context.Context, name string, 
 	}
 
 	return nil
-}
-
-func checkFilterOutputQuery(previousFilterOutput, filterOutput *models.Filter) *models.Filter {
-	if previousFilterOutput.Downloads == nil {
-		return filterOutput
-	}
-
-	if previousFilterOutput.Downloads.CSV.URL != "" {
-		filterOutput.Downloads.CSV = previousFilterOutput.Downloads.CSV
-	}
-
-	if previousFilterOutput.Downloads.XLS.URL != "" {
-		filterOutput.Downloads.XLS = previousFilterOutput.Downloads.XLS
-	}
-
-	if previousFilterOutput.Downloads.JSON.URL != "" {
-		filterOutput.Downloads.JSON = previousFilterOutput.Downloads.JSON
-	}
-
-	return filterOutput
 }
 
 func setJSONContentType(w http.ResponseWriter) {
