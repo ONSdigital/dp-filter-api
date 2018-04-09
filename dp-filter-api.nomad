@@ -11,7 +11,7 @@ job "dp-filter-api" {
       value     = "web"
     }
 
-    task "dp-filter-api" {
+    task "dp-filter-api-web" {
       driver = "exec"
 
       artifact {
@@ -69,7 +69,7 @@ job "dp-filter-api" {
       value     = "publishing"
     }
 
-    task "dp-filter-api" {
+    task "dp-filter-api-publishing" {
       driver = "exec"
 
       artifact {
