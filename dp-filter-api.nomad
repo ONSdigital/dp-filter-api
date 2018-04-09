@@ -30,7 +30,7 @@ job "dp-filter-api" {
       }
 
       service {
-        name = "dp-filter-api"
+        name = "dp-filter-api-web"
         port = "http"
         tags = ["web"]
         check {
@@ -56,7 +56,7 @@ job "dp-filter-api" {
       }
 
       vault {
-        policies = ["dp-filter-api"]
+        policies = ["dp-filter-api-web"]
       }
     }
   }
@@ -88,9 +88,15 @@ job "dp-filter-api" {
       }
 
       service {
-        name = "dp-filter-api"
+        name = "dp-filter-api-publishing"
         port = "http"
         tags = ["publishing"]
+        check {
+          type     = "http"
+          path     = "/healthcheck"
+          interval = "10s"
+          timeout  = "2s"
+        }
       }
 
       resources {
@@ -108,7 +114,7 @@ job "dp-filter-api" {
       }
 
       vault {
-        policies = ["dp-filter-api"]
+        policies = ["dp-filter-api-publishing"]
       }
     }
   }
