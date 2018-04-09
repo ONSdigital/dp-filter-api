@@ -775,7 +775,9 @@ func (api *FilterAPI) updateFilterOutput(w http.ResponseWriter, r *http.Request)
 
 	filterOutput.FilterID = filterOutputID
 
-	if err = api.dataStore.UpdateFilterOutput(filterOutput); err != nil {
+	filterOutputUpdate := buildDownloadsObject(previousFilterOutput, filterOutput)
+
+	if err = api.dataStore.UpdateFilterOutput(filterOutputUpdate); err != nil {
 		log.ErrorC("unable to update filter blueprint", err, logData)
 		setErrorCode(w, err)
 		return
@@ -1063,6 +1065,57 @@ func (api *FilterAPI) checkNewFilterDimension(ctx context.Context, name string, 
 	}
 
 	return nil
+}
+
+func buildDownloadsObject(previousFilterOutput, filterOutput *models.Filter) *models.Filter {
+	if previousFilterOutput.Downloads == nil {
+		return filterOutput
+	}
+
+	if filterOutput.Downloads == nil {
+		filterOutput.Downloads = previousFilterOutput.Downloads
+		return filterOutput
+	}
+
+	if previousFilterOutput.Downloads.CSV != nil {
+		if filterOutput.Downloads.CSV == nil {
+			filterOutput.Downloads.CSV = previousFilterOutput.Downloads.CSV
+		} else {
+			if filterOutput.Downloads.CSV.HRef == "" {
+				filterOutput.Downloads.CSV.HRef = previousFilterOutput.Downloads.CSV.HRef
+			}
+			if filterOutput.Downloads.CSV.Size == "" {
+				filterOutput.Downloads.CSV.Size = previousFilterOutput.Downloads.CSV.Size
+			}
+			if filterOutput.Downloads.CSV.Private == "" {
+				filterOutput.Downloads.CSV.Private = previousFilterOutput.Downloads.CSV.Private
+			}
+			if filterOutput.Downloads.CSV.Public == "" {
+				filterOutput.Downloads.CSV.Public = previousFilterOutput.Downloads.CSV.Public
+			}
+		}
+	}
+
+	if previousFilterOutput.Downloads.XLS != nil {
+		if filterOutput.Downloads.XLS == nil {
+			filterOutput.Downloads.XLS = previousFilterOutput.Downloads.XLS
+		} else {
+			if filterOutput.Downloads.XLS.HRef == "" {
+				filterOutput.Downloads.XLS.HRef = previousFilterOutput.Downloads.XLS.HRef
+			}
+			if filterOutput.Downloads.XLS.Size == "" {
+				filterOutput.Downloads.XLS.Size = previousFilterOutput.Downloads.XLS.Size
+			}
+			if filterOutput.Downloads.XLS.Private == "" {
+				filterOutput.Downloads.XLS.Private = previousFilterOutput.Downloads.XLS.Private
+			}
+			if filterOutput.Downloads.XLS.Public == "" {
+				filterOutput.Downloads.XLS.Public = previousFilterOutput.Downloads.XLS.Public
+			}
+		}
+	}
+
+	return filterOutput
 }
 
 func setJSONContentType(w http.ResponseWriter) {
