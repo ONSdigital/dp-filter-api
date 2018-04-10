@@ -30,7 +30,7 @@ job "dp-filter-api" {
       }
 
       service {
-        name = "dp-filter-api-web"
+        name = "dp-filter-api"
         port = "http"
         tags = ["web"]
         check {
@@ -88,7 +88,7 @@ job "dp-filter-api" {
       }
 
       service {
-        name = "dp-filter-api-publishing"
+        name = "dp-filter-api"
         port = "http"
         tags = ["publishing"]
         check {
