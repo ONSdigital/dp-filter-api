@@ -86,7 +86,15 @@ func main() {
 
 	apiErrors := make(chan error, 1)
 
-	api.CreateFilterAPI(cfg.Host, cfg.BindAddr, cfg.ZebedeeURL, dataStore, &outputQueue, apiErrors, datasetAPI, &previewDatasets)
+	api.CreateFilterAPI(cfg.Host,
+		cfg.BindAddr,
+		cfg.ZebedeeURL,
+		dataStore,
+		&outputQueue,
+		apiErrors,
+		datasetAPI,
+		&previewDatasets,
+		cfg.EnablePrivateEndpoints)
 
 	// Gracefully shutdown the application closing any open resources.
 	gracefulShutdown := func() {
