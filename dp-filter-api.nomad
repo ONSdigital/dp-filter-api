@@ -11,7 +11,7 @@ job "dp-filter-api" {
       value     = "web"
     }
 
-    task "dp-filter-api" {
+    task "dp-filter-api-web" {
       driver = "exec"
 
       artifact {
@@ -30,7 +30,7 @@ job "dp-filter-api" {
       }
 
       service {
-        name = "dp-filter-api"
+        name = "dp-filter-api-web"
         port = "http"
         tags = ["web"]
         check {
@@ -56,7 +56,7 @@ job "dp-filter-api" {
       }
 
       vault {
-        policies = ["dp-filter-api"]
+        policies = ["dp-filter-api-web"]
       }
     }
   }
@@ -69,7 +69,7 @@ job "dp-filter-api" {
       value     = "publishing"
     }
 
-    task "dp-filter-api" {
+    task "dp-filter-api-publishing" {
       driver = "exec"
 
       artifact {
@@ -88,9 +88,15 @@ job "dp-filter-api" {
       }
 
       service {
-        name = "dp-filter-api"
+        name = "dp-filter-api-publishing"
         port = "http"
         tags = ["publishing"]
+        check {
+          type     = "http"
+          path     = "/healthcheck"
+          interval = "10s"
+          timeout  = "2s"
+        }
       }
 
       resources {
@@ -108,7 +114,7 @@ job "dp-filter-api" {
       }
 
       vault {
-        policies = ["dp-filter-api"]
+        policies = ["dp-filter-api-publishing"]
       }
     }
   }

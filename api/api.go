@@ -42,14 +42,26 @@ type FilterAPI struct {
 }
 
 // CreateFilterAPI manages all the routes configured to API
-func CreateFilterAPI(host, bindAddr, zebedeeURL string, datastore DataStore, outputQueue OutputQueue, errorChan chan error, datasetAPI DatasetAPIer, preview PreviewDataset) {
+func CreateFilterAPI(host, bindAddr, zebedeeURL string,
+	datastore DataStore,
+	outputQueue OutputQueue,
+	errorChan chan error,
+	datasetAPI DatasetAPIer,
+	preview PreviewDataset,
+	enablePrivateEndpoints bool) {
+
 	router := mux.NewRouter()
-	routes(host, router, datastore, outputQueue, datasetAPI, preview)
+	routes(host, router, datastore, outputQueue, datasetAPI, preview, enablePrivateEndpoints)
 
-	identityHandler := identity.Handler(true, zebedeeURL)
-	alice := alice.New(identityHandler).Then(router)
+	// Only add the identity middleware when running in publishing.
+	if enablePrivateEndpoints {
+		identityHandler := identity.Handler(true, zebedeeURL)
+		alice := alice.New(identityHandler).Then(router)
+		httpServer = server.New(bindAddr, alice)
+	} else {
+		httpServer = server.New(bindAddr, router)
+	}
 
-	httpServer = server.New(bindAddr, alice)
 	// Disable this here to allow main to manage graceful shutdown of the entire app.
 	httpServer.HandleOSSignals = false
 
@@ -63,7 +75,14 @@ func CreateFilterAPI(host, bindAddr, zebedeeURL string, datastore DataStore, out
 }
 
 // routes contain all endpoints for API
-func routes(host string, router *mux.Router, dataStore DataStore, outputQueue OutputQueue, datasetAPI DatasetAPIer, preview PreviewDataset) *FilterAPI {
+func routes(host string,
+	router *mux.Router,
+	dataStore DataStore,
+	outputQueue OutputQueue,
+	datasetAPI DatasetAPIer,
+	preview PreviewDataset,
+	enablePrivateEndpoints bool) *FilterAPI {
+
 	api := FilterAPI{host: host, dataStore: dataStore, router: router, outputQueue: outputQueue, datasetAPI: datasetAPI, preview: preview}
 	router.Path("/healthcheck").Methods("GET").HandlerFunc(healthcheck.Do)
 
@@ -80,8 +99,11 @@ func routes(host string, router *mux.Router, dataStore DataStore, outputQueue Ou
 	api.router.HandleFunc("/filters/{filter_blueprint_id}/dimensions/{name}/options/{option}", api.removeFilterBlueprintDimensionOption).Methods("DELETE")
 
 	api.router.HandleFunc("/filter-outputs/{filter_output_id}", api.getFilterOutput).Methods("GET")
-	api.router.HandleFunc("/filter-outputs/{filter_output_id}", api.updateFilterOutput).Methods("PUT")
 	api.router.HandleFunc("/filter-outputs/{filter_output_id}/preview", api.getFilterOutputPreview).Methods("GET")
+
+	if enablePrivateEndpoints {
+		api.router.HandleFunc("/filter-outputs/{filter_output_id}", api.updateFilterOutput).Methods("PUT")
+	}
 
 	return &api
 }

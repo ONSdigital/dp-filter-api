@@ -22,6 +22,7 @@ type Config struct {
 	MongoConfig                MongoConfig
 	ServiceAuthToken           string `envconfig:"SERVICE_AUTH_TOKEN"          json:"-"`
 	ZebedeeURL                 string `envconfig:"ZEBEDEE_URL"`
+	EnablePrivateEndpoints     bool   `envconfig:"ENABLE_PRIVATE_ENDPOINTS"`
 }
 
 // MongoConfig contains the config required to connect to MongoDB.
@@ -58,8 +59,9 @@ func Get() (*Config, error) {
 			FiltersCollection: "filters",
 			OutputsCollection: "filterOutputs",
 		},
-		ServiceAuthToken: "FD0108EA-825D-411C-9B1D-41EF7727F465",
-		ZebedeeURL:       "http://localhost:8082",
+		ServiceAuthToken:       "FD0108EA-825D-411C-9B1D-41EF7727F465",
+		ZebedeeURL:             "http://localhost:8082",
+		EnablePrivateEndpoints: false,
 	}
 
 	err := envconfig.Process("", cfg)

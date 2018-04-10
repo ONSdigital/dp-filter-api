@@ -25,7 +25,7 @@ dp-filter-api
 | FILTER_JOB_SUBMITTED_TOPIC | filter-job-submitted                      | The kafka topic to write messages to
 | KAFKA_MAX_BYTES            | 2000000                                   | The maximum permitted size of a message. Should be set equal to or smaller than the broker's `message.max.bytes`
 | MONGODB_BIND_ADDR          | localhost:27017                           | URL to a mongodb services
-| MONGODB_FILTERS_DATABASE   | "filters"                               | The mongodb database to store filters
+| MONGODB_FILTERS_DATABASE   | "filters"                                 | The mongodb database to store filters
 | SHUTDOWN_TIMEOUT           | 5s                                        | The graceful shutdown timeout (`time.Duration` format)
 | DATASET_API_URL            | http://localhost:22000                    | The URL of the Dataset API
 | DATASET_API_AUTH_TOKEN     | FD0108EA-825D-411C-9B1D-41EF7727F465      | The token used to access the Dataset API
@@ -34,6 +34,7 @@ dp-filter-api
 | HEALTHCHECK_INTERVAL       | 30s                                       | Time between self-healthchecks (`time.Duration` format)
 | SERVICE_AUTH_TOKEN         | FD0108EA-825D-411C-9B1D-41EF7727F465      | The token used to identify this service when authenticating
 | ZEBEDEE_URL                | "http://localhost:8082"                   | Zebedee URL
+| ENABLE_PRIVATE_ENDPOINTS   | false                                     | true if private endpoints should be enabled
 
 ### Healthchecking
 
