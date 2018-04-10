@@ -3,7 +3,6 @@ package api
 import (
 	"encoding/json"
 	"errors"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -91,8 +90,7 @@ func TestFailedToAddFilterBlueprint(t *testing.T) {
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusInternalServerError)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, internalError+"\n")
 	})
 
@@ -106,8 +104,7 @@ func TestFailedToAddFilterBlueprint(t *testing.T) {
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusInternalServerError)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, internalError+"\n")
 	})
 
@@ -121,8 +118,7 @@ func TestFailedToAddFilterBlueprint(t *testing.T) {
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, "Version not found\n")
 	})
 
@@ -136,8 +132,7 @@ func TestFailedToAddFilterBlueprint(t *testing.T) {
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, badRequest+"\n")
 	})
 
@@ -151,8 +146,7 @@ func TestFailedToAddFilterBlueprint(t *testing.T) {
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, badRequest+"\n")
 	})
 
@@ -166,8 +160,7 @@ func TestFailedToAddFilterBlueprint(t *testing.T) {
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, badRequest+"\n")
 	})
 
@@ -181,8 +174,7 @@ func TestFailedToAddFilterBlueprint(t *testing.T) {
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, badRequest+"\n")
 	})
 
@@ -196,8 +188,7 @@ func TestFailedToAddFilterBlueprint(t *testing.T) {
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, "Bad request - incorrect dimensions chosen: [weight]\n")
 	})
 
@@ -211,8 +202,7 @@ func TestFailedToAddFilterBlueprint(t *testing.T) {
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, "Bad request - incorrect dimension options chosen: [29]\n")
 	})
 }
@@ -275,8 +265,7 @@ func TestFailedToAddFilterBlueprintDimension(t *testing.T) {
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusInternalServerError)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, internalError+"\n")
 	})
 
@@ -290,8 +279,7 @@ func TestFailedToAddFilterBlueprintDimension(t *testing.T) {
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, badRequest+"\n")
 	})
 
@@ -305,8 +293,7 @@ func TestFailedToAddFilterBlueprintDimension(t *testing.T) {
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, "Filter blueprint not found\n")
 	})
 
@@ -320,8 +307,7 @@ func TestFailedToAddFilterBlueprintDimension(t *testing.T) {
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, "Filter blueprint not found\n")
 	})
 
@@ -335,8 +321,7 @@ func TestFailedToAddFilterBlueprintDimension(t *testing.T) {
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, "Bad request - incorrect dimensions chosen: [wealth]\n")
 	})
 
@@ -350,8 +335,7 @@ func TestFailedToAddFilterBlueprintDimension(t *testing.T) {
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, "Bad request - incorrect dimension options chosen: [22]\n")
 	})
 }
@@ -389,8 +373,7 @@ func TestFailedToAddFilterBlueprintDimensionOption_DimensionDoesNotExist(t *test
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, "Bad request - incorrect dimensions chosen: [notage]\n")
 	})
 }
@@ -406,8 +389,7 @@ func TestFailedToAddFilterBlueprintDimensionOption(t *testing.T) {
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusInternalServerError)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, internalError+"\n")
 	})
 
@@ -420,8 +402,7 @@ func TestFailedToAddFilterBlueprintDimensionOption(t *testing.T) {
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, statusBadRequest+"\n")
 	})
 
@@ -434,8 +415,7 @@ func TestFailedToAddFilterBlueprintDimensionOption(t *testing.T) {
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, "Filter blueprint not found\n")
 	})
 
@@ -448,8 +428,7 @@ func TestFailedToAddFilterBlueprintDimensionOption(t *testing.T) {
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, "Bad request - incorrect dimension options chosen: [66]\n")
 	})
 }
@@ -490,8 +469,7 @@ func TestFailedToGetFilterBlueprint(t *testing.T) {
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusInternalServerError)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, internalError+"\n")
 	})
 
@@ -504,8 +482,7 @@ func TestFailedToGetFilterBlueprint(t *testing.T) {
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, "Filter blueprint not found\n")
 	})
 
@@ -518,8 +495,7 @@ func TestFailedToGetFilterBlueprint(t *testing.T) {
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, "Filter blueprint not found\n")
 	})
 }
@@ -587,8 +563,7 @@ func TestFailedToUpdateFilterBlueprint(t *testing.T) {
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, badRequest+"\n")
 	})
 
@@ -602,8 +577,7 @@ func TestFailedToUpdateFilterBlueprint(t *testing.T) {
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, badRequest+"\n")
 	})
 
@@ -617,8 +591,7 @@ func TestFailedToUpdateFilterBlueprint(t *testing.T) {
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, "Filter blueprint not found\n")
 	})
 
@@ -633,8 +606,7 @@ func TestFailedToUpdateFilterBlueprint(t *testing.T) {
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, "Filter blueprint not found\n")
 	})
 
@@ -648,8 +620,7 @@ func TestFailedToUpdateFilterBlueprint(t *testing.T) {
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, "Bad request - version not found\n")
 	})
 
@@ -663,8 +634,7 @@ func TestFailedToUpdateFilterBlueprint(t *testing.T) {
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, "Bad request - incorrect dimensions chosen: [time]\n")
 	})
 
@@ -678,8 +648,7 @@ func TestFailedToUpdateFilterBlueprint(t *testing.T) {
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, "Bad request - incorrect dimension options chosen: [28]\n")
 	})
 }
@@ -717,8 +686,7 @@ func TestFailedToGetFilterBlueprintDimensions(t *testing.T) {
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusInternalServerError)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, internalError+"\n")
 	})
 
@@ -731,8 +699,7 @@ func TestFailedToGetFilterBlueprintDimensions(t *testing.T) {
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, "Filter blueprint not found\n")
 	})
 }
@@ -770,8 +737,7 @@ func TestFailedToGetFilterBlueprintDimension(t *testing.T) {
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusInternalServerError)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, internalError+"\n")
 	})
 
@@ -784,8 +750,7 @@ func TestFailedToGetFilterBlueprintDimension(t *testing.T) {
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, statusBadRequest+"\n")
 	})
 
@@ -798,8 +763,7 @@ func TestFailedToGetFilterBlueprintDimension(t *testing.T) {
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, "Filter blueprint not found\n")
 	})
 
@@ -812,8 +776,7 @@ func TestFailedToGetFilterBlueprintDimension(t *testing.T) {
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, "Dimension not found\n")
 	})
 }
@@ -851,8 +814,7 @@ func TestFailedToGetFilterBlueprintDimensionOptions(t *testing.T) {
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusInternalServerError)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, internalError+"\n")
 	})
 
@@ -865,8 +827,7 @@ func TestFailedToGetFilterBlueprintDimensionOptions(t *testing.T) {
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, "Filter blueprint not found\n")
 	})
 
@@ -879,8 +840,7 @@ func TestFailedToGetFilterBlueprintDimensionOptions(t *testing.T) {
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, "Filter blueprint not found\n")
 	})
 
@@ -893,8 +853,7 @@ func TestFailedToGetFilterBlueprintDimensionOptions(t *testing.T) {
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, "Dimension not found\n")
 	})
 }
@@ -932,8 +891,7 @@ func TestFailedToGetFilterBlueprintDimensionOption(t *testing.T) {
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusInternalServerError)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, internalError+"\n")
 	})
 
@@ -946,8 +904,7 @@ func TestFailedToGetFilterBlueprintDimensionOption(t *testing.T) {
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, statusBadRequest+"\n")
 	})
 
@@ -960,8 +917,7 @@ func TestFailedToGetFilterBlueprintDimensionOption(t *testing.T) {
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, "Filter blueprint not found\n")
 	})
 
@@ -974,8 +930,7 @@ func TestFailedToGetFilterBlueprintDimensionOption(t *testing.T) {
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, "Option not found\n")
 	})
 }
@@ -1013,8 +968,7 @@ func TestFailedToRemoveFilterBlueprintDimension(t *testing.T) {
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusInternalServerError)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, internalError+"\n")
 	})
 
@@ -1027,8 +981,7 @@ func TestFailedToRemoveFilterBlueprintDimension(t *testing.T) {
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, statusBadRequest+"\n")
 	})
 
@@ -1041,8 +994,7 @@ func TestFailedToRemoveFilterBlueprintDimension(t *testing.T) {
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, "Filter blueprint not found\n")
 	})
 
@@ -1055,8 +1007,7 @@ func TestFailedToRemoveFilterBlueprintDimension(t *testing.T) {
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, "Filter blueprint not found\n")
 	})
 }
@@ -1094,8 +1045,7 @@ func TestFailedToRemoveFilterBlueprintDimensionOption(t *testing.T) {
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusInternalServerError)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, internalError+"\n")
 	})
 
@@ -1108,8 +1058,7 @@ func TestFailedToRemoveFilterBlueprintDimensionOption(t *testing.T) {
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, statusBadRequest+"\n")
 	})
 
@@ -1122,8 +1071,7 @@ func TestFailedToRemoveFilterBlueprintDimensionOption(t *testing.T) {
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, "Filter blueprint not found\n")
 	})
 
@@ -1136,8 +1084,7 @@ func TestFailedToRemoveFilterBlueprintDimensionOption(t *testing.T) {
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, "Dimension not found\n")
 	})
 }
@@ -1154,11 +1101,7 @@ func TestSuccessfulGetFilterOutput(t *testing.T) {
 		So(w.Code, ShouldEqual, http.StatusOK)
 
 		// Check private link is hidden for unauthenticated user
-		jsonResult, err := ioutil.ReadAll(w.Body)
-		if err != nil {
-			t.Logf("failed to read filter output response body, error: [%v]", err.Error())
-			t.Fail()
-		}
+		jsonResult := w.Body.Bytes()
 
 		filterOutput := &models.Filter{}
 		if err = json.Unmarshal(jsonResult, filterOutput); err != nil {
@@ -1179,14 +1122,10 @@ func TestSuccessfulGetFilterOutput(t *testing.T) {
 		So(w.Code, ShouldEqual, http.StatusOK)
 
 		// Check private link is NOT hidden from authenticated user
-		jsonResult, err := ioutil.ReadAll(w.Body)
-		if err != nil {
-			t.Logf("failed to read filter output response body, error: [%v]", err.Error())
-			t.Fail()
-		}
+		jsonResult := w.Body.Bytes()
 
 		filterOutput := &models.Filter{}
-		if err = json.Unmarshal(jsonResult, filterOutput); err != nil {
+		if err := json.Unmarshal(jsonResult, filterOutput); err != nil {
 			t.Logf("failed to marshal filte output json response, error: [%v]", err.Error())
 			t.Fail()
 		}
@@ -1217,8 +1156,7 @@ func TestFailedToGetFilterOutput(t *testing.T) {
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusInternalServerError)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, internalError+"\n")
 	})
 
@@ -1231,8 +1169,7 @@ func TestFailedToGetFilterOutput(t *testing.T) {
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, "Filter output not found\n")
 	})
 
@@ -1245,8 +1182,7 @@ func TestFailedToGetFilterOutput(t *testing.T) {
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, "Filter output not found\n")
 	})
 }
@@ -1311,8 +1247,7 @@ func TestFailedToUpdateFilterOutput(t *testing.T) {
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusInternalServerError)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, internalError+"\n")
 	})
 
@@ -1325,8 +1260,7 @@ func TestFailedToUpdateFilterOutput(t *testing.T) {
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, badRequest+"\n")
 	})
 
@@ -1349,8 +1283,7 @@ func TestFailedToUpdateFilterOutput(t *testing.T) {
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, badRequest+"\n")
 	})
 
@@ -1363,8 +1296,7 @@ func TestFailedToUpdateFilterOutput(t *testing.T) {
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusForbidden)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, "Forbidden from updating the following fields: [dataset.id dataset.edition dataset.version]\n")
 	})
 
@@ -1378,8 +1310,7 @@ func TestFailedToUpdateFilterOutput(t *testing.T) {
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, "resource not found\n")
 	})
 
@@ -1392,8 +1323,7 @@ func TestFailedToUpdateFilterOutput(t *testing.T) {
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusForbidden)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, "Forbidden from updating the following fields: [downloads.csv]\n")
 	})
 
@@ -1406,8 +1336,7 @@ func TestFailedToUpdateFilterOutput(t *testing.T) {
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusForbidden)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, "Forbidden from updating the following fields: [downloads.xls]\n")
 	})
 
@@ -1420,8 +1349,7 @@ func TestFailedToUpdateFilterOutput(t *testing.T) {
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusForbidden)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, "Forbidden from updating the following fields: [downloads.csv.private]\n")
 	})
 
@@ -1434,8 +1362,7 @@ func TestFailedToUpdateFilterOutput(t *testing.T) {
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusForbidden)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, "Forbidden from updating the following fields: [downloads.xls.private]\n")
 	})
 }
@@ -1504,8 +1431,7 @@ func TestFailedGetPreview(t *testing.T) {
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, "Filter output not found\n")
 	})
 
@@ -1518,8 +1444,7 @@ func TestFailedGetPreview(t *testing.T) {
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusInternalServerError)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, internalError+"\n")
 	})
 
@@ -1537,8 +1462,7 @@ func TestFailedGetPreview(t *testing.T) {
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusInternalServerError)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, "internal server error\n")
 	})
 
@@ -1551,8 +1475,7 @@ func TestFailedGetPreview(t *testing.T) {
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, "no dimensions are present in the filter\n")
 	})
 
@@ -1565,8 +1488,7 @@ func TestFailedGetPreview(t *testing.T) {
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, "requested limit is not a number\n")
 	})
 
@@ -1579,8 +1501,7 @@ func TestFailedGetPreview(t *testing.T) {
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, "requested limit is not a number\n")
 	})
 }
