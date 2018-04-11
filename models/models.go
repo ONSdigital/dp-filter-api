@@ -235,13 +235,13 @@ func (filter *Filter) ValidateFilterOutputUpdate(currentFilter *Filter) error {
 		forbiddenFields = append(forbiddenFields, "filter_id")
 	}
 
-	if currentFilter.Published != nil && currentFilter.Published == &Published && currentFilter.Downloads != nil {
+	if currentFilter.Published != nil && *currentFilter.Published == Published && currentFilter.Downloads != nil {
 		if filter.Downloads != nil {
-			if filter.Downloads.CSV != nil {
+			if filter.Downloads.CSV != nil && currentFilter.Downloads.CSV != nil {
 				// If version for filter output is published and filter output has a
 				// public link, do not allow any updates to download item (csv)
 				var hasCSVPublicDownload bool
-				if currentFilter.Downloads.CSV != nil && currentFilter.Downloads.CSV.Public != "" {
+				if currentFilter.Downloads.CSV.Public != "" {
 					hasCSVPublicDownload = true
 					forbiddenFields = append(forbiddenFields, "downloads.csv")
 				}
@@ -253,11 +253,12 @@ func (filter *Filter) ValidateFilterOutputUpdate(currentFilter *Filter) error {
 				}
 			}
 
-			if filter.Downloads.XLS != nil {
+			if filter.Downloads.XLS != nil && currentFilter.Downloads.XLS != nil {
+
 				// If version for filter output is published and filter output has a
 				// public link, do not allow any updates to download item (xls)
 				var hasXLSPublicDownload bool
-				if currentFilter.Downloads.XLS != nil && currentFilter.Downloads.XLS.Public != "" {
+				if currentFilter.Downloads.XLS.Public != "" {
 					hasXLSPublicDownload = true
 					forbiddenFields = append(forbiddenFields, "downloads.xls")
 				}
