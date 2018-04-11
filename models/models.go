@@ -16,6 +16,11 @@ const (
 	CompletedState = "completed"
 )
 
+var (
+	Unpublished = false
+	Published   = true
+)
+
 // Dataset contains the uniique identifiers that make a dataset unique
 type Dataset struct {
 	ID      string `bson:"id"        json:"id"`
@@ -38,7 +43,7 @@ type Filter struct {
 	Events      Events      `bson:"events,omitempty"     json:"events,omitempty"`
 	FilterID    string      `bson:"filter_id"            json:"filter_id,omitempty"`
 	State       string      `bson:"state,omitempty"      json:"state,omitempty"`
-	Published   bool        `bson:"published,omitempty"  json:"-"`
+	Published   *bool       `bson:"published"            json:"published"`
 	Links       LinkMap     `bson:"links"                json:"links,omitempty"`
 	LastUpdated time.Time   `bson:"last_updated"         json:"-"`
 }
@@ -230,7 +235,7 @@ func (filter *Filter) ValidateFilterOutputUpdate(currentFilter *Filter) error {
 		forbiddenFields = append(forbiddenFields, "filter_id")
 	}
 
-	if currentFilter.Published && currentFilter.Downloads != nil {
+	if currentFilter.Published != nil && currentFilter.Published == &Published && currentFilter.Downloads != nil {
 		if filter.Downloads != nil {
 			if filter.Downloads.CSV != nil {
 				// If version for filter output is published and filter output has a

@@ -82,7 +82,7 @@ func TestValidateFilterOutputUpdate(t *testing.T) {
 		filter, err := CreateFilter(reader)
 		So(err, ShouldBeNil)
 
-		currentFilter := &Filter{Published: false}
+		currentFilter := &Filter{Published: &Unpublished}
 
 		Convey("When filter is validated then no errors are returned", func() {
 
@@ -96,7 +96,7 @@ func TestValidateFilterOutputUpdate(t *testing.T) {
 		filter, err := CreateFilter(reader)
 		So(err, ShouldBeNil)
 
-		currentFilter := &Filter{Published: false}
+		currentFilter := &Filter{Published: &Unpublished}
 
 		Convey("When filter is validated then an error is returned", func() {
 
@@ -111,7 +111,7 @@ func TestValidateFilterOutputUpdate(t *testing.T) {
 		filter, err := CreateFilter(reader)
 		So(err, ShouldBeNil)
 
-		currentFilter := &Filter{Published: false}
+		currentFilter := &Filter{Published: &Unpublished}
 
 		Convey("When filter is validated then an error is returned", func() {
 
@@ -126,7 +126,7 @@ func TestValidateFilterOutputUpdate(t *testing.T) {
 		filter, err := CreateFilter(reader)
 		So(err, ShouldBeNil)
 
-		currentFilter := &Filter{Published: false}
+		currentFilter := &Filter{Published: &Unpublished}
 
 		Convey("When filter is validated then an error is returned", func() {
 
@@ -141,7 +141,7 @@ func TestValidateFilterOutputUpdate(t *testing.T) {
 		filter, err := CreateFilter(reader)
 		So(err, ShouldBeNil)
 
-		currentFilter := &Filter{Published: false}
+		currentFilter := &Filter{Published: &Unpublished}
 
 		Convey("When filter is validated then an error is returned", func() {
 
@@ -167,7 +167,8 @@ func TestValidateFilterOutputDownloadsUpdate(t *testing.T) {
 				Size:    "24mb",
 			},
 		}
-		currentFilter := &Filter{Published: true, Downloads: downloads}
+
+		currentFilter := &Filter{Published: &Published, Downloads: downloads}
 
 		Convey("When filter update contains csv private link", func() {
 			reader := strings.NewReader(`{"downloads":{"csv":{"href":"some-test-url","size":"12mb","private":"some-private-link"}}}`)
@@ -243,7 +244,7 @@ func TestValidateFilterOutputDownloadsUpdate(t *testing.T) {
 				Size:    "24mb",
 			},
 		}
-		currentFilter := &Filter{Published: true, Downloads: downloads}
+		currentFilter := &Filter{Published: &Published, Downloads: downloads}
 
 		Convey("When filter update contains csv public link", func() {
 			reader := strings.NewReader(`{"downloads":{"csv":{"href":"some-test-url","size":"12mb","public":"some-public-link"}}}`)

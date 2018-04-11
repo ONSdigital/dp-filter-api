@@ -84,7 +84,7 @@ func (api *FilterAPI) addFilterBlueprint(w http.ResponseWriter, r *http.Request)
 	}
 
 	if version.State == publishedState {
-		newFilter.Published = true
+		newFilter.Published = &models.Published
 	}
 
 	links := models.LinkMap{
@@ -153,7 +153,7 @@ func (api *FilterAPI) addFilterBlueprint(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	log.Info("created new filter blueprint", logData)
+	log.Info("created filter blueprint", logData)
 }
 
 func (api *FilterAPI) getFilterBlueprint(w http.ResponseWriter, r *http.Request) {
@@ -188,7 +188,7 @@ func (api *FilterAPI) getFilterBlueprint(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	log.Info("got filtered blueprint", logData)
+	log.Info("got filter blueprint", logData)
 }
 
 func (api *FilterAPI) getFilterBlueprintDimensions(w http.ResponseWriter, r *http.Request) {
@@ -228,7 +228,7 @@ func (api *FilterAPI) getFilterBlueprintDimensions(w http.ResponseWriter, r *htt
 		return
 	}
 
-	log.Info("got filtered blueprint", logData)
+	log.Info("got dimensions for filter blueprint", logData)
 }
 
 func (api *FilterAPI) getFilterBlueprintDimension(w http.ResponseWriter, r *http.Request) {
@@ -256,7 +256,7 @@ func (api *FilterAPI) getFilterBlueprintDimension(w http.ResponseWriter, r *http
 	setJSONContentType(w)
 	w.WriteHeader(http.StatusNoContent)
 
-	log.Info("got filtered blueprint", logData)
+	log.Info("got filtered blueprint dimension", logData)
 }
 
 func (api *FilterAPI) removeFilterBlueprintDimension(w http.ResponseWriter, r *http.Request) {
@@ -291,7 +291,7 @@ func (api *FilterAPI) removeFilterBlueprintDimension(w http.ResponseWriter, r *h
 	setJSONContentType(w)
 	w.WriteHeader(http.StatusOK)
 
-	log.Info("delete filtered blueprint", logData)
+	log.Info("delete dimension from filter blueprint", logData)
 }
 
 func (api *FilterAPI) addFilterBlueprintDimension(w http.ResponseWriter, r *http.Request) {
@@ -403,7 +403,7 @@ func (api *FilterAPI) getFilterBlueprintDimensionOptions(w http.ResponseWriter, 
 		return
 	}
 
-	log.Info("got dimension options", logData)
+	log.Info("got dimension options for filter blueprint", logData)
 }
 
 func (api *FilterAPI) getFilterBlueprintDimensionOption(w http.ResponseWriter, r *http.Request) {
@@ -453,7 +453,7 @@ func (api *FilterAPI) getFilterBlueprintDimensionOption(w http.ResponseWriter, r
 	setJSONContentType(w)
 	w.WriteHeader(http.StatusNoContent)
 
-	log.Info("got dimension option", logData)
+	log.Info("got dimension option for filter blueprint", logData)
 }
 
 func (api *FilterAPI) addFilterBlueprintDimensionOption(w http.ResponseWriter, r *http.Request) {
@@ -565,7 +565,7 @@ func (api *FilterAPI) removeFilterBlueprintDimensionOption(w http.ResponseWriter
 	setJSONContentType(w)
 	w.WriteHeader(http.StatusOK)
 
-	log.Info("delete dimension option on filtered blueprint", logData)
+	log.Info("delete dimension option on filter blueprint", logData)
 }
 
 func (api *FilterAPI) updateFilterBlueprint(w http.ResponseWriter, r *http.Request) {
@@ -619,9 +619,9 @@ func (api *FilterAPI) updateFilterBlueprint(w http.ResponseWriter, r *http.Reque
 			return
 		}
 
-		newFilter.Published = false
+		newFilter.Published = &models.Unpublished
 		if version.State == "published" {
-			newFilter.Published = true
+			newFilter.Published = &models.Published
 		}
 
 		newFilter.InstanceID = version.ID
@@ -734,7 +734,7 @@ func (api *FilterAPI) getFilterOutput(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Info("got filtered output", logData)
+	log.Info("got filter output", logData)
 }
 
 func (api *FilterAPI) updateFilterOutput(w http.ResponseWriter, r *http.Request) {
@@ -775,6 +775,12 @@ func (api *FilterAPI) updateFilterOutput(w http.ResponseWriter, r *http.Request)
 
 	filterOutput.FilterID = filterOutputID
 
+	// Set the published flag to the value currently stored on filter output resources
+	// unless the request contains an update to the flag
+	if previousFilterOutput.Published != nil && *previousFilterOutput.Published == models.Published {
+		filterOutput.Published = &models.Published
+	}
+
 	filterOutputUpdate := buildDownloadsObject(previousFilterOutput, filterOutput)
 
 	if err = api.dataStore.UpdateFilterOutput(filterOutputUpdate); err != nil {
@@ -786,7 +792,7 @@ func (api *FilterAPI) updateFilterOutput(w http.ResponseWriter, r *http.Request)
 	setJSONContentType(w)
 	w.WriteHeader(http.StatusOK)
 
-	log.Info("got filtered blueprint", logData)
+	log.Info("update filter output", logData)
 }
 
 func (api *FilterAPI) createFilterOutputResource(newFilter *models.Filter, filterBlueprintID string) (models.Filter, error) {
@@ -813,8 +819,8 @@ func (api *FilterAPI) createFilterOutputResource(newFilter *models.Filter, filte
 		filterOutput.Dimensions[i].URL = ""
 	}
 
-	if newFilter.Published {
-		filterOutput.Published = true
+	if newFilter.Published == &models.Published {
+		filterOutput.Published = &models.Published
 	}
 
 	if err := api.dataStore.CreateFilterOutput(&filterOutput); err != nil {
@@ -896,7 +902,7 @@ func (api *FilterAPI) getFilter(ctx context.Context, filterID string) (*models.F
 	}
 
 	//only return the filter if it is for published data or via authenticated request
-	if filter.Published || identity.IsPresent(ctx) {
+	if filter.Published == &models.Published || identity.IsPresent(ctx) {
 		return filter, nil
 	}
 
@@ -910,7 +916,7 @@ func (api *FilterAPI) getFilter(ctx context.Context, filterID string) (*models.F
 
 	//version has been published since filter was last requested, so update filter and return
 	if version.State == publishedState {
-		filter.Published = true
+		filter.Published = &models.Published
 		if err := api.dataStore.UpdateFilter(filter); err != nil {
 			log.Error(err, log.Data{"filter_id": filterID})
 			return nil, errNotFound
@@ -944,7 +950,7 @@ func (api *FilterAPI) getOutput(ctx context.Context, filterID string) (*models.F
 	}
 
 	//only return the filter if it is for published data or via authenticated request
-	if output.Published || identity.IsPresent(ctx) {
+	if output.Published == &models.Published || identity.IsPresent(ctx) {
 		return output, nil
 	}
 
@@ -957,8 +963,8 @@ func (api *FilterAPI) getOutput(ctx context.Context, filterID string) (*models.F
 	}
 
 	//filter has been published since output was last requested, so update output and return
-	if filter.Published {
-		output.Published = true
+	if filter.Published == &models.Published {
+		output.Published = &models.Published
 		if err := api.dataStore.UpdateFilterOutput(output); err != nil {
 			log.Error(err, log.Data{"filter_output_id": output.FilterID})
 			return nil, errFilterOutputNotFound
