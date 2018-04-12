@@ -902,7 +902,7 @@ func (api *FilterAPI) getFilter(ctx context.Context, filterID string) (*models.F
 	}
 
 	//only return the filter if it is for published data or via authenticated request
-	if filter.Published == &models.Published || identity.IsPresent(ctx) {
+	if filter.Published != nil && *filter.Published == models.Published || identity.IsPresent(ctx) {
 		return filter, nil
 	}
 
@@ -950,7 +950,7 @@ func (api *FilterAPI) getOutput(ctx context.Context, filterID string) (*models.F
 	}
 
 	//only return the filter if it is for published data or via authenticated request
-	if output.Published == &models.Published || identity.IsPresent(ctx) {
+	if output.Published != nil && *output.Published == models.Published || identity.IsPresent(ctx) {
 		return output, nil
 	}
 
@@ -963,7 +963,7 @@ func (api *FilterAPI) getOutput(ctx context.Context, filterID string) (*models.F
 	}
 
 	//filter has been published since output was last requested, so update output and return
-	if filter.Published == &models.Published {
+	if filter.Published != nil && *filter.Published == models.Published {
 		output.Published = &models.Published
 		if err := api.dataStore.UpdateFilterOutput(output); err != nil {
 			log.Error(err, log.Data{"filter_output_id": output.FilterID})
