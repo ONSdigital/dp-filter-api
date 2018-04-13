@@ -33,12 +33,13 @@ type PreviewDataset interface {
 
 // FilterAPI manages importing filters against a dataset
 type FilterAPI struct {
-	host        string
-	dataStore   DataStore
-	outputQueue OutputQueue
-	router      *mux.Router
-	datasetAPI  DatasetAPIer
-	preview     PreviewDataset
+	host               string
+	dataStore          DataStore
+	outputQueue        OutputQueue
+	router             *mux.Router
+	datasetAPI         DatasetAPIer
+	preview            PreviewDataset
+	downloadServiceURL string
 }
 
 // CreateFilterAPI manages all the routes configured to API
@@ -48,10 +49,11 @@ func CreateFilterAPI(host, bindAddr, zebedeeURL string,
 	errorChan chan error,
 	datasetAPI DatasetAPIer,
 	preview PreviewDataset,
-	enablePrivateEndpoints bool) {
+	enablePrivateEndpoints bool,
+	downloadServiceURL string) {
 
 	router := mux.NewRouter()
-	routes(host, router, datastore, outputQueue, datasetAPI, preview, enablePrivateEndpoints)
+	routes(host, router, datastore, outputQueue, datasetAPI, preview, enablePrivateEndpoints, downloadServiceURL)
 
 	// Only add the identity middleware when running in publishing.
 	if enablePrivateEndpoints {
@@ -81,9 +83,17 @@ func routes(host string,
 	outputQueue OutputQueue,
 	datasetAPI DatasetAPIer,
 	preview PreviewDataset,
-	enablePrivateEndpoints bool) *FilterAPI {
+	enablePrivateEndpoints bool,
+	downloadServiceURL string) *FilterAPI {
 
-	api := FilterAPI{host: host, dataStore: dataStore, router: router, outputQueue: outputQueue, datasetAPI: datasetAPI, preview: preview}
+	api := FilterAPI{host: host,
+		dataStore: dataStore,
+		router: router,
+		outputQueue: outputQueue,
+		datasetAPI: datasetAPI,
+		preview: preview,
+		downloadServiceURL: downloadServiceURL}
+
 	router.Path("/healthcheck").Methods("GET").HandlerFunc(healthcheck.Do)
 
 	api.router.HandleFunc("/filters", api.addFilterBlueprint).Methods("POST")

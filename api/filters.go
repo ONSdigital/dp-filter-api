@@ -16,7 +16,7 @@ import (
 	"strconv"
 
 	"github.com/ONSdigital/go-ns/identity"
-	uuid "github.com/satori/go.uuid"
+	"github.com/satori/go.uuid"
 )
 
 var (
@@ -781,7 +781,7 @@ func (api *FilterAPI) updateFilterOutput(w http.ResponseWriter, r *http.Request)
 		filterOutput.Published = &models.Published
 	}
 
-	filterOutputUpdate := buildDownloadsObject(previousFilterOutput, filterOutput)
+	filterOutputUpdate := buildDownloadsObject(previousFilterOutput, filterOutput, api.downloadServiceURL)
 
 	if err = api.dataStore.UpdateFilterOutput(filterOutputUpdate); err != nil {
 		log.ErrorC("unable to update filter blueprint", err, logData)
@@ -1073,23 +1073,19 @@ func (api *FilterAPI) checkNewFilterDimension(ctx context.Context, name string, 
 	return nil
 }
 
-func buildDownloadsObject(previousFilterOutput, filterOutput *models.Filter) *models.Filter {
-	if previousFilterOutput.Downloads == nil {
-		return filterOutput
-	}
+func buildDownloadsObject(previousFilterOutput, filterOutput *models.Filter, downloadServiceURL string) *models.Filter {
 
 	if filterOutput.Downloads == nil {
 		filterOutput.Downloads = previousFilterOutput.Downloads
 		return filterOutput
 	}
 
-	if previousFilterOutput.Downloads.CSV != nil {
-		if filterOutput.Downloads.CSV == nil {
-			filterOutput.Downloads.CSV = previousFilterOutput.Downloads.CSV
-		} else {
-			if filterOutput.Downloads.CSV.HRef == "" {
-				filterOutput.Downloads.CSV.HRef = previousFilterOutput.Downloads.CSV.HRef
-			}
+	if filterOutput.Downloads.CSV != nil {
+
+		filterOutput.Downloads.CSV.HRef = downloadServiceURL + "/downloads/filter-outputs/" + previousFilterOutput.FilterID + ".csv"
+
+		if previousFilterOutput.Downloads != nil && previousFilterOutput.Downloads.CSV != nil {
+
 			if filterOutput.Downloads.CSV.Size == "" {
 				filterOutput.Downloads.CSV.Size = previousFilterOutput.Downloads.CSV.Size
 			}
@@ -1100,15 +1096,18 @@ func buildDownloadsObject(previousFilterOutput, filterOutput *models.Filter) *mo
 				filterOutput.Downloads.CSV.Public = previousFilterOutput.Downloads.CSV.Public
 			}
 		}
+	} else {
+		if previousFilterOutput.Downloads != nil {
+			filterOutput.Downloads.CSV = previousFilterOutput.Downloads.CSV
+		}
 	}
 
-	if previousFilterOutput.Downloads.XLS != nil {
-		if filterOutput.Downloads.XLS == nil {
-			filterOutput.Downloads.XLS = previousFilterOutput.Downloads.XLS
-		} else {
-			if filterOutput.Downloads.XLS.HRef == "" {
-				filterOutput.Downloads.XLS.HRef = previousFilterOutput.Downloads.XLS.HRef
-			}
+	if filterOutput.Downloads.XLS != nil {
+
+		filterOutput.Downloads.XLS.HRef = downloadServiceURL + "/downloads/filter-outputs/" + previousFilterOutput.FilterID + ".xlsx"
+
+		if previousFilterOutput.Downloads != nil && previousFilterOutput.Downloads.XLS != nil {
+
 			if filterOutput.Downloads.XLS.Size == "" {
 				filterOutput.Downloads.XLS.Size = previousFilterOutput.Downloads.XLS.Size
 			}
@@ -1118,6 +1117,10 @@ func buildDownloadsObject(previousFilterOutput, filterOutput *models.Filter) *mo
 			if filterOutput.Downloads.XLS.Public == "" {
 				filterOutput.Downloads.XLS.Public = previousFilterOutput.Downloads.XLS.Public
 			}
+		}
+	} else {
+		if previousFilterOutput.Downloads != nil {
+			filterOutput.Downloads.XLS = previousFilterOutput.Downloads.XLS
 		}
 	}
 
