@@ -16,7 +16,7 @@ import (
 	"strconv"
 
 	"github.com/ONSdigital/go-ns/identity"
-	uuid "github.com/satori/go.uuid"
+	"github.com/satori/go.uuid"
 )
 
 var (
@@ -42,7 +42,7 @@ var (
 	errMissingDimensions     = errors.New("missing dimensions")
 )
 
-const FilterSubmitted = "true"
+const filterSubmitted = "true"
 
 func (api *FilterAPI) addFilterBlueprint(w http.ResponseWriter, r *http.Request) {
 	submitted := r.FormValue("submitted")
@@ -84,7 +84,7 @@ func (api *FilterAPI) addFilterBlueprint(w http.ResponseWriter, r *http.Request)
 	}
 
 	if version.State == publishedState {
-		newFilter.Published = true
+		newFilter.Published = &models.Published
 	}
 
 	links := models.LinkMap{
@@ -117,9 +117,10 @@ func (api *FilterAPI) addFilterBlueprint(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	if submitted == FilterSubmitted {
+	if submitted == filterSubmitted {
+		var filterOutput models.Filter
 		// Create filter output resource and use id to pass into kafka
-		filterOutput, err := api.createFilterOutputResource(&newFilter, newFilter.FilterID)
+		filterOutput, err = api.createFilterOutputResource(&newFilter, newFilter.FilterID)
 		if err != nil {
 			log.ErrorC("failed to create new filter output", err, logData)
 			setErrorCode(w, err)
@@ -152,7 +153,7 @@ func (api *FilterAPI) addFilterBlueprint(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	log.Info("created new filter blueprint", logData)
+	log.Info("created filter blueprint", logData)
 }
 
 func (api *FilterAPI) getFilterBlueprint(w http.ResponseWriter, r *http.Request) {
@@ -187,7 +188,7 @@ func (api *FilterAPI) getFilterBlueprint(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	log.Info("got filtered blueprint", logData)
+	log.Info("got filter blueprint", logData)
 }
 
 func (api *FilterAPI) getFilterBlueprintDimensions(w http.ResponseWriter, r *http.Request) {
@@ -227,7 +228,7 @@ func (api *FilterAPI) getFilterBlueprintDimensions(w http.ResponseWriter, r *htt
 		return
 	}
 
-	log.Info("got filtered blueprint", logData)
+	log.Info("got dimensions for filter blueprint", logData)
 }
 
 func (api *FilterAPI) getFilterBlueprintDimension(w http.ResponseWriter, r *http.Request) {
@@ -255,7 +256,7 @@ func (api *FilterAPI) getFilterBlueprintDimension(w http.ResponseWriter, r *http
 	setJSONContentType(w)
 	w.WriteHeader(http.StatusNoContent)
 
-	log.Info("got filtered blueprint", logData)
+	log.Info("got filtered blueprint dimension", logData)
 }
 
 func (api *FilterAPI) removeFilterBlueprintDimension(w http.ResponseWriter, r *http.Request) {
@@ -290,7 +291,7 @@ func (api *FilterAPI) removeFilterBlueprintDimension(w http.ResponseWriter, r *h
 	setJSONContentType(w)
 	w.WriteHeader(http.StatusOK)
 
-	log.Info("delete filtered blueprint", logData)
+	log.Info("delete dimension from filter blueprint", logData)
 }
 
 func (api *FilterAPI) addFilterBlueprintDimension(w http.ResponseWriter, r *http.Request) {
@@ -402,7 +403,7 @@ func (api *FilterAPI) getFilterBlueprintDimensionOptions(w http.ResponseWriter, 
 		return
 	}
 
-	log.Info("got dimension options", logData)
+	log.Info("got dimension options for filter blueprint", logData)
 }
 
 func (api *FilterAPI) getFilterBlueprintDimensionOption(w http.ResponseWriter, r *http.Request) {
@@ -452,7 +453,7 @@ func (api *FilterAPI) getFilterBlueprintDimensionOption(w http.ResponseWriter, r
 	setJSONContentType(w)
 	w.WriteHeader(http.StatusNoContent)
 
-	log.Info("got dimension option", logData)
+	log.Info("got dimension option for filter blueprint", logData)
 }
 
 func (api *FilterAPI) addFilterBlueprintDimensionOption(w http.ResponseWriter, r *http.Request) {
@@ -564,7 +565,7 @@ func (api *FilterAPI) removeFilterBlueprintDimensionOption(w http.ResponseWriter
 	setJSONContentType(w)
 	w.WriteHeader(http.StatusOK)
 
-	log.Info("delete dimension option on filtered blueprint", logData)
+	log.Info("delete dimension option on filter blueprint", logData)
 }
 
 func (api *FilterAPI) updateFilterBlueprint(w http.ResponseWriter, r *http.Request) {
@@ -578,7 +579,7 @@ func (api *FilterAPI) updateFilterBlueprint(w http.ResponseWriter, r *http.Reque
 	if err != nil {
 		// When filter blueprint has query parameter `submitted` set to true then
 		// request can have an empty json in body for this PUT request
-		if submitted != FilterSubmitted || err != models.ErrorNoData {
+		if submitted != filterSubmitted || err != models.ErrorNoData {
 			log.ErrorC("unable to unmarshal request body", err, logData)
 			http.Error(w, badRequest, http.StatusBadRequest)
 			return
@@ -608,17 +609,19 @@ func (api *FilterAPI) updateFilterBlueprint(w http.ResponseWriter, r *http.Reque
 
 	if versionHasChanged {
 		log.Info("finding new version details for filter after version change", logData)
+
+		var version *models.Version
 		// add version information from datasetAPI for new version
-		version, err := api.datasetAPI.GetVersion(r.Context(), *newFilter.Dataset)
+		version, err = api.datasetAPI.GetVersion(r.Context(), *newFilter.Dataset)
 		if err != nil {
 			log.ErrorC("unable to retrieve version document", err, logData)
 			setErrorCode(w, err, statusBadRequest)
 			return
 		}
 
-		newFilter.Published = false
+		newFilter.Published = &models.Unpublished
 		if version.State == "published" {
-			newFilter.Published = true
+			newFilter.Published = &models.Published
 		}
 
 		newFilter.InstanceID = version.ID
@@ -639,11 +642,12 @@ func (api *FilterAPI) updateFilterBlueprint(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	if submitted == FilterSubmitted {
+	if submitted == filterSubmitted {
 		outputFilter := newFilter
 
+		var filterOutput models.Filter
 		// Create filter output resource and use id to pass into kafka
-		filterOutput, err := api.createFilterOutputResource(outputFilter, filterID)
+		filterOutput, err = api.createFilterOutputResource(outputFilter, filterID)
 		if err != nil {
 			log.ErrorC("failed to create new filter output", err, logData)
 			setErrorCode(w, err)
@@ -730,7 +734,7 @@ func (api *FilterAPI) getFilterOutput(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Info("got filtered output", logData)
+	log.Info("got filter output", logData)
 }
 
 func (api *FilterAPI) updateFilterOutput(w http.ResponseWriter, r *http.Request) {
@@ -755,15 +759,7 @@ func (api *FilterAPI) updateFilterOutput(w http.ResponseWriter, r *http.Request)
 	}
 	logData["filter_output"] = filterOutput
 
-	if err = filterOutput.ValidateFilterOutputUpdate(); err != nil {
-		log.ErrorC("filter output failed validation", err, logData)
-		http.Error(w, err.Error(), http.StatusForbidden)
-		return
-	}
-
-	filterOutput.FilterID = filterOutputID
-
-	// TODO check filter output resource for current downloads
+	// check filter output resource for current downloads and published flag
 	previousFilterOutput, err := api.dataStore.GetFilterOutput(filterOutputID)
 	if err != nil {
 		log.ErrorC("unable to get current filter output", err, logData)
@@ -771,10 +767,23 @@ func (api *FilterAPI) updateFilterOutput(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	updatedFilterOutput := checkFilterOutputQuery(previousFilterOutput, filterOutput)
-	logData["filter_output_update"] = updatedFilterOutput
+	if err = filterOutput.ValidateFilterOutputUpdate(previousFilterOutput); err != nil {
+		log.ErrorC("filter output failed validation", err, logData)
+		http.Error(w, err.Error(), http.StatusForbidden)
+		return
+	}
 
-	if err = api.dataStore.UpdateFilterOutput(updatedFilterOutput); err != nil {
+	filterOutput.FilterID = filterOutputID
+
+	// Set the published flag to the value currently stored on filter output resources
+	// unless the request contains an update to the flag
+	if previousFilterOutput.Published != nil && *previousFilterOutput.Published == models.Published {
+		filterOutput.Published = &models.Published
+	}
+
+	filterOutputUpdate := buildDownloadsObject(previousFilterOutput, filterOutput, api.downloadServiceURL)
+
+	if err = api.dataStore.UpdateFilterOutput(filterOutputUpdate); err != nil {
 		log.ErrorC("unable to update filter blueprint", err, logData)
 		setErrorCode(w, err)
 		return
@@ -783,7 +792,7 @@ func (api *FilterAPI) updateFilterOutput(w http.ResponseWriter, r *http.Request)
 	setJSONContentType(w)
 	w.WriteHeader(http.StatusOK)
 
-	log.Info("got filtered blueprint", logData)
+	log.Info("update filter output", logData)
 }
 
 func (api *FilterAPI) createFilterOutputResource(newFilter *models.Filter, filterBlueprintID string) (models.Filter, error) {
@@ -801,9 +810,8 @@ func (api *FilterAPI) createFilterOutputResource(newFilter *models.Filter, filte
 	// Downloads object should exist for filter output resource
 	// even if it they are empty
 	filterOutput.Downloads = &models.Downloads{
-		CSV:  models.DownloadItem{},
-		XLS:  models.DownloadItem{},
-		JSON: models.DownloadItem{},
+		CSV: &models.DownloadItem{},
+		XLS: &models.DownloadItem{},
 	}
 
 	// Remove dimension url from output filter resource
@@ -811,8 +819,8 @@ func (api *FilterAPI) createFilterOutputResource(newFilter *models.Filter, filte
 		filterOutput.Dimensions[i].URL = ""
 	}
 
-	if newFilter.Published {
-		filterOutput.Published = true
+	if newFilter.Published == &models.Published {
+		filterOutput.Published = &models.Published
 	}
 
 	if err := api.dataStore.CreateFilterOutput(&filterOutput); err != nil {
@@ -894,7 +902,7 @@ func (api *FilterAPI) getFilter(ctx context.Context, filterID string) (*models.F
 	}
 
 	//only return the filter if it is for published data or via authenticated request
-	if filter.Published || identity.IsPresent(ctx) {
+	if filter.Published != nil && *filter.Published == models.Published || identity.IsPresent(ctx) {
 		return filter, nil
 	}
 
@@ -908,7 +916,7 @@ func (api *FilterAPI) getFilter(ctx context.Context, filterID string) (*models.F
 
 	//version has been published since filter was last requested, so update filter and return
 	if version.State == publishedState {
-		filter.Published = true
+		filter.Published = &models.Published
 		if err := api.dataStore.UpdateFilter(filter); err != nil {
 			log.Error(err, log.Data{"filter_id": filterID})
 			return nil, errNotFound
@@ -929,8 +937,20 @@ func (api *FilterAPI) getOutput(ctx context.Context, filterID string) (*models.F
 
 	errFilterOutputNotFound := errors.New("Filter output not found")
 
+	// Hide private download links if request is not authenticated
+	if !identity.IsPresent(ctx) {
+		if output.Downloads != nil {
+			if output.Downloads.CSV != nil {
+				output.Downloads.CSV.Private = ""
+			}
+			if output.Downloads.XLS != nil {
+				output.Downloads.XLS.Private = ""
+			}
+		}
+	}
+
 	//only return the filter if it is for published data or via authenticated request
-	if output.Published || identity.IsPresent(ctx) {
+	if output.Published != nil && *output.Published == models.Published || identity.IsPresent(ctx) {
 		return output, nil
 	}
 
@@ -943,8 +963,8 @@ func (api *FilterAPI) getOutput(ctx context.Context, filterID string) (*models.F
 	}
 
 	//filter has been published since output was last requested, so update output and return
-	if filter.Published {
-		output.Published = true
+	if filter.Published != nil && *filter.Published == models.Published {
+		output.Published = &models.Published
 		if err := api.dataStore.UpdateFilterOutput(output); err != nil {
 			log.Error(err, log.Data{"filter_output_id": output.FilterID})
 			return nil, errFilterOutputNotFound
@@ -980,8 +1000,9 @@ func (api *FilterAPI) checkFilterOptions(ctx context.Context, newFilter *models.
 	for _, filterDimension := range newFilter.Dimensions {
 		localData := logData
 
+		var datasetDimensionOptions *models.DatasetDimensionOptionResults
 		// Call dimension options list endpoint
-		datasetDimensionOptions, err := api.datasetAPI.GetVersionDimensionOptions(ctx, *newFilter.Dataset, filterDimension.Name)
+		datasetDimensionOptions, err = api.datasetAPI.GetVersionDimensionOptions(ctx, *newFilter.Dataset, filterDimension.Name)
 		if err != nil {
 			localData["dimension"] = filterDimension
 			log.ErrorC("failed to retreive a list of dimension options from dataset API", err, localData)
@@ -1052,21 +1073,55 @@ func (api *FilterAPI) checkNewFilterDimension(ctx context.Context, name string, 
 	return nil
 }
 
-func checkFilterOutputQuery(previousFilterOutput, filterOutput *models.Filter) *models.Filter {
-	if previousFilterOutput.Downloads == nil {
+func buildDownloadsObject(previousFilterOutput, filterOutput *models.Filter, downloadServiceURL string) *models.Filter {
+
+	if filterOutput.Downloads == nil {
+		filterOutput.Downloads = previousFilterOutput.Downloads
 		return filterOutput
 	}
 
-	if previousFilterOutput.Downloads.CSV.URL != "" {
-		filterOutput.Downloads.CSV = previousFilterOutput.Downloads.CSV
+	if filterOutput.Downloads.CSV != nil {
+
+		filterOutput.Downloads.CSV.HRef = downloadServiceURL + "/downloads/filter-outputs/" + previousFilterOutput.FilterID + ".csv"
+
+		if previousFilterOutput.Downloads != nil && previousFilterOutput.Downloads.CSV != nil {
+
+			if filterOutput.Downloads.CSV.Size == "" {
+				filterOutput.Downloads.CSV.Size = previousFilterOutput.Downloads.CSV.Size
+			}
+			if filterOutput.Downloads.CSV.Private == "" {
+				filterOutput.Downloads.CSV.Private = previousFilterOutput.Downloads.CSV.Private
+			}
+			if filterOutput.Downloads.CSV.Public == "" {
+				filterOutput.Downloads.CSV.Public = previousFilterOutput.Downloads.CSV.Public
+			}
+		}
+	} else {
+		if previousFilterOutput.Downloads != nil {
+			filterOutput.Downloads.CSV = previousFilterOutput.Downloads.CSV
+		}
 	}
 
-	if previousFilterOutput.Downloads.XLS.URL != "" {
-		filterOutput.Downloads.XLS = previousFilterOutput.Downloads.XLS
-	}
+	if filterOutput.Downloads.XLS != nil {
 
-	if previousFilterOutput.Downloads.JSON.URL != "" {
-		filterOutput.Downloads.JSON = previousFilterOutput.Downloads.JSON
+		filterOutput.Downloads.XLS.HRef = downloadServiceURL + "/downloads/filter-outputs/" + previousFilterOutput.FilterID + ".xlsx"
+
+		if previousFilterOutput.Downloads != nil && previousFilterOutput.Downloads.XLS != nil {
+
+			if filterOutput.Downloads.XLS.Size == "" {
+				filterOutput.Downloads.XLS.Size = previousFilterOutput.Downloads.XLS.Size
+			}
+			if filterOutput.Downloads.XLS.Private == "" {
+				filterOutput.Downloads.XLS.Private = previousFilterOutput.Downloads.XLS.Private
+			}
+			if filterOutput.Downloads.XLS.Public == "" {
+				filterOutput.Downloads.XLS.Public = previousFilterOutput.Downloads.XLS.Public
+			}
+		}
+	} else {
+		if previousFilterOutput.Downloads != nil {
+			filterOutput.Downloads.XLS = previousFilterOutput.Downloads.XLS
+		}
 	}
 
 	return filterOutput

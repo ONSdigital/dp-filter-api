@@ -1,13 +1,15 @@
 package api
 
 import (
+	"encoding/json"
 	"errors"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
+
+	"io"
 
 	"github.com/ONSdigital/dp-filter-api/api/datastoretest"
 	"github.com/ONSdigital/dp-filter-api/mocks"
@@ -16,12 +18,12 @@ import (
 	"github.com/ONSdigital/go-ns/identity"
 	"github.com/gorilla/mux"
 	. "github.com/smartystreets/goconvey/convey"
-	"io"
 )
 
 const (
 	host                   = "http://localhost:80"
 	enablePrivateEndpoints = true
+	downloadServiceURL = "http://localhost:23600"
 )
 
 var previewMock = &datastoretest.PreviewDatasetMock{
@@ -38,7 +40,7 @@ func TestSuccessfulAddFilterBlueprint(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusCreated)
 	})
@@ -48,7 +50,7 @@ func TestSuccessfulAddFilterBlueprint(t *testing.T) {
 		r := createAuthenticatedRequest("POST", "http://localhost:22100/filters", reader)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints, downloadServiceURL)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusCreated)
 	})
@@ -59,7 +61,7 @@ func TestSuccessfulAddFilterBlueprint(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusCreated)
 	})
@@ -71,7 +73,7 @@ func TestSuccessfulAddFilterBlueprint(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusCreated)
 	})
@@ -85,12 +87,11 @@ func TestFailedToAddFilterBlueprint(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{InternalError: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{InternalError: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusInternalServerError)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, internalError+"\n")
 	})
 
@@ -100,12 +101,11 @@ func TestFailedToAddFilterBlueprint(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{InternalServerError: true}, previewMock, enablePrivateEndpoints)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{InternalServerError: true}, previewMock, enablePrivateEndpoints, downloadServiceURL)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusInternalServerError)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, internalError+"\n")
 	})
 
@@ -115,12 +115,11 @@ func TestFailedToAddFilterBlueprint(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{VersionNotFound: true}, previewMock, enablePrivateEndpoints)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{VersionNotFound: true}, previewMock, enablePrivateEndpoints, downloadServiceURL)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, "Version not found\n")
 	})
 
@@ -130,12 +129,11 @@ func TestFailedToAddFilterBlueprint(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints, downloadServiceURL)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, badRequest+"\n")
 	})
 
@@ -145,12 +143,11 @@ func TestFailedToAddFilterBlueprint(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, badRequest+"\n")
 	})
 
@@ -160,12 +157,11 @@ func TestFailedToAddFilterBlueprint(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, badRequest+"\n")
 	})
 
@@ -175,12 +171,11 @@ func TestFailedToAddFilterBlueprint(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, badRequest+"\n")
 	})
 
@@ -190,12 +185,11 @@ func TestFailedToAddFilterBlueprint(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, "Bad request - incorrect dimensions chosen: [weight]\n")
 	})
 
@@ -205,12 +199,11 @@ func TestFailedToAddFilterBlueprint(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, "Bad request - incorrect dimension options chosen: [29]\n")
 	})
 }
@@ -223,7 +216,7 @@ func TestSuccessfulAddFilterBlueprintDimension(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusCreated)
 	})
@@ -234,7 +227,7 @@ func TestSuccessfulAddFilterBlueprintDimension(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusCreated)
 	})
@@ -245,7 +238,7 @@ func TestSuccessfulAddFilterBlueprintDimension(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusCreated)
 	})
@@ -255,7 +248,7 @@ func TestSuccessfulAddFilterBlueprintDimension(t *testing.T) {
 		r := createAuthenticatedRequest("POST", "http://localhost:22100/filters/12345678/dimensions/age", reader)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints, downloadServiceURL)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusCreated)
 	})
@@ -269,12 +262,11 @@ func TestFailedToAddFilterBlueprintDimension(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{InternalError: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{InternalError: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusInternalServerError)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, internalError+"\n")
 	})
 
@@ -284,12 +276,11 @@ func TestFailedToAddFilterBlueprintDimension(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, badRequest+"\n")
 	})
 
@@ -299,12 +290,11 @@ func TestFailedToAddFilterBlueprintDimension(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{NotFound: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{NotFound: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, "Filter blueprint not found\n")
 	})
 
@@ -314,12 +304,11 @@ func TestFailedToAddFilterBlueprintDimension(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints, downloadServiceURL)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, "Filter blueprint not found\n")
 	})
 
@@ -329,12 +318,11 @@ func TestFailedToAddFilterBlueprintDimension(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, "Bad request - incorrect dimensions chosen: [wealth]\n")
 	})
 
@@ -344,12 +332,11 @@ func TestFailedToAddFilterBlueprintDimension(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, "Bad request - incorrect dimension options chosen: [22]\n")
 	})
 }
@@ -361,7 +348,7 @@ func TestSuccessfulAddFilterBlueprintDimensionOption(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusCreated)
 	})
@@ -370,7 +357,7 @@ func TestSuccessfulAddFilterBlueprintDimensionOption(t *testing.T) {
 		r := createAuthenticatedRequest("POST", "http://localhost:22100/filters/12345678/dimensions/age/options/33", nil)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints, downloadServiceURL)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusCreated)
 	})
@@ -383,12 +370,11 @@ func TestFailedToAddFilterBlueprintDimensionOption_DimensionDoesNotExist(t *test
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{InvalidDimensionOption: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{InvalidDimensionOption: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, "Bad request - incorrect dimensions chosen: [notage]\n")
 	})
 }
@@ -400,12 +386,11 @@ func TestFailedToAddFilterBlueprintDimensionOption(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{InternalError: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{InternalError: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusInternalServerError)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, internalError+"\n")
 	})
 
@@ -414,12 +399,11 @@ func TestFailedToAddFilterBlueprintDimensionOption(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{BadRequest: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{BadRequest: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, statusBadRequest+"\n")
 	})
 
@@ -428,12 +412,11 @@ func TestFailedToAddFilterBlueprintDimensionOption(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints, downloadServiceURL)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, "Filter blueprint not found\n")
 	})
 
@@ -442,12 +425,11 @@ func TestFailedToAddFilterBlueprintDimensionOption(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, "Bad request - incorrect dimension options chosen: [66]\n")
 	})
 }
@@ -459,7 +441,7 @@ func TestSuccessfulGetFilterBlueprint(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL)
 
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusOK)
@@ -469,7 +451,7 @@ func TestSuccessfulGetFilterBlueprint(t *testing.T) {
 		r := createAuthenticatedRequest("GET", "http://localhost:22100/filters/12345678", nil)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints, downloadServiceURL)
 
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusOK)
@@ -483,13 +465,12 @@ func TestFailedToGetFilterBlueprint(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{InternalError: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{InternalError: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL)
 
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusInternalServerError)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, internalError+"\n")
 	})
 
@@ -498,12 +479,11 @@ func TestFailedToGetFilterBlueprint(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{NotFound: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{NotFound: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, "Filter blueprint not found\n")
 	})
 
@@ -512,12 +492,11 @@ func TestFailedToGetFilterBlueprint(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints, downloadServiceURL)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, "Filter blueprint not found\n")
 	})
 }
@@ -530,7 +509,7 @@ func TestSuccessfulUpdateFilterBlueprint(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{ChangeInstanceRequest: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{ChangeInstanceRequest: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusOK)
 	})
@@ -546,7 +525,7 @@ func TestSuccessfulUpdateFilterBlueprint(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{ChangeInstanceRequest: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{ChangeInstanceRequest: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusOK)
 	})
@@ -557,7 +536,7 @@ func TestSuccessfulUpdateFilterBlueprint(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusOK)
 	})
@@ -567,7 +546,7 @@ func TestSuccessfulUpdateFilterBlueprint(t *testing.T) {
 		r := createAuthenticatedRequest("PUT", "http://localhost:22100/filters/21312?submitted=true", reader)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints, downloadServiceURL)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusOK)
 	})
@@ -581,12 +560,11 @@ func TestFailedToUpdateFilterBlueprint(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, badRequest+"\n")
 	})
 
@@ -596,12 +574,11 @@ func TestFailedToUpdateFilterBlueprint(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, badRequest+"\n")
 	})
 
@@ -611,12 +588,11 @@ func TestFailedToUpdateFilterBlueprint(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{NotFound: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{NotFound: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, "Filter blueprint not found\n")
 	})
 
@@ -627,12 +603,11 @@ func TestFailedToUpdateFilterBlueprint(t *testing.T) {
 
 		w := httptest.NewRecorder()
 
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints, downloadServiceURL)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, "Filter blueprint not found\n")
 	})
 
@@ -642,12 +617,11 @@ func TestFailedToUpdateFilterBlueprint(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{VersionNotFound: true}, previewMock, enablePrivateEndpoints)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{VersionNotFound: true}, previewMock, enablePrivateEndpoints, downloadServiceURL)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, "Bad request - version not found\n")
 	})
 
@@ -657,12 +631,11 @@ func TestFailedToUpdateFilterBlueprint(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, "Bad request - incorrect dimensions chosen: [time]\n")
 	})
 
@@ -672,12 +645,11 @@ func TestFailedToUpdateFilterBlueprint(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{InvalidDimensionOption: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{InvalidDimensionOption: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, "Bad request - incorrect dimension options chosen: [28]\n")
 	})
 }
@@ -689,7 +661,7 @@ func TestSuccessfulGetFilterBlueprintDimensions(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusOK)
 	})
@@ -698,7 +670,7 @@ func TestSuccessfulGetFilterBlueprintDimensions(t *testing.T) {
 		r := createAuthenticatedRequest("GET", "http://localhost:22100/filters/12345678/dimensions", nil)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints, downloadServiceURL)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusOK)
 	})
@@ -711,12 +683,11 @@ func TestFailedToGetFilterBlueprintDimensions(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{InternalError: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{InternalError: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusInternalServerError)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, internalError+"\n")
 	})
 
@@ -725,12 +696,11 @@ func TestFailedToGetFilterBlueprintDimensions(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{NotFound: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{NotFound: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, "Filter blueprint not found\n")
 	})
 }
@@ -742,7 +712,7 @@ func TestSuccessfulGetFilterBlueprintDimension(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNoContent)
 	})
@@ -751,7 +721,7 @@ func TestSuccessfulGetFilterBlueprintDimension(t *testing.T) {
 		r := createAuthenticatedRequest("GET", "http://localhost:22100/filters/12345678/dimensions/1_age", nil)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints, downloadServiceURL)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNoContent)
 	})
@@ -764,12 +734,11 @@ func TestFailedToGetFilterBlueprintDimension(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{InternalError: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{InternalError: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusInternalServerError)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, internalError+"\n")
 	})
 
@@ -778,12 +747,11 @@ func TestFailedToGetFilterBlueprintDimension(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{BadRequest: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{BadRequest: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, statusBadRequest+"\n")
 	})
 
@@ -792,12 +760,11 @@ func TestFailedToGetFilterBlueprintDimension(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints, downloadServiceURL)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, "Filter blueprint not found\n")
 	})
 
@@ -806,12 +773,11 @@ func TestFailedToGetFilterBlueprintDimension(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{DimensionNotFound: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{DimensionNotFound: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, "Dimension not found\n")
 	})
 }
@@ -823,7 +789,7 @@ func TestSuccessfulGetFilterBlueprintDimensionOptions(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusOK)
 	})
@@ -832,7 +798,7 @@ func TestSuccessfulGetFilterBlueprintDimensionOptions(t *testing.T) {
 		r := createAuthenticatedRequest("GET", "http://localhost:22100/filters/12345678/dimensions/time/options", nil)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints, downloadServiceURL)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusOK)
 	})
@@ -845,12 +811,11 @@ func TestFailedToGetFilterBlueprintDimensionOptions(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{InternalError: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{InternalError: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusInternalServerError)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, internalError+"\n")
 	})
 
@@ -859,12 +824,11 @@ func TestFailedToGetFilterBlueprintDimensionOptions(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{NotFound: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{NotFound: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, "Filter blueprint not found\n")
 	})
 
@@ -873,12 +837,11 @@ func TestFailedToGetFilterBlueprintDimensionOptions(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints, downloadServiceURL)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, "Filter blueprint not found\n")
 	})
 
@@ -887,12 +850,11 @@ func TestFailedToGetFilterBlueprintDimensionOptions(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{DimensionNotFound: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{DimensionNotFound: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, "Dimension not found\n")
 	})
 }
@@ -904,7 +866,7 @@ func TestSuccessfulGetFilterBlueprintDimensionOption(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNoContent)
 	})
@@ -913,7 +875,7 @@ func TestSuccessfulGetFilterBlueprintDimensionOption(t *testing.T) {
 		r := createAuthenticatedRequest("GET", "http://localhost:22100/filters/12345678/dimensions/time/options/2015", nil)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints, downloadServiceURL)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNoContent)
 	})
@@ -926,12 +888,11 @@ func TestFailedToGetFilterBlueprintDimensionOption(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{InternalError: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{InternalError: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusInternalServerError)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, internalError+"\n")
 	})
 
@@ -940,12 +901,11 @@ func TestFailedToGetFilterBlueprintDimensionOption(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{BadRequest: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{BadRequest: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, statusBadRequest+"\n")
 	})
 
@@ -954,12 +914,11 @@ func TestFailedToGetFilterBlueprintDimensionOption(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints, downloadServiceURL)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, "Filter blueprint not found\n")
 	})
 
@@ -968,12 +927,11 @@ func TestFailedToGetFilterBlueprintDimensionOption(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{InvalidDimensionOption: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{InvalidDimensionOption: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, "Option not found\n")
 	})
 }
@@ -985,7 +943,7 @@ func TestSuccessfulRemoveFilterBlueprintDimension(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusOK)
 	})
@@ -994,7 +952,7 @@ func TestSuccessfulRemoveFilterBlueprintDimension(t *testing.T) {
 		r := createAuthenticatedRequest("DELETE", "http://localhost:22100/filters/12345678/dimensions/1_age", nil)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints, downloadServiceURL)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusOK)
 	})
@@ -1007,12 +965,11 @@ func TestFailedToRemoveFilterBlueprintDimension(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{InternalError: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{InternalError: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusInternalServerError)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, internalError+"\n")
 	})
 
@@ -1021,12 +978,11 @@ func TestFailedToRemoveFilterBlueprintDimension(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{BadRequest: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{BadRequest: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, statusBadRequest+"\n")
 	})
 
@@ -1035,12 +991,11 @@ func TestFailedToRemoveFilterBlueprintDimension(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints, downloadServiceURL)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, "Filter blueprint not found\n")
 	})
 
@@ -1049,12 +1004,11 @@ func TestFailedToRemoveFilterBlueprintDimension(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{NotFound: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{NotFound: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, "Filter blueprint not found\n")
 	})
 }
@@ -1066,7 +1020,7 @@ func TestSuccessfulRemoveFilterBlueprintDimensionOption(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusOK)
 	})
@@ -1075,7 +1029,7 @@ func TestSuccessfulRemoveFilterBlueprintDimensionOption(t *testing.T) {
 		r := createAuthenticatedRequest("DELETE", "http://localhost:22100/filters/12345678/dimensions/time/options/2015", nil)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints, downloadServiceURL)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusOK)
 	})
@@ -1088,12 +1042,11 @@ func TestFailedToRemoveFilterBlueprintDimensionOption(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{InternalError: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{InternalError: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusInternalServerError)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, internalError+"\n")
 	})
 
@@ -1102,12 +1055,11 @@ func TestFailedToRemoveFilterBlueprintDimensionOption(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{BadRequest: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{BadRequest: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, statusBadRequest+"\n")
 	})
 
@@ -1116,12 +1068,11 @@ func TestFailedToRemoveFilterBlueprintDimensionOption(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints, downloadServiceURL)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, "Filter blueprint not found\n")
 	})
 
@@ -1130,33 +1081,65 @@ func TestFailedToRemoveFilterBlueprintDimensionOption(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{DimensionNotFound: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{DimensionNotFound: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, "Dimension not found\n")
 	})
 }
 
 func TestSuccessfulGetFilterOutput(t *testing.T) {
 	t.Parallel()
-	Convey("Successfully get a filter output", t, func() {
+	Convey("Successfully get a filter output from an unauthenticated request", t, func() {
 		r, err := http.NewRequest("GET", "http://localhost:22100/filter-outputs/12345678", nil)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusOK)
+
+		// Check private link is hidden for unauthenticated user
+		jsonResult := w.Body.Bytes()
+
+		filterOutput := &models.Filter{}
+		if err = json.Unmarshal(jsonResult, filterOutput); err != nil {
+			t.Logf("failed to marshal filte output json response, error: [%v]", err.Error())
+			t.Fail()
+		}
+
+		So(filterOutput.Downloads.CSV, ShouldResemble, &models.DownloadItem{HRef: "ons-test-site.gov.uk/87654321.csv", Private: "", Public: "csv-public-link", Size: "12mb"})
+		So(filterOutput.Downloads.XLS, ShouldResemble, &models.DownloadItem{HRef: "ons-test-site.gov.uk/87654321.xls", Private: "", Public: "xls-public-link", Size: "24mb"})
+	})
+
+	Convey("Successfully get a filter output from an authenticated request", t, func() {
+		r := createAuthenticatedRequest("GET", "http://localhost:22100/filter-outputs/12345678", nil)
+
+		w := httptest.NewRecorder()
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints, downloadServiceURL)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusOK)
+
+		// Check private link is NOT hidden from authenticated user
+		jsonResult := w.Body.Bytes()
+
+		filterOutput := &models.Filter{}
+		if err := json.Unmarshal(jsonResult, filterOutput); err != nil {
+			t.Logf("failed to marshal filte output json response, error: [%v]", err.Error())
+			t.Fail()
+		}
+
+		So(filterOutput.Downloads.CSV, ShouldResemble, &models.DownloadItem{HRef: "ons-test-site.gov.uk/87654321.csv", Private: "csv-private-link", Public: "csv-public-link", Size: "12mb"})
+		So(filterOutput.Downloads.XLS, ShouldResemble, &models.DownloadItem{HRef: "ons-test-site.gov.uk/87654321.xls", Private: "xls-private-link", Public: "xls-public-link", Size: "24mb"})
 	})
 
 	Convey("Successfully get an unpublished filter output", t, func() {
 		r := createAuthenticatedRequest("GET", "http://localhost:22100/filter-outputs/12345678", nil)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints, downloadServiceURL)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusOK)
 	})
@@ -1170,12 +1153,11 @@ func TestFailedToGetFilterOutput(t *testing.T) {
 
 		w := httptest.NewRecorder()
 
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{InternalError: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{InternalError: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusInternalServerError)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, internalError+"\n")
 	})
 
@@ -1184,12 +1166,11 @@ func TestFailedToGetFilterOutput(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{NotFound: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{NotFound: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, "Filter output not found\n")
 	})
 
@@ -1198,24 +1179,35 @@ func TestFailedToGetFilterOutput(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints, downloadServiceURL)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, "Filter output not found\n")
 	})
 }
 
 func TestSuccessfulUpdateFilterOutput(t *testing.T) {
 	t.Parallel()
-	Convey("Successfully send a valid json message", t, func() {
-		reader := strings.NewReader(`{"downloads":{"csv":{"url":"s3-csv-location","size":"12mb"}}}`)
+
+	Convey("Successfully update filter output when public csv download link is missing", t, func() {
+		reader := strings.NewReader(`{"downloads":{"csv":{"size":"12mb", "public":"s3-public-csv-location"}}}`)
 		r := createAuthenticatedRequest("PUT", "http://localhost:22100/filter-outputs/21312", reader)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{MissingPublicLinks: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusOK)
+	})
+
+	Convey("Successfully update filter output when public xls download link is missing", t, func() {
+		reader := strings.NewReader(`{"downloads":{"xls":{"size":"12mb", "public":"s3-public-xls-location"}}}`)
+		r := createAuthenticatedRequest("PUT", "http://localhost:22100/filter-outputs/21312", reader)
+
+		w := httptest.NewRecorder()
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{MissingPublicLinks: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL)
+
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusOK)
 	})
@@ -1224,12 +1216,22 @@ func TestSuccessfulUpdateFilterOutput(t *testing.T) {
 func TestSuccessfulUpdateFilterOutputUnpublished(t *testing.T) {
 	t.Parallel()
 
-	Convey("Successfully send a valid json message to update an unpublished filter output", t, func() {
-		reader := strings.NewReader(`{"downloads":{"csv":{"url":"s3-csv-location","size":"12mb"}}}`)
+	Convey("Successfully update filter output with private csv download link when version is unpublished", t, func() {
+		reader := strings.NewReader(`{"downloads":{"csv":{"size":"12mb", "private": "s3-private-csv-location"}}}`)
 		r := createAuthenticatedRequest("PUT", "http://localhost:22100/filter-outputs/21312", reader)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints, downloadServiceURL)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusOK)
+	})
+
+	Convey("Successfully update filter output with private xls download link when version is unpublished", t, func() {
+		reader := strings.NewReader(`{"downloads":{"xls":{"size":"12mb", "private":"s3-private-xls-location"}}}`)
+		r := createAuthenticatedRequest("PUT", "http://localhost:22100/filter-outputs/21312", reader)
+
+		w := httptest.NewRecorder()
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusOK)
 	})
@@ -1238,16 +1240,15 @@ func TestSuccessfulUpdateFilterOutputUnpublished(t *testing.T) {
 func TestFailedToUpdateFilterOutput(t *testing.T) {
 	t.Parallel()
 	Convey("When no data store is available, an internal error is returned", t, func() {
-		reader := strings.NewReader(`{"downloads":{"csv":{"url":"s3-csv-location","size":"12mb"}}}`)
+		reader := strings.NewReader(`{"downloads":{"csv":{"size":"12mb", "public":"s3-public-csv-location"}}}`)
 		r := createAuthenticatedRequest("PUT", "http://localhost:22100/filter-outputs/21312", reader)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{InternalError: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{InternalError: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusInternalServerError)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, internalError+"\n")
 	})
 
@@ -1256,21 +1257,20 @@ func TestFailedToUpdateFilterOutput(t *testing.T) {
 		r := createAuthenticatedRequest("PUT", "http://localhost:22100/filter-outputs/21312", reader)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, badRequest+"\n")
 	})
 
 	Convey("When an update to a filter output resource that does not exist, a not found is returned", t, func() {
-		reader := strings.NewReader(`{"downloads":{"csv":{"url":"s3-csv-location","size":"12mb"}}}`)
+		reader := strings.NewReader(`{"downloads":{"csv":{"size":"12mb", "public":"s3-public-csv-location"}}}`)
 		r := createAuthenticatedRequest("PUT", "http://localhost:22100/filter-outputs/21312", reader)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{NotFound: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{NotFound: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 	})
@@ -1280,12 +1280,11 @@ func TestFailedToUpdateFilterOutput(t *testing.T) {
 		r := createAuthenticatedRequest("PUT", "http://localhost:22100/filter-outputs/21312", reader)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, badRequest+"\n")
 	})
 
@@ -1294,28 +1293,78 @@ func TestFailedToUpdateFilterOutput(t *testing.T) {
 		r := createAuthenticatedRequest("PUT", "http://localhost:22100/filter-outputs/21312", reader)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusForbidden)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, "Forbidden from updating the following fields: [dataset.id dataset.edition dataset.version]\n")
 	})
 
 	Convey("When a json message is sent to change a filter output with the wrong authorisation header, an unauthorised status is returned", t, func() {
-		reader := strings.NewReader(`{"downloads":{"csv":{"url":"s3-csv-location","size":"12mb"}}}`)
+		reader := strings.NewReader(`{"downloads":{"csv":{"size":"12mb", "public":"s3-public-csv-location"}}}`)
 		r, err := http.NewRequest("PUT", "http://localhost:22100/filter-outputs/21312", reader)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, "resource not found\n")
+	})
+
+	Convey("When a json message contains downloads object but current filter ouput has public csv download links already and version is published, than a forbidden status is returned", t, func() {
+		reader := strings.NewReader(`{"downloads":{"csv":{"size":"12mb", "public":"s3-public-csv-location"}}}`)
+		r := createAuthenticatedRequest("PUT", "http://localhost:22100/filter-outputs/21312", reader)
+
+		w := httptest.NewRecorder()
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusForbidden)
+
+		response := w.Body.String()
+		So(response, ShouldResemble, "Forbidden from updating the following fields: [downloads.csv]\n")
+	})
+
+	Convey("When a json message contains downloads object but current filter ouput has public xls download links already and version is published, than a forbidden status is returned", t, func() {
+		reader := strings.NewReader(`{"downloads":{"xls":{"href":"s3-xls-location","size":"12mb", "public":"s3-public-xls-location"}}}`)
+		r := createAuthenticatedRequest("PUT", "http://localhost:22100/filter-outputs/21312", reader)
+
+		w := httptest.NewRecorder()
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusForbidden)
+
+		response := w.Body.String()
+		So(response, ShouldResemble, "Forbidden from updating the following fields: [downloads.xls]\n")
+	})
+
+	Convey("When a json message contains private csv link but current filter ouput has private csv download links already and version is published, than a forbidden status is returned", t, func() {
+		reader := strings.NewReader(`{"downloads":{"csv":{"size":"12mb", "private":"s3-private-csv-location"}}}`)
+		r := createAuthenticatedRequest("PUT", "http://localhost:22100/filter-outputs/21312", reader)
+
+		w := httptest.NewRecorder()
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{MissingPublicLinks: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusForbidden)
+
+		response := w.Body.String()
+		So(response, ShouldResemble, "Forbidden from updating the following fields: [downloads.csv.private]\n")
+	})
+
+	Convey("When a json message contains private xls link but current filter ouput has private xls download links already and version is published, than a forbidden status is returned", t, func() {
+		reader := strings.NewReader(`{"downloads":{"xls":{"size":"12mb", "private":"s3-private-xls-location"}}}`)
+		r := createAuthenticatedRequest("PUT", "http://localhost:22100/filter-outputs/21312", reader)
+
+		w := httptest.NewRecorder()
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{MissingPublicLinks: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusForbidden)
+
+		response := w.Body.String()
+		So(response, ShouldResemble, "Forbidden from updating the following fields: [downloads.xls.private]\n")
 	})
 }
 
@@ -1326,7 +1375,7 @@ func TestUpdateFilterOutput_PrivateEndpointsNotEnabled(t *testing.T) {
 		r := createAuthenticatedRequest("PUT", "http://localhost:22100/filter-outputs/21312", reader)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, false)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, false, downloadServiceURL)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusMethodNotAllowed)
 	})
@@ -1339,7 +1388,7 @@ func TestSuccessfulGetPreview(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusOK)
 		So(previewMock.GetPreviewCalls()[0].Limit, ShouldEqual, 20)
@@ -1349,7 +1398,7 @@ func TestSuccessfulGetPreview(t *testing.T) {
 		r := createAuthenticatedRequest("GET", "http://localhost:22100/filter-outputs/21312/preview", nil)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints, downloadServiceURL)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusOK)
 		So(previewMock.GetPreviewCalls()[0].Limit, ShouldEqual, 20)
@@ -1365,7 +1414,7 @@ func TestSuccessfulGetPreview(t *testing.T) {
 				return &preview.FilterPreview{}, nil
 			},
 		}
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMockForLimit, enablePrivateEndpoints)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMockForLimit, enablePrivateEndpoints, downloadServiceURL)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusOK)
 		So(previewMockForLimit.GetPreviewCalls()[0].Limit, ShouldEqual, 10)
@@ -1379,12 +1428,11 @@ func TestFailedGetPreview(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{NotFound: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{NotFound: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, "Filter output not found\n")
 	})
 
@@ -1393,12 +1441,11 @@ func TestFailedGetPreview(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{InternalError: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{InternalError: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusInternalServerError)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, internalError+"\n")
 	})
 
@@ -1412,12 +1459,11 @@ func TestFailedGetPreview(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMockInternalError, enablePrivateEndpoints)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMockInternalError, enablePrivateEndpoints, downloadServiceURL)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusInternalServerError)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, "internal server error\n")
 	})
 
@@ -1426,12 +1472,11 @@ func TestFailedGetPreview(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{BadRequest: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{BadRequest: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, "no dimensions are present in the filter\n")
 	})
 
@@ -1440,12 +1485,11 @@ func TestFailedGetPreview(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{BadRequest: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{BadRequest: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, "requested limit is not a number\n")
 	})
 
@@ -1454,12 +1498,11 @@ func TestFailedGetPreview(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints, downloadServiceURL)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
-		bodyBytes, _ := ioutil.ReadAll(w.Body)
-		response := string(bodyBytes)
+		response := w.Body.String()
 		So(response, ShouldResemble, "requested limit is not a number\n")
 	})
 }
