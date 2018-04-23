@@ -16,6 +16,7 @@ import (
 
 	"github.com/ONSdigital/dp-filter-api/models"
 	"github.com/ONSdigital/go-ns/clients/dataset"
+	"github.com/ONSdigital/go-ns/identity"
 	"github.com/ONSdigital/go-ns/log"
 	"github.com/ONSdigital/go-ns/rchttp"
 )
@@ -29,17 +30,19 @@ type DatasetAPIer interface {
 
 // DatasetAPI aggregates a client and URL and other common data for accessing the API
 type DatasetAPI struct {
-	client    *rchttp.Client
-	url       string
-	authToken string
+	client           *rchttp.Client
+	url              string
+	authToken        string
+	serviceAuthToken string
 }
 
 // NewDatasetAPI creates an DatasetAPI object
-func NewDatasetAPI(client *rchttp.Client, datasetAPIURL, datasetAPIAuthToken string) *DatasetAPI {
+func NewDatasetAPI(client *rchttp.Client, datasetAPIURL, datasetAPIAuthToken, serviceAuthToken string) *DatasetAPI {
 	return &DatasetAPI{
-		client:    client,
-		url:       datasetAPIURL,
-		authToken: datasetAPIAuthToken,
+		client:           client,
+		url:              datasetAPIURL,
+		authToken:        datasetAPIAuthToken,
+		serviceAuthToken: serviceAuthToken,
 	}
 }
 
@@ -49,15 +52,20 @@ var (
 	ErrVersionNotFound          = errors.New("Version not found")
 	ErrDimensionNotFound        = errors.New("Dimension not found")
 	ErrDimensionOptionsNotFound = errors.New("Dimension options not found")
+)
 
+var (
 	publishedState  = "published"
 	versionNotFound = "Version not found"
+
+	dimensionType = "dimension"
+	versionType   = "version"
 )
 
 // GetVersion queries the Dataset API to get an version
 func (api *DatasetAPI) GetVersion(ctx context.Context, d models.Dataset) (version *models.Version, err error) {
 	path := fmt.Sprintf("%s/datasets/%s/editions/%s/versions/%d", api.url, d.ID, d.Edition, d.Version)
-	logData := log.Data{"func": "GetDataset", "URL": path, "dataset": d}
+	logData := log.Data{"func": "GetVersion", "URL": path, "dataset": d}
 
 	jsonResult, httpCode, err := api.get(ctx, path, nil)
 	logData["httpCode"] = httpCode
@@ -74,7 +82,8 @@ func (api *DatasetAPI) GetVersion(ctx context.Context, d models.Dataset) (versio
 	}
 
 	// External facing customers should NOT be able to filter an unpublished version
-	if version.State != publishedState && ctx.Value(internalToken) != true {
+
+	if version.State != publishedState && !identity.IsPresent(ctx) {
 		log.Error(errors.New("invalid authorization, returning not found status"), log.Data{"dataset": d})
 		return nil, ErrVersionNotFound
 	}
@@ -93,9 +102,9 @@ func (api *DatasetAPI) GetVersionDimensions(ctx context.Context, dataset models.
 	logData["jsonResult"] = jsonResult
 	if err != nil {
 		log.ErrorC("GetVersionDimensions api get", err, logData)
-		typ := "dimension"
+		typ := dimensionType
 		if jsonResult == versionNotFound {
-			typ = "version"
+			typ = versionType
 		}
 		return nil, handleError(httpCode, err, typ)
 	}
@@ -120,9 +129,9 @@ func (api *DatasetAPI) GetVersionDimensionOptions(ctx context.Context, dataset m
 	logData["jsonResult"] = jsonResult
 	if err != nil {
 		log.ErrorC("GetVersionDimensionOptions api get", err, logData)
-		typ := "dimension"
+		typ := dimensionType
 		if jsonResult == versionNotFound {
-			typ = "version"
+			typ = versionType
 		}
 		return nil, handleError(httpCode, err, typ)
 	}
@@ -137,10 +146,6 @@ func (api *DatasetAPI) GetVersionDimensionOptions(ctx context.Context, dataset m
 }
 
 func (api *DatasetAPI) get(ctx context.Context, path string, vars url.Values) ([]byte, int, error) {
-	if ctx.Value(internalToken) == true {
-		ctx = context.WithValue(ctx, internalToken, api.authToken)
-	}
-
 	return api.callDatasetAPI(ctx, "GET", path, vars)
 }
 
@@ -170,20 +175,25 @@ func (api *DatasetAPI) callDatasetAPI(ctx context.Context, method, path string, 
 			logData["payload"] = payload.(url.Values)
 		}
 	}
+
 	// check req, above, didn't error
 	if err != nil {
 		log.ErrorC("failed to create request for dataset api", err, logData)
 		return nil, 0, err
 	}
 
-	req.Header.Set("Internal-token", api.authToken)
+	req.Header.Set(string(internalTokenKey), api.authToken)
+
+	identity.AddUserHeader(req, identity.User(ctx))
+	identity.AddServiceTokenHeader(req, api.serviceAuthToken)
+
 	resp, err := api.client.Do(ctx, req)
 	if err != nil {
 		log.ErrorC("Failed to action dataset api", err, logData)
 		return nil, 0, err
 	}
 	defer func() {
-		err := resp.Body.Close()
+		err = resp.Body.Close()
 		if err != nil {
 			log.ErrorC("error cleaning up request body", err, logData)
 		}

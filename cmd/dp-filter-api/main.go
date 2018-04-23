@@ -35,6 +35,11 @@ func main() {
 		os.Exit(1)
 	}
 
+	// sensitive fields are omitted from config.String().
+	log.Info("loaded config", log.Data{
+		"config": cfg,
+	})
+
 	envMax, err := strconv.ParseInt(cfg.KafkaMaxBytes, 10, 32)
 	if err != nil {
 		log.ErrorC("encountered error parsing kafka max bytes", err, nil)
@@ -64,7 +69,9 @@ func main() {
 	}
 
 	client := rchttp.DefaultClient
-	datasetAPI := api.NewDatasetAPI(client, cfg.DatasetAPIURL, cfg.DatasetAPIAuthToken)
+
+	// todo: remove config.DatasetAPIAuthToken when the DatasetAPI supports identity based auth.
+	datasetAPI := api.NewDatasetAPI(client, cfg.DatasetAPIURL, cfg.DatasetAPIAuthToken, cfg.ServiceAuthToken)
 
 	observationStore := observation.NewStore(pool)
 	previewDatasets := preview.DatasetStore{Store: observationStore}
@@ -79,7 +86,16 @@ func main() {
 
 	apiErrors := make(chan error, 1)
 
-	api.CreateFilterAPI(cfg.SecretKey, cfg.Host, cfg.BindAddr, dataStore, &outputQueue, apiErrors, datasetAPI, &previewDatasets)
+	api.CreateFilterAPI(cfg.Host,
+		cfg.BindAddr,
+		cfg.ZebedeeURL,
+		dataStore,
+		&outputQueue,
+		apiErrors,
+		datasetAPI,
+		&previewDatasets,
+		cfg.EnablePrivateEndpoints,
+		cfg.DownloadServiceURL)
 
 	// Gracefully shutdown the application closing any open resources.
 	gracefulShutdown := func() {
