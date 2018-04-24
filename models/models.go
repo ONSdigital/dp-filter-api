@@ -16,6 +16,11 @@ const (
 	CompletedState = "completed"
 )
 
+var (
+	Unpublished = false
+	Published   = true
+)
+
 // Dataset contains the uniique identifiers that make a dataset unique
 type Dataset struct {
 	ID      string `bson:"id"        json:"id"`
@@ -38,7 +43,7 @@ type Filter struct {
 	Events      Events      `bson:"events,omitempty"     json:"events,omitempty"`
 	FilterID    string      `bson:"filter_id"            json:"filter_id,omitempty"`
 	State       string      `bson:"state,omitempty"      json:"state,omitempty"`
-	Published   bool        `bson:"published,omitempty"  json:"-"`
+	Published   *bool       `bson:"published,omitempty"  json:"published,omitempty"`
 	Links       LinkMap     `bson:"links"                json:"links,omitempty"`
 	LastUpdated time.Time   `bson:"last_updated"         json:"-"`
 }
@@ -67,15 +72,16 @@ type Dimension struct {
 
 // Downloads represents a list of file types possible to download
 type Downloads struct {
-	CSV  DownloadItem `bson:"csv"  json:"csv"`
-	JSON DownloadItem `bson:"json" json:"json"`
-	XLS  DownloadItem `bson:"xls"  json:"xls"`
+	CSV *DownloadItem `bson:"csv,omitempty"  json:"csv,omitempty"`
+	XLS *DownloadItem `bson:"xls,omitempty"  json:"xls,omitempty"`
 }
 
 // DownloadItem represents an object containing information for the download item
 type DownloadItem struct {
-	Size string `bson:"size,omitempty" json:"size"`
-	URL  string `bson:"url,omitempty"  json:"url"`
+	HRef    string `bson:"href,omitempty"    json:"href,omitempty"`
+	Private string `bson:"private,omitempty" json:"private,omitempty"`
+	Public  string `bson:"public,omitempty"  json:"public,omitempty"`
+	Size    string `bson:"size,omitempty"    json:"size,omitempty"`
 }
 
 // Events represents a list of array objects containing event information against the filter job
@@ -196,7 +202,7 @@ func ValidateFilterDimensionOptions(filterDimensionOptions []string, datasetDime
 }
 
 // ValidateFilterOutputUpdate checks the content of the filter structure
-func (filter *Filter) ValidateFilterOutputUpdate() error {
+func (filter *Filter) ValidateFilterOutputUpdate(currentFilter *Filter) error {
 
 	// Only downloads, events and state can be updated, any attempt to update other
 	// fields will result in an error of forbidden
@@ -227,6 +233,43 @@ func (filter *Filter) ValidateFilterOutputUpdate() error {
 
 	if filter.FilterID != "" {
 		forbiddenFields = append(forbiddenFields, "filter_id")
+	}
+
+	if currentFilter.Published != nil && *currentFilter.Published == Published && currentFilter.Downloads != nil {
+		if filter.Downloads != nil {
+			if filter.Downloads.CSV != nil && currentFilter.Downloads.CSV != nil {
+				// If version for filter output is published and filter output has a
+				// public link, do not allow any updates to download item (csv)
+				var hasCSVPublicDownload bool
+				if currentFilter.Downloads.CSV.Public != "" {
+					hasCSVPublicDownload = true
+					forbiddenFields = append(forbiddenFields, "downloads.csv")
+				}
+
+				// If version for filter output is published, do not allow updates to create
+				// csv private link unless there are no downloads
+				if !hasCSVPublicDownload && filter.Downloads.CSV.Private != "" {
+					forbiddenFields = append(forbiddenFields, "downloads.csv.private")
+				}
+			}
+
+			if filter.Downloads.XLS != nil && currentFilter.Downloads.XLS != nil {
+
+				// If version for filter output is published and filter output has a
+				// public link, do not allow any updates to download item (xls)
+				var hasXLSPublicDownload bool
+				if currentFilter.Downloads.XLS.Public != "" {
+					hasXLSPublicDownload = true
+					forbiddenFields = append(forbiddenFields, "downloads.xls")
+				}
+
+				// If version for filter output is published, do not allow updates to create
+				// xls private link unless there are no downloads
+				if !hasXLSPublicDownload && filter.Downloads.XLS.Private != "" {
+					forbiddenFields = append(forbiddenFields, "downloads.xls.private")
+				}
+			}
+		}
 	}
 
 	if forbiddenFields != nil {

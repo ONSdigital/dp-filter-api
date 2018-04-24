@@ -94,7 +94,8 @@ func main() {
 		apiErrors,
 		datasetAPI,
 		&previewDatasets,
-		cfg.EnablePrivateEndpoints)
+		cfg.EnablePrivateEndpoints,
+		cfg.DownloadServiceURL)
 
 	// Gracefully shutdown the application closing any open resources.
 	gracefulShutdown := func() {
