@@ -290,14 +290,12 @@ func createUpdateFilterOutput(filter *models.Filter, currentTime time.Time) (boo
 	if filter.Downloads != nil {
 		if filter.Downloads.XLS != nil {
 			if filter.Downloads.XLS.HRef != "" {
-				isCompleted = true
 				downloads.XLS = filter.Downloads.XLS
 			}
 		}
 
 		if filter.Downloads.CSV != nil {
 			if filter.Downloads.CSV.HRef != "" {
-				isCompleted = true
 				downloads.CSV = filter.Downloads.CSV
 			}
 		}
@@ -309,7 +307,7 @@ func createUpdateFilterOutput(filter *models.Filter, currentTime time.Time) (boo
 
 	// Don't bother checking for JSON as it doesn't get generated at the moment
 	if downloads.CSV != nil && downloads.CSV.HRef != "" && downloads.XLS != nil && downloads.XLS.HRef != "" {
-		// isCompleted = true
+		isCompleted = true
 		update = bson.M{
 			"$set": bson.M{
 				"downloads": downloads,
