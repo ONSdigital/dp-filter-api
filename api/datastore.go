@@ -18,5 +18,5 @@ type DataStore interface {
 	RemoveFilterDimension(filterID string, name string) error
 	RemoveFilterDimensionOption(filterID string, name string, option string) error
 	UpdateFilter(filter *models.Filter) error
-	UpdateFilterOutput(filterOutput *models.Filter) error
+	UpdateFilterOutput(filterOutput *models.Filter) (isCompleted bool, err error)
 }

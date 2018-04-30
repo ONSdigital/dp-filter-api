@@ -768,6 +768,7 @@ func (api *FilterAPI) updateFilterOutput(w http.ResponseWriter, r *http.Request)
 
 	// check filter output resource for current downloads and published flag
 	previousFilterOutput, err := api.dataStore.GetFilterOutput(filterOutputID)
+	logData["filter_output_previous"] = previousFilterOutput
 	if err != nil {
 		log.ErrorC("unable to get current filter output", err, logData)
 		setErrorCode(w, err)
@@ -790,10 +791,17 @@ func (api *FilterAPI) updateFilterOutput(w http.ResponseWriter, r *http.Request)
 
 	filterOutputUpdate := buildDownloadsObject(previousFilterOutput, filterOutput, api.downloadServiceURL)
 
-	if err = api.dataStore.UpdateFilterOutput(filterOutputUpdate); err != nil {
+	isCompleted, err := api.dataStore.UpdateFilterOutput(filterOutputUpdate)
+	if err != nil {
 		log.ErrorC("unable to update filter blueprint", err, logData)
 		setErrorCode(w, err)
 		return
+	}
+
+	if isCompleted {
+		if err := api.completeQueue.Queue(previousFilterOutput); err != nil {
+			log.Error(err, nil)
+		}
 	}
 
 	setJSONContentType(w)
@@ -973,7 +981,7 @@ func (api *FilterAPI) getOutput(ctx context.Context, filterID string) (*models.F
 	//filter has been published since output was last requested, so update output and return
 	if filter.Published != nil && *filter.Published == models.Published {
 		output.Published = &models.Published
-		if err := api.dataStore.UpdateFilterOutput(output); err != nil {
+		if _, err := api.dataStore.UpdateFilterOutput(output); err != nil {
 			log.Error(err, log.Data{"filter_output_id": output.FilterID})
 			return nil, errFilterOutputNotFound
 		}

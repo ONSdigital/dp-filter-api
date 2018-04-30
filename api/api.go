@@ -24,6 +24,11 @@ type OutputQueue interface {
 	Queue(output *models.Filter) error
 }
 
+// CompleteQueue - An interface used to queue completed filter jobs
+type CompleteQueue interface {
+	Queue(completed *models.Filter) error
+}
+
 //go:generate moq -out datastoretest/preview.go -pkg datastoretest . PreviewDataset
 
 // PreviewDataset An interface used to generate previews
@@ -36,6 +41,7 @@ type FilterAPI struct {
 	host               string
 	dataStore          DataStore
 	outputQueue        OutputQueue
+	completeQueue      CompleteQueue
 	router             *mux.Router
 	datasetAPI         DatasetAPIer
 	preview            PreviewDataset
@@ -46,6 +52,7 @@ type FilterAPI struct {
 func CreateFilterAPI(host, bindAddr, zebedeeURL string,
 	datastore DataStore,
 	outputQueue OutputQueue,
+	completeQueue CompleteQueue,
 	errorChan chan error,
 	datasetAPI DatasetAPIer,
 	preview PreviewDataset,
@@ -53,12 +60,11 @@ func CreateFilterAPI(host, bindAddr, zebedeeURL string,
 	downloadServiceURL string) {
 
 	router := mux.NewRouter()
-	routes(host, router, datastore, outputQueue, datasetAPI, preview, enablePrivateEndpoints, downloadServiceURL)
+	routes(host, router, datastore, outputQueue, completeQueue, datasetAPI, preview, enablePrivateEndpoints, downloadServiceURL)
 
 	// Only add the identity middleware when running in publishing.
 	if enablePrivateEndpoints {
-		// identityHandler := identity.Handler(true, zebedeeURL)
-		identityHandler := identity.Handler(false, zebedeeURL)
+		identityHandler := identity.Handler(true, zebedeeURL)
 		alice := alice.New(identityHandler).Then(router)
 		httpServer = server.New(bindAddr, alice)
 	} else {
@@ -82,6 +88,7 @@ func routes(host string,
 	router *mux.Router,
 	dataStore DataStore,
 	outputQueue OutputQueue,
+	completeQueue CompleteQueue,
 	datasetAPI DatasetAPIer,
 	preview PreviewDataset,
 	enablePrivateEndpoints bool,
@@ -91,6 +98,7 @@ func routes(host string,
 		dataStore:          dataStore,
 		router:             router,
 		outputQueue:        outputQueue,
+		completeQueue:      completeQueue,
 		datasetAPI:         datasetAPI,
 		preview:            preview,
 		downloadServiceURL: downloadServiceURL}

@@ -11,6 +11,7 @@ type Config struct {
 	BindAddr                   string        `envconfig:"BIND_ADDR"`
 	Brokers                    []string      `envconfig:"KAFKA_ADDR"`
 	FilterOutputSubmittedTopic string        `envconfig:"FILTER_JOB_SUBMITTED_TOPIC"`
+	FilterCompletedTopic       string        `envconfig:"FILTER_JOB_COMPLETED_TOPIC"`
 	Host                       string        `envconfig:"HOST"`
 	KafkaMaxBytes              string        `envconfig:"KAFKA_MAX_BYTES"`
 	ShutdownTimeout            time.Duration `envconfig:"SHUTDOWN_TIMEOUT"`
@@ -20,10 +21,10 @@ type Config struct {
 	Neo4jPoolSize              int           `envconfig:"NEO4J_POOL_SIZE"`
 	HealthCheckInterval        time.Duration `envconfig:"HEALTHCHECK_INTERVAL"`
 	MongoConfig                MongoConfig
-	ServiceAuthToken           string        `envconfig:"SERVICE_AUTH_TOKEN"          json:"-"`
-	ZebedeeURL                 string        `envconfig:"ZEBEDEE_URL"`
-	EnablePrivateEndpoints     bool          `envconfig:"ENABLE_PRIVATE_ENDPOINTS"`
-	DownloadServiceURL         string        `envconfig:"DOWNLOAD_SERVICE_URL"`
+	ServiceAuthToken           string `envconfig:"SERVICE_AUTH_TOKEN"          json:"-"`
+	ZebedeeURL                 string `envconfig:"ZEBEDEE_URL"`
+	EnablePrivateEndpoints     bool   `envconfig:"ENABLE_PRIVATE_ENDPOINTS"`
+	DownloadServiceURL         string `envconfig:"DOWNLOAD_SERVICE_URL"`
 }
 
 // MongoConfig contains the config required to connect to MongoDB.
@@ -47,6 +48,7 @@ func Get() (*Config, error) {
 		BindAddr:                   ":22100",
 		Brokers:                    []string{"localhost:9092"},
 		FilterOutputSubmittedTopic: "filter-job-submitted",
+		FilterCompletedTopic:       "completed-jobs",
 		KafkaMaxBytes:              "2000000",
 		ShutdownTimeout:            5 * time.Second,
 		DatasetAPIURL:              "http://localhost:22000",

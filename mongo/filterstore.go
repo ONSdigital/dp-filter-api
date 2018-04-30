@@ -251,18 +251,18 @@ func (s *FilterStore) GetFilterOutput(filterID string) (*models.Filter, error) {
 }
 
 // UpdateFilterOutput updates a filter output resource
-func (s *FilterStore) UpdateFilterOutput(filter *models.Filter) error {
+func (s *FilterStore) UpdateFilterOutput(filter *models.Filter) (isCompleted bool, err error) {
 	session := s.Session.Copy()
 	defer session.Close()
 
-	update := createUpdateFilterOutput(filter, time.Now())
+	isCompleted, update := createUpdateFilterOutput(filter, time.Now())
 
 	if err := session.DB(s.db).C(s.outputsCollection).
 		Update(bson.M{"filter_id": filter.FilterID}, update); err != nil {
-		return err
+		return false, err
 	}
 
-	return nil
+	return isCompleted, nil
 }
 
 func createUpdateFilterBlueprint(filter *models.Filter, currentTime time.Time) bson.M {
@@ -282,19 +282,22 @@ func createUpdateFilterBlueprint(filter *models.Filter, currentTime time.Time) b
 	return update
 }
 
-func createUpdateFilterOutput(filter *models.Filter, currentTime time.Time) bson.M {
+func createUpdateFilterOutput(filter *models.Filter, currentTime time.Time) (bool, bson.M) {
 	var downloads models.Downloads
+	var isCompleted bool
 	state := models.CreatedState
 	var update bson.M
 	if filter.Downloads != nil {
 		if filter.Downloads.XLS != nil {
 			if filter.Downloads.XLS.HRef != "" {
+				isCompleted = true
 				downloads.XLS = filter.Downloads.XLS
 			}
 		}
 
 		if filter.Downloads.CSV != nil {
 			if filter.Downloads.CSV.HRef != "" {
+				isCompleted = true
 				downloads.CSV = filter.Downloads.CSV
 			}
 		}
@@ -306,6 +309,7 @@ func createUpdateFilterOutput(filter *models.Filter, currentTime time.Time) bson
 
 	// Don't bother checking for JSON as it doesn't get generated at the moment
 	if downloads.CSV != nil && downloads.CSV.HRef != "" && downloads.XLS != nil && downloads.XLS.HRef != "" {
+		// isCompleted = true
 		update = bson.M{
 			"$set": bson.M{
 				"downloads": downloads,
@@ -331,7 +335,7 @@ func createUpdateFilterOutput(filter *models.Filter, currentTime time.Time) bson
 		}
 	}
 
-	return update
+	return isCompleted, update
 }
 
 func validateFilter(filter *models.Filter) {

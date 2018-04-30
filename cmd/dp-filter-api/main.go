@@ -10,6 +10,7 @@ import (
 
 	"github.com/ONSdigital/dp-filter-api/api"
 	"github.com/ONSdigital/dp-filter-api/config"
+	"github.com/ONSdigital/dp-filter-api/filterCompleteQueue"
 	"github.com/ONSdigital/dp-filter-api/filterOutputQueue"
 	"github.com/ONSdigital/dp-filter-api/mongo"
 	"github.com/ONSdigital/dp-filter-api/preview"
@@ -62,9 +63,15 @@ func main() {
 	}
 	conn.Close()
 
-	producer, err := kafka.NewProducer(cfg.Brokers, cfg.FilterOutputSubmittedTopic, int(envMax))
+	outputProducer, err := kafka.NewProducer(cfg.Brokers, cfg.FilterOutputSubmittedTopic, int(envMax))
 	if err != nil {
-		log.ErrorC("Create kafka producer error", err, nil)
+		log.ErrorC("Create kafka output producer error", err, nil)
+		os.Exit(1)
+	}
+
+	completeProducer, err := kafka.NewProducer(cfg.Brokers, cfg.FilterCompletedTopic, int(envMax))
+	if err != nil {
+		log.ErrorC("Create kafka complete producer error", err, nil)
 		os.Exit(1)
 	}
 
@@ -75,7 +82,8 @@ func main() {
 
 	observationStore := observation.NewStore(pool)
 	previewDatasets := preview.DatasetStore{Store: observationStore}
-	outputQueue := filterOutputQueue.CreateOutputQueue(producer.Output())
+	outputQueue := filterOutputQueue.CreateOutputQueue(outputProducer.Output())
+	completeQueue := filterCompleteQueue.CreateCompleteQueue(completeProducer.Output())
 
 	healthTicker := healthcheck.NewTicker(
 		cfg.HealthCheckInterval,
@@ -91,6 +99,7 @@ func main() {
 		cfg.ZebedeeURL,
 		dataStore,
 		&outputQueue,
+		&completeQueue,
 		apiErrors,
 		datasetAPI,
 		&previewDatasets,
@@ -117,9 +126,12 @@ func main() {
 			log.Error(err, nil)
 		}
 
-		// Close producer after http server has closed so if a message
+		// Close producers after http server has closed so if a message
 		// needs to be sent to kafka off a request it can
-		if err := producer.Close(ctx); err != nil {
+		if err := outputProducer.Close(ctx); err != nil {
+			log.Error(err, nil)
+		}
+		if err := completeProducer.Close(ctx); err != nil {
 			log.Error(err, nil)
 		}
 
@@ -131,8 +143,11 @@ func main() {
 
 	for {
 		select {
-		case err := <-producer.Errors():
-			log.ErrorC("kafka producer error received", err, nil)
+		case err := <-outputProducer.Errors():
+			log.ErrorC("kafka output producer error received", err, nil)
+			gracefulShutdown()
+		case err := <-completeProducer.Errors():
+			log.ErrorC("kafka complete producer error received", err, nil)
 			gracefulShutdown()
 		case err := <-apiErrors:
 			log.ErrorC("api error received", err, nil)
