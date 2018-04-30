@@ -32,6 +32,7 @@ type Dataset struct {
 type NewFilter struct {
 	Dataset    *Dataset    `bson:"dataset" json:"dataset"`
 	Dimensions []Dimension `bson:"dimensions,omitempty" json:"dimensions,omitempty"`
+	Email      string      `bson:"email"                json:"email,omitempty"`
 }
 
 // Filter represents a structure for a filter job
@@ -46,6 +47,7 @@ type Filter struct {
 	Published   *bool       `bson:"published,omitempty"  json:"published,omitempty"`
 	Links       LinkMap     `bson:"links"                json:"links,omitempty"`
 	LastUpdated time.Time   `bson:"last_updated"         json:"-"`
+	Email       string      `bson:"email"                json:"email,omitempty"`
 }
 
 // LinkMap contains a named LinkObject for each link to other resources

@@ -57,7 +57,8 @@ func CreateFilterAPI(host, bindAddr, zebedeeURL string,
 
 	// Only add the identity middleware when running in publishing.
 	if enablePrivateEndpoints {
-		identityHandler := identity.Handler(true, zebedeeURL)
+		// identityHandler := identity.Handler(true, zebedeeURL)
+		identityHandler := identity.Handler(false, zebedeeURL)
 		alice := alice.New(identityHandler).Then(router)
 		httpServer = server.New(bindAddr, alice)
 	} else {
@@ -87,11 +88,11 @@ func routes(host string,
 	downloadServiceURL string) *FilterAPI {
 
 	api := FilterAPI{host: host,
-		dataStore: dataStore,
-		router: router,
-		outputQueue: outputQueue,
-		datasetAPI: datasetAPI,
-		preview: preview,
+		dataStore:          dataStore,
+		router:             router,
+		outputQueue:        outputQueue,
+		datasetAPI:         datasetAPI,
+		preview:            preview,
 		downloadServiceURL: downloadServiceURL}
 
 	router.Path("/healthcheck").Methods("GET").HandlerFunc(healthcheck.Do)

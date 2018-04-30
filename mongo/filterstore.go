@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/ONSdigital/dp-filter-api/api"
 	"github.com/ONSdigital/dp-filter-api/config"
 	"github.com/ONSdigital/dp-filter-api/models"
 	"gopkg.in/mgo.v2"
@@ -31,6 +32,8 @@ type FilterStore struct {
 	filtersCollection string
 	outputsCollection string
 }
+
+var _ api.DataStore = &FilterStore{}
 
 // CreateFilterStore which can store, update and fetch filter jobs
 func CreateFilterStore(cfg config.MongoConfig, host string) (*FilterStore, error) {
@@ -269,6 +272,7 @@ func createUpdateFilterBlueprint(filter *models.Filter, currentTime time.Time) b
 			"filter.events":      filter.Events,
 			"filter.instance_id": filter.InstanceID,
 			"filter.published":   filter.Published,
+			"email":              filter.Email,
 		},
 		"$setOnInsert": bson.M{
 			"last_updated": currentTime,

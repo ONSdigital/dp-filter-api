@@ -68,6 +68,7 @@ func (api *FilterAPI) addFilterBlueprint(w http.ResponseWriter, r *http.Request)
 	// Create unique id
 	newFilter.FilterID = uuid.NewV4().String()
 	newFilter.Dimensions = filterParameters.Dimensions
+	newFilter.Email = filterParameters.Email
 	logData["new_filter"] = newFilter
 
 	// add version information from datasetAPI
@@ -699,6 +700,11 @@ func createNewFilter(filter *models.Filter, currentFilter *models.Filter) (newFi
 				newFilter.Events.Error = append(newFilter.Events.Error, filter.Events.Error...)
 			}
 		}
+
+	}
+
+	if filter.Email != "" {
+		newFilter.Email = filter.Email
 	}
 
 	return
