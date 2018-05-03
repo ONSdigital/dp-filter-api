@@ -15,7 +15,7 @@ import (
 	"github.com/ONSdigital/dp-filter-api/mocks"
 	"github.com/ONSdigital/dp-filter-api/models"
 	"github.com/ONSdigital/dp-filter-api/preview"
-	"github.com/ONSdigital/go-ns/identity"
+	"github.com/ONSdigital/go-ns/common"
 	"github.com/gorilla/mux"
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -23,7 +23,7 @@ import (
 const (
 	host                   = "http://localhost:80"
 	enablePrivateEndpoints = true
-	downloadServiceURL = "http://localhost:23600"
+	downloadServiceURL     = "http://localhost:23600"
 )
 
 var previewMock = &datastoretest.PreviewDatasetMock{
@@ -1511,7 +1511,7 @@ func createAuthenticatedRequest(method, url string, body io.Reader) *http.Reques
 
 	r, err := http.NewRequest(method, url, body)
 	ctx := r.Context()
-	ctx = identity.SetCaller(ctx, "someone@ons.gov.uk")
+	ctx = common.SetCaller(ctx, "someone@ons.gov.uk")
 	r = r.WithContext(ctx)
 
 	So(err, ShouldBeNil)

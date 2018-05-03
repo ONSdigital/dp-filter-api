@@ -36,15 +36,20 @@ type Version struct {
 	CollectionID  string              `json:"collection_id"`
 	Downloads     map[string]Download `json:"downloads"`
 	Edition       string              `json:"edition"`
+	Dimensions    []Dimension         `json:"dimensions"`
 	ID            string              `json:"id"`
 	InstanceID    string              `json:"instance_id"`
 	LatestChanges []Change            `json:"latest_changes"`
-	License       string              `json:"license"`
 	Links         Links               `json:"links"`
 	ReleaseDate   string              `json:"release_date"`
-	State         string              `json:"date"`
+	State         string              `json:"state"`
 	Temporal      []Temporal          `json:"temporal"`
 	Version       int                 `json:"version"`
+}
+
+// Instance represents an instance within a dataset
+type Instance struct {
+	Version
 }
 
 // Metadata is a combination of version and dataset model fields
@@ -55,8 +60,10 @@ type Metadata struct {
 
 // Download represents a version download from the dataset api
 type Download struct {
-	URL  string `json:"url"`
-	Size string `json:"size"`
+	URL     string `json:"href"`
+	Size    string `json:"size"`
+	Public  string `json:"public,omitempty"`
+	Private string `json:"private,omitempty"`
 }
 
 // Edition represents an edition within a dataset
@@ -147,6 +154,7 @@ type Dimension struct {
 	ID          string `json:"dimension"`
 	Links       Links  `json:"links"`
 	Description string `json:"description"`
+	Label       string `json:"label"`
 }
 
 // Options represents a list of options from the dataset api
@@ -222,9 +230,14 @@ func (m Metadata) String() string {
 	}
 	b.WriteString(fmt.Sprintf("Latest Changes: %s\n", m.LatestChanges))
 	b.WriteString(fmt.Sprintf("Periodicity: %s\n", m.ReleaseFrequency))
-	b.WriteString(fmt.Sprintf("Distribution: %s\n", m.Downloads))
+	b.WriteString("Distribution:\n")
+	for k, v := range m.Downloads {
+		b.WriteString(fmt.Sprintf("\tExtension: %s\n", k))
+		b.WriteString(fmt.Sprintf("\tSize: %s\n", v.Size))
+		b.WriteString(fmt.Sprintf("\tURL: %s\n\n", v.URL))
+	}
 	b.WriteString(fmt.Sprintf("Unit of measure: %s\n", m.UnitOfMeasure))
-	b.WriteString(fmt.Sprintf("License: %s\n", m.Model.License))
+	b.WriteString(fmt.Sprintf("License: %s\n", m.License))
 	b.WriteString(fmt.Sprintf("Methodologies: %s\n", m.Methodologies))
 	b.WriteString(fmt.Sprintf("National Statistic: %t\n", m.NationalStatistic))
 	b.WriteString(fmt.Sprintf("Publications: %s\n", m.Publications))
