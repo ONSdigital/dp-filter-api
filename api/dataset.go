@@ -16,7 +16,7 @@ import (
 
 	"github.com/ONSdigital/dp-filter-api/models"
 	"github.com/ONSdigital/go-ns/clients/dataset"
-	"github.com/ONSdigital/go-ns/identity"
+	"github.com/ONSdigital/go-ns/common"
 	"github.com/ONSdigital/go-ns/log"
 	"github.com/ONSdigital/go-ns/rchttp"
 )
@@ -83,7 +83,7 @@ func (api *DatasetAPI) GetVersion(ctx context.Context, d models.Dataset) (versio
 
 	// External facing customers should NOT be able to filter an unpublished version
 
-	if version.State != publishedState && !identity.IsPresent(ctx) {
+	if version.State != publishedState && !common.IsCallerPresent(ctx) {
 		log.Error(errors.New("invalid authorization, returning not found status"), log.Data{"dataset": d})
 		return nil, ErrVersionNotFound
 	}
@@ -184,8 +184,8 @@ func (api *DatasetAPI) callDatasetAPI(ctx context.Context, method, path string, 
 
 	req.Header.Set(string(internalTokenKey), api.authToken)
 
-	identity.AddUserHeader(req, identity.User(ctx))
-	identity.AddServiceTokenHeader(req, api.serviceAuthToken)
+	common.AddUserHeader(req, common.User(ctx))
+	common.AddServiceTokenHeader(req, api.serviceAuthToken)
 
 	resp, err := api.client.Do(ctx, req)
 	if err != nil {
@@ -215,7 +215,7 @@ func (api *DatasetAPI) callDatasetAPI(ctx context.Context, method, path string, 
 
 // GetHealthCheckClient returns a healthcheck-compatible client
 func (api *DatasetAPI) GetHealthCheckClient() *dataset.Client {
-	return dataset.New(api.url)
+	return dataset.NewAPIClient(api.url, "", "")
 }
 
 func handleError(httpCode int, err error, typ string) error {
