@@ -31,7 +31,7 @@ func TestSpec(t *testing.T) {
 				So(cfg.MongoConfig.Database, ShouldEqual, "filters")
 				So(cfg.MongoConfig.FiltersCollection, ShouldEqual, "filters")
 				So(cfg.MongoConfig.OutputsCollection, ShouldEqual, "filterOutputs")
-				So(cfg.ServiceAuthToken, ShouldEqual, "Bearer FD0108EA-825D-411C-9B1D-41EF7727F465")
+				So(cfg.ServiceAuthToken, ShouldEqual, "FD0108EA-825D-411C-9B1D-41EF7727F465")
 				So(cfg.ZebedeeURL, ShouldEqual, "http://localhost:8082")
 			})
 		})
