@@ -62,7 +62,7 @@ func Get() (*Config, error) {
 		},
 		ServiceAuthToken:       "FD0108EA-825D-411C-9B1D-41EF7727F465",
 		ZebedeeURL:             "http://localhost:8082",
-		EnablePrivateEndpoints: false,
+		EnablePrivateEndpoints: true,
 		DownloadServiceURL:     "http://localhost:23600",
 	}
 
