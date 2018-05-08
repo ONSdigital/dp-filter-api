@@ -493,7 +493,7 @@ definitions:
         type: string
         description: "An edition of a dataset"
       version:
-        type: string
+        type: integer
         description: "A version of a dataset"
   Dimension:
     type: object
