@@ -55,14 +55,18 @@ func CreateFilterAPI(host, bindAddr, zebedeeURL string,
 	router := mux.NewRouter()
 	routes(host, router, datastore, outputQueue, datasetAPI, preview, enablePrivateEndpoints, downloadServiceURL)
 
-	// Only add the identity middleware when running in publishing.
+	healthcheckHandler := healthcheck.NewMiddleware(healthcheck.Do)
+	middlewareChain := alice.New(healthcheckHandler)
+
 	if enablePrivateEndpoints {
-		identityHandler := identity.Handler(true, zebedeeURL)
-		alice := alice.New(identityHandler).Then(router)
-		httpServer = server.New(bindAddr, alice)
-	} else {
-		httpServer = server.New(bindAddr, router)
+
+		log.Debug("private endpoints are enabled. using identity middleware", nil)
+		identityHandler := identity.Handler(zebedeeURL)
+		middlewareChain = middlewareChain.Append(identityHandler)
 	}
+
+	alice := middlewareChain.Then(router)
+	httpServer := server.New(bindAddr, alice)
 
 	// Disable this here to allow main to manage graceful shutdown of the entire app.
 	httpServer.HandleOSSignals = false
@@ -87,14 +91,12 @@ func routes(host string,
 	downloadServiceURL string) *FilterAPI {
 
 	api := FilterAPI{host: host,
-		dataStore: dataStore,
-		router: router,
-		outputQueue: outputQueue,
-		datasetAPI: datasetAPI,
-		preview: preview,
+		dataStore:          dataStore,
+		router:             router,
+		outputQueue:        outputQueue,
+		datasetAPI:         datasetAPI,
+		preview:            preview,
 		downloadServiceURL: downloadServiceURL}
-
-	router.Path("/healthcheck").Methods("GET").HandlerFunc(healthcheck.Do)
 
 	api.router.HandleFunc("/filters", api.addFilterBlueprint).Methods("POST")
 	api.router.HandleFunc("/filters/{filter_blueprint_id}", api.getFilterBlueprint).Methods("GET")
