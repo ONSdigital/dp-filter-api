@@ -34,6 +34,8 @@ func TestSpec(t *testing.T) {
 				So(cfg.ServiceAuthToken, ShouldEqual, "FD0108EA-825D-411C-9B1D-41EF7727F465")
 				So(cfg.ZebedeeURL, ShouldEqual, "http://localhost:8082")
 				So(cfg.EnablePrivateEndpoints, ShouldEqual, true)
+				So(cfg.DownloadServiceURL, ShouldEqual, "http://localhost:23600")
+				So(cfg.DownloadServiceSecretKey, ShouldEqual, "QB0108EZ-825D-412C-9B1D-41EF7747F462")
 			})
 		})
 	})

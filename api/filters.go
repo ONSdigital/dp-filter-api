@@ -711,7 +711,7 @@ func (api *FilterAPI) getFilterOutput(w http.ResponseWriter, r *http.Request) {
 	logData := log.Data{"filter_output_id": filterOutputID}
 	log.Info("getting filter output", logData)
 
-	filterOutput, err := api.getOutput(r.Context(), filterOutputID)
+	filterOutput, err := api.getOutput(r, filterOutputID)
 	if err != nil {
 		log.ErrorC("unable to get filter output", err, logData)
 		setErrorCode(w, err)
@@ -855,7 +855,7 @@ func (api *FilterAPI) getFilterOutputPreview(w http.ResponseWriter, r *http.Requ
 	}
 	logData["limit"] = limit
 
-	filterOutput, err := api.getOutput(r.Context(), filterID)
+	filterOutput, err := api.getOutput(r, filterID)
 	if err != nil {
 		log.ErrorC("failed to find filter output", err, logData)
 		setErrorCode(w, err)
@@ -930,7 +930,10 @@ func (api *FilterAPI) getFilter(ctx context.Context, filterID string) (*models.F
 	return nil, errNotFound
 }
 
-func (api *FilterAPI) getOutput(ctx context.Context, filterID string) (*models.Filter, error) {
+func (api *FilterAPI) getOutput(r *http.Request, filterID string) (*models.Filter, error) {
+
+	ctx := r.Context()
+
 	output, err := api.dataStore.GetFilterOutput(filterID)
 	if err != nil {
 		log.Error(err, log.Data{"filter_blueprint_id": filterID})
@@ -940,7 +943,7 @@ func (api *FilterAPI) getOutput(ctx context.Context, filterID string) (*models.F
 	errFilterOutputNotFound := errors.New("Filter output not found")
 
 	// Hide private download links if request is not authenticated
-	if !common.IsCallerPresent(ctx) {
+	if r.Header.Get(common.DownloadServiceHeaderKey) != api.downloadServiceToken {
 		if output.Downloads != nil {
 			if output.Downloads.CSV != nil {
 				output.Downloads.CSV.Private = ""

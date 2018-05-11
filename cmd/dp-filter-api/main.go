@@ -95,7 +95,9 @@ func main() {
 		datasetAPI,
 		&previewDatasets,
 		cfg.EnablePrivateEndpoints,
-		cfg.DownloadServiceURL)
+		cfg.DownloadServiceURL,
+		cfg.DownloadServiceSecretKey,
+	)
 
 	// Gracefully shutdown the application closing any open resources.
 	gracefulShutdown := func() {
