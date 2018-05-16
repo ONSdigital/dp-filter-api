@@ -14,32 +14,24 @@ import (
 
 	"strconv"
 
-	"github.com/ONSdigital/go-ns/common"
 	"github.com/satori/go.uuid"
+	identity "github.com/ONSdigital/go-ns/common"
+	"github.com/ONSdigital/dp-filter-api/common"
 )
 
 var (
 	internalError = "Failed to process the request due to an internal error"
 	badRequest    = "Bad request - Invalid request body"
-	unauthorised  = "Unauthorised, request lacks valid authentication credentials"
 	forbidden     = "Forbidden, the filter output has been locked as it has been submitted to be processed"
 
-	statusBadRequest          = "Bad request"
-	statusUnprocessableEntity = "Unprocessable entity"
+	statusBadRequest          = "bad request"
+	statusUnprocessableEntity = "unprocessable entity"
 
-	incorrectDimensionOptions = regexp.MustCompile("Bad request - incorrect dimension options chosen")
-	incorrectDimension        = regexp.MustCompile("Bad request - incorrect dimensions chosen")
+	incorrectDimensionOptions = regexp.MustCompile("incorrect dimension options chosen")
+	incorrectDimension        = regexp.MustCompile("incorrect dimensions chosen")
 
-	errNotFound              = errors.New("Not found")
-	errForbidden             = errors.New("Forbidden")
-	errAuth                  = errors.New(unauthorised)
-	errNoAuthHeader          = errors.New("No auth header provided")
-	errDimensionBadRequest   = errors.New("Bad request - filter dimension not found")
-	errDimensionNotFound     = errors.New("Dimension not found")
-	errOptionNotFound        = errors.New("Option not found")
-	errFilterOutputNotFound  = errors.New("Filter output not found")
-	errRequestLimitNotNumber = errors.New("requested limit is not a number")
-	errMissingDimensions     = errors.New("missing dimensions")
+	errForbidden    = errors.New("forbidden")
+	errUnauthorised = errors.New("unauthorised")
 )
 
 const filterSubmitted = "true"
@@ -77,7 +69,7 @@ func (api *FilterAPI) addFilterBlueprint(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	if version.State != publishedState && !common.IsCallerPresent(r.Context()) {
+	if version.State != publishedState && !identity.IsCallerPresent(r.Context()) {
 		log.Info("unauthenticated request to filter unpublished version", log.Data{"dataset": *filterParameters.Dataset, "state": version.State})
 		http.Error(w, badRequest, http.StatusBadRequest)
 		return
@@ -304,37 +296,41 @@ func (api *FilterAPI) updateFilterBlueprint(w http.ResponseWriter, r *http.Reque
 }
 
 func (api *FilterAPI) getFilter(ctx context.Context, filterID string) (*models.Filter, error) {
+
+	logData := log.Data{"filter_blueprint_id": filterID}
+
 	filter, err := api.dataStore.GetFilter(filterID)
 	if err != nil {
-		log.Error(err, log.Data{"filter_blueprint_id": filterID})
+		log.Error(err, logData)
 		return nil, err
 	}
 
 	//only return the filter if it is for published data or via authenticated request
-	if filter.Published != nil && *filter.Published == models.Published || common.IsCallerPresent(ctx) {
+	if filter.Published != nil && *filter.Published == models.Published || identity.IsCallerPresent(ctx) {
 		return filter, nil
 	}
 
-	log.Info("unauthenticated request to access unpublished filter", log.Data{"filter_blueprint": filter})
+	log.Info("unauthenticated request to access unpublished filter", logData)
 
 	version, err := api.datasetAPI.GetVersion(ctx, *filter.Dataset)
 	if err != nil {
-		log.Error(errors.New("failed to retrieve version from dataset api"), log.Data{"filter_blueprint": filter})
-		return nil, errNotFound
+		log.Error(errors.New("failed to retrieve version from dataset api"), logData)
+		return nil, err
 	}
 
 	//version has been published since filter was last requested, so update filter and return
 	if version.State == publishedState {
 		filter.Published = &models.Published
 		if err := api.dataStore.UpdateFilter(filter); err != nil {
-			log.Error(err, log.Data{"filter_id": filterID})
-			return nil, errNotFound
+			log.Error(err, logData)
+			return nil, common.ErrFilterBlueprintNotFound
 		}
 
 		return filter, nil
 	}
 
-	return nil, errNotFound
+	// not authenticated, so return not found
+	return nil, common.ErrFilterBlueprintNotFound
 }
 
 func (api *FilterAPI) checkFilterOptions(ctx context.Context, newFilter *models.Filter, version *models.Version) error {
@@ -381,7 +377,7 @@ func (api *FilterAPI) checkFilterOptions(ctx context.Context, newFilter *models.
 
 	if incorrectDimensionOptions != nil {
 		logData["incorrect_dimension_options"] = incorrectDimensionOptions
-		err = fmt.Errorf("Bad request - incorrect dimension options chosen: %v", incorrectDimensionOptions)
+		err = fmt.Errorf("incorrect dimension options chosen: %v", incorrectDimensionOptions)
 		log.ErrorC("incorrect dimension options chosen", err, logData)
 		return err
 	}
@@ -417,56 +413,41 @@ func createNewFilter(filter *models.Filter, currentFilter *models.Filter) (newFi
 }
 
 func setErrorCode(w http.ResponseWriter, err error, typ ...string) {
-	switch err.Error() {
-	case "Not found":
+	switch err {
+	case common.ErrFilterBlueprintNotFound:
 		if typ != nil && typ[0] == statusBadRequest {
-			http.Error(w, "Bad request - filter blueprint not found", http.StatusBadRequest)
-			return
-		}
-		http.Error(w, "Filter blueprint not found", http.StatusNotFound)
-		return
-	case "Dimension not found":
-		if typ != nil && typ[0] == statusBadRequest {
-			http.Error(w, "Bad request - dimension not found", http.StatusBadRequest)
+			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
-	case "Option not found":
+	case common.ErrDimensionNotFound:
+		if typ != nil && typ[0] == statusBadRequest {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
-	case "Filter output not found":
-		http.Error(w, err.Error(), http.StatusNotFound)
-	case "Version not found":
+	case common.ErrVersionNotFound:
 		if typ != nil {
 			if typ[0] == statusBadRequest {
-				http.Error(w, "Bad request - version not found", http.StatusBadRequest)
+				http.Error(w, err.Error(), http.StatusBadRequest)
 				return
 			}
 			if typ[0] == statusUnprocessableEntity {
-				http.Error(w, "Unprocessable entity - version for filter blueprint no longer exists", http.StatusUnprocessableEntity)
+				http.Error(w, "version for filter blueprint no longer exists", http.StatusUnprocessableEntity)
 				return
 			}
 		}
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
-	case "Bad request - filter blueprint not found":
-		http.Error(w, err.Error(), http.StatusBadRequest)
+	case common.ErrOptionNotFound:
+		fallthrough
+	case common.ErrFilterOutputNotFound:
+		http.Error(w, err.Error(), http.StatusNotFound)
 		return
-	case "Bad request - filter dimension not found":
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	case "Bad request - filter or dimension not found":
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	case "Bad request":
-		http.Error(w, "Bad request", http.StatusBadRequest)
-		return
-	case errNoAuthHeader.Error():
-		http.Error(w, "resource not found", http.StatusNotFound)
-		return
-	case errAuth.Error():
-		http.Error(w, "resource not found", http.StatusNotFound)
+	case errUnauthorised:
+		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
 	default:
 		http.Error(w, internalError, http.StatusInternalServerError)

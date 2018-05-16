@@ -8,6 +8,7 @@ import (
 	"github.com/gorilla/mux"
 	"fmt"
 	"context"
+	"github.com/ONSdigital/dp-filter-api/common"
 )
 
 func (api *FilterAPI) getFilterBlueprintDimensions(w http.ResponseWriter, r *http.Request) {
@@ -26,8 +27,8 @@ func (api *FilterAPI) getFilterBlueprintDimensions(w http.ResponseWriter, r *htt
 	logData["dimensions"] = filter.Dimensions
 
 	if len(filter.Dimensions) == 0 {
-		log.Error(errDimensionNotFound, log.Data{"filter_blueprint_id": filterID})
-		setErrorCode(w, errDimensionNotFound)
+		log.Error(common.ErrDimensionNotFound, logData)
+		setErrorCode(w, common.ErrDimensionNotFound)
 		return
 	}
 
@@ -61,13 +62,18 @@ func (api *FilterAPI) getFilterBlueprintDimension(w http.ResponseWriter, r *http
 	log.Info("getting filter blueprint dimension", logData)
 
 	if _, err := api.getFilter(r.Context(), filterID); err != nil {
-		log.Error(err, log.Data{"filter_blueprint_id": filterID})
-		setErrorCode(w, err)
+		log.Error(err, logData)
+		switch err {
+		case common.ErrFilterBlueprintNotFound:
+			setErrorCode(w, err, statusBadRequest)
+		default:
+			setErrorCode(w, err)
+		}
 		return
 	}
 
 	if err := api.dataStore.GetFilterDimension(filterID, name); err != nil {
-		log.Error(err, log.Data{"filter_blueprint_id": filterID, "dimension": name})
+		log.Error(err, logData)
 		setErrorCode(w, err)
 		return
 	}
@@ -90,13 +96,18 @@ func (api *FilterAPI) removeFilterBlueprintDimension(w http.ResponseWriter, r *h
 
 	filter, err := api.getFilter(r.Context(), filterID)
 	if err != nil {
-		log.Error(err, log.Data{"filter_blueprint_id": filterID})
-		setErrorCode(w, err)
+		log.Error(err, logData)
+		switch err {
+		case common.ErrFilterBlueprintNotFound:
+			setErrorCode(w, err, statusBadRequest)
+		default:
+			setErrorCode(w, err)
+		}
 		return
 	}
 
 	if filter.State == models.SubmittedState {
-		log.Error(errForbidden, log.Data{"filter_blueprint_id": filterID})
+		log.Error(errForbidden, logData)
 		setErrorCode(w, errForbidden)
 		return
 	}
@@ -132,21 +143,21 @@ func (api *FilterAPI) addFilterBlueprintDimension(w http.ResponseWriter, r *http
 
 	filterBlueprint, err := api.getFilter(r.Context(), filterID)
 	if err != nil {
-		log.Error(err, log.Data{"filter_blueprint_id": filterID})
+		log.Error(err, logData)
 		setErrorCode(w, err)
 		return
 	}
 	logData["current_filter_blueprint"] = filterBlueprint
 
 	if filterBlueprint.State == models.SubmittedState {
-		log.Error(errForbidden, log.Data{"filter_blueprint_id": filterID})
+		log.Error(errForbidden, logData)
 		setErrorCode(w, errForbidden)
 		return
 	}
 
 	if err = api.checkNewFilterDimension(r.Context(), name, options, *filterBlueprint.Dataset); err != nil {
 		log.ErrorC("unable to get filter blueprint", err, logData)
-		if err == ErrVersionNotFound {
+		if err == common.ErrVersionNotFound {
 			setErrorCode(w, err, statusUnprocessableEntity)
 			return
 		}
@@ -192,7 +203,7 @@ func (api *FilterAPI) checkNewFilterDimension(ctx context.Context, name string, 
 	// Call dimension options endpoint
 	datasetDimensionOptions, err := api.datasetAPI.GetVersionDimensionOptions(ctx, dataset, dimension.Name)
 	if err != nil {
-		log.ErrorC("failed to retreive a list of dimension options from the dataset API", err, logData)
+		log.ErrorC("failed to retrieve a list of dimension options from the dataset API", err, logData)
 		return err
 	}
 
@@ -203,7 +214,7 @@ func (api *FilterAPI) checkNewFilterDimension(ctx context.Context, name string, 
 	}
 
 	if incorrectDimensionOptions != nil {
-		err = fmt.Errorf("Bad request - incorrect dimension options chosen: %v", incorrectDimensionOptions)
+		err = fmt.Errorf("incorrect dimension options chosen: %v", incorrectDimensionOptions)
 		log.ErrorC("incorrect dimension options chosen", err, logData)
 		return err
 	}

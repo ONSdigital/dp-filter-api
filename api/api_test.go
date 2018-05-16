@@ -15,9 +15,10 @@ import (
 	"github.com/ONSdigital/dp-filter-api/mocks"
 	"github.com/ONSdigital/dp-filter-api/models"
 	"github.com/ONSdigital/dp-filter-api/preview"
-	"github.com/ONSdigital/go-ns/common"
+	identity "github.com/ONSdigital/go-ns/common"
 	"github.com/gorilla/mux"
 	. "github.com/smartystreets/goconvey/convey"
+	"github.com/ONSdigital/dp-filter-api/common"
 )
 
 const (
@@ -121,7 +122,7 @@ func TestFailedToAddFilterBlueprint(t *testing.T) {
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
 		response := w.Body.String()
-		So(response, ShouldResemble, "Version not found\n")
+		So(response, ShouldResemble, common.ErrVersionNotFound.Error()+"\n")
 	})
 
 	Convey("When version is unpublished and the request is not authenticated, a bad request error is returned", t, func() {
@@ -191,7 +192,7 @@ func TestFailedToAddFilterBlueprint(t *testing.T) {
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
 		response := w.Body.String()
-		So(response, ShouldResemble, "Bad request - incorrect dimensions chosen: [weight]\n")
+		So(response, ShouldResemble, "incorrect dimensions chosen: [weight]\n")
 	})
 
 	Convey("When a json message contains a dimension option that does not exist for a valid dimension, a bad request is returned", t, func() {
@@ -205,7 +206,7 @@ func TestFailedToAddFilterBlueprint(t *testing.T) {
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
 		response := w.Body.String()
-		So(response, ShouldResemble, "Bad request - incorrect dimension options chosen: [29]\n")
+		So(response, ShouldResemble, "incorrect dimension options chosen: [29]\n")
 	})
 }
 
@@ -296,7 +297,7 @@ func TestFailedToAddFilterBlueprintDimension(t *testing.T) {
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
 		response := w.Body.String()
-		So(response, ShouldResemble, "Filter blueprint not found\n")
+		So(response, ShouldResemble, common.ErrFilterBlueprintNotFound.Error()+"\n")
 	})
 
 	Convey("When an unpublished filter blueprint does not exist, and the request is not authenticated, a not found is returned", t, func() {
@@ -310,7 +311,7 @@ func TestFailedToAddFilterBlueprintDimension(t *testing.T) {
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
 		response := w.Body.String()
-		So(response, ShouldResemble, "Filter blueprint not found\n")
+		So(response, ShouldResemble, "filter blueprint not found\n")
 	})
 
 	Convey("When the dimension does not exist against the dataset filtered on, a bad request is returned", t, func() {
@@ -324,7 +325,7 @@ func TestFailedToAddFilterBlueprintDimension(t *testing.T) {
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
 		response := w.Body.String()
-		So(response, ShouldResemble, "Bad request - incorrect dimensions chosen: [wealth]\n")
+		So(response, ShouldResemble, "incorrect dimensions chosen: [wealth]\n")
 	})
 
 	Convey("When a json body contains a dimension option that does not exist for a valid dimension, a bad request is returned", t, func() {
@@ -338,7 +339,7 @@ func TestFailedToAddFilterBlueprintDimension(t *testing.T) {
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
 		response := w.Body.String()
-		So(response, ShouldResemble, "Bad request - incorrect dimension options chosen: [22]\n")
+		So(response, ShouldResemble, "incorrect dimension options chosen: [22]\n")
 	})
 }
 
@@ -376,7 +377,7 @@ func TestFailedToAddFilterBlueprintDimensionOption_DimensionDoesNotExist(t *test
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
 		response := w.Body.String()
-		So(response, ShouldResemble, "Bad request - incorrect dimensions chosen: [notage]\n")
+		So(response, ShouldResemble, "incorrect dimensions chosen: [notage]\n")
 	})
 }
 
@@ -400,25 +401,25 @@ func TestFailedToAddFilterBlueprintDimensionOption(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{BadRequest: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{NotFound: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
 		response := w.Body.String()
-		So(response, ShouldResemble, statusBadRequest+"\n")
+		So(response, ShouldResemble, common.ErrFilterBlueprintNotFound.Error()+"\n")
 	})
 
-	Convey("When the filter blueprint is unpublished, and the request is unauthenticated, a not found status is returned", t, func() {
+	Convey("When the filter blueprint is unpublished, and the request is unauthenticated, a bad request status is returned", t, func() {
 		r, err := http.NewRequest("POST", "http://localhost:22100/filters/12345678/dimensions/age/options/33", nil)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
 		api := routes(host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken)
 		api.router.ServeHTTP(w, r)
-		So(w.Code, ShouldEqual, http.StatusNotFound)
+		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
 		response := w.Body.String()
-		So(response, ShouldResemble, "Filter blueprint not found\n")
+		So(response, ShouldResemble, "filter blueprint not found\n")
 	})
 
 	Convey("When the dimension option for filter blueprint does not exist, a bad request status is returned", t, func() {
@@ -431,7 +432,7 @@ func TestFailedToAddFilterBlueprintDimensionOption(t *testing.T) {
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
 		response := w.Body.String()
-		So(response, ShouldResemble, "Bad request - incorrect dimension options chosen: [66]\n")
+		So(response, ShouldResemble, "incorrect dimension options chosen: [66]\n")
 	})
 }
 
@@ -485,7 +486,7 @@ func TestFailedToGetFilterBlueprint(t *testing.T) {
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
 		response := w.Body.String()
-		So(response, ShouldResemble, "Filter blueprint not found\n")
+		So(response, ShouldResemble, "filter blueprint not found\n")
 	})
 
 	Convey("When filter blueprint is unpublished, and the request is unauthenticated, a not found is returned", t, func() {
@@ -498,7 +499,7 @@ func TestFailedToGetFilterBlueprint(t *testing.T) {
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
 		response := w.Body.String()
-		So(response, ShouldResemble, "Filter blueprint not found\n")
+		So(response, ShouldResemble, "filter blueprint not found\n")
 	})
 }
 
@@ -594,7 +595,7 @@ func TestFailedToUpdateFilterBlueprint(t *testing.T) {
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
 		response := w.Body.String()
-		So(response, ShouldResemble, "Filter blueprint not found\n")
+		So(response, ShouldResemble, "filter blueprint not found\n")
 	})
 
 	Convey("When no authentication is provided to update an unpublished filter, a not found is returned", t, func() {
@@ -609,7 +610,7 @@ func TestFailedToUpdateFilterBlueprint(t *testing.T) {
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
 		response := w.Body.String()
-		So(response, ShouldResemble, "Filter blueprint not found\n")
+		So(response, ShouldResemble, "filter blueprint not found\n")
 	})
 
 	Convey("When a json message is sent to change the dataset version of a filter blueprint and the version does not exist, a status of bad request is returned", t, func() {
@@ -623,7 +624,7 @@ func TestFailedToUpdateFilterBlueprint(t *testing.T) {
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
 		response := w.Body.String()
-		So(response, ShouldResemble, "Bad request - version not found\n")
+		So(response, ShouldResemble, "version not found\n")
 	})
 
 	Convey("When a json message is sent to change the datset version of a filter blueprint and the current dimensions do not match, a status of bad request is returned", t, func() {
@@ -637,7 +638,7 @@ func TestFailedToUpdateFilterBlueprint(t *testing.T) {
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
 		response := w.Body.String()
-		So(response, ShouldResemble, "Bad request - incorrect dimensions chosen: [time]\n")
+		So(response, ShouldResemble, "incorrect dimensions chosen: [time]\n")
 	})
 
 	Convey("When a json message is sent to change the dataset version of a filter blueprint and the current dimension options do not match, a status of bad request is returned", t, func() {
@@ -651,7 +652,7 @@ func TestFailedToUpdateFilterBlueprint(t *testing.T) {
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
 		response := w.Body.String()
-		So(response, ShouldResemble, "Bad request - incorrect dimension options chosen: [28]\n")
+		So(response, ShouldResemble, "incorrect dimension options chosen: [28]\n")
 	})
 }
 
@@ -702,7 +703,7 @@ func TestFailedToGetFilterBlueprintDimensions(t *testing.T) {
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
 		response := w.Body.String()
-		So(response, ShouldResemble, "Filter blueprint not found\n")
+		So(response, ShouldResemble, "filter blueprint not found\n")
 	})
 }
 
@@ -748,25 +749,25 @@ func TestFailedToGetFilterBlueprintDimension(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{BadRequest: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{NotFound: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
 		response := w.Body.String()
-		So(response, ShouldResemble, statusBadRequest+"\n")
+		So(response, ShouldResemble, common.ErrFilterBlueprintNotFound.Error()+"\n")
 	})
 
-	Convey("When filter blueprint is unpublished and request is unauthenticated, a not found is returned", t, func() {
+	Convey("When filter blueprint is unpublished and request is unauthenticated, a bad request is returned", t, func() {
 		r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678/dimensions/1_age", nil)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
 		api := routes(host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken)
 		api.router.ServeHTTP(w, r)
-		So(w.Code, ShouldEqual, http.StatusNotFound)
+		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
 		response := w.Body.String()
-		So(response, ShouldResemble, "Filter blueprint not found\n")
+		So(response, ShouldResemble, common.ErrFilterBlueprintNotFound.Error()+"\n")
 	})
 
 	Convey("When dimension does not exist against filter blueprint, a not found is returned", t, func() {
@@ -779,7 +780,7 @@ func TestFailedToGetFilterBlueprintDimension(t *testing.T) {
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
 		response := w.Body.String()
-		So(response, ShouldResemble, "Dimension not found\n")
+		So(response, ShouldResemble, common.ErrDimensionNotFound.Error()+"\n")
 	})
 }
 
@@ -830,7 +831,7 @@ func TestFailedToGetFilterBlueprintDimensionOptions(t *testing.T) {
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
 		response := w.Body.String()
-		So(response, ShouldResemble, "Filter blueprint not found\n")
+		So(response, ShouldResemble, common.ErrFilterBlueprintNotFound.Error()+"\n")
 	})
 
 	Convey("When filter blueprint is unpublished and the request is unauthenticated, a not found is returned", t, func() {
@@ -843,7 +844,7 @@ func TestFailedToGetFilterBlueprintDimensionOptions(t *testing.T) {
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
 		response := w.Body.String()
-		So(response, ShouldResemble, "Filter blueprint not found\n")
+		So(response, ShouldResemble, common.ErrFilterBlueprintNotFound.Error()+"\n")
 	})
 
 	Convey("When dimension does not exist against filter blueprint, a dimension not found is returned", t, func() {
@@ -856,7 +857,7 @@ func TestFailedToGetFilterBlueprintDimensionOptions(t *testing.T) {
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
 		response := w.Body.String()
-		So(response, ShouldResemble, "Dimension not found\n")
+		So(response, ShouldResemble, common.ErrDimensionNotFound.Error()+"\n")
 	})
 }
 
@@ -902,25 +903,25 @@ func TestFailedToGetFilterBlueprintDimensionOption(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{BadRequest: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{NotFound: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
 		response := w.Body.String()
-		So(response, ShouldResemble, statusBadRequest+"\n")
+		So(response, ShouldResemble, "filter blueprint not found\n")
 	})
 
-	Convey("When filter blueprint is unpublished, a not found is returned", t, func() {
+	Convey("When filter blueprint is unpublished, a bad request is returned", t, func() {
 		r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678/dimensions/1_age/options/26", nil)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
 		api := routes(host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken)
 		api.router.ServeHTTP(w, r)
-		So(w.Code, ShouldEqual, http.StatusNotFound)
+		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
 		response := w.Body.String()
-		So(response, ShouldResemble, "Filter blueprint not found\n")
+		So(response, ShouldResemble, common.ErrFilterBlueprintNotFound.Error()+"\n")
 	})
 
 	Convey("When option does not exist against filter blueprint, an option not found is returned", t, func() {
@@ -933,7 +934,7 @@ func TestFailedToGetFilterBlueprintDimensionOption(t *testing.T) {
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
 		response := w.Body.String()
-		So(response, ShouldResemble, "Option not found\n")
+		So(response, ShouldResemble, common.ErrOptionNotFound.Error()+"\n")
 	})
 }
 
@@ -979,12 +980,12 @@ func TestFailedToRemoveFilterBlueprintDimension(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{BadRequest: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{NotFound: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
 		response := w.Body.String()
-		So(response, ShouldResemble, statusBadRequest+"\n")
+		So(response, ShouldResemble, common.ErrFilterBlueprintNotFound.Error()+"\n")
 	})
 
 	Convey("When filter blueprint is unpublished, and request is not authenticated, a bad request is returned", t, func() {
@@ -994,23 +995,20 @@ func TestFailedToRemoveFilterBlueprintDimension(t *testing.T) {
 		w := httptest.NewRecorder()
 		api := routes(host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken)
 		api.router.ServeHTTP(w, r)
-		So(w.Code, ShouldEqual, http.StatusNotFound)
+		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
 		response := w.Body.String()
-		So(response, ShouldResemble, "Filter blueprint not found\n")
+		So(response, ShouldResemble, common.ErrFilterBlueprintNotFound.Error()+"\n")
 	})
 
-	Convey("When dimension does not exist against filter blueprint, a not found is returned", t, func() {
+	Convey("When dimension does not exist against filter blueprint, the response is idempotent and returns 200 OK", t, func() {
 		r, err := http.NewRequest("DELETE", "http://localhost:22100/filters/12345678/dimensions/1_age", nil)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{NotFound: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{DimensionNotFound: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken)
 		api.router.ServeHTTP(w, r)
-		So(w.Code, ShouldEqual, http.StatusNotFound)
-
-		response := w.Body.String()
-		So(response, ShouldResemble, "Filter blueprint not found\n")
+		So(w.Code, ShouldEqual, http.StatusOK)
 	})
 }
 
@@ -1056,25 +1054,25 @@ func TestFailedToRemoveFilterBlueprintDimensionOption(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{BadRequest: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{NotFound: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
 		response := w.Body.String()
-		So(response, ShouldResemble, statusBadRequest+"\n")
+		So(response, ShouldResemble, common.ErrFilterBlueprintNotFound.Error()+"\n")
 	})
 
-	Convey("When filter blueprint is unpublished, and request is not authenticated, a not found is returned", t, func() {
+	Convey("When filter blueprint is unpublished, and request is not authenticated, a bad request is returned", t, func() {
 		r, err := http.NewRequest("DELETE", "http://localhost:22100/filters/12345678/dimensions/1_age/options/26", nil)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
 		api := routes(host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken)
 		api.router.ServeHTTP(w, r)
-		So(w.Code, ShouldEqual, http.StatusNotFound)
+		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
 		response := w.Body.String()
-		So(response, ShouldResemble, "Filter blueprint not found\n")
+		So(response, ShouldResemble, common.ErrFilterBlueprintNotFound.Error()+"\n")
 	})
 
 	Convey("When dimension does not exist against filter blueprint, a not found is returned", t, func() {
@@ -1087,7 +1085,7 @@ func TestFailedToRemoveFilterBlueprintDimensionOption(t *testing.T) {
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
 		response := w.Body.String()
-		So(response, ShouldResemble, "Dimension not found\n")
+		So(response, ShouldResemble, common.ErrDimensionNotFound.Error()+"\n")
 	})
 }
 
@@ -1118,7 +1116,7 @@ func TestSuccessfulGetFilterOutput(t *testing.T) {
 	Convey("Successfully get a filter output from a request with an authorised download service token", t, func() {
 
 		r := createAuthenticatedRequest("GET", "http://localhost:22100/filter-outputs/12345678", nil)
-		r.Header.Add(common.DownloadServiceHeaderKey, downloadServiceToken)
+		r.Header.Add(identity.DownloadServiceHeaderKey, downloadServiceToken)
 
 		w := httptest.NewRecorder()
 		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken)
@@ -1174,7 +1172,7 @@ func TestFailedToGetFilterOutput(t *testing.T) {
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
 		response := w.Body.String()
-		So(response, ShouldResemble, "Filter output not found\n")
+		So(response, ShouldResemble, common.ErrFilterOutputNotFound.Error()+"\n")
 	})
 
 	Convey("When filter output is unpublished and the request is unauthenticated, a not found is returned", t, func() {
@@ -1187,7 +1185,7 @@ func TestFailedToGetFilterOutput(t *testing.T) {
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
 		response := w.Body.String()
-		So(response, ShouldResemble, "Filter output not found\n")
+		So(response, ShouldResemble, common.ErrFilterOutputNotFound.Error()+"\n")
 	})
 }
 
@@ -1312,10 +1310,10 @@ func TestFailedToUpdateFilterOutput(t *testing.T) {
 		w := httptest.NewRecorder()
 		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken)
 		api.router.ServeHTTP(w, r)
-		So(w.Code, ShouldEqual, http.StatusNotFound)
+		So(w.Code, ShouldEqual, http.StatusUnauthorized)
 
 		response := w.Body.String()
-		So(response, ShouldResemble, "resource not found\n")
+		So(response, ShouldResemble, errUnauthorised.Error()+"\n")
 	})
 
 	Convey("When a json message contains downloads object but current filter ouput has public csv download links already and version is published, than a forbidden status is returned", t, func() {
@@ -1436,7 +1434,7 @@ func TestFailedGetPreview(t *testing.T) {
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
 		response := w.Body.String()
-		So(response, ShouldResemble, "Filter output not found\n")
+		So(response, ShouldResemble, common.ErrFilterOutputNotFound.Error()+"\n")
 	})
 
 	Convey("Requesting a preview with no mongodb database connection", t, func() {
@@ -1488,7 +1486,7 @@ func TestFailedGetPreview(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{BadRequest: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken)
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
@@ -1514,7 +1512,7 @@ func createAuthenticatedRequest(method, url string, body io.Reader) *http.Reques
 
 	r, err := http.NewRequest(method, url, body)
 	ctx := r.Context()
-	ctx = common.SetCaller(ctx, "someone@ons.gov.uk")
+	ctx = identity.SetCaller(ctx, "someone@ons.gov.uk")
 	r = r.WithContext(ctx)
 
 	So(err, ShouldBeNil)

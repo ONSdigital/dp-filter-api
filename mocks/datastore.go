@@ -4,18 +4,12 @@ import (
 	"errors"
 
 	"github.com/ONSdigital/dp-filter-api/models"
+	"github.com/ONSdigital/dp-filter-api/common"
 )
 
 // A list of errors that can be returned by mock package
 var (
-	errorInternalServer       = errors.New("DataStore internal error")
-	errorUnauthorised         = errors.New("Unauthorised")
-	errorBadRequest           = errors.New("Bad request")
-	errorForbidden            = errors.New("Forbidden")
-	errorNotFound             = errors.New("Not found")
-	errorDimensionionNotFound = errors.New("Dimension not found")
-	errorOptionNotFound       = errors.New("Option not found")
-	errorFilterOutputNotFound = errors.New("Filter output not found")
+	errorInternalServer = errors.New("DataStore internal error")
 )
 
 // DataStore represents a list of error flags to set error in mocked datastore
@@ -24,14 +18,12 @@ type DataStore struct {
 	DimensionNotFound      bool
 	OptionNotFound         bool
 	VersionNotFound        bool
-	BadRequest             bool
-	Forbidden              bool
-	Unauthorised           bool
 	InternalError          bool
 	ChangeInstanceRequest  bool
 	InvalidDimensionOption bool
 	Unpublished            bool
 	MissingPublicLinks     bool
+	BadRequest             bool
 }
 
 // AddFilter represents the mocked version of creating a filter blueprint to the datastore
@@ -49,11 +41,7 @@ func (ds *DataStore) AddFilterDimension(filterID, name string, options []string,
 	}
 
 	if ds.NotFound {
-		return errorNotFound
-	}
-
-	if ds.Forbidden {
-		return errorForbidden
+		return common.ErrFilterBlueprintNotFound
 	}
 
 	return nil
@@ -66,15 +54,7 @@ func (ds *DataStore) AddFilterDimensionOption(filterID, name, option string) err
 	}
 
 	if ds.NotFound {
-		return errorNotFound
-	}
-
-	if ds.BadRequest {
-		return errorBadRequest
-	}
-
-	if ds.Forbidden {
-		return errorForbidden
+		return common.ErrFilterBlueprintNotFound
 	}
 
 	return nil
@@ -86,16 +66,13 @@ func (ds *DataStore) CreateFilterOutput(filterJob *models.Filter) error {
 		return errorInternalServer
 	}
 
-	if ds.Unauthorised {
-		return errorUnauthorised
-	}
 	return nil
 }
 
 // GetFilter represents the mocked version of getting a filter blueprint from the datastore
 func (ds *DataStore) GetFilter(filterID string) (*models.Filter, error) {
 	if ds.NotFound {
-		return nil, errorNotFound
+		return nil, common.ErrFilterBlueprintNotFound
 	}
 
 	if ds.InternalError {
@@ -103,7 +80,7 @@ func (ds *DataStore) GetFilter(filterID string) (*models.Filter, error) {
 	}
 
 	if ds.BadRequest {
-		return &models.Filter{Dataset: &models.Dataset{ID: "123", Edition: "2017", Version: 1}, InstanceID: "12345678"}, errorBadRequest
+		return &models.Filter{Dataset: &models.Dataset{ID: "123", Edition: "2017", Version: 1}, InstanceID: "12345678"}, nil
 	}
 
 	if ds.ChangeInstanceRequest {
@@ -124,11 +101,7 @@ func (ds *DataStore) GetFilter(filterID string) (*models.Filter, error) {
 // GetFilterDimension represents the mocked version of getting a filter dimension from the datastore
 func (ds *DataStore) GetFilterDimension(filterID, name string) error {
 	if ds.DimensionNotFound {
-		return errorDimensionionNotFound
-	}
-
-	if ds.BadRequest {
-		return errorBadRequest
+		return common.ErrDimensionNotFound
 	}
 
 	if ds.InternalError {
@@ -141,7 +114,7 @@ func (ds *DataStore) GetFilterDimension(filterID, name string) error {
 // GetFilterOutput represents the mocked version of getting a filter output from the datastore
 func (ds *DataStore) GetFilterOutput(filterID string) (*models.Filter, error) {
 	if ds.NotFound {
-		return nil, errorFilterOutputNotFound
+		return nil, common.ErrFilterOutputNotFound
 	}
 
 	if ds.InternalError {
@@ -185,16 +158,8 @@ func (ds *DataStore) RemoveFilterDimension(string, string) error {
 		return errorInternalServer
 	}
 
-	if ds.BadRequest {
-		return errorBadRequest
-	}
-
-	if ds.Forbidden {
-		return errorForbidden
-	}
-
 	if ds.NotFound {
-		return errorNotFound
+		return common.ErrFilterBlueprintNotFound
 	}
 
 	return nil
@@ -206,16 +171,8 @@ func (ds *DataStore) RemoveFilterDimensionOption(filterJobID, name, option strin
 		return errorInternalServer
 	}
 
-	if ds.BadRequest {
-		return errorBadRequest
-	}
-
-	if ds.Forbidden {
-		return errorForbidden
-	}
-
 	if ds.DimensionNotFound {
-		return errorDimensionionNotFound
+		return common.ErrDimensionNotFound
 	}
 
 	return nil
@@ -227,16 +184,12 @@ func (ds *DataStore) UpdateFilter(filterJob *models.Filter) error {
 		return errorInternalServer
 	}
 
-	if ds.BadRequest {
-		return errorBadRequest
-	}
-
 	if ds.NotFound {
-		return errorFilterOutputNotFound
+		return common.ErrFilterBlueprintNotFound
 	}
 
 	if ds.VersionNotFound {
-		return errorVersionNotFound
+		return common.ErrVersionNotFound
 	}
 	return nil
 }
@@ -247,12 +200,8 @@ func (ds *DataStore) UpdateFilterOutput(filterJob *models.Filter) error {
 		return errorInternalServer
 	}
 
-	if ds.BadRequest {
-		return errorBadRequest
-	}
-
 	if ds.NotFound {
-		return errorNotFound
+		return common.ErrFilterBlueprintNotFound
 	}
 
 	return nil

@@ -14,8 +14,14 @@ import (
 
 	"strconv"
 
-	"github.com/ONSdigital/go-ns/common"
+	identity "github.com/ONSdigital/go-ns/common"
 	"github.com/satori/go.uuid"
+	"github.com/ONSdigital/dp-filter-api/common"
+)
+
+var (
+	errRequestLimitNotNumber = errors.New("requested limit is not a number")
+	errMissingDimensions     = errors.New("missing dimensions")
 )
 
 func (api *FilterAPI) getFilterOutput(w http.ResponseWriter, r *http.Request) {
@@ -59,10 +65,9 @@ func (api *FilterAPI) updateFilterOutput(w http.ResponseWriter, r *http.Request)
 	logData := log.Data{"filter_output_id": filterOutputID}
 	log.Info("updating filter output", logData)
 
-	if !common.IsCallerPresent(r.Context()) {
-		err := errors.New("Not authorised")
-		log.ErrorC("failed to update filter output", err, logData)
-		setErrorCode(w, errNoAuthHeader)
+	if !identity.IsCallerPresent(r.Context()) {
+		log.ErrorC("failed to update filter output", errUnauthorised, logData)
+		setErrorCode(w, errUnauthorised)
 		return
 	}
 
@@ -224,7 +229,7 @@ func (api *FilterAPI) getOutput(r *http.Request, filterID string) (*models.Filte
 	logData["filter_blueprint_id"] = output.Links.FilterBlueprint.ID
 
 	// Hide private download links if request is not authenticated
-	if r.Header.Get(common.DownloadServiceHeaderKey) != api.downloadServiceToken {
+	if r.Header.Get(identity.DownloadServiceHeaderKey) != api.downloadServiceToken {
 
 		log.Info("a valid download service token has not been provided. hiding private links", logData)
 
@@ -241,7 +246,7 @@ func (api *FilterAPI) getOutput(r *http.Request, filterID string) (*models.Filte
 	}
 
 	//only return the filter if it is for published data or via authenticated request
-	if output.Published != nil && *output.Published == models.Published || common.IsCallerPresent(ctx) {
+	if output.Published != nil && *output.Published == models.Published || identity.IsCallerPresent(ctx) {
 		return output, nil
 	}
 
@@ -250,7 +255,7 @@ func (api *FilterAPI) getOutput(r *http.Request, filterID string) (*models.Filte
 	filter, err := api.getFilter(ctx, output.Links.FilterBlueprint.ID)
 	if err != nil {
 		log.Error(errors.New("failed to retrieve filter blueprint"), logData)
-		return nil, errFilterOutputNotFound
+		return nil, common.ErrFilterOutputNotFound
 	}
 
 	//filter has been published since output was last requested, so update output and return
@@ -258,13 +263,13 @@ func (api *FilterAPI) getOutput(r *http.Request, filterID string) (*models.Filte
 		output.Published = &models.Published
 		if err := api.dataStore.UpdateFilterOutput(output); err != nil {
 			log.Error(err, logData)
-			return nil, errFilterOutputNotFound
+			return nil, common.ErrFilterOutputNotFound
 		}
 
 		return output, nil
 	}
 
-	return nil, errFilterOutputNotFound
+	return nil, common.ErrFilterOutputNotFound
 }
 
 func buildDownloadsObject(previousFilterOutput, filterOutput *models.Filter, downloadServiceURL string) *models.Filter {
@@ -320,4 +325,3 @@ func buildDownloadsObject(previousFilterOutput, filterOutput *models.Filter, dow
 
 	return filterOutput
 }
-
