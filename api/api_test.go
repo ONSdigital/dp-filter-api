@@ -26,6 +26,17 @@ const (
 	enablePrivateEndpoints = true
 	downloadServiceURL     = "http://localhost:23600"
 	downloadServiceToken   = "123wut"
+
+)
+
+var (
+	filterNotFoundResponse = common.ErrFilterBlueprintNotFound.Error() + "\n"
+	filterOutputNotFoundResponse = common.ErrFilterOutputNotFound.Error() + "\n"
+	dimensionNotFoundResponse = common.ErrDimensionNotFound.Error() + "\n"
+	versionNotFoundResponse = common.ErrVersionNotFound.Error() + "\n"
+	optionNotFoundResponse = common.ErrOptionNotFound.Error() + "\n"
+	badRequestResponse = badRequest+"\n"
+	internalErrResponse = internalError+"\n"
 )
 
 var previewMock = &datastoretest.PreviewDatasetMock{
@@ -94,7 +105,7 @@ func TestFailedToAddFilterBlueprint(t *testing.T) {
 		So(w.Code, ShouldEqual, http.StatusInternalServerError)
 
 		response := w.Body.String()
-		So(response, ShouldResemble, internalError+"\n")
+		So(response, ShouldResemble, internalErrResponse)
 	})
 
 	Convey("When dataset API is unavailable, an internal error is returned", t, func() {
@@ -108,7 +119,7 @@ func TestFailedToAddFilterBlueprint(t *testing.T) {
 		So(w.Code, ShouldEqual, http.StatusInternalServerError)
 
 		response := w.Body.String()
-		So(response, ShouldResemble, internalError+"\n")
+		So(response, ShouldResemble, internalErrResponse)
 	})
 
 	Convey("When version does not exist, a not found error is returned", t, func() {
@@ -122,7 +133,7 @@ func TestFailedToAddFilterBlueprint(t *testing.T) {
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
 		response := w.Body.String()
-		So(response, ShouldResemble, common.ErrVersionNotFound.Error()+"\n")
+		So(response, ShouldResemble, versionNotFoundResponse)
 	})
 
 	Convey("When version is unpublished and the request is not authenticated, a bad request error is returned", t, func() {
@@ -136,7 +147,7 @@ func TestFailedToAddFilterBlueprint(t *testing.T) {
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
 		response := w.Body.String()
-		So(response, ShouldResemble, badRequest+"\n")
+		So(response, ShouldResemble, badRequestResponse)
 	})
 
 	Convey("When an invalid json message is sent, a bad request is returned", t, func() {
@@ -150,7 +161,7 @@ func TestFailedToAddFilterBlueprint(t *testing.T) {
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
 		response := w.Body.String()
-		So(response, ShouldResemble, badRequest+"\n")
+		So(response, ShouldResemble, badRequestResponse)
 	})
 
 	Convey("When a empty json message is sent, a bad request is returned", t, func() {
@@ -164,7 +175,7 @@ func TestFailedToAddFilterBlueprint(t *testing.T) {
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
 		response := w.Body.String()
-		So(response, ShouldResemble, badRequest+"\n")
+		So(response, ShouldResemble, badRequestResponse)
 	})
 
 	Convey("When a json message is missing mandatory fields, a bad request is returned", t, func() {
@@ -178,7 +189,7 @@ func TestFailedToAddFilterBlueprint(t *testing.T) {
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
 		response := w.Body.String()
-		So(response, ShouldResemble, badRequest+"\n")
+		So(response, ShouldResemble, badRequestResponse)
 	})
 
 	Convey("When a json message contains a dimension that does not exist, a bad request is returned", t, func() {
@@ -269,7 +280,7 @@ func TestFailedToAddFilterBlueprintDimension(t *testing.T) {
 		So(w.Code, ShouldEqual, http.StatusInternalServerError)
 
 		response := w.Body.String()
-		So(response, ShouldResemble, internalError+"\n")
+		So(response, ShouldResemble, internalErrResponse)
 	})
 
 	Convey("When an invalid json message is sent, a bad request is returned", t, func() {
@@ -283,7 +294,7 @@ func TestFailedToAddFilterBlueprintDimension(t *testing.T) {
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
 		response := w.Body.String()
-		So(response, ShouldResemble, badRequest+"\n")
+		So(response, ShouldResemble, badRequestResponse)
 	})
 
 	Convey("When a filter blueprint does not exist, a not found is returned", t, func() {
@@ -297,7 +308,7 @@ func TestFailedToAddFilterBlueprintDimension(t *testing.T) {
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
 		response := w.Body.String()
-		So(response, ShouldResemble, common.ErrFilterBlueprintNotFound.Error()+"\n")
+		So(response, ShouldResemble, filterNotFoundResponse)
 	})
 
 	Convey("When an unpublished filter blueprint does not exist, and the request is not authenticated, a not found is returned", t, func() {
@@ -311,7 +322,7 @@ func TestFailedToAddFilterBlueprintDimension(t *testing.T) {
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
 		response := w.Body.String()
-		So(response, ShouldResemble, "filter blueprint not found\n")
+		So(response, ShouldResemble, filterNotFoundResponse)
 	})
 
 	Convey("When the dimension does not exist against the dataset filtered on, a bad request is returned", t, func() {
@@ -393,7 +404,7 @@ func TestFailedToAddFilterBlueprintDimensionOption(t *testing.T) {
 		So(w.Code, ShouldEqual, http.StatusInternalServerError)
 
 		response := w.Body.String()
-		So(response, ShouldResemble, internalError+"\n")
+		So(response, ShouldResemble, internalErrResponse)
 	})
 
 	Convey("When the filter blueprint does not exist, a bad request status is returned", t, func() {
@@ -406,7 +417,7 @@ func TestFailedToAddFilterBlueprintDimensionOption(t *testing.T) {
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
 		response := w.Body.String()
-		So(response, ShouldResemble, common.ErrFilterBlueprintNotFound.Error()+"\n")
+		So(response, ShouldResemble, filterNotFoundResponse)
 	})
 
 	Convey("When the filter blueprint is unpublished, and the request is unauthenticated, a bad request status is returned", t, func() {
@@ -419,7 +430,7 @@ func TestFailedToAddFilterBlueprintDimensionOption(t *testing.T) {
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
 		response := w.Body.String()
-		So(response, ShouldResemble, "filter blueprint not found\n")
+		So(response, ShouldResemble, filterNotFoundResponse)
 	})
 
 	Convey("When the dimension option for filter blueprint does not exist, a bad request status is returned", t, func() {
@@ -473,7 +484,7 @@ func TestFailedToGetFilterBlueprint(t *testing.T) {
 		So(w.Code, ShouldEqual, http.StatusInternalServerError)
 
 		response := w.Body.String()
-		So(response, ShouldResemble, internalError+"\n")
+		So(response, ShouldResemble, internalErrResponse)
 	})
 
 	Convey("When filter blueprint does not exist, a not found is returned", t, func() {
@@ -486,7 +497,7 @@ func TestFailedToGetFilterBlueprint(t *testing.T) {
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
 		response := w.Body.String()
-		So(response, ShouldResemble, "filter blueprint not found\n")
+		So(response, ShouldResemble, filterNotFoundResponse)
 	})
 
 	Convey("When filter blueprint is unpublished, and the request is unauthenticated, a not found is returned", t, func() {
@@ -499,7 +510,7 @@ func TestFailedToGetFilterBlueprint(t *testing.T) {
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
 		response := w.Body.String()
-		So(response, ShouldResemble, "filter blueprint not found\n")
+		So(response, ShouldResemble, filterNotFoundResponse)
 	})
 }
 
@@ -567,7 +578,7 @@ func TestFailedToUpdateFilterBlueprint(t *testing.T) {
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
 		response := w.Body.String()
-		So(response, ShouldResemble, badRequest+"\n")
+		So(response, ShouldResemble, badRequestResponse)
 	})
 
 	Convey("When an empty json message is sent, a bad request is returned", t, func() {
@@ -581,7 +592,7 @@ func TestFailedToUpdateFilterBlueprint(t *testing.T) {
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
 		response := w.Body.String()
-		So(response, ShouldResemble, badRequest+"\n")
+		So(response, ShouldResemble, badRequestResponse)
 	})
 
 	Convey("When a json message is sent to update filter blueprint that doesn't exist, a status of not found is returned", t, func() {
@@ -595,7 +606,7 @@ func TestFailedToUpdateFilterBlueprint(t *testing.T) {
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
 		response := w.Body.String()
-		So(response, ShouldResemble, "filter blueprint not found\n")
+		So(response, ShouldResemble, filterNotFoundResponse)
 	})
 
 	Convey("When no authentication is provided to update an unpublished filter, a not found is returned", t, func() {
@@ -610,7 +621,7 @@ func TestFailedToUpdateFilterBlueprint(t *testing.T) {
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
 		response := w.Body.String()
-		So(response, ShouldResemble, "filter blueprint not found\n")
+		So(response, ShouldResemble, filterNotFoundResponse)
 	})
 
 	Convey("When a json message is sent to change the dataset version of a filter blueprint and the version does not exist, a status of bad request is returned", t, func() {
@@ -624,7 +635,7 @@ func TestFailedToUpdateFilterBlueprint(t *testing.T) {
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
 		response := w.Body.String()
-		So(response, ShouldResemble, "version not found\n")
+		So(response, ShouldResemble, versionNotFoundResponse)
 	})
 
 	Convey("When a json message is sent to change the datset version of a filter blueprint and the current dimensions do not match, a status of bad request is returned", t, func() {
@@ -690,7 +701,7 @@ func TestFailedToGetFilterBlueprintDimensions(t *testing.T) {
 		So(w.Code, ShouldEqual, http.StatusInternalServerError)
 
 		response := w.Body.String()
-		So(response, ShouldResemble, internalError+"\n")
+		So(response, ShouldResemble, internalErrResponse)
 	})
 
 	Convey("When filter blueprint does not exist, a not found is returned", t, func() {
@@ -703,7 +714,7 @@ func TestFailedToGetFilterBlueprintDimensions(t *testing.T) {
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
 		response := w.Body.String()
-		So(response, ShouldResemble, "filter blueprint not found\n")
+		So(response, ShouldResemble, filterNotFoundResponse)
 	})
 }
 
@@ -741,7 +752,7 @@ func TestFailedToGetFilterBlueprintDimension(t *testing.T) {
 		So(w.Code, ShouldEqual, http.StatusInternalServerError)
 
 		response := w.Body.String()
-		So(response, ShouldResemble, internalError+"\n")
+		So(response, ShouldResemble, internalErrResponse)
 	})
 
 	Convey("When filter blueprint does not exist, a bad request is returned", t, func() {
@@ -754,7 +765,7 @@ func TestFailedToGetFilterBlueprintDimension(t *testing.T) {
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
 		response := w.Body.String()
-		So(response, ShouldResemble, common.ErrFilterBlueprintNotFound.Error()+"\n")
+		So(response, ShouldResemble, filterNotFoundResponse)
 	})
 
 	Convey("When filter blueprint is unpublished and request is unauthenticated, a bad request is returned", t, func() {
@@ -767,7 +778,7 @@ func TestFailedToGetFilterBlueprintDimension(t *testing.T) {
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
 		response := w.Body.String()
-		So(response, ShouldResemble, common.ErrFilterBlueprintNotFound.Error()+"\n")
+		So(response, ShouldResemble, filterNotFoundResponse)
 	})
 
 	Convey("When dimension does not exist against filter blueprint, a not found is returned", t, func() {
@@ -780,7 +791,7 @@ func TestFailedToGetFilterBlueprintDimension(t *testing.T) {
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
 		response := w.Body.String()
-		So(response, ShouldResemble, common.ErrDimensionNotFound.Error()+"\n")
+		So(response, ShouldResemble, dimensionNotFoundResponse)
 	})
 }
 
@@ -818,7 +829,7 @@ func TestFailedToGetFilterBlueprintDimensionOptions(t *testing.T) {
 		So(w.Code, ShouldEqual, http.StatusInternalServerError)
 
 		response := w.Body.String()
-		So(response, ShouldResemble, internalError+"\n")
+		So(response, ShouldResemble, internalErrResponse)
 	})
 
 	Convey("When filter blueprint does not exist, a not found is returned", t, func() {
@@ -831,7 +842,7 @@ func TestFailedToGetFilterBlueprintDimensionOptions(t *testing.T) {
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
 		response := w.Body.String()
-		So(response, ShouldResemble, common.ErrFilterBlueprintNotFound.Error()+"\n")
+		So(response, ShouldResemble, filterNotFoundResponse)
 	})
 
 	Convey("When filter blueprint is unpublished and the request is unauthenticated, a not found is returned", t, func() {
@@ -844,7 +855,7 @@ func TestFailedToGetFilterBlueprintDimensionOptions(t *testing.T) {
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
 		response := w.Body.String()
-		So(response, ShouldResemble, common.ErrFilterBlueprintNotFound.Error()+"\n")
+		So(response, ShouldResemble, filterNotFoundResponse)
 	})
 
 	Convey("When dimension does not exist against filter blueprint, a dimension not found is returned", t, func() {
@@ -857,7 +868,7 @@ func TestFailedToGetFilterBlueprintDimensionOptions(t *testing.T) {
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
 		response := w.Body.String()
-		So(response, ShouldResemble, common.ErrDimensionNotFound.Error()+"\n")
+		So(response, ShouldResemble, dimensionNotFoundResponse)
 	})
 }
 
@@ -895,7 +906,7 @@ func TestFailedToGetFilterBlueprintDimensionOption(t *testing.T) {
 		So(w.Code, ShouldEqual, http.StatusInternalServerError)
 
 		response := w.Body.String()
-		So(response, ShouldResemble, internalError+"\n")
+		So(response, ShouldResemble, internalErrResponse)
 	})
 
 	Convey("When filter blueprint does not exist, a bad request is returned", t, func() {
@@ -908,7 +919,7 @@ func TestFailedToGetFilterBlueprintDimensionOption(t *testing.T) {
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
 		response := w.Body.String()
-		So(response, ShouldResemble, "filter blueprint not found\n")
+		So(response, ShouldResemble, filterNotFoundResponse)
 	})
 
 	Convey("When filter blueprint is unpublished, a bad request is returned", t, func() {
@@ -921,7 +932,7 @@ func TestFailedToGetFilterBlueprintDimensionOption(t *testing.T) {
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
 		response := w.Body.String()
-		So(response, ShouldResemble, common.ErrFilterBlueprintNotFound.Error()+"\n")
+		So(response, ShouldResemble, filterNotFoundResponse)
 	})
 
 	Convey("When option does not exist against filter blueprint, an option not found is returned", t, func() {
@@ -934,7 +945,7 @@ func TestFailedToGetFilterBlueprintDimensionOption(t *testing.T) {
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
 		response := w.Body.String()
-		So(response, ShouldResemble, common.ErrOptionNotFound.Error()+"\n")
+		So(response, ShouldResemble, optionNotFoundResponse)
 	})
 }
 
@@ -972,7 +983,7 @@ func TestFailedToRemoveFilterBlueprintDimension(t *testing.T) {
 		So(w.Code, ShouldEqual, http.StatusInternalServerError)
 
 		response := w.Body.String()
-		So(response, ShouldResemble, internalError+"\n")
+		So(response, ShouldResemble, internalErrResponse)
 	})
 
 	Convey("When filter blueprint does not exist, a bad request is returned", t, func() {
@@ -985,7 +996,7 @@ func TestFailedToRemoveFilterBlueprintDimension(t *testing.T) {
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
 		response := w.Body.String()
-		So(response, ShouldResemble, common.ErrFilterBlueprintNotFound.Error()+"\n")
+		So(response, ShouldResemble, filterNotFoundResponse)
 	})
 
 	Convey("When filter blueprint is unpublished, and request is not authenticated, a bad request is returned", t, func() {
@@ -998,7 +1009,7 @@ func TestFailedToRemoveFilterBlueprintDimension(t *testing.T) {
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
 		response := w.Body.String()
-		So(response, ShouldResemble, common.ErrFilterBlueprintNotFound.Error()+"\n")
+		So(response, ShouldResemble, filterNotFoundResponse)
 	})
 
 	Convey("When dimension does not exist against filter blueprint, the response is idempotent and returns 200 OK", t, func() {
@@ -1046,7 +1057,7 @@ func TestFailedToRemoveFilterBlueprintDimensionOption(t *testing.T) {
 		So(w.Code, ShouldEqual, http.StatusInternalServerError)
 
 		response := w.Body.String()
-		So(response, ShouldResemble, internalError+"\n")
+		So(response, ShouldResemble, internalErrResponse)
 	})
 
 	Convey("When filter blueprint does not exist, a bad request is returned", t, func() {
@@ -1059,7 +1070,7 @@ func TestFailedToRemoveFilterBlueprintDimensionOption(t *testing.T) {
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
 		response := w.Body.String()
-		So(response, ShouldResemble, common.ErrFilterBlueprintNotFound.Error()+"\n")
+		So(response, ShouldResemble, filterNotFoundResponse)
 	})
 
 	Convey("When filter blueprint is unpublished, and request is not authenticated, a bad request is returned", t, func() {
@@ -1072,7 +1083,7 @@ func TestFailedToRemoveFilterBlueprintDimensionOption(t *testing.T) {
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
 		response := w.Body.String()
-		So(response, ShouldResemble, common.ErrFilterBlueprintNotFound.Error()+"\n")
+		So(response, ShouldResemble, filterNotFoundResponse)
 	})
 
 	Convey("When dimension does not exist against filter blueprint, a not found is returned", t, func() {
@@ -1085,7 +1096,7 @@ func TestFailedToRemoveFilterBlueprintDimensionOption(t *testing.T) {
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
 		response := w.Body.String()
-		So(response, ShouldResemble, common.ErrDimensionNotFound.Error()+"\n")
+		So(response, ShouldResemble, dimensionNotFoundResponse)
 	})
 }
 
@@ -1159,7 +1170,7 @@ func TestFailedToGetFilterOutput(t *testing.T) {
 		So(w.Code, ShouldEqual, http.StatusInternalServerError)
 
 		response := w.Body.String()
-		So(response, ShouldResemble, internalError+"\n")
+		So(response, ShouldResemble, internalErrResponse)
 	})
 
 	Convey("When filter output does not exist, a not found is returned", t, func() {
@@ -1250,7 +1261,7 @@ func TestFailedToUpdateFilterOutput(t *testing.T) {
 		So(w.Code, ShouldEqual, http.StatusInternalServerError)
 
 		response := w.Body.String()
-		So(response, ShouldResemble, internalError+"\n")
+		So(response, ShouldResemble, internalErrResponse)
 	})
 
 	Convey("When an invalid json message is sent, a bad request is returned", t, func() {
@@ -1263,7 +1274,7 @@ func TestFailedToUpdateFilterOutput(t *testing.T) {
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
 		response := w.Body.String()
-		So(response, ShouldResemble, badRequest+"\n")
+		So(response, ShouldResemble, badRequestResponse)
 	})
 
 	Convey("When an update to a filter output resource that does not exist, a not found is returned", t, func() {
@@ -1286,7 +1297,7 @@ func TestFailedToUpdateFilterOutput(t *testing.T) {
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
 		response := w.Body.String()
-		So(response, ShouldResemble, badRequest+"\n")
+		So(response, ShouldResemble, badRequestResponse)
 	})
 
 	Convey("When a json message contains fields that are not allowed to be updated, a forbidden status is returned", t, func() {
@@ -1447,7 +1458,7 @@ func TestFailedGetPreview(t *testing.T) {
 		So(w.Code, ShouldEqual, http.StatusInternalServerError)
 
 		response := w.Body.String()
-		So(response, ShouldResemble, internalError+"\n")
+		So(response, ShouldResemble, internalErrResponse)
 	})
 
 	Convey("Requesting a preview with no neo4j database connection", t, func() {
