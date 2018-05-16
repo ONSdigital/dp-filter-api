@@ -37,6 +37,7 @@ dp-filter-api
 | ENABLE_PRIVATE_ENDPOINTS   | false                                     | true if private endpoints should be enabled
 | DOWNLOAD_SERVICE_URL       | http://localhost:23600                    | The URL of the download service
 | DOWNLOAD_SERVICE_SECRET_KEY| QB0108EZ-825D-412C-9B1D-41EF7747F462      | The service token for the download service
+| AUDIT_EVENTS_TOPIC         | audit-events                              | The Kafka topic name to send audit events to
 
 ### Healthchecking
 
