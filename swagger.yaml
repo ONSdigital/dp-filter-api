@@ -184,7 +184,7 @@ paths:
         204:
           description: "Dimension exists for filter"
         400:
-          description: "Filte was not found"
+          description: "Filter was not found"
         404:
           description: "Dimension name was not found"
         500:

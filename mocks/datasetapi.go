@@ -2,26 +2,16 @@ package mocks
 
 import (
 	"context"
-	"errors"
-
 	"github.com/ONSdigital/dp-filter-api/models"
+	"github.com/ONSdigital/dp-filter-api/filters"
 )
 
 // DatasetAPI represents a list of error flags to set error in mocked dataset API
 type DatasetAPI struct {
-	DimensionsNotFound       bool
-	DimensionOptionsNotFound bool
 	VersionNotFound          bool
 	InternalServerError      bool
 	Unpublished              bool
 }
-
-// A list of errors that can be returned by the mock package
-var (
-	errorVersionNotFound          = errors.New("Version not found")
-	errorDimensionsNotFound       = errors.New("Dimensions not found")
-	errorDimensionOptionsNotFound = errors.New("Dimension options not found")
-)
 
 // GetVersion represents the mocked version of getting an version document from dataset API
 func (ds *DatasetAPI) GetVersion(ctx context.Context, dataset models.Dataset) (*models.Version, error) {
@@ -30,7 +20,7 @@ func (ds *DatasetAPI) GetVersion(ctx context.Context, dataset models.Dataset) (*
 	}
 
 	if ds.VersionNotFound {
-		return nil, errorVersionNotFound
+		return nil, filters.ErrVersionNotFound
 	}
 
 	if ds.Unpublished {
@@ -71,10 +61,6 @@ func (ds *DatasetAPI) GetVersionDimensions(ctx context.Context, dataset models.D
 		return nil, errorInternalServer
 	}
 
-	if ds.DimensionsNotFound {
-		return nil, errorDimensionsNotFound
-	}
-
 	dimension := models.DatasetDimension{
 		Name: "age",
 	}
@@ -88,10 +74,6 @@ func (ds *DatasetAPI) GetVersionDimensions(ctx context.Context, dataset models.D
 func (ds *DatasetAPI) GetVersionDimensionOptions(ctx context.Context, dataset models.Dataset, dimension string) (*models.DatasetDimensionOptionResults, error) {
 	if ds.InternalServerError {
 		return nil, errorInternalServer
-	}
-
-	if ds.DimensionOptionsNotFound {
-		return nil, errorDimensionOptionsNotFound
 	}
 
 	dimensionOptionOne := models.PublicDimensionOption{

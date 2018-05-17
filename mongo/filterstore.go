@@ -1,7 +1,6 @@
 package mongo
 
 import (
-	"errors"
 	"fmt"
 	"time"
 
@@ -9,18 +8,7 @@ import (
 	"github.com/ONSdigital/dp-filter-api/models"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
-)
-
-// Error codes
-var (
-	errNotAuthorised = errors.New("Not authorised")
-	errForbidden     = errors.New("Forbidden")
-
-	errNotFound                  = errors.New("Not found")
-	errDimensionNotFound         = errors.New("Dimension not found")
-	errOptionNotFound            = errors.New("Option not found")
-	errFilterOrDimensionNotFound = errors.New("Bad request - filter or dimension not found")
-	errFilterOutputNotFound      = errors.New("Filter output not found")
+	"github.com/ONSdigital/dp-filter-api/filters"
 )
 
 // FilterStore containing all filter jobs stored in mongodb
@@ -70,7 +58,7 @@ func (s *FilterStore) GetFilter(filterID string) (*models.Filter, error) {
 
 	if err := session.DB(s.db).C(s.filtersCollection).Find(query).One(&result); err != nil {
 		if err == mgo.ErrNotFound {
-			return nil, errNotFound
+			return nil, filters.ErrFilterBlueprintNotFound
 		}
 		return nil, err
 	}
@@ -89,7 +77,7 @@ func (s *FilterStore) UpdateFilter(updatedFilter *models.Filter) error {
 	selector := bson.M{"filter_id": updatedFilter.FilterID}
 	if err := session.DB(s.db).C(s.filtersCollection).Update(selector, update); err != nil {
 		if err == mgo.ErrNotFound {
-			return errNotFound
+			return filters.ErrFilterBlueprintNotFound
 		}
 		return err
 	}
@@ -108,7 +96,7 @@ func (s *FilterStore) GetFilterDimension(filterID string, name string) error {
 
 	if err := session.DB(s.db).C(s.filtersCollection).Find(queryDimension).Select(dimensionSelect).One(&result); err != nil {
 		if err == mgo.ErrNotFound {
-			return errDimensionNotFound
+			return filters.ErrDimensionNotFound
 		}
 		return err
 	}
@@ -143,7 +131,7 @@ func (s *FilterStore) AddFilterDimension(filterID, name string, options []string
 
 	if err := session.DB(s.db).C(s.filtersCollection).Update(queryFilter, update); err != nil {
 		if err == mgo.ErrNotFound {
-			return errNotFound
+			return filters.ErrFilterBlueprintNotFound
 		}
 		return err
 	}
@@ -162,13 +150,13 @@ func (s *FilterStore) RemoveFilterDimension(filterID, name string) error {
 	info, err := session.DB(s.db).C(s.filtersCollection).UpdateAll(queryFilter, update)
 	if err != nil {
 		if err == mgo.ErrNotFound {
-			return errNotFound
+			return filters.ErrFilterBlueprintNotFound
 		}
 		return err
 	}
 
 	if info.Updated == 0 {
-		return errDimensionNotFound
+		return filters.ErrDimensionNotFound
 	}
 
 	return nil
@@ -184,7 +172,7 @@ func (s *FilterStore) AddFilterDimensionOption(filterID, name, option string) er
 
 	if err := session.DB(s.db).C(s.filtersCollection).Update(queryOptions, update); err != nil {
 		if err == mgo.ErrNotFound {
-			return errDimensionNotFound
+			return filters.ErrDimensionNotFound
 		}
 		return err
 	}
@@ -203,14 +191,14 @@ func (s *FilterStore) RemoveFilterDimensionOption(filterID string, name string, 
 	info, err := session.DB(s.db).C(s.filtersCollection).UpdateAll(queryOptions, update)
 	if err != nil {
 		if err == mgo.ErrNotFound {
-			return errOptionNotFound
+			return filters.ErrOptionNotFound
 		}
 		return err
 	}
 
 	// document was match but nothing was removed
 	if info.Updated == 0 {
-		return errOptionNotFound
+		return filters.ErrOptionNotFound
 	}
 
 	return nil
@@ -238,7 +226,7 @@ func (s *FilterStore) GetFilterOutput(filterID string) (*models.Filter, error) {
 
 	if err := session.DB(s.db).C(s.outputsCollection).Find(query).One(&result); err != nil {
 		if err == mgo.ErrNotFound {
-			return nil, errFilterOutputNotFound
+			return nil, filters.ErrFilterOutputNotFound
 		}
 
 		return nil, err
