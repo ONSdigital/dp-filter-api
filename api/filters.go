@@ -15,7 +15,7 @@ import (
 	"strconv"
 
 	"github.com/satori/go.uuid"
-	identity "github.com/ONSdigital/go-ns/common"
+	"github.com/ONSdigital/go-ns/common"
 	"github.com/ONSdigital/dp-filter-api/filters"
 )
 
@@ -69,7 +69,7 @@ func (api *FilterAPI) addFilterBlueprint(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	if version.State != publishedState && !identity.IsCallerPresent(r.Context()) {
+	if version.State != publishedState && !common.IsCallerPresent(r.Context()) {
 		log.Info("unauthenticated request to filter unpublished version", log.Data{"dataset": *filterParameters.Dataset, "state": version.State})
 		http.Error(w, badRequest, http.StatusBadRequest)
 		return
@@ -306,7 +306,7 @@ func (api *FilterAPI) getFilter(ctx context.Context, filterID string) (*models.F
 	}
 
 	//only return the filter if it is for published data or via authenticated request
-	if filter.Published != nil && *filter.Published == models.Published || identity.IsCallerPresent(ctx) {
+	if filter.Published != nil && *filter.Published == models.Published || common.IsCallerPresent(ctx) {
 		return filter, nil
 	}
 

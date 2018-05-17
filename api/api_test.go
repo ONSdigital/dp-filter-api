@@ -15,7 +15,7 @@ import (
 	"github.com/ONSdigital/dp-filter-api/mocks"
 	"github.com/ONSdigital/dp-filter-api/models"
 	"github.com/ONSdigital/dp-filter-api/preview"
-	identity "github.com/ONSdigital/go-ns/common"
+	"github.com/ONSdigital/go-ns/common"
 	"github.com/gorilla/mux"
 	. "github.com/smartystreets/goconvey/convey"
 	"github.com/ONSdigital/dp-filter-api/filters"
@@ -1127,7 +1127,7 @@ func TestSuccessfulGetFilterOutput(t *testing.T) {
 	Convey("Successfully get a filter output from a request with an authorised download service token", t, func() {
 
 		r := createAuthenticatedRequest("GET", "http://localhost:22100/filter-outputs/12345678", nil)
-		r.Header.Add(identity.DownloadServiceHeaderKey, downloadServiceToken)
+		r.Header.Add(common.DownloadServiceHeaderKey, downloadServiceToken)
 
 		w := httptest.NewRecorder()
 		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken)
@@ -1523,7 +1523,7 @@ func createAuthenticatedRequest(method, url string, body io.Reader) *http.Reques
 
 	r, err := http.NewRequest(method, url, body)
 	ctx := r.Context()
-	ctx = identity.SetCaller(ctx, "someone@ons.gov.uk")
+	ctx = common.SetCaller(ctx, "someone@ons.gov.uk")
 	r = r.WithContext(ctx)
 
 	So(err, ShouldBeNil)

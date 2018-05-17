@@ -19,7 +19,7 @@ import (
 	"github.com/ONSdigital/go-ns/log"
 	"github.com/ONSdigital/go-ns/rchttp"
 	"github.com/ONSdigital/dp-filter-api/filters"
-	identity "github.com/ONSdigital/go-ns/common"
+	"github.com/ONSdigital/go-ns/common"
 )
 
 // DatasetAPIer - An interface used to access the DatasetAPI
@@ -80,7 +80,7 @@ func (api *DatasetAPI) GetVersion(ctx context.Context, d models.Dataset) (versio
 	}
 
 	// External facing customers should NOT be able to filter an unpublished version
-	if version.State != publishedState && !identity.IsCallerPresent(ctx) {
+	if version.State != publishedState && !common.IsCallerPresent(ctx) {
 		log.Error(errors.New("invalid authorization, returning not found status"), log.Data{"dataset": d})
 		return nil, filters.ErrVersionNotFound
 	}
@@ -181,8 +181,8 @@ func (api *DatasetAPI) callDatasetAPI(ctx context.Context, method, path string, 
 
 	req.Header.Set(string(internalTokenKey), api.authToken)
 
-	identity.AddUserHeader(req, identity.User(ctx))
-	identity.AddServiceTokenHeader(req, api.serviceAuthToken)
+	common.AddUserHeader(req, common.User(ctx))
+	common.AddServiceTokenHeader(req, api.serviceAuthToken)
 
 	resp, err := api.client.Do(ctx, req)
 	if err != nil {
