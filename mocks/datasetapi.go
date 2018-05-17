@@ -3,7 +3,7 @@ package mocks
 import (
 	"context"
 	"github.com/ONSdigital/dp-filter-api/models"
-	"github.com/ONSdigital/dp-filter-api/common"
+	"github.com/ONSdigital/dp-filter-api/filters"
 )
 
 // DatasetAPI represents a list of error flags to set error in mocked dataset API
@@ -20,7 +20,7 @@ func (ds *DatasetAPI) GetVersion(ctx context.Context, dataset models.Dataset) (*
 	}
 
 	if ds.VersionNotFound {
-		return nil, common.ErrVersionNotFound
+		return nil, filters.ErrVersionNotFound
 	}
 
 	if ds.Unpublished {

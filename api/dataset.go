@@ -18,7 +18,7 @@ import (
 	"github.com/ONSdigital/go-ns/clients/dataset"
 	"github.com/ONSdigital/go-ns/log"
 	"github.com/ONSdigital/go-ns/rchttp"
-	"github.com/ONSdigital/dp-filter-api/common"
+	"github.com/ONSdigital/dp-filter-api/filters"
 	identity "github.com/ONSdigital/go-ns/common"
 )
 
@@ -82,7 +82,7 @@ func (api *DatasetAPI) GetVersion(ctx context.Context, d models.Dataset) (versio
 	// External facing customers should NOT be able to filter an unpublished version
 	if version.State != publishedState && !identity.IsCallerPresent(ctx) {
 		log.Error(errors.New("invalid authorization, returning not found status"), log.Data{"dataset": d})
-		return nil, common.ErrVersionNotFound
+		return nil, filters.ErrVersionNotFound
 	}
 
 	return
@@ -220,12 +220,12 @@ func handleError(httpCode int, err error, typ string) error {
 		switch httpCode {
 		case http.StatusNotFound:
 			if typ == "dimension" {
-				return common.ErrDimensionNotFound
+				return filters.ErrDimensionNotFound
 			}
 			if typ == "dimension option" {
-				return common.ErrDimensionOptionsNotFound
+				return filters.ErrDimensionOptionsNotFound
 			}
-			return common.ErrVersionNotFound
+			return filters.ErrVersionNotFound
 		}
 	}
 

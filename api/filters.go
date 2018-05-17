@@ -16,7 +16,7 @@ import (
 
 	"github.com/satori/go.uuid"
 	identity "github.com/ONSdigital/go-ns/common"
-	"github.com/ONSdigital/dp-filter-api/common"
+	"github.com/ONSdigital/dp-filter-api/filters"
 )
 
 var (
@@ -323,14 +323,14 @@ func (api *FilterAPI) getFilter(ctx context.Context, filterID string) (*models.F
 		filter.Published = &models.Published
 		if err := api.dataStore.UpdateFilter(filter); err != nil {
 			log.Error(err, logData)
-			return nil, common.ErrFilterBlueprintNotFound
+			return nil, filters.ErrFilterBlueprintNotFound
 		}
 
 		return filter, nil
 	}
 
 	// not authenticated, so return not found
-	return nil, common.ErrFilterBlueprintNotFound
+	return nil, filters.ErrFilterBlueprintNotFound
 }
 
 func (api *FilterAPI) checkFilterOptions(ctx context.Context, newFilter *models.Filter, version *models.Version) error {
@@ -414,21 +414,21 @@ func createNewFilter(filter *models.Filter, currentFilter *models.Filter) (newFi
 
 func setErrorCode(w http.ResponseWriter, err error, typ ...string) {
 	switch err {
-	case common.ErrFilterBlueprintNotFound:
+	case filters.ErrFilterBlueprintNotFound:
 		if typ != nil && typ[0] == statusBadRequest {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
-	case common.ErrDimensionNotFound:
+	case filters.ErrDimensionNotFound:
 		if typ != nil && typ[0] == statusBadRequest {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
-	case common.ErrVersionNotFound:
+	case filters.ErrVersionNotFound:
 		if typ != nil {
 			if typ[0] == statusBadRequest {
 				http.Error(w, err.Error(), http.StatusBadRequest)
@@ -441,9 +441,9 @@ func setErrorCode(w http.ResponseWriter, err error, typ ...string) {
 		}
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
-	case common.ErrOptionNotFound:
+	case filters.ErrOptionNotFound:
 		fallthrough
-	case common.ErrFilterOutputNotFound:
+	case filters.ErrFilterOutputNotFound:
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	case errUnauthorised:

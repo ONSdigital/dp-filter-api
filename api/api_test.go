@@ -18,7 +18,7 @@ import (
 	identity "github.com/ONSdigital/go-ns/common"
 	"github.com/gorilla/mux"
 	. "github.com/smartystreets/goconvey/convey"
-	"github.com/ONSdigital/dp-filter-api/common"
+	"github.com/ONSdigital/dp-filter-api/filters"
 )
 
 const (
@@ -30,11 +30,11 @@ const (
 )
 
 var (
-	filterNotFoundResponse = common.ErrFilterBlueprintNotFound.Error() + "\n"
-	filterOutputNotFoundResponse = common.ErrFilterOutputNotFound.Error() + "\n"
-	dimensionNotFoundResponse = common.ErrDimensionNotFound.Error() + "\n"
-	versionNotFoundResponse = common.ErrVersionNotFound.Error() + "\n"
-	optionNotFoundResponse = common.ErrOptionNotFound.Error() + "\n"
+	filterNotFoundResponse = filters.ErrFilterBlueprintNotFound.Error() + "\n"
+	filterOutputNotFoundResponse = filters.ErrFilterOutputNotFound.Error() + "\n"
+	dimensionNotFoundResponse = filters.ErrDimensionNotFound.Error() + "\n"
+	versionNotFoundResponse = filters.ErrVersionNotFound.Error() + "\n"
+	optionNotFoundResponse = filters.ErrOptionNotFound.Error() + "\n"
 	badRequestResponse = badRequest+"\n"
 	internalErrResponse = internalError+"\n"
 )
@@ -1183,7 +1183,7 @@ func TestFailedToGetFilterOutput(t *testing.T) {
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
 		response := w.Body.String()
-		So(response, ShouldResemble, common.ErrFilterOutputNotFound.Error()+"\n")
+		So(response, ShouldResemble, filters.ErrFilterOutputNotFound.Error()+"\n")
 	})
 
 	Convey("When filter output is unpublished and the request is unauthenticated, a not found is returned", t, func() {
@@ -1196,7 +1196,7 @@ func TestFailedToGetFilterOutput(t *testing.T) {
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
 		response := w.Body.String()
-		So(response, ShouldResemble, common.ErrFilterOutputNotFound.Error()+"\n")
+		So(response, ShouldResemble, filters.ErrFilterOutputNotFound.Error()+"\n")
 	})
 }
 
@@ -1445,7 +1445,7 @@ func TestFailedGetPreview(t *testing.T) {
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
 		response := w.Body.String()
-		So(response, ShouldResemble, common.ErrFilterOutputNotFound.Error()+"\n")
+		So(response, ShouldResemble, filters.ErrFilterOutputNotFound.Error()+"\n")
 	})
 
 	Convey("Requesting a preview with no mongodb database connection", t, func() {
