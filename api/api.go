@@ -11,6 +11,7 @@ import (
 	"github.com/ONSdigital/go-ns/server"
 	"github.com/gorilla/mux"
 	"github.com/justinas/alice"
+	"github.com/ONSdigital/go-ns/audit"
 )
 
 var httpServer *server.Server
@@ -41,6 +42,7 @@ type FilterAPI struct {
 	preview              PreviewDataset
 	downloadServiceURL   string
 	downloadServiceToken string
+	auditor              audit.AuditorService
 }
 
 // CreateFilterAPI manages all the routes configured to API
@@ -51,10 +53,11 @@ func CreateFilterAPI(host, bindAddr, zebedeeURL string,
 	datasetAPI DatasetAPIer,
 	preview PreviewDataset,
 	enablePrivateEndpoints bool,
-	downloadServiceURL, downloadServiceToken string) {
+	downloadServiceURL, downloadServiceToken string,
+	auditor audit.AuditorService) {
 
 	router := mux.NewRouter()
-	routes(host, router, datastore, outputQueue, datasetAPI, preview, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken)
+	routes(host, router, datastore, outputQueue, datasetAPI, preview, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, auditor)
 
 	healthcheckHandler := healthcheck.NewMiddleware(healthcheck.Do)
 	middlewareChain := alice.New(healthcheckHandler)
@@ -89,7 +92,8 @@ func routes(host string,
 	datasetAPI DatasetAPIer,
 	preview PreviewDataset,
 	enablePrivateEndpoints bool,
-	downloadServiceURL, downloadServiceToken string) *FilterAPI {
+	downloadServiceURL, downloadServiceToken string,
+	auditor audit.AuditorService) *FilterAPI {
 
 	api := FilterAPI{host: host,
 		dataStore: dataStore,
@@ -99,6 +103,7 @@ func routes(host string,
 		preview: preview,
 		downloadServiceURL: downloadServiceURL,
 		downloadServiceToken: downloadServiceToken,
+		auditor: auditor,
 	}
 
 	api.router.HandleFunc("/filters", api.addFilterBlueprint).Methods("POST")

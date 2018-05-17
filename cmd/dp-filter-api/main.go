@@ -21,6 +21,7 @@ import (
 	neo4jhealth "github.com/ONSdigital/go-ns/neo4j"
 	"github.com/ONSdigital/go-ns/rchttp"
 	bolt "github.com/ONSdigital/golang-neo4j-bolt-driver"
+	"github.com/ONSdigital/go-ns/audit"
 )
 
 func main() {
@@ -70,6 +71,24 @@ func main() {
 
 	client := rchttp.DefaultClient
 
+	var auditor audit.AuditorService
+	var auditProducer kafka.Producer
+
+	if cfg.EnablePrivateEndpoints {
+		log.Info("private endpoints enabled, enabling auditing", nil)
+
+		auditProducer, err = kafka.NewProducer(cfg.Brokers, cfg.AuditEventsTopic, 0)
+		if err != nil {
+			log.ErrorC("error creating kafka audit producer", err, nil)
+			os.Exit(1)
+		}
+
+		auditor = audit.New(auditProducer, "dp-filter-api")
+	} else {
+		log.Info("private endpoints disabled, auditing will not be enabled", nil)
+		auditor = &audit.NopAuditor{}
+	}
+
 	// todo: remove config.DatasetAPIAuthToken when the DatasetAPI supports identity based auth.
 	datasetAPI := api.NewDatasetAPI(client, cfg.DatasetAPIURL, cfg.DatasetAPIAuthToken, cfg.ServiceAuthToken)
 
@@ -97,6 +116,7 @@ func main() {
 		cfg.EnablePrivateEndpoints,
 		cfg.DownloadServiceURL,
 		cfg.DownloadServiceSecretKey,
+		auditor,
 	)
 
 	// Gracefully shutdown the application closing any open resources.
@@ -125,8 +145,14 @@ func main() {
 			log.Error(err, nil)
 		}
 
-		cancel()
+		if cfg.EnablePrivateEndpoints {
+			log.Debug("exiting audit producer", nil)
+			if err = auditProducer.Close(ctx); err != nil {
+				log.Error(err, nil)
+			}
+		}
 
+		cancel()
 		log.Info("Shutdown complete", nil)
 		os.Exit(1)
 	}
