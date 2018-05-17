@@ -8,7 +8,7 @@ import (
 	"github.com/gorilla/mux"
 	"fmt"
 	"context"
-	"github.com/ONSdigital/dp-filter-api/common"
+	"github.com/ONSdigital/dp-filter-api/filters"
 )
 
 func (api *FilterAPI) getFilterBlueprintDimensions(w http.ResponseWriter, r *http.Request) {
@@ -27,8 +27,8 @@ func (api *FilterAPI) getFilterBlueprintDimensions(w http.ResponseWriter, r *htt
 	logData["dimensions"] = filter.Dimensions
 
 	if len(filter.Dimensions) == 0 {
-		log.Error(common.ErrDimensionNotFound, logData)
-		setErrorCode(w, common.ErrDimensionNotFound)
+		log.Error(filters.ErrDimensionNotFound, logData)
+		setErrorCode(w, filters.ErrDimensionNotFound)
 		return
 	}
 
@@ -64,7 +64,7 @@ func (api *FilterAPI) getFilterBlueprintDimension(w http.ResponseWriter, r *http
 	if _, err := api.getFilter(r.Context(), filterID); err != nil {
 		log.Error(err, logData)
 		switch err {
-		case common.ErrFilterBlueprintNotFound:
+		case filters.ErrFilterBlueprintNotFound:
 			setErrorCode(w, err, statusBadRequest)
 		default:
 			setErrorCode(w, err)
@@ -98,7 +98,7 @@ func (api *FilterAPI) removeFilterBlueprintDimension(w http.ResponseWriter, r *h
 	if err != nil {
 		log.Error(err, logData)
 		switch err {
-		case common.ErrFilterBlueprintNotFound:
+		case filters.ErrFilterBlueprintNotFound:
 			setErrorCode(w, err, statusBadRequest)
 		default:
 			setErrorCode(w, err)
@@ -157,7 +157,7 @@ func (api *FilterAPI) addFilterBlueprintDimension(w http.ResponseWriter, r *http
 
 	if err = api.checkNewFilterDimension(r.Context(), name, options, *filterBlueprint.Dataset); err != nil {
 		log.ErrorC("unable to get filter blueprint", err, logData)
-		if err == common.ErrVersionNotFound {
+		if err == filters.ErrVersionNotFound {
 			setErrorCode(w, err, statusUnprocessableEntity)
 			return
 		}

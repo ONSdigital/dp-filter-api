@@ -16,7 +16,7 @@ import (
 
 	identity "github.com/ONSdigital/go-ns/common"
 	"github.com/satori/go.uuid"
-	"github.com/ONSdigital/dp-filter-api/common"
+	"github.com/ONSdigital/dp-filter-api/filters"
 )
 
 var (
@@ -255,7 +255,7 @@ func (api *FilterAPI) getOutput(r *http.Request, filterID string) (*models.Filte
 	filter, err := api.getFilter(ctx, output.Links.FilterBlueprint.ID)
 	if err != nil {
 		log.Error(errors.New("failed to retrieve filter blueprint"), logData)
-		return nil, common.ErrFilterOutputNotFound
+		return nil, filters.ErrFilterOutputNotFound
 	}
 
 	//filter has been published since output was last requested, so update output and return
@@ -263,13 +263,13 @@ func (api *FilterAPI) getOutput(r *http.Request, filterID string) (*models.Filte
 		output.Published = &models.Published
 		if err := api.dataStore.UpdateFilterOutput(output); err != nil {
 			log.Error(err, logData)
-			return nil, common.ErrFilterOutputNotFound
+			return nil, filters.ErrFilterOutputNotFound
 		}
 
 		return output, nil
 	}
 
-	return nil, common.ErrFilterOutputNotFound
+	return nil, filters.ErrFilterOutputNotFound
 }
 
 func buildDownloadsObject(previousFilterOutput, filterOutput *models.Filter, downloadServiceURL string) *models.Filter {

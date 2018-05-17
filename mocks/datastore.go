@@ -4,7 +4,7 @@ import (
 	"errors"
 
 	"github.com/ONSdigital/dp-filter-api/models"
-	"github.com/ONSdigital/dp-filter-api/common"
+	"github.com/ONSdigital/dp-filter-api/filters"
 )
 
 // A list of errors that can be returned by mock package
@@ -41,7 +41,7 @@ func (ds *DataStore) AddFilterDimension(filterID, name string, options []string,
 	}
 
 	if ds.NotFound {
-		return common.ErrFilterBlueprintNotFound
+		return filters.ErrFilterBlueprintNotFound
 	}
 
 	return nil
@@ -54,7 +54,7 @@ func (ds *DataStore) AddFilterDimensionOption(filterID, name, option string) err
 	}
 
 	if ds.NotFound {
-		return common.ErrFilterBlueprintNotFound
+		return filters.ErrFilterBlueprintNotFound
 	}
 
 	return nil
@@ -72,7 +72,7 @@ func (ds *DataStore) CreateFilterOutput(filterJob *models.Filter) error {
 // GetFilter represents the mocked version of getting a filter blueprint from the datastore
 func (ds *DataStore) GetFilter(filterID string) (*models.Filter, error) {
 	if ds.NotFound {
-		return nil, common.ErrFilterBlueprintNotFound
+		return nil, filters.ErrFilterBlueprintNotFound
 	}
 
 	if ds.InternalError {
@@ -101,7 +101,7 @@ func (ds *DataStore) GetFilter(filterID string) (*models.Filter, error) {
 // GetFilterDimension represents the mocked version of getting a filter dimension from the datastore
 func (ds *DataStore) GetFilterDimension(filterID, name string) error {
 	if ds.DimensionNotFound {
-		return common.ErrDimensionNotFound
+		return filters.ErrDimensionNotFound
 	}
 
 	if ds.InternalError {
@@ -114,7 +114,7 @@ func (ds *DataStore) GetFilterDimension(filterID, name string) error {
 // GetFilterOutput represents the mocked version of getting a filter output from the datastore
 func (ds *DataStore) GetFilterOutput(filterID string) (*models.Filter, error) {
 	if ds.NotFound {
-		return nil, common.ErrFilterOutputNotFound
+		return nil, filters.ErrFilterOutputNotFound
 	}
 
 	if ds.InternalError {
@@ -159,7 +159,7 @@ func (ds *DataStore) RemoveFilterDimension(string, string) error {
 	}
 
 	if ds.NotFound {
-		return common.ErrFilterBlueprintNotFound
+		return filters.ErrFilterBlueprintNotFound
 	}
 
 	return nil
@@ -172,7 +172,7 @@ func (ds *DataStore) RemoveFilterDimensionOption(filterJobID, name, option strin
 	}
 
 	if ds.DimensionNotFound {
-		return common.ErrDimensionNotFound
+		return filters.ErrDimensionNotFound
 	}
 
 	return nil
@@ -185,11 +185,11 @@ func (ds *DataStore) UpdateFilter(filterJob *models.Filter) error {
 	}
 
 	if ds.NotFound {
-		return common.ErrFilterBlueprintNotFound
+		return filters.ErrFilterBlueprintNotFound
 	}
 
 	if ds.VersionNotFound {
-		return common.ErrVersionNotFound
+		return filters.ErrVersionNotFound
 	}
 	return nil
 }
@@ -201,7 +201,7 @@ func (ds *DataStore) UpdateFilterOutput(filterJob *models.Filter) error {
 	}
 
 	if ds.NotFound {
-		return common.ErrFilterBlueprintNotFound
+		return filters.ErrFilterBlueprintNotFound
 	}
 
 	return nil

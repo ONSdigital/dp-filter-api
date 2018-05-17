@@ -8,7 +8,7 @@ import (
 	"github.com/gorilla/mux"
 
 	"fmt"
-	"github.com/ONSdigital/dp-filter-api/common"
+	"github.com/ONSdigital/dp-filter-api/filters"
 )
 
 func (api *FilterAPI) getFilterBlueprintDimensionOptions(w http.ResponseWriter, r *http.Request) {
@@ -44,8 +44,8 @@ func (api *FilterAPI) getFilterBlueprintDimensionOptions(w http.ResponseWriter, 
 	}
 
 	if !dimensionFound {
-		log.Error(common.ErrDimensionNotFound, logData)
-		setErrorCode(w, common.ErrDimensionNotFound)
+		log.Error(filters.ErrDimensionNotFound, logData)
+		setErrorCode(w, filters.ErrDimensionNotFound)
 		return
 	}
 
@@ -86,7 +86,7 @@ func (api *FilterAPI) getFilterBlueprintDimensionOption(w http.ResponseWriter, r
 	if err != nil {
 		log.ErrorC("unable to get dimension option for filter blueprint", err, logData)
 		switch err {
-		case common.ErrFilterBlueprintNotFound:
+		case filters.ErrFilterBlueprintNotFound:
 			setErrorCode(w, err, statusBadRequest)
 		default:
 			setErrorCode(w, err)
@@ -108,14 +108,14 @@ func (api *FilterAPI) getFilterBlueprintDimensionOption(w http.ResponseWriter, r
 	}
 
 	if !dimensionFound {
-		log.Error(common.ErrDimensionNotFound, logData)
-		setErrorCode(w, common.ErrDimensionNotFound)
+		log.Error(filters.ErrDimensionNotFound, logData)
+		setErrorCode(w, filters.ErrDimensionNotFound)
 		return
 	}
 
 	if !optionFound {
-		log.Error(common.ErrOptionNotFound, logData)
-		setErrorCode(w, common.ErrOptionNotFound)
+		log.Error(filters.ErrOptionNotFound, logData)
+		setErrorCode(w, filters.ErrOptionNotFound)
 		return
 	}
 
@@ -136,7 +136,7 @@ func (api *FilterAPI) addFilterBlueprintDimensionOption(w http.ResponseWriter, r
 	if err != nil {
 		log.Error(err, logData)
 		switch err {
-		case common.ErrFilterBlueprintNotFound:
+		case filters.ErrFilterBlueprintNotFound:
 			setErrorCode(w, err, statusBadRequest)
 		default:
 			setErrorCode(w, err)
@@ -154,7 +154,7 @@ func (api *FilterAPI) addFilterBlueprintDimensionOption(w http.ResponseWriter, r
 	// refactor code below instead of creating an AddDimension object from the
 	// AddDimensionOption object (to be able to use checkNewFilterDimension method)
 	if err = api.checkNewFilterDimension(r.Context(), name, []string{option}, *filterBlueprint.Dataset); err != nil {
-		if err == common.ErrVersionNotFound {
+		if err == filters.ErrVersionNotFound {
 			log.ErrorC("failed to select valid version", err, logData)
 			setErrorCode(w, err, statusUnprocessableEntity)
 			return
@@ -206,7 +206,7 @@ func (api *FilterAPI) removeFilterBlueprintDimensionOption(w http.ResponseWriter
 	if err != nil {
 		log.Error(err, logData)
 		switch err {
-		case common.ErrFilterBlueprintNotFound:
+		case filters.ErrFilterBlueprintNotFound:
 			setErrorCode(w, err, statusBadRequest)
 		default:
 			setErrorCode(w, err)
@@ -224,8 +224,8 @@ func (api *FilterAPI) removeFilterBlueprintDimensionOption(w http.ResponseWriter
 	}
 
 	if !hasDimension {
-		log.Error(common.ErrDimensionNotFound, logData)
-		setErrorCode(w, common.ErrDimensionNotFound)
+		log.Error(filters.ErrDimensionNotFound, logData)
+		setErrorCode(w, filters.ErrDimensionNotFound)
 		return
 	}
 
