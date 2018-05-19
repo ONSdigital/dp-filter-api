@@ -66,8 +66,8 @@ func (api *FilterAPI) updateFilterOutput(w http.ResponseWriter, r *http.Request)
 	log.Info("updating filter output", logData)
 
 	if !identity.IsCallerPresent(r.Context()) {
-		log.ErrorC("failed to update filter output", errUnauthorised, logData)
-		setErrorCode(w, errUnauthorised)
+		log.ErrorC("failed to update filter output", filters.ErrUnauthorised, logData)
+		setErrorCode(w, filters.ErrUnauthorised)
 		return
 	}
 

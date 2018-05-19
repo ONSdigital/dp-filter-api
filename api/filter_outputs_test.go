@@ -530,7 +530,7 @@ func TestFailedToUpdateFilterOutput(t *testing.T) {
 		So(w.Code, ShouldEqual, http.StatusUnauthorized)
 
 		response := w.Body.String()
-		So(response, ShouldResemble, errUnauthorised.Error()+"\n")
+		So(response, ShouldResemble, filters.ErrUnauthorised.Error()+"\n")
 	})
 
 	Convey("When a json message contains downloads object but current filter ouput has public csv download links already and version is published, than a forbidden status is returned", t, func() {
