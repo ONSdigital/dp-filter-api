@@ -21,7 +21,7 @@ func (api *FilterAPI) getFilterBlueprintDimensionOptions(w http.ResponseWriter, 
 	}
 	log.Info("get filter blueprint dimension options", logData)
 
-	filter, err := api.getFilter(r.Context(), filterID)
+	filter, err := api.getFilterBlueprint(r.Context(), filterID)
 	if err != nil {
 		log.ErrorC("unable to get dimension options for filter blueprint", err, logData)
 		setErrorCode(w, err)
@@ -82,7 +82,7 @@ func (api *FilterAPI) getFilterBlueprintDimensionOption(w http.ResponseWriter, r
 	}
 	log.Info("get filter blueprint dimension option", logData)
 
-	filter, err := api.getFilter(r.Context(), filterID)
+	filter, err := api.getFilterBlueprint(r.Context(), filterID)
 	if err != nil {
 		log.ErrorC("unable to get dimension option for filter blueprint", err, logData)
 		switch err {
@@ -132,7 +132,7 @@ func (api *FilterAPI) addFilterBlueprintDimensionOption(w http.ResponseWriter, r
 	option := vars["option"]
 	logData := log.Data{"filter_id": filterID, "dimension_name": name, "dimension_option": option}
 
-	filterBlueprint, err := api.getFilter(r.Context(), filterID)
+	filterBlueprint, err := api.getFilterBlueprint(r.Context(), filterID)
 	if err != nil {
 		log.Error(err, logData)
 		switch err {
@@ -202,7 +202,7 @@ func (api *FilterAPI) removeFilterBlueprintDimensionOption(w http.ResponseWriter
 	}
 	log.Info("remove filter blueprint dimension option", logData)
 
-	filterBlueprint, err := api.getFilter(r.Context(), filterID)
+	filterBlueprint, err := api.getFilterBlueprint(r.Context(), filterID)
 	if err != nil {
 		log.Error(err, logData)
 		switch err {

@@ -106,9 +106,9 @@ func routes(host string,
 		auditor: auditor,
 	}
 
-	api.router.HandleFunc("/filters", api.addFilterBlueprint).Methods("POST")
-	api.router.HandleFunc("/filters/{filter_blueprint_id}", api.getFilterBlueprint).Methods("GET")
-	api.router.HandleFunc("/filters/{filter_blueprint_id}", api.updateFilterBlueprint).Methods("PUT")
+	api.router.HandleFunc("/filters", api.postFilterBlueprintHandler).Methods("POST")
+	api.router.HandleFunc("/filters/{filter_blueprint_id}", api.getFilterBlueprintHandler).Methods("GET")
+	api.router.HandleFunc("/filters/{filter_blueprint_id}", api.putFilterBlueprintHandler).Methods("PUT")
 	api.router.HandleFunc("/filters/{filter_blueprint_id}/dimensions", api.getFilterBlueprintDimensions).Methods("GET")
 	api.router.HandleFunc("/filters/{filter_blueprint_id}/dimensions/{name}", api.getFilterBlueprintDimension).Methods("GET")
 	api.router.HandleFunc("/filters/{filter_blueprint_id}/dimensions/{name}", api.addFilterBlueprintDimension).Methods("POST")

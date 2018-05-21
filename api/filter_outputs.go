@@ -252,7 +252,7 @@ func (api *FilterAPI) getOutput(r *http.Request, filterID string) (*models.Filte
 
 	log.Info("unauthenticated request to access unpublished filter output", logData)
 
-	filter, err := api.getFilter(ctx, output.Links.FilterBlueprint.ID)
+	filter, err := api.getFilterBlueprint(ctx, output.Links.FilterBlueprint.ID)
 	if err != nil {
 		log.Error(errors.New("failed to retrieve filter blueprint"), logData)
 		return nil, filters.ErrFilterOutputNotFound

@@ -50,14 +50,13 @@ func handleAuditingFailure(w http.ResponseWriter, err error, logData log.Data) {
 	http.Error(w, "internal server error", http.StatusInternalServerError)
 }
 
-func (api *FilterAPI) addFilterBlueprint(w http.ResponseWriter, r *http.Request) {
+func (api *FilterAPI) postFilterBlueprintHandler(w http.ResponseWriter, r *http.Request) {
 
 	submitted := r.FormValue("submitted")
 	logData := log.Data{"submitted": submitted}
 	log.Info("create filter blueprint", logData)
 
-	auditParams := common.Params{}
-	if auditErr := api.auditor.Record(r.Context(), createFilterBlueprintAction, actionAttempted, auditParams); auditErr != nil {
+	if auditErr := api.auditor.Record(r.Context(), createFilterBlueprintAction, actionAttempted, nil); auditErr != nil {
 		handleAuditingFailure(w, auditErr, logData)
 		return
 	}
@@ -65,7 +64,7 @@ func (api *FilterAPI) addFilterBlueprint(w http.ResponseWriter, r *http.Request)
 	filter, err := models.CreateNewFilter(r.Body)
 	if err != nil {
 		log.ErrorC("unable to unmarshal request body", err, logData)
-		if auditErr := api.auditor.Record(r.Context(), createFilterBlueprintAction, actionUnsuccessful, auditParams); auditErr != nil {
+		if auditErr := api.auditor.Record(r.Context(), createFilterBlueprintAction, actionUnsuccessful, nil); auditErr != nil {
 			handleAuditingFailure(w, auditErr, logData)
 			return
 		}
@@ -73,10 +72,10 @@ func (api *FilterAPI) addFilterBlueprint(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	newFilter, err := api.addFilter(filter, submitted, r.Context())
+	newFilter, err := api.addFilterBlueprint(filter, submitted, r.Context())
 	if err != nil {
 		log.ErrorC("failed to create new filter", err, logData)
-		if auditErr := api.auditor.Record(r.Context(), createFilterBlueprintAction, actionUnsuccessful, auditParams); auditErr != nil {
+		if auditErr := api.auditor.Record(r.Context(), createFilterBlueprintAction, actionUnsuccessful, nil); auditErr != nil {
 			handleAuditingFailure(w, auditErr, logData)
 			return
 		}
@@ -85,7 +84,7 @@ func (api *FilterAPI) addFilterBlueprint(w http.ResponseWriter, r *http.Request)
 	}
 
 	log.Info("created filter blueprint", logData)
-	if auditErr := api.auditor.Record(r.Context(), createFilterBlueprintAction, actionSuccessful, auditParams); auditErr != nil {
+	if auditErr := api.auditor.Record(r.Context(), createFilterBlueprintAction, actionSuccessful, nil); auditErr != nil {
 		handleAuditingFailure(w, auditErr, logData)
 		return
 	}
@@ -107,7 +106,7 @@ func (api *FilterAPI) addFilterBlueprint(w http.ResponseWriter, r *http.Request)
 	}
 }
 
-func (api *FilterAPI) addFilter(filter *models.NewFilter, submitted string, ctx context.Context) (*models.Filter, error) {
+func (api *FilterAPI) addFilterBlueprint(filter *models.NewFilter, submitted string, ctx context.Context) (*models.Filter, error) {
 
 	newFilter := &models.Filter{}
 	logData := log.Data{}
@@ -188,13 +187,13 @@ func (api *FilterAPI) addFilter(filter *models.NewFilter, submitted string, ctx 
 	return newFilter, nil
 }
 
-func (api *FilterAPI) getFilterBlueprint(w http.ResponseWriter, r *http.Request) {
+func (api *FilterAPI) getFilterBlueprintHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	filterID := vars["filter_blueprint_id"]
 	logData := log.Data{"filter_blueprint_id": filterID}
 	log.Info("getting filter blueprint", logData)
 
-	filterBlueprint, err := api.getFilter(r.Context(), filterID)
+	filterBlueprint, err := api.getFilterBlueprint(r.Context(), filterID)
 	if err != nil {
 		log.ErrorC("unable to get filter blueprint", err, logData)
 		setErrorCode(w, err)
@@ -223,7 +222,7 @@ func (api *FilterAPI) getFilterBlueprint(w http.ResponseWriter, r *http.Request)
 	log.Info("got filter blueprint", logData)
 }
 
-func (api *FilterAPI) updateFilterBlueprint(w http.ResponseWriter, r *http.Request) {
+func (api *FilterAPI) putFilterBlueprintHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	filterID := vars["filter_blueprint_id"]
 	submitted := r.URL.Query().Get("submitted")
@@ -250,7 +249,7 @@ func (api *FilterAPI) updateFilterBlueprint(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	currentFilter, err := api.getFilter(r.Context(), filterID)
+	currentFilter, err := api.getFilterBlueprint(r.Context(), filterID)
 	if err != nil {
 		log.ErrorC("unable to get filter blueprint", err, logData)
 		setErrorCode(w, err)
@@ -335,7 +334,7 @@ func (api *FilterAPI) updateFilterBlueprint(w http.ResponseWriter, r *http.Reque
 	log.Info("filter blueprint updated", logData)
 }
 
-func (api *FilterAPI) getFilter(ctx context.Context, filterID string) (*models.Filter, error) {
+func (api *FilterAPI) getFilterBlueprint(ctx context.Context, filterID string) (*models.Filter, error) {
 
 	logData := log.Data{"filter_blueprint_id": filterID}
 
