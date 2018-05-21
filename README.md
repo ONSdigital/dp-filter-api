@@ -35,6 +35,8 @@ dp-filter-api
 | SERVICE_AUTH_TOKEN         | FD0108EA-825D-411C-9B1D-41EF7727F465      | The token used to identify this service when authenticating
 | ZEBEDEE_URL                | "http://localhost:8082"                   | Zebedee URL
 | ENABLE_PRIVATE_ENDPOINTS   | false                                     | true if private endpoints should be enabled
+| DOWNLOAD_SERVICE_URL       | http://localhost:23600                    | The URL of the download service
+| DOWNLOAD_SERVICE_SECRET_KEY| QB0108EZ-825D-412C-9B1D-41EF7747F462      | The service token for the download service
 
 ### Healthchecking
 

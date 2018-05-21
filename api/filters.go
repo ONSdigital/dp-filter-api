@@ -39,6 +39,7 @@ var (
 	errDimensionBadRequest   = errors.New("Bad request - filter dimension not found")
 	errDimensionNotFound     = errors.New("Dimension not found")
 	errOptionNotFound        = errors.New("Option not found")
+	errFilterOutputNotFound  = errors.New("Filter output not found")
 	errRequestLimitNotNumber = errors.New("requested limit is not a number")
 	errMissingDimensions     = errors.New("missing dimensions")
 )
@@ -711,7 +712,7 @@ func (api *FilterAPI) getFilterOutput(w http.ResponseWriter, r *http.Request) {
 	logData := log.Data{"filter_output_id": filterOutputID}
 	log.Info("getting filter output", logData)
 
-	filterOutput, err := api.getOutput(r.Context(), filterOutputID)
+	filterOutput, err := api.getOutput(r, filterOutputID)
 	if err != nil {
 		log.ErrorC("unable to get filter output", err, logData)
 		setErrorCode(w, err)
@@ -855,7 +856,7 @@ func (api *FilterAPI) getFilterOutputPreview(w http.ResponseWriter, r *http.Requ
 	}
 	logData["limit"] = limit
 
-	filterOutput, err := api.getOutput(r.Context(), filterID)
+	filterOutput, err := api.getOutput(r, filterID)
 	if err != nil {
 		log.ErrorC("failed to find filter output", err, logData)
 		setErrorCode(w, err)
@@ -930,17 +931,24 @@ func (api *FilterAPI) getFilter(ctx context.Context, filterID string) (*models.F
 	return nil, errNotFound
 }
 
-func (api *FilterAPI) getOutput(ctx context.Context, filterID string) (*models.Filter, error) {
+func (api *FilterAPI) getOutput(r *http.Request, filterID string) (*models.Filter, error) {
+
+	ctx := r.Context()
+	logData := log.Data{"filter_output_id": filterID}
+
 	output, err := api.dataStore.GetFilterOutput(filterID)
 	if err != nil {
-		log.Error(err, log.Data{"filter_blueprint_id": filterID})
+		log.Error(err, logData)
 		return nil, err
 	}
 
-	errFilterOutputNotFound := errors.New("Filter output not found")
+	logData["filter_blueprint_id"] = output.Links.FilterBlueprint.ID
 
 	// Hide private download links if request is not authenticated
-	if !common.IsCallerPresent(ctx) {
+	if r.Header.Get(common.DownloadServiceHeaderKey) != api.downloadServiceToken {
+
+		log.Info("a valid download service token has not been provided. hiding private links", logData)
+
 		if output.Downloads != nil {
 			if output.Downloads.CSV != nil {
 				output.Downloads.CSV.Private = ""
@@ -949,6 +957,8 @@ func (api *FilterAPI) getOutput(ctx context.Context, filterID string) (*models.F
 				output.Downloads.XLS.Private = ""
 			}
 		}
+	} else {
+		log.Info("a valid download service token has been provided. not hiding private links", logData)
 	}
 
 	//only return the filter if it is for published data or via authenticated request
@@ -956,11 +966,11 @@ func (api *FilterAPI) getOutput(ctx context.Context, filterID string) (*models.F
 		return output, nil
 	}
 
-	log.Info("unauthenticated request to access unpublished filter output", log.Data{"filter_output": output})
+	log.Info("unauthenticated request to access unpublished filter output", logData)
 
 	filter, err := api.getFilter(ctx, output.Links.FilterBlueprint.ID)
 	if err != nil {
-		log.Error(errors.New("failed to retrieve filter blueprint"), log.Data{"filter_output": output, "filter_blueprint_id": output.Links.FilterBlueprint.ID})
+		log.Error(errors.New("failed to retrieve filter blueprint"), logData)
 		return nil, errFilterOutputNotFound
 	}
 
@@ -968,7 +978,7 @@ func (api *FilterAPI) getOutput(ctx context.Context, filterID string) (*models.F
 	if filter.Published != nil && *filter.Published == models.Published {
 		output.Published = &models.Published
 		if err := api.dataStore.UpdateFilterOutput(output); err != nil {
-			log.Error(err, log.Data{"filter_output_id": output.FilterID})
+			log.Error(err, logData)
 			return nil, errFilterOutputNotFound
 		}
 

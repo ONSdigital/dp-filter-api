@@ -33,13 +33,14 @@ type PreviewDataset interface {
 
 // FilterAPI manages importing filters against a dataset
 type FilterAPI struct {
-	host               string
-	dataStore          DataStore
-	outputQueue        OutputQueue
-	router             *mux.Router
-	datasetAPI         DatasetAPIer
-	preview            PreviewDataset
-	downloadServiceURL string
+	host                 string
+	dataStore            DataStore
+	outputQueue          OutputQueue
+	router               *mux.Router
+	datasetAPI           DatasetAPIer
+	preview              PreviewDataset
+	downloadServiceURL   string
+	downloadServiceToken string
 }
 
 // CreateFilterAPI manages all the routes configured to API
@@ -50,10 +51,10 @@ func CreateFilterAPI(host, bindAddr, zebedeeURL string,
 	datasetAPI DatasetAPIer,
 	preview PreviewDataset,
 	enablePrivateEndpoints bool,
-	downloadServiceURL string) {
+	downloadServiceURL, downloadServiceToken string) {
 
 	router := mux.NewRouter()
-	routes(host, router, datastore, outputQueue, datasetAPI, preview, enablePrivateEndpoints, downloadServiceURL)
+	routes(host, router, datastore, outputQueue, datasetAPI, preview, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken)
 
 	healthcheckHandler := healthcheck.NewMiddleware(healthcheck.Do)
 	middlewareChain := alice.New(healthcheckHandler)
@@ -88,15 +89,17 @@ func routes(host string,
 	datasetAPI DatasetAPIer,
 	preview PreviewDataset,
 	enablePrivateEndpoints bool,
-	downloadServiceURL string) *FilterAPI {
+	downloadServiceURL, downloadServiceToken string) *FilterAPI {
 
 	api := FilterAPI{host: host,
-		dataStore:          dataStore,
-		router:             router,
-		outputQueue:        outputQueue,
-		datasetAPI:         datasetAPI,
-		preview:            preview,
-		downloadServiceURL: downloadServiceURL}
+		dataStore: dataStore,
+		router: router,
+		outputQueue: outputQueue,
+		datasetAPI: datasetAPI,
+		preview: preview,
+		downloadServiceURL: downloadServiceURL,
+		downloadServiceToken: downloadServiceToken,
+	}
 
 	api.router.HandleFunc("/filters", api.addFilterBlueprint).Methods("POST")
 	api.router.HandleFunc("/filters/{filter_blueprint_id}", api.getFilterBlueprint).Methods("GET")

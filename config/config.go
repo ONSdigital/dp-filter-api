@@ -20,10 +20,11 @@ type Config struct {
 	Neo4jPoolSize              int           `envconfig:"NEO4J_POOL_SIZE"`
 	HealthCheckInterval        time.Duration `envconfig:"HEALTHCHECK_INTERVAL"`
 	MongoConfig                MongoConfig
-	ServiceAuthToken           string `envconfig:"SERVICE_AUTH_TOKEN"          json:"-"`
-	ZebedeeURL                 string `envconfig:"ZEBEDEE_URL"`
-	EnablePrivateEndpoints     bool   `envconfig:"ENABLE_PRIVATE_ENDPOINTS"`
-	DownloadServiceURL         string `envconfig:"DOWNLOAD_SERVICE_URL"`
+	ServiceAuthToken           string        `envconfig:"SERVICE_AUTH_TOKEN"          json:"-"`
+	ZebedeeURL                 string        `envconfig:"ZEBEDEE_URL"`
+	EnablePrivateEndpoints     bool          `envconfig:"ENABLE_PRIVATE_ENDPOINTS"`
+	DownloadServiceURL         string        `envconfig:"DOWNLOAD_SERVICE_URL"`
+	DownloadServiceSecretKey   string        `envconfig:"DOWNLOAD_SERVICE_SECRET_KEY"      json:"-"`
 }
 
 // MongoConfig contains the config required to connect to MongoDB.
@@ -62,8 +63,9 @@ func Get() (*Config, error) {
 		},
 		ServiceAuthToken:       "FD0108EA-825D-411C-9B1D-41EF7727F465",
 		ZebedeeURL:             "http://localhost:8082",
-		EnablePrivateEndpoints: false,
+		EnablePrivateEndpoints: true,
 		DownloadServiceURL:     "http://localhost:23600",
+		DownloadServiceSecretKey: "QB0108EZ-825D-412C-9B1D-41EF7747F462",
 	}
 
 	err := envconfig.Process("", cfg)
