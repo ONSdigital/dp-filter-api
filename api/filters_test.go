@@ -208,6 +208,29 @@ func TestFailedToAddFilterBlueprint(t *testing.T) {
 		})
 	})
 
+	Convey("When version does not exist, and auditing fails a 500 error is returned", t, func() {
+		reader := strings.NewReader(`{"dataset":{"version":1, "edition":"1", "id":"1"} }`)
+		r, err := http.NewRequest("POST", "http://localhost:22100/filters", reader)
+		So(err, ShouldBeNil)
+
+		mockAuditor := getMockAuditor()
+		mockAuditor.RecordFunc = func(ctx context.Context, action string, result string, params common.Params) error {
+			if action == createFilterBlueprintAction && result == actionUnsuccessful {
+				return errAudit
+			}
+			return nil
+		}
+
+		w := httptest.NewRecorder()
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{VersionNotFound: true}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, mockAuditor)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusInternalServerError)
+
+		Convey("Then the auditor is called for the attempt and outcome", func() {
+			assertAuditCalled(mockAuditor, createFilterBlueprintAction, actionUnsuccessful, nil)
+		})
+	})
+
 	Convey("When version is unpublished and the request is not authenticated, a bad request error is returned", t, func() {
 		reader := strings.NewReader(`{"dataset":{"version":1, "edition":"1", "id":"1"}, "dimensions":[{"name": "age", "options": ["27","33"]}]}`)
 		r, err := http.NewRequest("POST", "http://localhost:22100/filters", reader)
@@ -418,7 +441,7 @@ func TestSuccessfulGetFilterBlueprint_PublishedDataset(t *testing.T) {
 	})
 }
 
-func TestSuccessfulGetFilterBlueprint(t *testing.T) {
+func TestSuccessfulGetFilterBlueprint_UnpublishedDataset(t *testing.T) {
 
 	expectedAuditParams := common.Params{"filter_blueprint_id": "12345678"}
 	t.Parallel()
@@ -441,8 +464,11 @@ func TestSuccessfulGetFilterBlueprint(t *testing.T) {
 
 func TestFailedToGetFilterBlueprint(t *testing.T) {
 	t.Parallel()
+
+	expectedAuditParams := common.Params{"filter_blueprint_id": "12345678"}
+
 	Convey("When no data store is available, an internal error is returned", t, func() {
-		r, err := http.NewRequest("GET", "http://localhost:22100/filters/1234568", nil)
+		r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678", nil)
 		So(err, ShouldBeNil)
 
 		mockAuditor := getMockAuditor()
@@ -454,9 +480,13 @@ func TestFailedToGetFilterBlueprint(t *testing.T) {
 
 		response := w.Body.String()
 		So(response, ShouldResemble, internalErrResponse)
+
+		Convey("Then the auditor is called for the attempt and outcome", func() {
+			assertAuditCalled(mockAuditor, getFilterBlueprintAction, actionUnsuccessful, expectedAuditParams)
+		})
 	})
 
-	Convey("When filter blueprint does not exist, a not found is returned", t, func() {
+	Convey("When a filter blueprint does not exist, a not found is returned", t, func() {
 		r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678", nil)
 		So(err, ShouldBeNil)
 
@@ -468,6 +498,33 @@ func TestFailedToGetFilterBlueprint(t *testing.T) {
 
 		response := w.Body.String()
 		So(response, ShouldResemble, filterNotFoundResponse)
+
+		Convey("Then the auditor is called for the attempt and outcome", func() {
+			assertAuditCalled(mockAuditor, getFilterBlueprintAction, actionUnsuccessful, expectedAuditParams)
+		})
+	})
+
+
+	Convey("When a filter blueprint does not exist, and auditing fails a 500 error is returned", t, func() {
+		r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678", nil)
+		So(err, ShouldBeNil)
+
+		mockAuditor := getMockAuditor()
+		mockAuditor.RecordFunc = func(ctx context.Context, action string, result string, params common.Params) error {
+			if action == getFilterBlueprintAction && result == actionUnsuccessful {
+				return errAudit
+			}
+			return nil
+		}
+
+		w := httptest.NewRecorder()
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{NotFound: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, mockAuditor)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusInternalServerError)
+
+		Convey("Then the auditor is called for the attempt and outcome", func() {
+			assertAuditCalled(mockAuditor, getFilterBlueprintAction, actionUnsuccessful, expectedAuditParams)
+		})
 	})
 
 	Convey("When filter blueprint is unpublished, and the request is unauthenticated, a not found is returned", t, func() {
@@ -482,6 +539,10 @@ func TestFailedToGetFilterBlueprint(t *testing.T) {
 
 		response := w.Body.String()
 		So(response, ShouldResemble, filterNotFoundResponse)
+
+		Convey("Then the auditor is called for the attempt and outcome", func() {
+			assertAuditCalled(mockAuditor, getFilterBlueprintAction, actionUnsuccessful, expectedAuditParams)
+		})
 	})
 }
 
