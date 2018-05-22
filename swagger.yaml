@@ -1,8 +1,10 @@
 swagger: "2.0"
 info:
-  description: "An API used to customise and submit queries (filters) against a given dataset. Once the filter blueprint has been created it can then be updated with dimension-specific filters that apply to that dataset. Once all the required filters have been applied to the blueprint, it is expected that the client will send a Put request with query parameter `submitted` set to `true` to indicate that processing can begin; this request will result in a filter output resource to be created, copying the data from the blueprint and setting a status of created. The response for this request will give a link to the created filter output document. Once processing has been started the filter output resource will only be updated by authorised requests. Finally, the state will be marked as completed with a complete list of downloads (or failed)."
+  description: "Create and submit custom queries, known as `filters`, against a given dataset.
+  Specify which values, known as `options`, are of interest in each `dimension`, and then submit a filter.
+  This generates a `filter output`, which provides links to the filtered results in a variety of formats."
   version: "1.0.0"
-  title: "Filter API"
+  title: "Filter a dataset"
   license:
     name: "Open Government Licence v3.0"
     url: "http://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/"
@@ -58,12 +60,12 @@ parameters:
       $ref: '#/definitions/Options'
     description: "A list of options for a dimension to filter the dataset"
     in: body
-  new_filter_blueprint:
-    name: filter_blueprint
+  new_filter:
+    name: filter
     schema:
-      $ref: '#/definitions/NewBlueprintRequest'
+      $ref: '#/definitions/NewFilterRequest'
     required: true
-    description: "Model of all editable properties within a filter blueprint"
+    description: "Model of all editable properties within a filter"
     in: body
   update_filter_output:
     name: filter_output
@@ -74,15 +76,15 @@ parameters:
     in: body
   submitted:
     name: submitted
-    description: "A flag to indicate the submission of a filter blueprint"
+    description: "A flag to indicate the submission of a filter"
     in: query
     type: boolean
   update_filter:
     name: filter
     schema:
-      $ref: '#/definitions/UpdateBlueprintRequest'
+      $ref: '#/definitions/UpdateFilterRequest'
     required: true
-    description: "Model of all editable properties within a filter blueprint"
+    description: "Model of all editable properties within a filter"
     in: body
 securityDefinitions:
   InternalAPIKey:
@@ -96,16 +98,16 @@ paths:
       tags:
       - "Public"
       summary: "Create a filter for a dataset"
-      description: "Create a blueprint for listing a selection of dimensions and dimension options to be added to filter for a dataset"
+      description: "Create a resource for listing a selection of dimensions and dimension options to be added to filter for a dataset"
       produces:
       - "application/json"
       parameters:
-      - $ref: '#/parameters/new_filter_blueprint'
+      - $ref: '#/parameters/new_filter'
       responses:
         201:
-          description: "filter blueprint was created"
+          description: "filter was created"
           schema:
-            $ref: '#/definitions/NewBlueprintResponse'
+            $ref: '#/definitions/NewFilterResponse'
         400:
           description: "Invalid request body"
         500:
@@ -116,15 +118,15 @@ paths:
     get:
       tags:
       - "Public"
-      summary: "Get a blueprint of a filter"
+      summary: "Get a filter"
       description: "Get document describing the filter"
       produces:
       - "application/json"
       responses:
         200:
-          description: "The filter blueprint was found and document is returned"
+          description: "The filter was found and document is returned"
           schema:
-            $ref: '#/definitions/NewBlueprintResponse'
+            $ref: '#/definitions/NewFilterResponse'
         404:
            $ref: '#/responses/FilterNotFound'
         500:
@@ -132,7 +134,7 @@ paths:
     put:
       tags:
       - "Public"
-      summary: "Update blueprint of a filter"
+      summary: "Update a filter"
       description: |
         Update the filter by providing new properties
       parameters:
@@ -142,7 +144,7 @@ paths:
         200:
           description: "The filter job has been updated"
           schema:
-            $ref: '#/definitions/UpdateBlueprintResponse'
+            $ref: '#/definitions/UpdateFilterResponse'
         400:
           description: "Invalid request body"
         404:
@@ -155,7 +157,7 @@ paths:
     get:
       tags:
        - "Public"
-      summary: "Get all dimensions used by this filter blueprint"
+      summary: "Get all dimensions used in this filter"
       description: |
         Return a list of all dimensions which are going to be used to filter on
       parameters:
@@ -178,8 +180,8 @@ paths:
     get:
       tags:
       - "Public"
-      summary: "Check if a dimension exists within a filter blueprint"
-      description: "Check if a dimension exists within a filter blueprint"
+      summary: "Get a dimension from a filter"
+      description: "Check if a dimension exists within a filter"
       responses:
         204:
           description: "Dimension exists for filter"
@@ -192,8 +194,8 @@ paths:
     post:
       tags:
       - "Public"
-      summary: "Add a dimension to filter blueprint on with a list of options"
-      description: "Add a dimension to filter blueprint on with a list of options"
+      summary: "Add a dimension to a filter"
+      description: "Add a dimension to filter with a list of options"
       produces:
       - "application/json"
       parameters:
@@ -212,13 +214,13 @@ paths:
     delete:
       tags:
       - "Public"
-      summary: "Remove a dimension and any options set within the dimension"
+      summary: "Remove a dimension from a filter"
       description: "Remove a dimension and any options set within the dimension"
       responses:
         200:
           description: "The dimension was removed"
         400:
-          description: "Filter blueprint was not found"
+          description: "Filter was not found"
         404:
           description: "Dimension name was not found"
         500:
@@ -230,7 +232,7 @@ paths:
     get:
       tags:
       - "Public"
-      summary: "Get all options from a dimension which have been set"
+      summary: "Get all options for a filtered dimension"
       description: "Get a list of all options which will be used to filter the dimension"
       responses:
         200:
@@ -240,7 +242,7 @@ paths:
             items:
               $ref: '#/definitions/Option'
         400:
-          description: "Filter blueprint was not found"
+          description: "Filter was not found"
         404:
           description: "Dimension name was not found"
         500:
@@ -253,7 +255,7 @@ paths:
     get:
       tags:
       - "Public"
-      summary: "Check if a option exists within a dimension"
+      summary: "Get an option from a filtered dimension"
       description: "Check if a option exists within a dimension"
       responses:
         204:
@@ -267,13 +269,13 @@ paths:
     post:
       tags:
       - "Public"
-      summary: "Add an option to a dimension of a filter blueprint"
-      description: "Add an option to a dimension of a filter blueprint"
+      summary: "Add an option to a filtered dimension"
+      description: "Add an option to a filtered dimension"
       responses:
         201:
           description: "Option was added"
         400:
-          description: "Filter blueprint was not found"
+          description: "Filter was not found"
         404:
           description: " Dimension name was not found"
         422:
@@ -283,7 +285,7 @@ paths:
     delete:
       tags:
       - "Public"
-      summary: "Remove an option from a dimension"
+      summary: "Remove an option from a filtered dimension"
       description: "Remove a single option from a dimension"
       responses:
         200:
@@ -291,7 +293,7 @@ paths:
         400:
           description: |
             This error code could be one or more of:
-            * Filter blueprint was not found
+            * Filter was not found
             * Dimension name was not found
         404:
           description: "Dimension option was not found"
@@ -319,7 +321,7 @@ paths:
     put:
       tags:
       - "Private"
-      summary: "Update filter output with downloads and state"
+      summary: "Update a filter output"
       description: |
         Update the filter output state and to contain downloads
       parameters:
@@ -346,7 +348,7 @@ paths:
     get:
       tags:
       - "Public"
-      summary: "Get a preview of the output filter"
+      summary: "Get a preview of the filtered output"
       description: "Get a preview of up to 100 observations using the state of the filter output job. By default only 20 rows will be returned. To change this use the `limit` query. It could be possible no results are returned due to data sparsity."
       produces:
       - "application/json"
@@ -363,11 +365,11 @@ paths:
           $ref: '#/responses/InternalError'
 responses:
   FilterNotFound:
-    description: "Filter blueprint not found"
+    description: "Filter not found"
   FilterOutputNotFound:
     description: "Filter output not found"
   FilterOrDimensionNotFound:
-    description: "Filter blueprint or dimension name not found"
+    description: "Filter or dimension name not found"
   InternalError:
     description: "Failed to process the request due to an internal error"
 definitions:
@@ -379,8 +381,8 @@ definitions:
         downloads:
           $ref: '#/definitions/Downloads'
     - $ref: '#/definitions/JobState'
-  NewBlueprintRequest:
-    description: "A model used to create new filter blueprints. Dimensions are optional"
+  NewFilterRequest:
+    description: "A model used to create new filters. Dimensions are optional"
     allOf:
     - $ref: '#/definitions/JobState'
     - type: object
@@ -393,8 +395,8 @@ definitions:
           description: "A list of dimensions in the filter job"
           items:
              $ref: '#/definitions/DimensionOptions'
-  UpdateBlueprintRequest:
-    description: "A model used to update filter blueprints. Dimensions are optional, while downloads and events are for internal use only."
+  UpdateFilterRequest:
+    description: "A model used to update filters. Dimensions are optional, while downloads and events are for internal use only."
     allOf:
     - $ref: '#/definitions/JobState'
     - type: object
@@ -411,19 +413,19 @@ definitions:
           readOnly: false
           type: object
           description: |
-            A list of events which happened to the blueprint, can only be updated if authorised.
+            A list of events which happened to the filter, can only be updated if authorised.
           items:
             $ref: '#/definitions/Events'
-  NewBlueprintResponse:
-    description: "A model for the response body when creating a new filter blueprint"
+  NewFilterResponse:
+    description: "A model for the response body when creating a new filter"
     allOf:
     - $ref: '#/definitions/JobState'
     - type: object
       properties:
         dataset:
           $ref: '#/definitions/Dataset'
-  UpdateBlueprintResponse:
-    description: "A model for the response body when updating a filter blueprint"
+  UpdateFilterResponse:
+    description: "A model for the response body when updating a filter"
     allOf:
     - $ref: '#/definitions/JobState'
     - type: object
