@@ -44,53 +44,6 @@ func TestSuccessfulAddFilterBlueprint_PublishedDataset(t *testing.T) {
 			})
 		})
 
-		Convey("When a POST request is made to the filters endpoint and the attempt audit fails", func() {
-
-			reader := strings.NewReader(`{"dataset":{"version":1, "edition":"1", "id":"1"} }`)
-			r, err := http.NewRequest("POST", "http://localhost:22100/filters", reader)
-			So(err, ShouldBeNil)
-
-			mockAuditor.RecordFunc = func(ctx context.Context, action string, result string, params common.Params) error {
-				return errAudit
-			}
-
-			api.router.ServeHTTP(w, r)
-
-			Convey("Then the auditor is called for the action being attempted", func() {
-				recCalls := mockAuditor.RecordCalls()
-				So(len(recCalls), ShouldEqual, 1)
-				verifyAuditRecordCalls(recCalls[0], createFilterBlueprintAction, actionAttempted, nil)
-			})
-
-			Convey("Then the response is 500 internal server error", func() {
-				So(w.Code, ShouldEqual, http.StatusInternalServerError)
-			})
-		})
-
-		Convey("When a POST request is made to the filters endpoint and the outcome audit fails", func() {
-
-			reader := strings.NewReader(`{"dataset":{"version":1, "edition":"1", "id":"1"} }`)
-			r, err := http.NewRequest("POST", "http://localhost:22100/filters", reader)
-			So(err, ShouldBeNil)
-
-			mockAuditor.RecordFunc = func(ctx context.Context, action string, result string, params common.Params) error {
-				if action == createFilterBlueprintAction && result == actionSuccessful {
-					return errAudit
-				}
-				return nil
-			}
-
-			api.router.ServeHTTP(w, r)
-
-			Convey("Then the auditor is called for the attempt and outcome", func() {
-				assertAuditCalled(mockAuditor, createFilterBlueprintAction, actionSuccessful, nil)
-			})
-
-			Convey("Then the response is 500 internal server error", func() {
-				So(w.Code, ShouldEqual, http.StatusInternalServerError)
-			})
-		})
-
 		Convey("When a POST request is made to the filters endpoint with valid dimensions", func() {
 
 			reader := strings.NewReader(`{"dataset":{"version":1, "edition":"1", "id":"1"}, "dimensions":[{"name": "age", "options": ["27","33"]}]}`)
@@ -136,6 +89,63 @@ func TestSuccessfulAddFilterBlueprint_UnpublishedDataset(t *testing.T) {
 
 			reader := strings.NewReader(`{"dataset":{"version":1, "edition":"1", "id":"1"}, "dimensions":[{"name": "age", "options": ["27","33"]}]}`)
 			r := createAuthenticatedRequest("POST", "http://localhost:22100/filters", reader)
+			api.router.ServeHTTP(w, r)
+
+			Convey("Then the auditor is called for the attempt and outcome", func() {
+				assertAuditCalled(mockAuditor, createFilterBlueprintAction, actionSuccessful, nil)
+			})
+
+			Convey("Then the response is 201 created", func() {
+				So(w.Code, ShouldEqual, http.StatusCreated)
+			})
+		})
+	})
+}
+
+func TestFailedToAddFilterBlueprint_AuditFailure(t *testing.T) {
+
+	Convey("Given a published dataset", t, func() {
+
+		mockAuditor := getMockAuditor()
+		w := httptest.NewRecorder()
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, mockAuditor)
+
+		Convey("When a POST request is made to the filters endpoint and the attempt audit fails", func() {
+
+			reader := strings.NewReader(`{"dataset":{"version":1, "edition":"1", "id":"1"} }`)
+			r, err := http.NewRequest("POST", "http://localhost:22100/filters", reader)
+			So(err, ShouldBeNil)
+
+			mockAuditor.RecordFunc = func(ctx context.Context, action string, result string, params common.Params) error {
+				return errAudit
+			}
+
+			api.router.ServeHTTP(w, r)
+
+			Convey("Then the auditor is called for the action being attempted", func() {
+				recCalls := mockAuditor.RecordCalls()
+				So(len(recCalls), ShouldEqual, 1)
+				verifyAuditRecordCalls(recCalls[0], createFilterBlueprintAction, actionAttempted, nil)
+			})
+
+			Convey("Then the response is 500 internal server error", func() {
+				So(w.Code, ShouldEqual, http.StatusInternalServerError)
+			})
+		})
+
+		Convey("When a POST request is made to the filters endpoint and the outcome audit fails", func() {
+
+			reader := strings.NewReader(`{"dataset":{"version":1, "edition":"1", "id":"1"} }`)
+			r, err := http.NewRequest("POST", "http://localhost:22100/filters", reader)
+			So(err, ShouldBeNil)
+
+			mockAuditor.RecordFunc = func(ctx context.Context, action string, result string, params common.Params) error {
+				if action == createFilterBlueprintAction && result == actionSuccessful {
+					return errAudit
+				}
+				return nil
+			}
+
 			api.router.ServeHTTP(w, r)
 
 			Convey("Then the auditor is called for the attempt and outcome", func() {
@@ -504,7 +514,6 @@ func TestFailedToGetFilterBlueprint(t *testing.T) {
 		})
 	})
 
-
 	Convey("When a filter blueprint does not exist, and auditing fails a 500 error is returned", t, func() {
 		r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678", nil)
 		So(err, ShouldBeNil)
@@ -546,48 +555,162 @@ func TestFailedToGetFilterBlueprint(t *testing.T) {
 	})
 }
 
-func TestSuccessfulUpdateFilterBlueprint(t *testing.T) {
+func TestSuccessfulUpdateFilterBlueprint_PublishedDataset(t *testing.T) {
 	t.Parallel()
-	Convey("Successfully send a valid json message", t, func() {
-		reader := strings.NewReader(`{"dataset":{"version":1}}`)
-		r, err := http.NewRequest("PUT", "http://localhost:22100/filters/21312", reader)
-		So(err, ShouldBeNil)
 
-		mockAuditor := getMockAuditor()
-		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{ChangeInstanceRequest: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, mockAuditor)
-		api.router.ServeHTTP(w, r)
-		So(w.Code, ShouldEqual, http.StatusOK)
-	})
+	expectedAuditParams := common.Params{"filter_blueprint_id": "21312"}
 
-	Convey("Successfully send a valid json message with events and dataset version update", t, func() {
-
-		updateBlueprintData := `{"dataset":{"version":1}, "events":{"info":[{"time":"` + time.Now().String() +
-			`","type":"something changed","message":"something happened"}],"error":[{"time":"` + time.Now().String() +
-			`","type":"errored","message":"something errored"}]}}`
-
-		reader := strings.NewReader(updateBlueprintData)
-		r, err := http.NewRequest("PUT", "http://localhost:22100/filters/21312", reader)
-		So(err, ShouldBeNil)
-
-		mockAuditor := getMockAuditor()
-		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{ChangeInstanceRequest: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, mockAuditor)
-		api.router.ServeHTTP(w, r)
-		So(w.Code, ShouldEqual, http.StatusOK)
-	})
-
-	Convey("Successfully send a request to submit filter blueprint", t, func() {
-		reader := strings.NewReader("{}")
-		r, err := http.NewRequest("PUT", "http://localhost:22100/filters/21312?submitted=true", reader)
-		So(err, ShouldBeNil)
+	Convey("Given a published dataset", t, func() {
 
 		mockAuditor := getMockAuditor()
 		w := httptest.NewRecorder()
 		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, mockAuditor)
-		api.router.ServeHTTP(w, r)
-		So(w.Code, ShouldEqual, http.StatusOK)
+
+		Convey("When a PUT request is made to the filters endpoint", func() {
+
+			reader := strings.NewReader(`{"dataset":{"version":1}}`)
+			r, err := http.NewRequest("PUT", "http://localhost:22100/filters/21312", reader)
+			So(err, ShouldBeNil)
+
+			api.router.ServeHTTP(w, r)
+
+			Convey("Then the auditor is called for the attempt and outcome", func() {
+				assertAuditCalled(mockAuditor, updateFilterBlueprintAction, actionSuccessful, expectedAuditParams)
+			})
+
+			Convey("Then the response is 200 OK", func() {
+				So(w.Code, ShouldEqual, http.StatusOK)
+			})
+		})
+
+		Convey("When a PUT request is made to the filters endpoint with events and dataset version update", func() {
+
+			updateBlueprintData := `{"dataset":{"version":1}, "events":{"info":[{"time":"` + time.Now().String() +
+				`","type":"something changed","message":"something happened"}],"error":[{"time":"` + time.Now().String() +
+				`","type":"errored","message":"something errored"}]}}`
+
+			reader := strings.NewReader(updateBlueprintData)
+			r, err := http.NewRequest("PUT", "http://localhost:22100/filters/21312", reader)
+			So(err, ShouldBeNil)
+
+			api.router.ServeHTTP(w, r)
+
+			Convey("Then the auditor is called for the attempt and outcome", func() {
+				assertAuditCalled(mockAuditor, updateFilterBlueprintAction, actionSuccessful, expectedAuditParams)
+			})
+
+			Convey("Then the response is 200 OK", func() {
+				So(w.Code, ShouldEqual, http.StatusOK)
+			})
+		})
+
+		Convey("When a PUT request is made to the filters endpoint to submit a filter blueprint", func() {
+
+			reader := strings.NewReader("{}")
+			r, err := http.NewRequest("PUT", "http://localhost:22100/filters/21312?submitted=true", reader)
+			So(err, ShouldBeNil)
+
+			api.router.ServeHTTP(w, r)
+
+			Convey("Then the auditor is called for the attempt and outcome", func() {
+				assertAuditCalled(mockAuditor, updateFilterBlueprintAction, actionSuccessful, expectedAuditParams)
+			})
+
+			Convey("Then the response is 200 OK", func() {
+				So(w.Code, ShouldEqual, http.StatusOK)
+			})
+		})
 	})
+}
+
+func TestFailedToUpdateFilterBlueprint_AuditFailure(t *testing.T) {
+	t.Parallel()
+
+	expectedAuditParams := common.Params{"filter_blueprint_id": "21312"}
+
+	Convey("Given a published dataset", t, func() {
+
+		mockAuditor := getMockAuditor()
+		w := httptest.NewRecorder()
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, mockAuditor)
+
+		Convey("When a PUT request is made to the filters endpoint and the attempt audit fails", func() {
+
+			reader := strings.NewReader(`{"dataset":{"version":1}}`)
+			r, err := http.NewRequest("PUT", "http://localhost:22100/filters/21312", reader)
+			So(err, ShouldBeNil)
+
+			mockAuditor.RecordFunc = func(ctx context.Context, action string, result string, params common.Params) error {
+				return errAudit
+			}
+
+			api.router.ServeHTTP(w, r)
+
+			Convey("Then the auditor is called for the action being attempted", func() {
+				recCalls := mockAuditor.RecordCalls()
+				So(len(recCalls), ShouldEqual, 1)
+				verifyAuditRecordCalls(recCalls[0], updateFilterBlueprintAction, actionAttempted, expectedAuditParams)
+			})
+
+			Convey("Then the response is 500 internal server error", func() {
+				So(w.Code, ShouldEqual, http.StatusInternalServerError)
+			})
+		})
+
+		Convey("When a PUT request is made to the filters endpoint and the outcome audit fails", func() {
+
+			reader := strings.NewReader(`{"dataset":{"version":1}}`)
+			r, err := http.NewRequest("PUT", "http://localhost:22100/filters/21312", reader)
+			So(err, ShouldBeNil)
+
+			mockAuditor.RecordFunc = func(ctx context.Context, action string, result string, params common.Params) error {
+				if action == updateFilterBlueprintAction && result == actionSuccessful {
+					return errAudit
+				}
+				return nil
+			}
+
+			api.router.ServeHTTP(w, r)
+
+			Convey("Then the auditor is called for the attempt and outcome", func() {
+				assertAuditCalled(mockAuditor, updateFilterBlueprintAction, actionSuccessful, expectedAuditParams)
+			})
+
+			Convey("Then the response is 200 OK", func() {
+				So(w.Code, ShouldEqual, http.StatusOK)
+			})
+		})
+
+		Convey("When a PUT request is made to the filters endpoint with invalid json and the outcome audit fails", func() {
+
+			reader := strings.NewReader("{")
+			r, err := http.NewRequest("PUT", "http://localhost:22100/filters/21312", reader)
+			So(err, ShouldBeNil)
+
+			mockAuditor.RecordFunc = func(ctx context.Context, action string, result string, params common.Params) error {
+				if action == updateFilterBlueprintAction && result == actionUnsuccessful {
+					return errAudit
+				}
+				return nil
+			}
+
+			api.router.ServeHTTP(w, r)
+
+			Convey("Then the auditor is called for the attempt and outcome", func() {
+				assertAuditCalled(mockAuditor, updateFilterBlueprintAction, actionUnsuccessful, expectedAuditParams)
+			})
+
+			Convey("Then the response is 500 internal server error", func() {
+				So(w.Code, ShouldEqual, http.StatusInternalServerError)
+			})
+		})
+	})
+}
+
+func TestSuccessfulUpdateFilterBlueprint_UnpublishedDataset(t *testing.T) {
+	t.Parallel()
+
+	expectedAuditParams := common.Params{"filter_blueprint_id": "21312"}
 
 	Convey("Successfully send a request to submit an unpublished filter blueprint", t, func() {
 		reader := strings.NewReader("{}")
@@ -598,11 +721,18 @@ func TestSuccessfulUpdateFilterBlueprint(t *testing.T) {
 		api := routes(host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, mockAuditor)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusOK)
+
+		Convey("Then the auditor is called for the attempt and outcome", func() {
+			assertAuditCalled(mockAuditor, updateFilterBlueprintAction, actionSuccessful, expectedAuditParams)
+		})
 	})
 }
 
 func TestFailedToUpdateFilterBlueprint(t *testing.T) {
 	t.Parallel()
+
+	expectedAuditParams := common.Params{"filter_blueprint_id": "21312"}
+
 	Convey("When an invalid json message is sent, a bad request is returned", t, func() {
 		reader := strings.NewReader("{")
 		r, err := http.NewRequest("PUT", "http://localhost:22100/filters/21312", reader)
@@ -616,6 +746,10 @@ func TestFailedToUpdateFilterBlueprint(t *testing.T) {
 
 		response := w.Body.String()
 		So(response, ShouldResemble, badRequestResponse)
+
+		Convey("Then the auditor is called for the attempt and outcome", func() {
+			assertAuditCalled(mockAuditor, updateFilterBlueprintAction, actionUnsuccessful, expectedAuditParams)
+		})
 	})
 
 	Convey("When an empty json message is sent, a bad request is returned", t, func() {
@@ -631,6 +765,10 @@ func TestFailedToUpdateFilterBlueprint(t *testing.T) {
 
 		response := w.Body.String()
 		So(response, ShouldResemble, badRequestResponse)
+
+		Convey("Then the auditor is called for the attempt and outcome", func() {
+			assertAuditCalled(mockAuditor, updateFilterBlueprintAction, actionUnsuccessful, expectedAuditParams)
+		})
 	})
 
 	Convey("When a json message is sent to update filter blueprint that doesn't exist, a status of not found is returned", t, func() {
@@ -646,6 +784,10 @@ func TestFailedToUpdateFilterBlueprint(t *testing.T) {
 
 		response := w.Body.String()
 		So(response, ShouldResemble, filterNotFoundResponse)
+
+		Convey("Then the auditor is called for the attempt and outcome", func() {
+			assertAuditCalled(mockAuditor, updateFilterBlueprintAction, actionUnsuccessful, expectedAuditParams)
+		})
 	})
 
 	Convey("When no authentication is provided to update an unpublished filter, a not found is returned", t, func() {
@@ -662,6 +804,10 @@ func TestFailedToUpdateFilterBlueprint(t *testing.T) {
 
 		response := w.Body.String()
 		So(response, ShouldResemble, filterNotFoundResponse)
+
+		Convey("Then the auditor is called for the attempt and outcome", func() {
+			assertAuditCalled(mockAuditor, updateFilterBlueprintAction, actionUnsuccessful, expectedAuditParams)
+		})
 	})
 
 	Convey("When a json message is sent to change the dataset version of a filter blueprint and the version does not exist, a status of bad request is returned", t, func() {
@@ -677,6 +823,10 @@ func TestFailedToUpdateFilterBlueprint(t *testing.T) {
 
 		response := w.Body.String()
 		So(response, ShouldResemble, versionNotFoundResponse)
+
+		Convey("Then the auditor is called for the attempt and outcome", func() {
+			assertAuditCalled(mockAuditor, updateFilterBlueprintAction, actionUnsuccessful, expectedAuditParams)
+		})
 	})
 
 	Convey("When a json message is sent to change the datset version of a filter blueprint and the current dimensions do not match, a status of bad request is returned", t, func() {
@@ -692,6 +842,10 @@ func TestFailedToUpdateFilterBlueprint(t *testing.T) {
 
 		response := w.Body.String()
 		So(response, ShouldResemble, "incorrect dimensions chosen: [time]\n")
+
+		Convey("Then the auditor is called for the attempt and outcome", func() {
+			assertAuditCalled(mockAuditor, updateFilterBlueprintAction, actionUnsuccessful, expectedAuditParams)
+		})
 	})
 
 	Convey("When a json message is sent to change the dataset version of a filter blueprint and the current dimension options do not match, a status of bad request is returned", t, func() {
@@ -707,6 +861,10 @@ func TestFailedToUpdateFilterBlueprint(t *testing.T) {
 
 		response := w.Body.String()
 		So(response, ShouldResemble, "incorrect dimension options chosen: [28]\n")
+
+		Convey("Then the auditor is called for the attempt and outcome", func() {
+			assertAuditCalled(mockAuditor, updateFilterBlueprintAction, actionUnsuccessful, expectedAuditParams)
+		})
 	})
 }
 
