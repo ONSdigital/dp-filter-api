@@ -4,24 +4,24 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
-	"time"
-
 	"github.com/ONSdigital/dp-filter-api/models"
 	"github.com/ONSdigital/go-ns/log"
 	"github.com/gorilla/mux"
 
-	"fmt"
-
 	"strconv"
 
-	identity "github.com/ONSdigital/go-ns/common"
-	"github.com/satori/go.uuid"
 	"github.com/ONSdigital/dp-filter-api/filters"
+	"github.com/ONSdigital/go-ns/common"
 )
 
 var (
 	errRequestLimitNotNumber = errors.New("requested limit is not a number")
 	errMissingDimensions     = errors.New("missing dimensions")
+)
+
+const (
+	// audit actions
+	getFilterOutputAction    = "getFilterOutput"
 )
 
 func (api *FilterAPI) getFilterOutput(w http.ResponseWriter, r *http.Request) {
@@ -31,9 +31,19 @@ func (api *FilterAPI) getFilterOutput(w http.ResponseWriter, r *http.Request) {
 	logData := log.Data{"filter_output_id": filterOutputID}
 	log.Info("getting filter output", logData)
 
+	auditParams := common.Params{"filter_output_id": filterOutputID}
+	if auditErr := api.auditor.Record(r.Context(), getFilterOutputAction, actionAttempted, auditParams); auditErr != nil {
+		handleAuditingFailure(w, auditErr, logData)
+		return
+	}
+
 	filterOutput, err := api.getOutput(r, filterOutputID)
 	if err != nil {
 		log.ErrorC("unable to get filter output", err, logData)
+		if auditErr := api.auditor.Record(r.Context(), getFilterOutputAction, actionUnsuccessful, auditParams); auditErr != nil {
+			handleAuditingFailure(w, auditErr, logData)
+			return
+		}
 		setErrorCode(w, err)
 		return
 	}
@@ -42,7 +52,16 @@ func (api *FilterAPI) getFilterOutput(w http.ResponseWriter, r *http.Request) {
 	bytes, err := json.Marshal(filterOutput)
 	if err != nil {
 		log.ErrorC("failed to marshal filter output into bytes", err, logData)
+		if auditErr := api.auditor.Record(r.Context(), getFilterOutputAction, actionUnsuccessful, auditParams); auditErr != nil {
+			handleAuditingFailure(w, auditErr, logData)
+			return
+		}
 		http.Error(w, internalError, http.StatusInternalServerError)
+		return
+	}
+
+	if auditErr := api.auditor.Record(r.Context(), getFilterOutputAction, actionSuccessful, auditParams); auditErr != nil {
+		handleAuditingFailure(w, auditErr, logData)
 		return
 	}
 
@@ -65,7 +84,7 @@ func (api *FilterAPI) updateFilterOutput(w http.ResponseWriter, r *http.Request)
 	logData := log.Data{"filter_output_id": filterOutputID}
 	log.Info("updating filter output", logData)
 
-	if !identity.IsCallerPresent(r.Context()) {
+	if !common.IsCallerPresent(r.Context()) {
 		log.ErrorC("failed to update filter output", filters.ErrUnauthorised, logData)
 		setErrorCode(w, filters.ErrUnauthorised)
 		return
@@ -113,43 +132,6 @@ func (api *FilterAPI) updateFilterOutput(w http.ResponseWriter, r *http.Request)
 	w.WriteHeader(http.StatusOK)
 
 	log.Info("update filter output", logData)
-}
-
-func (api *FilterAPI) createFilterOutputResource(newFilter *models.Filter, filterBlueprintID string) (models.Filter, error) {
-	filterOutput := *newFilter
-	filterOutput.FilterID = uuid.NewV4().String()
-	filterOutput.State = models.CreatedState
-	filterOutput.Links.Self.HRef = fmt.Sprintf("%s/filter-outputs/%s", api.host, filterOutput.FilterID)
-	filterOutput.Links.Dimensions.HRef = ""
-	filterOutput.Links.FilterBlueprint.HRef = fmt.Sprintf("%s/filters/%s", api.host, filterBlueprintID)
-	filterOutput.Links.FilterBlueprint.ID = filterBlueprintID
-	filterOutput.LastUpdated = time.Now()
-
-	// Clear out any event information to output document
-	filterOutput.Events = models.Events{}
-
-	// Downloads object should exist for filter output resource
-	// even if it they are empty
-	filterOutput.Downloads = &models.Downloads{
-		CSV: &models.DownloadItem{},
-		XLS: &models.DownloadItem{},
-	}
-
-	// Remove dimension url from output filter resource
-	for i := range newFilter.Dimensions {
-		filterOutput.Dimensions[i].URL = ""
-	}
-
-	if newFilter.Published == &models.Published {
-		filterOutput.Published = &models.Published
-	}
-
-	if err := api.dataStore.CreateFilterOutput(&filterOutput); err != nil {
-		log.ErrorC("unable to create filter output", err, log.Data{"filter_output": filterOutput})
-		return models.Filter{}, err
-	}
-
-	return filterOutput, api.outputQueue.Queue(&filterOutput)
 }
 
 func (api *FilterAPI) getFilterOutputPreview(w http.ResponseWriter, r *http.Request) {
@@ -229,7 +211,7 @@ func (api *FilterAPI) getOutput(r *http.Request, filterID string) (*models.Filte
 	logData["filter_blueprint_id"] = output.Links.FilterBlueprint.ID
 
 	// Hide private download links if request is not authenticated
-	if r.Header.Get(identity.DownloadServiceHeaderKey) != api.downloadServiceToken {
+	if r.Header.Get(common.DownloadServiceHeaderKey) != api.downloadServiceToken {
 
 		log.Info("a valid download service token has not been provided. hiding private links", logData)
 
@@ -246,7 +228,7 @@ func (api *FilterAPI) getOutput(r *http.Request, filterID string) (*models.Filte
 	}
 
 	//only return the filter if it is for published data or via authenticated request
-	if output.Published != nil && *output.Published == models.Published || identity.IsCallerPresent(ctx) {
+	if output.Published != nil && *output.Published == models.Published || common.IsCallerPresent(ctx) {
 		return output, nil
 	}
 

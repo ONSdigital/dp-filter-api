@@ -17,6 +17,7 @@ import (
 	"github.com/ONSdigital/go-ns/common"
 	"github.com/ONSdigital/dp-filter-api/filters"
 	"regexp"
+	"time"
 )
 
 var (
@@ -221,7 +222,6 @@ func (api *FilterAPI) getFilterBlueprintHandler(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	log.Info("got filter blueprint", logData)
 	if auditErr := api.auditor.Record(r.Context(), getFilterBlueprintAction, actionSuccessful, auditParams); auditErr != nil {
 		handleAuditingFailure(w, auditErr, logData)
 		return
@@ -234,6 +234,8 @@ func (api *FilterAPI) getFilterBlueprintHandler(w http.ResponseWriter, r *http.R
 		log.ErrorC("failed to write bytes for http response", err, logData)
 		setErrorCode(w, err)
 	}
+
+	log.Info("got filter blueprint", logData)
 }
 
 func (api *FilterAPI) putFilterBlueprintHandler(w http.ResponseWriter, r *http.Request) {
@@ -461,6 +463,43 @@ func (api *FilterAPI) checkFilterOptions(ctx context.Context, newFilter *models.
 	}
 
 	return nil
+}
+
+func (api *FilterAPI) createFilterOutputResource(newFilter *models.Filter, filterBlueprintID string) (models.Filter, error) {
+	filterOutput := *newFilter
+	filterOutput.FilterID = uuid.NewV4().String()
+	filterOutput.State = models.CreatedState
+	filterOutput.Links.Self.HRef = fmt.Sprintf("%s/filter-outputs/%s", api.host, filterOutput.FilterID)
+	filterOutput.Links.Dimensions.HRef = ""
+	filterOutput.Links.FilterBlueprint.HRef = fmt.Sprintf("%s/filters/%s", api.host, filterBlueprintID)
+	filterOutput.Links.FilterBlueprint.ID = filterBlueprintID
+	filterOutput.LastUpdated = time.Now()
+
+	// Clear out any event information to output document
+	filterOutput.Events = models.Events{}
+
+	// Downloads object should exist for filter output resource
+	// even if it they are empty
+	filterOutput.Downloads = &models.Downloads{
+		CSV: &models.DownloadItem{},
+		XLS: &models.DownloadItem{},
+	}
+
+	// Remove dimension url from output filter resource
+	for i := range newFilter.Dimensions {
+		filterOutput.Dimensions[i].URL = ""
+	}
+
+	if newFilter.Published == &models.Published {
+		filterOutput.Published = &models.Published
+	}
+
+	if err := api.dataStore.CreateFilterOutput(&filterOutput); err != nil {
+		log.ErrorC("unable to create filter output", err, log.Data{"filter_output": filterOutput})
+		return models.Filter{}, err
+	}
+
+	return filterOutput, api.outputQueue.Queue(&filterOutput)
 }
 
 func setJSONContentType(w http.ResponseWriter) {
