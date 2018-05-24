@@ -1,295 +1,408 @@
 package api
 
 import (
+	"net/http"
+	"net/http/httptest"
+	"strings"
 	"testing"
-
-	"github.com/ONSdigital/dp-filter-api/models"
+	"github.com/ONSdigital/dp-filter-api/mocks"
+	"github.com/gorilla/mux"
 	. "github.com/smartystreets/goconvey/convey"
+	"time"
 )
 
-const (
-	filterID1 = "121"
-	filterID2 = "122"
-	filterID3 = "123"
-)
+func TestSuccessfulAddFilterBlueprint(t *testing.T) {
+	t.Parallel()
+	Convey("Successfully create a filter blueprint", t, func() {
+		reader := strings.NewReader(`{"dataset":{"version":1, "edition":"1", "id":"1"} }`)
+		r, err := http.NewRequest("POST", "http://localhost:22100/filters", reader)
+		So(err, ShouldBeNil)
 
-var testOptions = []struct {
-	inputPreviousFilterOutput *models.Filter
-	inputFilterOutput         *models.Filter
-	expectedOutput            *models.Filter
-	title                     string
-}{
-	{
-		inputPreviousFilterOutput: &models.Filter{FilterID: filterID1, Downloads: nil},
-		inputFilterOutput:         &models.Filter{Downloads: &fullDownloads},
-		expectedOutput:            &models.Filter{Downloads: &fullDownloadsOutputs},
-		title:                     "1",
-	},
-	{
-		inputPreviousFilterOutput: &models.Filter{FilterID: filterID1, Downloads: &fullDownloads},
-		inputFilterOutput:         &models.Filter{Downloads: nil},
-		expectedOutput:            &models.Filter{Downloads: &fullDownloadsOutputs},
-		title:                     "2",
-	},
-	{
-		inputPreviousFilterOutput: &models.Filter{FilterID: filterID1, Downloads: nil},
-		inputFilterOutput:         &models.Filter{Downloads: &csvDownloadsOnly},
-		expectedOutput:            &models.Filter{Downloads: &csvDownloadsOnlyOutputs},
-		title:                     "3",
-	},
-	{
-		inputPreviousFilterOutput: &models.Filter{FilterID: filterID1, Downloads: nil},
-		inputFilterOutput:         &models.Filter{Downloads: &xlsDownloadsOnly},
-		expectedOutput:            &models.Filter{Downloads: &xlsDownloadsOnlyOutputs},
-		title:                     "4",
-	},
-	{
-		inputPreviousFilterOutput: &models.Filter{FilterID: filterID1, Downloads: &models.Downloads{CSV: &csvScenario[0].csv}},
-		inputFilterOutput:         &models.Filter{Downloads: &models.Downloads{XLS: &xlsScenario[0].xls}},
-		expectedOutput:            &models.Filter{Downloads: &fullDownloadsOutputs},
-		title:                     "5",
-	},
-	{
-		inputPreviousFilterOutput: &models.Filter{FilterID: filterID1, Downloads: &models.Downloads{XLS: &xlsScenario[0].xls}},
-		inputFilterOutput:         &models.Filter{Downloads: &models.Downloads{CSV: &csvScenario[0].csv}},
-		expectedOutput:            &models.Filter{Downloads: &fullDownloadsOutputs},
-		title:                     "6",
-	},
-	{
-		inputPreviousFilterOutput: &models.Filter{FilterID: filterID2, Downloads: &models.Downloads{CSV: &csvScenario[0].csv}},
-		inputFilterOutput:         &models.Filter{Downloads: &models.Downloads{CSV: &csvScenario[1].csv}},
-		expectedOutput:            &models.Filter{Downloads: &models.Downloads{CSV: &expectedDownloadItems[0].csv}},
-		title:                     "7",
-	},
-	{
-		inputPreviousFilterOutput: &models.Filter{FilterID: filterID3, Downloads: &models.Downloads{CSV: &csvScenario[0].csv}},
-		inputFilterOutput:         &models.Filter{Downloads: &models.Downloads{CSV: &csvScenario[2].csv}},
-		expectedOutput:            &models.Filter{Downloads: &models.Downloads{CSV: &expectedDownloadItems[1].csv}},
-		title:                     "8",
-	},
-	{
-		inputPreviousFilterOutput: &models.Filter{FilterID: filterID1, Downloads: &models.Downloads{CSV: &csvScenario[0].csv}},
-		inputFilterOutput:         &models.Filter{Downloads: &models.Downloads{CSV: &csvScenario[3].csv}},
-		expectedOutput:            &models.Filter{Downloads: &models.Downloads{CSV: &expectedDownloadItems[2].csv}},
-		title:                     "9",
-	},
-	{
-		inputPreviousFilterOutput: &models.Filter{FilterID: filterID2, Downloads: &models.Downloads{XLS: &xlsScenario[0].xls}},
-		inputFilterOutput:         &models.Filter{Downloads: &models.Downloads{XLS: &xlsScenario[1].xls}},
-		expectedOutput:            &models.Filter{Downloads: &models.Downloads{XLS: &expectedDownloadItems[3].xls}},
-		title:                     "10",
-	},
-	{
-		inputPreviousFilterOutput: &models.Filter{FilterID: filterID3, Downloads: &models.Downloads{XLS: &xlsScenario[0].xls}},
-		inputFilterOutput:         &models.Filter{Downloads: &models.Downloads{XLS: &xlsScenario[2].xls}},
-		expectedOutput:            &models.Filter{Downloads: &models.Downloads{XLS: &expectedDownloadItems[4].xls}},
-		title:                     "11",
-	},
-	{
-		inputPreviousFilterOutput: &models.Filter{FilterID: filterID1, Downloads: &models.Downloads{XLS: &xlsScenario[0].xls}},
-		inputFilterOutput:         &models.Filter{Downloads: &models.Downloads{XLS: &xlsScenario[3].xls}},
-		expectedOutput:            &models.Filter{Downloads: &models.Downloads{XLS: &expectedDownloadItems[5].xls}},
-		title:                     "12",
-	},
-	{
-		inputPreviousFilterOutput: &models.Filter{FilterID: filterID1, Downloads: &models.Downloads{CSV: &csvScenario[0].csv, XLS: &xlsScenario[0].xls}},
-		inputFilterOutput:         &models.Filter{Downloads: &models.Downloads{CSV: &csvScenario[3].csv, XLS: &xlsScenario[3].xls}},
-		expectedOutput:            &models.Filter{Downloads: &models.Downloads{CSV: &expectedDownloadItems[2].csv, XLS: &expectedDownloadItems[5].xls}},
-		title:                     "13",
-	},
-}
+		w := httptest.NewRecorder()
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusCreated)
+	})
 
-func TestBuildDownloadsObject(t *testing.T) {
+	Convey("Successfully create a filter blueprint for an unpublished version", t, func() {
+		reader := strings.NewReader(`{"dataset":{"version":1, "edition":"1", "id":"1"}, "dimensions":[{"name": "age", "options": ["27","33"]}]}`)
+		r := createAuthenticatedRequest("POST", "http://localhost:22100/filters", reader)
 
-	Convey("Successfully build download object", t, func() {
+		w := httptest.NewRecorder()
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusCreated)
+	})
 
-		for _, option := range testOptions {
-			Convey(option.title, func() {
-				filterOutput := buildDownloadsObject(option.inputPreviousFilterOutput, option.inputFilterOutput, downloadServiceURL)
-				So(filterOutput, ShouldResemble, option.expectedOutput)
-			})
-		}
+	Convey("Successfully create a filter blueprint with dimensions", t, func() {
+		reader := strings.NewReader(`{"dataset":{"version":1, "edition":"1", "id":"1"}, "dimensions":[{"name": "age", "options": ["27","33"]}]}`)
+		r, err := http.NewRequest("POST", "http://localhost:22100/filters", reader)
+		So(err, ShouldBeNil)
+
+		w := httptest.NewRecorder()
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusCreated)
+	})
+
+	//	TODO check test doesn't actually write job to queue?
+	Convey("Successfully submit a filter blueprint", t, func() {
+		reader := strings.NewReader(`{"dataset":{"version":1, "edition":"1", "id":"1"} }`)
+		r, err := http.NewRequest("POST", "http://localhost:22100/filters?submitted=true", reader)
+		So(err, ShouldBeNil)
+
+		w := httptest.NewRecorder()
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusCreated)
 	})
 }
 
-// Test data
-var (
-	fullDownloads = models.Downloads{
-		CSV: &models.DownloadItem{
-			Private: "csv-private-downloads-link",
-			Public:  "csv-public-downloads-link",
-			Size:    "12mb",
-		},
-		XLS: &models.DownloadItem{
-			Private: "xls-private-downloads-link",
-			Public:  "xls-public-downloads-link",
-			Size:    "24mb",
-		},
-	}
+func TestFailedToAddFilterBlueprint(t *testing.T) {
+	t.Parallel()
+	Convey("When no data store is available, an internal error is returned", t, func() {
+		reader := strings.NewReader(`{"dataset":{"version":1, "edition":"1", "id":"1"} }`)
+		r, err := http.NewRequest("POST", "http://localhost:22100/filters", reader)
+		So(err, ShouldBeNil)
 
-	csvDownloadsOnly = models.Downloads{
-		CSV: &models.DownloadItem{
-			Private: "csv-private-downloads-link",
-			Public:  "csv-public-downloads-link",
-			Size:    "12mb",
-		},
-		XLS: nil,
-	}
+		w := httptest.NewRecorder()
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{InternalError: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusInternalServerError)
 
-	xlsDownloadsOnly = models.Downloads{
-		XLS: &models.DownloadItem{
-			Private: "xls-private-downloads-link",
-			Public:  "xls-public-downloads-link",
-			Size:    "24mb",
-		},
-		CSV: nil,
-	}
+		response := w.Body.String()
+		So(response, ShouldResemble, internalErrResponse)
+	})
 
-	fullDownloadsOutputs = models.Downloads{
-		CSV: &models.DownloadItem{
-			HRef:    downloadServiceURL + "/downloads/filter-outputs/" + filterID1 + ".csv",
-			Private: "csv-private-downloads-link",
-			Public:  "csv-public-downloads-link",
-			Size:    "12mb",
-		},
-		XLS: &models.DownloadItem{
-			HRef:    downloadServiceURL + "/downloads/filter-outputs/" + filterID1 + ".xlsx",
-			Private: "xls-private-downloads-link",
-			Public:  "xls-public-downloads-link",
-			Size:    "24mb",
-		},
-	}
+	Convey("When dataset API is unavailable, an internal error is returned", t, func() {
+		reader := strings.NewReader(`{"dataset":{"version":1, "edition":"1", "id":"1"} }`)
+		r, err := http.NewRequest("POST", "http://localhost:22100/filters", reader)
+		So(err, ShouldBeNil)
 
-	csvDownloadsOnlyOutputs = models.Downloads{
-		CSV: &models.DownloadItem{
-			HRef:    downloadServiceURL + "/downloads/filter-outputs/" + filterID1 + ".csv",
-			Private: "csv-private-downloads-link",
-			Public:  "csv-public-downloads-link",
-			Size:    "12mb",
-		},
-		XLS: nil,
-	}
+		w := httptest.NewRecorder()
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{InternalServerError: true}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusInternalServerError)
 
-	xlsDownloadsOnlyOutputs = models.Downloads{
-		XLS: &models.DownloadItem{
-			HRef:    downloadServiceURL + "/downloads/filter-outputs/" + filterID1 + ".xlsx",
-			Private: "xls-private-downloads-link",
-			Public:  "xls-public-downloads-link",
-			Size:    "24mb",
-		},
-		CSV: nil,
-	}
-)
+		response := w.Body.String()
+		So(response, ShouldResemble, internalErrResponse)
+	})
 
-var xlsScenario = []struct {
-	xls models.DownloadItem
-}{
-	{
-		xls: models.DownloadItem{
-			Private: "xls-private-downloads-link",
-			Public:  "xls-public-downloads-link",
-			Size:    "24mb",
-		},
-	},
-	{
-		xls: models.DownloadItem{
-			Private: "xls-private-downloads-link-2",
-			Size:    "34mb",
-		},
-	},
-	{
-		xls: models.DownloadItem{
-			Public: "xls-public-downloads-link-3",
-			Size:   "44mb",
-		},
-	},
-	{
-		xls: models.DownloadItem{
-			Public: "xls-public-downloads-link-4",
-		},
-	},
+	Convey("When version does not exist, a not found error is returned", t, func() {
+		reader := strings.NewReader(`{"dataset":{"version":1, "edition":"1", "id":"1"} }`)
+		r, err := http.NewRequest("POST", "http://localhost:22100/filters", reader)
+		So(err, ShouldBeNil)
+
+		w := httptest.NewRecorder()
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{VersionNotFound: true}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusNotFound)
+
+		response := w.Body.String()
+		So(response, ShouldResemble, versionNotFoundResponse)
+	})
+
+	Convey("When version is unpublished and the request is not authenticated, a bad request error is returned", t, func() {
+		reader := strings.NewReader(`{"dataset":{"version":1, "edition":"1", "id":"1"}, "dimensions":[{"name": "age", "options": ["27","33"]}]}`)
+		r, err := http.NewRequest("POST", "http://localhost:22100/filters", reader)
+		So(err, ShouldBeNil)
+
+		w := httptest.NewRecorder()
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusBadRequest)
+
+		response := w.Body.String()
+		So(response, ShouldResemble, badRequestResponse)
+	})
+
+	Convey("When an invalid json message is sent, a bad request is returned", t, func() {
+		reader := strings.NewReader("{")
+		r, err := http.NewRequest("POST", "http://localhost:22100/filters", reader)
+		So(err, ShouldBeNil)
+
+		w := httptest.NewRecorder()
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusBadRequest)
+
+		response := w.Body.String()
+		So(response, ShouldResemble, badRequestResponse)
+	})
+
+	Convey("When a empty json message is sent, a bad request is returned", t, func() {
+		reader := strings.NewReader("{}")
+		r, err := http.NewRequest("POST", "http://localhost:22100/filters", reader)
+		So(err, ShouldBeNil)
+
+		w := httptest.NewRecorder()
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusBadRequest)
+
+		response := w.Body.String()
+		So(response, ShouldResemble, badRequestResponse)
+	})
+
+	Convey("When a json message is missing mandatory fields, a bad request is returned", t, func() {
+		reader := strings.NewReader(`{"dataset":"Census"}`)
+		r, err := http.NewRequest("POST", "http://localhost:22100/filters", reader)
+		So(err, ShouldBeNil)
+
+		w := httptest.NewRecorder()
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusBadRequest)
+
+		response := w.Body.String()
+		So(response, ShouldResemble, badRequestResponse)
+	})
+
+	Convey("When a json message contains a dimension that does not exist, a bad request is returned", t, func() {
+		reader := strings.NewReader(`{"dataset":{"version":1, "edition":"1", "id":"1"} , "dimensions":[{"name": "weight", "options": ["27","33"]}]}`)
+		r, err := http.NewRequest("POST", "http://localhost:22100/filters", reader)
+		So(err, ShouldBeNil)
+
+		w := httptest.NewRecorder()
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusBadRequest)
+
+		response := w.Body.String()
+		So(response, ShouldResemble, "incorrect dimensions chosen: [weight]\n")
+	})
+
+	Convey("When a json message contains a dimension option that does not exist for a valid dimension, a bad request is returned", t, func() {
+		reader := strings.NewReader(`{"dataset":{"version":1, "edition":"1", "id":"1"} , "dimensions":[{"name": "age", "options": ["29","33"]}]}`)
+		r, err := http.NewRequest("POST", "http://localhost:22100/filters", reader)
+		So(err, ShouldBeNil)
+
+		w := httptest.NewRecorder()
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusBadRequest)
+
+		response := w.Body.String()
+		So(response, ShouldResemble, "incorrect dimension options chosen: [29]\n")
+	})
 }
 
-var csvScenario = []struct {
-	csv models.DownloadItem
-}{
-	{
-		csv: models.DownloadItem{
-			HRef:    downloadServiceURL + "/downloads/filter-outputs/" + filterID1 + ".csv",
-			Private: "csv-private-downloads-link",
-			Public:  "csv-public-downloads-link",
-			Size:    "12mb",
-		},
-	},
-	{
-		csv: models.DownloadItem{
-			Private: "csv-private-downloads-link-2",
-			Size:    "24mb",
-		},
-	},
-	{
-		csv: models.DownloadItem{
-			Public: "csv-public-downloads-link-3",
-			Size:   "34mb",
-		},
-	},
-	{
-		csv: models.DownloadItem{
-			Public: "csv-public-downloads-link-4",
-		},
-	},
+func TestSuccessfulGetFilterBlueprint(t *testing.T) {
+	t.Parallel()
+	Convey("Successfully get a published filter blueprint with no authentication", t, func() {
+		r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678", nil)
+		So(err, ShouldBeNil)
+
+		w := httptest.NewRecorder()
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken)
+
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusOK)
+	})
+
+	Convey("Successfully get an unpublished filter blueprint with authentication", t, func() {
+		r := createAuthenticatedRequest("GET", "http://localhost:22100/filters/12345678", nil)
+
+		w := httptest.NewRecorder()
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken)
+
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusOK)
+	})
 }
 
-var expectedDownloadItems = []struct {
-	csv models.DownloadItem
-	xls models.DownloadItem
-}{
-	{
-		csv: models.DownloadItem{
-			HRef:    downloadServiceURL + "/downloads/filter-outputs/" + filterID2 + ".csv",
-			Private: "csv-private-downloads-link-2",
-			Public:  "csv-public-downloads-link",
-			Size:    "24mb",
-		},
-	},
-	{
-		csv: models.DownloadItem{
-			HRef:    downloadServiceURL + "/downloads/filter-outputs/" + filterID3 + ".csv",
-			Private: "csv-private-downloads-link",
-			Public:  "csv-public-downloads-link-3",
-			Size:    "34mb",
-		},
-	},
-	{
-		csv: models.DownloadItem{
-			HRef:    downloadServiceURL + "/downloads/filter-outputs/" + filterID1 + ".csv",
-			Private: "csv-private-downloads-link",
-			Public:  "csv-public-downloads-link-4",
-			Size:    "12mb",
-		},
-	},
-	{
-		xls: models.DownloadItem{
-			HRef:    downloadServiceURL + "/downloads/filter-outputs/" + filterID2 + ".xlsx",
-			Private: "xls-private-downloads-link-2",
-			Public:  "xls-public-downloads-link",
-			Size:    "34mb",
-		},
-	},
-	{
-		xls: models.DownloadItem{
-			HRef:    downloadServiceURL + "/downloads/filter-outputs/" + filterID3 + ".xlsx",
-			Private: "xls-private-downloads-link",
-			Public:  "xls-public-downloads-link-3",
-			Size:    "44mb",
-		},
-	},
-	{
-		xls: models.DownloadItem{
-			HRef:    downloadServiceURL + "/downloads/filter-outputs/" + filterID1 + ".xlsx",
-			Private: "xls-private-downloads-link",
-			Public:  "xls-public-downloads-link-4",
-			Size:    "24mb",
-		},
-	},
+func TestFailedToGetFilterBlueprint(t *testing.T) {
+	t.Parallel()
+	Convey("When no data store is available, an internal error is returned", t, func() {
+		r, err := http.NewRequest("GET", "http://localhost:22100/filters/1234568", nil)
+		So(err, ShouldBeNil)
+
+		w := httptest.NewRecorder()
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{InternalError: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken)
+
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusInternalServerError)
+
+		response := w.Body.String()
+		So(response, ShouldResemble, internalErrResponse)
+	})
+
+	Convey("When filter blueprint does not exist, a not found is returned", t, func() {
+		r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678", nil)
+		So(err, ShouldBeNil)
+
+		w := httptest.NewRecorder()
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{NotFound: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusNotFound)
+
+		response := w.Body.String()
+		So(response, ShouldResemble, filterNotFoundResponse)
+	})
+
+	Convey("When filter blueprint is unpublished, and the request is unauthenticated, a not found is returned", t, func() {
+		r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678", nil)
+		So(err, ShouldBeNil)
+
+		w := httptest.NewRecorder()
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusNotFound)
+
+		response := w.Body.String()
+		So(response, ShouldResemble, filterNotFoundResponse)
+	})
+}
+
+func TestSuccessfulUpdateFilterBlueprint(t *testing.T) {
+	t.Parallel()
+	Convey("Successfully send a valid json message", t, func() {
+		reader := strings.NewReader(`{"dataset":{"version":1}}`)
+		r, err := http.NewRequest("PUT", "http://localhost:22100/filters/21312", reader)
+		So(err, ShouldBeNil)
+
+		w := httptest.NewRecorder()
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{ChangeInstanceRequest: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusOK)
+	})
+
+	Convey("Successfully send a valid json message with events and dataset version update", t, func() {
+
+		updateBlueprintData := `{"dataset":{"version":1}, "events":{"info":[{"time":"` + time.Now().String() +
+			`","type":"something changed","message":"something happened"}],"error":[{"time":"` + time.Now().String() +
+			`","type":"errored","message":"something errored"}]}}`
+
+		reader := strings.NewReader(updateBlueprintData)
+		r, err := http.NewRequest("PUT", "http://localhost:22100/filters/21312", reader)
+		So(err, ShouldBeNil)
+
+		w := httptest.NewRecorder()
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{ChangeInstanceRequest: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusOK)
+	})
+
+	Convey("Successfully send a request to submit filter blueprint", t, func() {
+		reader := strings.NewReader("{}")
+		r, err := http.NewRequest("PUT", "http://localhost:22100/filters/21312?submitted=true", reader)
+		So(err, ShouldBeNil)
+
+		w := httptest.NewRecorder()
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusOK)
+	})
+
+	Convey("Successfully send a request to submit an unpublished filter blueprint", t, func() {
+		reader := strings.NewReader("{}")
+		r := createAuthenticatedRequest("PUT", "http://localhost:22100/filters/21312?submitted=true", reader)
+
+		w := httptest.NewRecorder()
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusOK)
+	})
+}
+
+func TestFailedToUpdateFilterBlueprint(t *testing.T) {
+	t.Parallel()
+	Convey("When an invalid json message is sent, a bad request is returned", t, func() {
+		reader := strings.NewReader("{")
+		r, err := http.NewRequest("PUT", "http://localhost:22100/filters/21312", reader)
+		So(err, ShouldBeNil)
+
+		w := httptest.NewRecorder()
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusBadRequest)
+
+		response := w.Body.String()
+		So(response, ShouldResemble, badRequestResponse)
+	})
+
+	Convey("When an empty json message is sent, a bad request is returned", t, func() {
+		reader := strings.NewReader("{}")
+		r, err := http.NewRequest("PUT", "http://localhost:22100/filters/21312", reader)
+		So(err, ShouldBeNil)
+
+		w := httptest.NewRecorder()
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusBadRequest)
+
+		response := w.Body.String()
+		So(response, ShouldResemble, badRequestResponse)
+	})
+
+	Convey("When a json message is sent to update filter blueprint that doesn't exist, a status of not found is returned", t, func() {
+		reader := strings.NewReader(`{"dataset":{"version":1}}`)
+		r, err := http.NewRequest("PUT", "http://localhost:22100/filters/21312", reader)
+		So(err, ShouldBeNil)
+
+		w := httptest.NewRecorder()
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{NotFound: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusNotFound)
+
+		response := w.Body.String()
+		So(response, ShouldResemble, filterNotFoundResponse)
+	})
+
+	Convey("When no authentication is provided to update an unpublished filter, a not found is returned", t, func() {
+		reader := strings.NewReader(`{"dimensions":[]}`)
+		r, err := http.NewRequest("PUT", "http://localhost:22100/filters/21312", reader)
+		So(err, ShouldBeNil)
+
+		w := httptest.NewRecorder()
+
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusNotFound)
+
+		response := w.Body.String()
+		So(response, ShouldResemble, filterNotFoundResponse)
+	})
+
+	Convey("When a json message is sent to change the dataset version of a filter blueprint and the version does not exist, a status of bad request is returned", t, func() {
+		reader := strings.NewReader(`{"dataset":{"version":2}}`)
+		r, err := http.NewRequest("PUT", "http://localhost:22100/filters/21312", reader)
+		So(err, ShouldBeNil)
+
+		w := httptest.NewRecorder()
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{VersionNotFound: true}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusBadRequest)
+
+		response := w.Body.String()
+		So(response, ShouldResemble, versionNotFoundResponse)
+	})
+
+	Convey("When a json message is sent to change the datset version of a filter blueprint and the current dimensions do not match, a status of bad request is returned", t, func() {
+		reader := strings.NewReader(`{"dataset":{"version":2}}`)
+		r, err := http.NewRequest("PUT", "http://localhost:22100/filters/21312", reader)
+		So(err, ShouldBeNil)
+
+		w := httptest.NewRecorder()
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusBadRequest)
+
+		response := w.Body.String()
+		So(response, ShouldResemble, "incorrect dimensions chosen: [time]\n")
+	})
+
+	Convey("When a json message is sent to change the dataset version of a filter blueprint and the current dimension options do not match, a status of bad request is returned", t, func() {
+		reader := strings.NewReader(`{"dataset":{"version":2}}`)
+		r, err := http.NewRequest("PUT", "http://localhost:22100/filters/21312", reader)
+		So(err, ShouldBeNil)
+
+		w := httptest.NewRecorder()
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{InvalidDimensionOption: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusBadRequest)
+
+		response := w.Body.String()
+		So(response, ShouldResemble, "incorrect dimension options chosen: [28]\n")
+	})
 }

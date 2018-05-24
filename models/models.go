@@ -165,7 +165,7 @@ func ValidateFilterDimensions(filterDimensions []Dimension, datasetDimensions *D
 	}
 
 	if incorrectDimensions != nil {
-		return fmt.Errorf("Bad request - incorrect dimensions chosen: %v", incorrectDimensions)
+		return fmt.Errorf("incorrect dimensions chosen: %v", incorrectDimensions)
 	}
 
 	return nil
