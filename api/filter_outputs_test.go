@@ -326,8 +326,8 @@ func TestSuccessfulGetFilterOutput(t *testing.T) {
 			t.Fail()
 		}
 
-		So(filterOutput.Downloads.CSV, ShouldResemble, &models.DownloadItem{HRef: "ons-test-site.gov.uk/87654321.csv", Private: "", Public: "csv-public-link", Size: "12mb"})
-		So(filterOutput.Downloads.XLS, ShouldResemble, &models.DownloadItem{HRef: "ons-test-site.gov.uk/87654321.xls", Private: "", Public: "xls-public-link", Size: "24mb"})
+		So(filterOutput.Downloads.CSV, ShouldResemble, &models.DownloadItem{HRef: "ons-test-site.gov.uk/87654321.csv", Private: "", Public: "", Size: "12mb"})
+		So(filterOutput.Downloads.XLS, ShouldResemble, &models.DownloadItem{HRef: "ons-test-site.gov.uk/87654321.xls", Private: "", Public: "", Size: "24mb"})
 	})
 
 	Convey("Successfully get a filter output from a request with an authorised download service token", t, func() {
