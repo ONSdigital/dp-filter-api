@@ -135,8 +135,7 @@ paths:
       tags:
       - "Public"
       summary: "Update a filter"
-      description: |
-        Update the filter by providing new properties
+      description: "Update the filter by providing new properties, submit a filter for processing by setting query parameter `submitted` to `true`"
       parameters:
       - $ref: '#/parameters/submitted'
       - $ref: '#/parameters/update_filter'
