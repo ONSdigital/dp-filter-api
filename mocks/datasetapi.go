@@ -2,15 +2,15 @@ package mocks
 
 import (
 	"context"
-	"github.com/ONSdigital/dp-filter-api/models"
 	"github.com/ONSdigital/dp-filter-api/filters"
+	"github.com/ONSdigital/dp-filter-api/models"
 )
 
 // DatasetAPI represents a list of error flags to set error in mocked dataset API
 type DatasetAPI struct {
-	VersionNotFound          bool
-	InternalServerError      bool
-	Unpublished              bool
+	VersionNotFound     bool
+	InternalServerError bool
+	Unpublished         bool
 }
 
 // GetVersion represents the mocked version of getting an version document from dataset API

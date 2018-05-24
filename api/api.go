@@ -5,6 +5,7 @@ import (
 
 	"github.com/ONSdigital/dp-filter-api/models"
 	"github.com/ONSdigital/dp-filter-api/preview"
+	"github.com/ONSdigital/go-ns/audit"
 	"github.com/ONSdigital/go-ns/healthcheck"
 	"github.com/ONSdigital/go-ns/identity"
 	"github.com/ONSdigital/go-ns/log"
@@ -41,6 +42,7 @@ type FilterAPI struct {
 	preview              PreviewDataset
 	downloadServiceURL   string
 	downloadServiceToken string
+	auditor              audit.AuditorService
 }
 
 // CreateFilterAPI manages all the routes configured to API
@@ -51,10 +53,11 @@ func CreateFilterAPI(host, bindAddr, zebedeeURL string,
 	datasetAPI DatasetAPIer,
 	preview PreviewDataset,
 	enablePrivateEndpoints bool,
-	downloadServiceURL, downloadServiceToken string) {
+	downloadServiceURL, downloadServiceToken string,
+	auditor audit.AuditorService) {
 
 	router := mux.NewRouter()
-	routes(host, router, datastore, outputQueue, datasetAPI, preview, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken)
+	routes(host, router, datastore, outputQueue, datasetAPI, preview, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, auditor)
 
 	healthcheckHandler := healthcheck.NewMiddleware(healthcheck.Do)
 	middlewareChain := alice.New(healthcheckHandler)
@@ -89,21 +92,23 @@ func routes(host string,
 	datasetAPI DatasetAPIer,
 	preview PreviewDataset,
 	enablePrivateEndpoints bool,
-	downloadServiceURL, downloadServiceToken string) *FilterAPI {
+	downloadServiceURL, downloadServiceToken string,
+	auditor audit.AuditorService) *FilterAPI {
 
 	api := FilterAPI{host: host,
-		dataStore: dataStore,
-		router: router,
-		outputQueue: outputQueue,
-		datasetAPI: datasetAPI,
-		preview: preview,
-		downloadServiceURL: downloadServiceURL,
+		dataStore:            dataStore,
+		router:               router,
+		outputQueue:          outputQueue,
+		datasetAPI:           datasetAPI,
+		preview:              preview,
+		downloadServiceURL:   downloadServiceURL,
 		downloadServiceToken: downloadServiceToken,
+		auditor:              auditor,
 	}
 
-	api.router.HandleFunc("/filters", api.addFilterBlueprint).Methods("POST")
-	api.router.HandleFunc("/filters/{filter_blueprint_id}", api.getFilterBlueprint).Methods("GET")
-	api.router.HandleFunc("/filters/{filter_blueprint_id}", api.updateFilterBlueprint).Methods("PUT")
+	api.router.HandleFunc("/filters", api.postFilterBlueprintHandler).Methods("POST")
+	api.router.HandleFunc("/filters/{filter_blueprint_id}", api.getFilterBlueprintHandler).Methods("GET")
+	api.router.HandleFunc("/filters/{filter_blueprint_id}", api.putFilterBlueprintHandler).Methods("PUT")
 	api.router.HandleFunc("/filters/{filter_blueprint_id}/dimensions", api.getFilterBlueprintDimensions).Methods("GET")
 	api.router.HandleFunc("/filters/{filter_blueprint_id}/dimensions/{name}", api.getFilterBlueprintDimension).Methods("GET")
 	api.router.HandleFunc("/filters/{filter_blueprint_id}/dimensions/{name}", api.addFilterBlueprintDimension).Methods("POST")

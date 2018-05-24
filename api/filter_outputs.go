@@ -14,9 +14,9 @@ import (
 
 	"strconv"
 
+	"github.com/ONSdigital/dp-filter-api/filters"
 	identity "github.com/ONSdigital/go-ns/common"
 	"github.com/satori/go.uuid"
-	"github.com/ONSdigital/dp-filter-api/filters"
 )
 
 var (
@@ -66,8 +66,8 @@ func (api *FilterAPI) updateFilterOutput(w http.ResponseWriter, r *http.Request)
 	log.Info("updating filter output", logData)
 
 	if !identity.IsCallerPresent(r.Context()) {
-		log.ErrorC("failed to update filter output", errUnauthorised, logData)
-		setErrorCode(w, errUnauthorised)
+		log.ErrorC("failed to update filter output", filters.ErrUnauthorised, logData)
+		setErrorCode(w, filters.ErrUnauthorised)
 		return
 	}
 
@@ -254,7 +254,7 @@ func (api *FilterAPI) getOutput(r *http.Request, filterID string) (*models.Filte
 
 	log.Info("unauthenticated request to access unpublished filter output", logData)
 
-	filter, err := api.getFilter(ctx, output.Links.FilterBlueprint.ID)
+	filter, err := api.getFilterBlueprint(ctx, output.Links.FilterBlueprint.ID)
 	if err != nil {
 		log.Error(errors.New("failed to retrieve filter blueprint"), logData)
 		return nil, filters.ErrFilterOutputNotFound

@@ -5,10 +5,10 @@ import (
 	"time"
 
 	"github.com/ONSdigital/dp-filter-api/config"
+	"github.com/ONSdigital/dp-filter-api/filters"
 	"github.com/ONSdigital/dp-filter-api/models"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
-	"github.com/ONSdigital/dp-filter-api/filters"
 )
 
 // FilterStore containing all filter jobs stored in mongodb

@@ -3,8 +3,8 @@ package mocks
 import (
 	"errors"
 
-	"github.com/ONSdigital/dp-filter-api/models"
 	"github.com/ONSdigital/dp-filter-api/filters"
+	"github.com/ONSdigital/dp-filter-api/models"
 )
 
 // A list of errors that can be returned by mock package
@@ -81,10 +81,6 @@ func (ds *DataStore) GetFilter(filterID string) (*models.Filter, error) {
 
 	if ds.BadRequest {
 		return &models.Filter{Dataset: &models.Dataset{ID: "123", Edition: "2017", Version: 1}, InstanceID: "12345678"}, nil
-	}
-
-	if ds.ChangeInstanceRequest {
-		return &models.Filter{Dataset: &models.Dataset{ID: "123", Edition: "2017", Version: 1}, InstanceID: "12345678", Published: &models.Published, Dimensions: []models.Dimension{{Name: "age", Options: []string{"33"}}}}, nil
 	}
 
 	if ds.InvalidDimensionOption {
