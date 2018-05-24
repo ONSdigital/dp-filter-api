@@ -228,17 +228,19 @@ func (api *FilterAPI) getOutput(r *http.Request, filterID string) (*models.Filte
 
 	logData["filter_blueprint_id"] = output.Links.FilterBlueprint.ID
 
-	// Hide private download links if request is not authenticated
+	// Hide download links if request has no valid download service token
 	if r.Header.Get(identity.DownloadServiceHeaderKey) != api.downloadServiceToken {
 
-		log.Info("a valid download service token has not been provided. hiding private links", logData)
+		log.Info("a valid download service token has not been provided. hiding links", logData)
 
 		if output.Downloads != nil {
 			if output.Downloads.CSV != nil {
 				output.Downloads.CSV.Private = ""
+				output.Downloads.CSV.Public = ""
 			}
 			if output.Downloads.XLS != nil {
 				output.Downloads.XLS.Private = ""
+				output.Downloads.XLS.Public = ""
 			}
 		}
 	} else {
