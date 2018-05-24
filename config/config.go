@@ -20,12 +20,12 @@ type Config struct {
 	Neo4jPoolSize              int           `envconfig:"NEO4J_POOL_SIZE"`
 	HealthCheckInterval        time.Duration `envconfig:"HEALTHCHECK_INTERVAL"`
 	MongoConfig                MongoConfig
-	ServiceAuthToken           string        `envconfig:"SERVICE_AUTH_TOKEN"          json:"-"`
-	ZebedeeURL                 string        `envconfig:"ZEBEDEE_URL"`
-	EnablePrivateEndpoints     bool          `envconfig:"ENABLE_PRIVATE_ENDPOINTS"`
-	DownloadServiceURL         string        `envconfig:"DOWNLOAD_SERVICE_URL"`
-	DownloadServiceSecretKey   string        `envconfig:"DOWNLOAD_SERVICE_SECRET_KEY"      json:"-"`
-	AuditEventsTopic           string        `envconfig:"AUDIT_EVENTS_TOPIC"`
+	ServiceAuthToken           string `envconfig:"SERVICE_AUTH_TOKEN"          json:"-"`
+	ZebedeeURL                 string `envconfig:"ZEBEDEE_URL"`
+	EnablePrivateEndpoints     bool   `envconfig:"ENABLE_PRIVATE_ENDPOINTS"`
+	DownloadServiceURL         string `envconfig:"DOWNLOAD_SERVICE_URL"`
+	DownloadServiceSecretKey   string `envconfig:"DOWNLOAD_SERVICE_SECRET_KEY"      json:"-"`
+	AuditEventsTopic           string `envconfig:"AUDIT_EVENTS_TOPIC"`
 }
 
 // MongoConfig contains the config required to connect to MongoDB.

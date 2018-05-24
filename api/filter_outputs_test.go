@@ -3,20 +3,20 @@ package api
 import (
 	"testing"
 
+	"encoding/json"
+	"github.com/ONSdigital/dp-filter-api/api/datastoretest"
+	"github.com/ONSdigital/dp-filter-api/filters"
 	"github.com/ONSdigital/dp-filter-api/models"
+	"github.com/ONSdigital/dp-filter-api/preview"
+	"github.com/gorilla/mux"
 	. "github.com/smartystreets/goconvey/convey"
 	"net/http/httptest"
-	"github.com/gorilla/mux"
-	"encoding/json"
-	"github.com/ONSdigital/dp-filter-api/filters"
 	"strings"
-	"github.com/ONSdigital/dp-filter-api/api/datastoretest"
-	"github.com/ONSdigital/dp-filter-api/preview"
 
-	"net/http"
-	"github.com/ONSdigital/dp-filter-api/mocks"
 	"errors"
+	"github.com/ONSdigital/dp-filter-api/mocks"
 	"github.com/ONSdigital/go-ns/common"
+	"net/http"
 )
 
 const (

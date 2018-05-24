@@ -1,12 +1,12 @@
 package api
 
 import (
-	"net/http"
-	"net/http/httptest"
-	"testing"
 	"github.com/ONSdigital/dp-filter-api/mocks"
 	"github.com/gorilla/mux"
 	. "github.com/smartystreets/goconvey/convey"
+	"net/http"
+	"net/http/httptest"
+	"testing"
 )
 
 func TestSuccessfulAddFilterBlueprintDimensionOption(t *testing.T) {

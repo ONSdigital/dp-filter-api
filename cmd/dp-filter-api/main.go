@@ -14,6 +14,7 @@ import (
 	"github.com/ONSdigital/dp-filter-api/mongo"
 	"github.com/ONSdigital/dp-filter-api/preview"
 	"github.com/ONSdigital/dp-filter/observation"
+	"github.com/ONSdigital/go-ns/audit"
 	"github.com/ONSdigital/go-ns/healthcheck"
 	"github.com/ONSdigital/go-ns/kafka"
 	"github.com/ONSdigital/go-ns/log"
@@ -21,7 +22,6 @@ import (
 	neo4jhealth "github.com/ONSdigital/go-ns/neo4j"
 	"github.com/ONSdigital/go-ns/rchttp"
 	bolt "github.com/ONSdigital/golang-neo4j-bolt-driver"
-	"github.com/ONSdigital/go-ns/audit"
 )
 
 func main() {

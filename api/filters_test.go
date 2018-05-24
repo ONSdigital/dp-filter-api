@@ -1,18 +1,18 @@
 package api
 
 import (
+	"context"
+	"errors"
+	"github.com/ONSdigital/dp-filter-api/mocks"
+	"github.com/ONSdigital/go-ns/audit"
+	"github.com/ONSdigital/go-ns/common"
+	"github.com/gorilla/mux"
+	. "github.com/smartystreets/goconvey/convey"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
-	"github.com/ONSdigital/dp-filter-api/mocks"
-	"github.com/gorilla/mux"
-	. "github.com/smartystreets/goconvey/convey"
 	"time"
-	"context"
-	"github.com/ONSdigital/go-ns/common"
-	"github.com/ONSdigital/go-ns/audit"
-	"errors"
 )
 
 var (

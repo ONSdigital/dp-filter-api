@@ -2,10 +2,10 @@ package api
 
 import (
 	"encoding/json"
-	"net/http"
 	"github.com/ONSdigital/dp-filter-api/models"
 	"github.com/ONSdigital/go-ns/log"
 	"github.com/gorilla/mux"
+	"net/http"
 
 	"fmt"
 	"github.com/ONSdigital/dp-filter-api/filters"

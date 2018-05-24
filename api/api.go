@@ -5,13 +5,13 @@ import (
 
 	"github.com/ONSdigital/dp-filter-api/models"
 	"github.com/ONSdigital/dp-filter-api/preview"
+	"github.com/ONSdigital/go-ns/audit"
 	"github.com/ONSdigital/go-ns/healthcheck"
 	"github.com/ONSdigital/go-ns/identity"
 	"github.com/ONSdigital/go-ns/log"
 	"github.com/ONSdigital/go-ns/server"
 	"github.com/gorilla/mux"
 	"github.com/justinas/alice"
-	"github.com/ONSdigital/go-ns/audit"
 )
 
 var httpServer *server.Server
@@ -96,14 +96,14 @@ func routes(host string,
 	auditor audit.AuditorService) *FilterAPI {
 
 	api := FilterAPI{host: host,
-		dataStore: dataStore,
-		router: router,
-		outputQueue: outputQueue,
-		datasetAPI: datasetAPI,
-		preview: preview,
-		downloadServiceURL: downloadServiceURL,
+		dataStore:            dataStore,
+		router:               router,
+		outputQueue:          outputQueue,
+		datasetAPI:           datasetAPI,
+		preview:              preview,
+		downloadServiceURL:   downloadServiceURL,
 		downloadServiceToken: downloadServiceToken,
-		auditor: auditor,
+		auditor:              auditor,
 	}
 
 	api.router.HandleFunc("/filters", api.postFilterBlueprintHandler).Methods("POST")

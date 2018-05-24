@@ -14,9 +14,9 @@ import (
 
 	"strconv"
 
+	"github.com/ONSdigital/dp-filter-api/filters"
 	identity "github.com/ONSdigital/go-ns/common"
 	"github.com/satori/go.uuid"
-	"github.com/ONSdigital/dp-filter-api/filters"
 )
 
 var (

@@ -4,18 +4,18 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"net/http"
 	"github.com/ONSdigital/dp-filter-api/models"
 	"github.com/ONSdigital/go-ns/log"
 	"github.com/gorilla/mux"
+	"net/http"
 
 	"fmt"
 
 	"strconv"
 
-	"github.com/satori/go.uuid"
-	"github.com/ONSdigital/go-ns/common"
 	"github.com/ONSdigital/dp-filter-api/filters"
+	"github.com/ONSdigital/go-ns/common"
+	"github.com/satori/go.uuid"
 	"regexp"
 )
 
