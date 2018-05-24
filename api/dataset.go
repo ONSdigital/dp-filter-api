@@ -14,12 +14,12 @@ import (
 
 	"strconv"
 
+	"github.com/ONSdigital/dp-filter-api/filters"
 	"github.com/ONSdigital/dp-filter-api/models"
 	"github.com/ONSdigital/go-ns/clients/dataset"
+	"github.com/ONSdigital/go-ns/common"
 	"github.com/ONSdigital/go-ns/log"
 	"github.com/ONSdigital/go-ns/rchttp"
-	"github.com/ONSdigital/dp-filter-api/filters"
-	"github.com/ONSdigital/go-ns/common"
 )
 
 // DatasetAPIer - An interface used to access the DatasetAPI

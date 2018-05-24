@@ -3,8 +3,8 @@ package mocks
 import (
 	"errors"
 
-	"github.com/ONSdigital/dp-filter-api/models"
 	"github.com/ONSdigital/dp-filter-api/filters"
+	"github.com/ONSdigital/dp-filter-api/models"
 )
 
 // A list of errors that can be returned by mock package

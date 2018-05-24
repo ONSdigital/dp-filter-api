@@ -3,10 +3,10 @@ package api
 import (
 	"encoding/json"
 	"errors"
-	"net/http"
 	"github.com/ONSdigital/dp-filter-api/models"
 	"github.com/ONSdigital/go-ns/log"
 	"github.com/gorilla/mux"
+	"net/http"
 
 	"strconv"
 
@@ -21,7 +21,7 @@ var (
 
 const (
 	// audit actions
-	getFilterOutputAction    = "getFilterOutput"
+	getFilterOutputAction = "getFilterOutput"
 )
 
 func (api *FilterAPI) getFilterOutput(w http.ResponseWriter, r *http.Request) {
@@ -33,7 +33,7 @@ func (api *FilterAPI) getFilterOutput(w http.ResponseWriter, r *http.Request) {
 
 	auditParams := common.Params{"filter_output_id": filterOutputID}
 	if auditErr := api.auditor.Record(r.Context(), getFilterOutputAction, actionAttempted, auditParams); auditErr != nil {
-		handleAuditingFailure(w, auditErr, logData)
+		handleAuditingFailure(r.Context(), getFilterOutputAction, w, auditErr, logData)
 		return
 	}
 
@@ -41,7 +41,7 @@ func (api *FilterAPI) getFilterOutput(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.ErrorC("unable to get filter output", err, logData)
 		if auditErr := api.auditor.Record(r.Context(), getFilterOutputAction, actionUnsuccessful, auditParams); auditErr != nil {
-			handleAuditingFailure(w, auditErr, logData)
+			handleAuditingFailure(r.Context(), getFilterOutputAction, w, auditErr, logData)
 			return
 		}
 		setErrorCode(w, err)
@@ -53,7 +53,7 @@ func (api *FilterAPI) getFilterOutput(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.ErrorC("failed to marshal filter output into bytes", err, logData)
 		if auditErr := api.auditor.Record(r.Context(), getFilterOutputAction, actionUnsuccessful, auditParams); auditErr != nil {
-			handleAuditingFailure(w, auditErr, logData)
+			handleAuditingFailure(r.Context(), getFilterOutputAction, w, auditErr, logData)
 			return
 		}
 		http.Error(w, internalError, http.StatusInternalServerError)
@@ -61,7 +61,7 @@ func (api *FilterAPI) getFilterOutput(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if auditErr := api.auditor.Record(r.Context(), getFilterOutputAction, actionSuccessful, auditParams); auditErr != nil {
-		handleAuditingFailure(w, auditErr, logData)
+		handleAuditingFailure(r.Context(), getFilterOutputAction, w, auditErr, logData)
 		return
 	}
 
@@ -213,14 +213,16 @@ func (api *FilterAPI) getOutput(r *http.Request, filterID string) (*models.Filte
 	// Hide private download links if request is not authenticated
 	if r.Header.Get(common.DownloadServiceHeaderKey) != api.downloadServiceToken {
 
-		log.Info("a valid download service token has not been provided. hiding private links", logData)
+		log.Info("a valid download service token has not been provided. hiding links", logData)
 
 		if output.Downloads != nil {
 			if output.Downloads.CSV != nil {
 				output.Downloads.CSV.Private = ""
+				output.Downloads.CSV.Public = ""
 			}
 			if output.Downloads.XLS != nil {
 				output.Downloads.XLS.Private = ""
+				output.Downloads.XLS.Public = ""
 			}
 		}
 	} else {

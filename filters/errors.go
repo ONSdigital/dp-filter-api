@@ -2,7 +2,6 @@ package filters
 
 import "errors"
 
-
 var (
 	ErrFilterBlueprintNotFound  = errors.New("filter blueprint not found")
 	ErrDimensionNotFound        = errors.New("dimension not found")
@@ -10,9 +9,9 @@ var (
 	ErrVersionNotFound          = errors.New("version not found")
 	ErrDimensionOptionsNotFound = errors.New("dimension options not found")
 	ErrFilterOutputNotFound     = errors.New("filter output not found")
-	ErrBadRequest   = errors.New("invalid request body")
-	ErrForbidden    = errors.New("forbidden")
-	ErrUnauthorised = errors.New("unauthorised")
+	ErrBadRequest               = errors.New("invalid request body")
+	ErrForbidden                = errors.New("forbidden")
+	ErrUnauthorised             = errors.New("unauthorised")
 )
 
 func NewBadRequestErr(text string) error {

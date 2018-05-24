@@ -3,19 +3,20 @@ package api
 import (
 	"context"
 	"encoding/json"
-	"errors"
-	"net/http"
 	"github.com/ONSdigital/dp-filter-api/models"
 	"github.com/ONSdigital/go-ns/log"
 	"github.com/gorilla/mux"
+	"github.com/pkg/errors"
+	"net/http"
 
 	"fmt"
 
 	"strconv"
 
-	"github.com/satori/go.uuid"
-	"github.com/ONSdigital/go-ns/common"
 	"github.com/ONSdigital/dp-filter-api/filters"
+	"github.com/ONSdigital/go-ns/common"
+	"github.com/ONSdigital/go-ns/handlers/requestID"
+	"github.com/satori/go.uuid"
 	"regexp"
 	"time"
 )
@@ -55,7 +56,7 @@ func (api *FilterAPI) postFilterBlueprintHandler(w http.ResponseWriter, r *http.
 	log.Info("create filter blueprint", logData)
 
 	if auditErr := api.auditor.Record(r.Context(), createFilterBlueprintAction, actionAttempted, nil); auditErr != nil {
-		handleAuditingFailure(w, auditErr, logData)
+		handleAuditingFailure(r.Context(), createFilterBlueprintAction, w, auditErr, logData)
 		return
 	}
 
@@ -63,7 +64,7 @@ func (api *FilterAPI) postFilterBlueprintHandler(w http.ResponseWriter, r *http.
 	if err != nil {
 		log.ErrorC("unable to unmarshal request body", err, logData)
 		if auditErr := api.auditor.Record(r.Context(), createFilterBlueprintAction, actionUnsuccessful, nil); auditErr != nil {
-			handleAuditingFailure(w, auditErr, logData)
+			handleAuditingFailure(r.Context(), createFilterBlueprintAction, w, auditErr, logData)
 			return
 		}
 		http.Error(w, badRequest, http.StatusBadRequest)
@@ -74,7 +75,7 @@ func (api *FilterAPI) postFilterBlueprintHandler(w http.ResponseWriter, r *http.
 	if err != nil {
 		log.ErrorC("failed to create new filter", err, logData)
 		if auditErr := api.auditor.Record(r.Context(), createFilterBlueprintAction, actionUnsuccessful, nil); auditErr != nil {
-			handleAuditingFailure(w, auditErr, logData)
+			handleAuditingFailure(r.Context(), createFilterBlueprintAction, w, auditErr, logData)
 			return
 		}
 		setErrorCode(w, err)
@@ -83,7 +84,7 @@ func (api *FilterAPI) postFilterBlueprintHandler(w http.ResponseWriter, r *http.
 
 	log.Info("created filter blueprint", logData)
 	if auditErr := api.auditor.Record(r.Context(), createFilterBlueprintAction, actionSuccessful, nil); auditErr != nil {
-		logAuditFailure(auditErr, logData)
+		logAuditFailure(r.Context(), createFilterBlueprintAction, auditErr, logData)
 	}
 
 	bytes, err := json.Marshal(newFilter)
@@ -192,7 +193,7 @@ func (api *FilterAPI) getFilterBlueprintHandler(w http.ResponseWriter, r *http.R
 
 	auditParams := common.Params{"filter_blueprint_id": filterID}
 	if auditErr := api.auditor.Record(r.Context(), getFilterBlueprintAction, actionAttempted, auditParams); auditErr != nil {
-		handleAuditingFailure(w, auditErr, logData)
+		handleAuditingFailure(r.Context(), getFilterBlueprintAction, w, auditErr, logData)
 		return
 	}
 
@@ -200,7 +201,7 @@ func (api *FilterAPI) getFilterBlueprintHandler(w http.ResponseWriter, r *http.R
 	if err != nil {
 		log.ErrorC("unable to get filter blueprint", err, logData)
 		if auditErr := api.auditor.Record(r.Context(), getFilterBlueprintAction, actionUnsuccessful, auditParams); auditErr != nil {
-			handleAuditingFailure(w, auditErr, logData)
+			handleAuditingFailure(r.Context(), getFilterBlueprintAction, w, auditErr, logData)
 			return
 		}
 
@@ -215,7 +216,7 @@ func (api *FilterAPI) getFilterBlueprintHandler(w http.ResponseWriter, r *http.R
 	if err != nil {
 		log.ErrorC("failed to marshal filter blueprint into bytes", err, logData)
 		if auditErr := api.auditor.Record(r.Context(), getFilterBlueprintAction, actionUnsuccessful, auditParams); auditErr != nil {
-			handleAuditingFailure(w, auditErr, logData)
+			handleAuditingFailure(r.Context(), getFilterBlueprintAction, w, auditErr, logData)
 			return
 		}
 		http.Error(w, internalError, http.StatusInternalServerError)
@@ -223,7 +224,7 @@ func (api *FilterAPI) getFilterBlueprintHandler(w http.ResponseWriter, r *http.R
 	}
 
 	if auditErr := api.auditor.Record(r.Context(), getFilterBlueprintAction, actionSuccessful, auditParams); auditErr != nil {
-		handleAuditingFailure(w, auditErr, logData)
+		handleAuditingFailure(r.Context(), getFilterBlueprintAction, w, auditErr, logData)
 		return
 	}
 
@@ -247,7 +248,7 @@ func (api *FilterAPI) putFilterBlueprintHandler(w http.ResponseWriter, r *http.R
 
 	auditParams := common.Params{"filter_blueprint_id": filterID}
 	if auditErr := api.auditor.Record(r.Context(), updateFilterBlueprintAction, actionAttempted, auditParams); auditErr != nil {
-		handleAuditingFailure(w, auditErr, logData)
+		handleAuditingFailure(r.Context(), updateFilterBlueprintAction, w, auditErr, logData)
 		return
 	}
 
@@ -258,7 +259,7 @@ func (api *FilterAPI) putFilterBlueprintHandler(w http.ResponseWriter, r *http.R
 		if submitted != filterSubmitted || err != models.ErrorNoData {
 			log.ErrorC("unable to unmarshal request body", err, logData)
 			if auditErr := api.auditor.Record(r.Context(), updateFilterBlueprintAction, actionUnsuccessful, auditParams); auditErr != nil {
-				handleAuditingFailure(w, auditErr, logData)
+				handleAuditingFailure(r.Context(), updateFilterBlueprintAction, w, auditErr, logData)
 				return
 			}
 			http.Error(w, badRequest, http.StatusBadRequest)
@@ -271,7 +272,7 @@ func (api *FilterAPI) putFilterBlueprintHandler(w http.ResponseWriter, r *http.R
 	if err != nil {
 		log.ErrorC("failed to update filter blueprint", err, logData)
 		if auditErr := api.auditor.Record(r.Context(), updateFilterBlueprintAction, actionUnsuccessful, auditParams); auditErr != nil {
-			handleAuditingFailure(w, auditErr, logData)
+			handleAuditingFailure(r.Context(), updateFilterBlueprintAction, w, auditErr, logData)
 			return
 		}
 		setErrorCode(w, err)
@@ -280,7 +281,7 @@ func (api *FilterAPI) putFilterBlueprintHandler(w http.ResponseWriter, r *http.R
 
 	log.Info("filter blueprint updated", logData)
 	if auditErr := api.auditor.Record(r.Context(), updateFilterBlueprintAction, actionSuccessful, auditParams); auditErr != nil {
-		logAuditFailure(auditErr, logData)
+		logAuditFailure(r.Context(), updateFilterBlueprintAction, auditErr, logData)
 	}
 
 	bytes, err := json.Marshal(newFilter)
@@ -584,11 +585,28 @@ func setErrorCode(w http.ResponseWriter, err error, typ ...string) {
 	}
 }
 
-func handleAuditingFailure(w http.ResponseWriter, err error, logData log.Data) {
-	logAuditFailure(err, logData)
+func handleAuditingFailure(ctx context.Context, auditAction string, w http.ResponseWriter, err error, logData log.Data) {
+	logAuditFailure(ctx, auditAction, err, logData)
 	http.Error(w, "internal server error", http.StatusInternalServerError)
 }
 
-func logAuditFailure(err error, logData log.Data) {
-	log.ErrorC("error while attempting to record audit event", err, logData)
+func logAuditFailure(ctx context.Context, auditedAction string, err error, logData log.Data) {
+
+	if logData == nil {
+		logData = log.Data{}
+	}
+
+	logData["auditAction"] = auditedAction
+	logData["auditResult"] = actionUnsuccessful
+
+	if user := common.User(ctx); user != "" {
+		logData["user"] = user
+	}
+
+	if caller := common.Caller(ctx); caller != "" {
+		logData["caller"] = caller
+	}
+
+	reqID := requestID.Get(ctx)
+	log.ErrorC(reqID, errors.WithMessage(err, "error while attempting to record audit event"), logData)
 }

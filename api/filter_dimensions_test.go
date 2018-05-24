@@ -1,13 +1,13 @@
 package api
 
 import (
+	"github.com/ONSdigital/dp-filter-api/mocks"
+	"github.com/gorilla/mux"
+	. "github.com/smartystreets/goconvey/convey"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
-	"github.com/ONSdigital/dp-filter-api/mocks"
-	"github.com/gorilla/mux"
-	. "github.com/smartystreets/goconvey/convey"
 )
 
 func TestSuccessfulGetFilterBlueprintDimensions(t *testing.T) {

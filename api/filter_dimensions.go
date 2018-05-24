@@ -1,14 +1,14 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
-	"net/http"
+	"fmt"
+	"github.com/ONSdigital/dp-filter-api/filters"
 	"github.com/ONSdigital/dp-filter-api/models"
 	"github.com/ONSdigital/go-ns/log"
 	"github.com/gorilla/mux"
-	"fmt"
-	"context"
-	"github.com/ONSdigital/dp-filter-api/filters"
+	"net/http"
 )
 
 func (api *FilterAPI) getFilterBlueprintDimensions(w http.ResponseWriter, r *http.Request) {
