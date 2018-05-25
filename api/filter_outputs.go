@@ -40,7 +40,7 @@ func (api *FilterAPI) getFilterOutputHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	hideS3Links := api.requestHasDownloadServiceToken(r)
+	hideS3Links := r.Header.Get(common.DownloadServiceHeaderKey) != api.downloadServiceToken
 	filterOutput, err := api.getOutput(r.Context(), filterOutputID, hideS3Links)
 	if err != nil {
 		log.ErrorC("unable to get filter output", err, logData)
@@ -158,6 +158,10 @@ func (api *FilterAPI) getFilterOutputPreviewHandler(w http.ResponseWriter, r *ht
 		if err != nil {
 			logData["requested_limit"] = requestedLimit
 			log.ErrorC("requested limit is not a number", err, logData)
+			if auditErr := api.auditor.Record(r.Context(), getFilterPreviewAction, actionUnsuccessful, auditParams); auditErr != nil {
+				handleAuditingFailure(r.Context(), getFilterPreviewAction, w, auditErr, logData)
+				return
+			}
 			http.Error(w, errRequestLimitNotNumber.Error(), http.StatusBadRequest)
 			return
 		}
@@ -166,6 +170,10 @@ func (api *FilterAPI) getFilterOutputPreviewHandler(w http.ResponseWriter, r *ht
 	preview, err :=  api.getFilterOutputPreview(r.Context(), filterOutputID, limit)
 	if err != nil {
 		log.ErrorC("failed to get filter output preview", err, logData)
+		if auditErr := api.auditor.Record(r.Context(), getFilterPreviewAction, actionUnsuccessful, auditParams); auditErr != nil {
+			handleAuditingFailure(r.Context(), getFilterPreviewAction, w, auditErr, logData)
+			return
+		}
 		setErrorCode(w, err)
 		return
 	}
@@ -173,7 +181,16 @@ func (api *FilterAPI) getFilterOutputPreviewHandler(w http.ResponseWriter, r *ht
 	bytes, err := json.Marshal(preview)
 	if err != nil {
 		log.ErrorC("failed to marshal preview of filter ouput into bytes", err, logData)
+		if auditErr := api.auditor.Record(r.Context(), getFilterPreviewAction, actionUnsuccessful, auditParams); auditErr != nil {
+			handleAuditingFailure(r.Context(), getFilterPreviewAction, w, auditErr, logData)
+			return
+		}
 		http.Error(w, internalError, http.StatusInternalServerError)
+		return
+	}
+
+	if auditErr := api.auditor.Record(r.Context(), getFilterPreviewAction, actionSuccessful, auditParams); auditErr != nil {
+		handleAuditingFailure(r.Context(), getFilterPreviewAction, w, auditErr, logData)
 		return
 	}
 
@@ -218,10 +235,6 @@ func (api *FilterAPI) getFilterOutputPreview(ctx context.Context, filterOutputID
 	}
 
 	return filterOutputPreview, nil
-}
-
-func (api *FilterAPI) requestHasDownloadServiceToken(r *http.Request) bool {
-	return r.Header.Get(common.DownloadServiceHeaderKey) != api.downloadServiceToken
 }
 
 func (api *FilterAPI) getOutput(ctx context.Context, filterID string, hideS3Links bool) (*models.Filter, error) {
