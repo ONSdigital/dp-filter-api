@@ -23,8 +23,9 @@ var (
 
 const (
 	// audit actions
-	getFilterOutputAction  = "getFilterOutput"
-	getFilterPreviewAction = "getFilterPreviewAction"
+	getFilterOutputAction    = "getFilterOutput"
+	updateFilterOutputAction = "updateFilterOutput"
+	getFilterPreviewAction   = "getFilterPreviewAction"
 )
 
 func (api *FilterAPI) getFilterOutputHandler(w http.ResponseWriter, r *http.Request) {
@@ -88,9 +89,19 @@ func (api *FilterAPI) updateFilterOutputHandler(w http.ResponseWriter, r *http.R
 	logData := log.Data{"filter_output_id": filterOutputID}
 	log.Info("updating filter output", logData)
 
+	auditParams := common.Params{"filter_output_id": filterOutputID}
+	if auditErr := api.auditor.Record(r.Context(), updateFilterOutputAction, actionAttempted, auditParams); auditErr != nil {
+		handleAuditingFailure(r.Context(), updateFilterOutputAction, w, auditErr, logData)
+		return
+	}
+
 	filterOutput, err := models.CreateFilter(r.Body)
 	if err != nil {
 		log.ErrorC("unable to unmarshal request body", err, logData)
+		if auditErr := api.auditor.Record(r.Context(), updateFilterOutputAction, actionUnsuccessful, auditParams); auditErr != nil {
+			handleAuditingFailure(r.Context(), updateFilterOutputAction, w, auditErr, logData)
+			return
+		}
 		http.Error(w, badRequest, http.StatusBadRequest)
 		return
 	}
@@ -99,14 +110,22 @@ func (api *FilterAPI) updateFilterOutputHandler(w http.ResponseWriter, r *http.R
 	err = api.updateFilterOutput(r.Context(), filterOutputID, filterOutput)
 	if err != nil {
 		log.ErrorC("failed to update filter output", err, logData)
+		if auditErr := api.auditor.Record(r.Context(), updateFilterOutputAction, actionUnsuccessful, auditParams); auditErr != nil {
+			handleAuditingFailure(r.Context(), updateFilterOutputAction, w, auditErr, logData)
+			return
+		}
 		setErrorCode(w, err)
+		return
+	}
+
+	log.Info("updated filter output", logData)
+	if auditErr := api.auditor.Record(r.Context(), updateFilterOutputAction, actionSuccessful, auditParams); auditErr != nil {
+		logAuditFailure(r.Context(), updateFilterOutputAction, auditErr, logData)
 		return
 	}
 
 	setJSONContentType(w)
 	w.WriteHeader(http.StatusOK)
-
-	log.Info("update filter output", logData)
 }
 
 func (api *FilterAPI) updateFilterOutput(ctx context.Context, filterOutputID string, filterOutput *models.Filter) error {
@@ -142,7 +161,7 @@ func (api *FilterAPI) updateFilterOutput(ctx context.Context, filterOutputID str
 	filterOutputUpdate := buildDownloadsObject(previousFilterOutput, filterOutput, api.downloadServiceURL)
 
 	if err = api.dataStore.UpdateFilterOutput(filterOutputUpdate); err != nil {
-		log.ErrorC("unable to update filter blueprint", err, logData)
+		log.ErrorC("unable to update filter output", err, logData)
 		return err
 	}
 

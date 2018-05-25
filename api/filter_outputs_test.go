@@ -534,180 +534,282 @@ func TestFailedToGetFilterOutput_AuditFailure(t *testing.T) {
 func TestSuccessfulUpdateFilterOutput(t *testing.T) {
 	t.Parallel()
 
+	expectedAuditParams := common.Params{"filter_output_id": "21312"}
+
 	Convey("Successfully update filter output when public csv download link is missing", t, func() {
+		mockAuditor := getMockAuditor()
 		reader := strings.NewReader(`{"downloads":{"csv":{"size":"12mb", "public":"s3-public-csv-location"}}}`)
 		r := createAuthenticatedRequest("PUT", "http://localhost:22100/filter-outputs/21312", reader)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{MissingPublicLinks: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, getMockAuditor())
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{MissingPublicLinks: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, mockAuditor)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusOK)
+
+		Convey("Then the auditor is called for the attempt and outcome", func() {
+			assertAuditCalled(mockAuditor, updateFilterOutputAction, actionSuccessful, expectedAuditParams)
+		})
 	})
 
 	Convey("Successfully update filter output when public xls download link is missing", t, func() {
+		mockAuditor := getMockAuditor()
 		reader := strings.NewReader(`{"downloads":{"xls":{"size":"12mb", "public":"s3-public-xls-location"}}}`)
 		r := createAuthenticatedRequest("PUT", "http://localhost:22100/filter-outputs/21312", reader)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{MissingPublicLinks: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, getMockAuditor())
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{MissingPublicLinks: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, mockAuditor)
 
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusOK)
+
+		Convey("Then the auditor is called for the attempt and outcome", func() {
+			assertAuditCalled(mockAuditor, updateFilterOutputAction, actionSuccessful, expectedAuditParams)
+		})
 	})
 }
 
 func TestSuccessfulUpdateFilterOutputUnpublished(t *testing.T) {
 	t.Parallel()
 
+	expectedAuditParams := common.Params{"filter_output_id": "21312"}
+
 	Convey("Successfully update filter output with private csv download link when version is unpublished", t, func() {
+		mockAuditor := getMockAuditor()
 		reader := strings.NewReader(`{"downloads":{"csv":{"size":"12mb", "private": "s3-private-csv-location"}}}`)
 		r := createAuthenticatedRequest("PUT", "http://localhost:22100/filter-outputs/21312", reader)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, getMockAuditor())
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, mockAuditor)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusOK)
+
+		Convey("Then the auditor is called for the attempt and outcome", func() {
+			assertAuditCalled(mockAuditor, updateFilterOutputAction, actionSuccessful, expectedAuditParams)
+		})
 	})
 
 	Convey("Successfully update filter output with private xls download link when version is unpublished", t, func() {
+		mockAuditor := getMockAuditor()
 		reader := strings.NewReader(`{"downloads":{"xls":{"size":"12mb", "private":"s3-private-xls-location"}}}`)
 		r := createAuthenticatedRequest("PUT", "http://localhost:22100/filter-outputs/21312", reader)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, getMockAuditor())
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, mockAuditor)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusOK)
+
+		Convey("Then the auditor is called for the attempt and outcome", func() {
+			assertAuditCalled(mockAuditor, updateFilterOutputAction, actionSuccessful, expectedAuditParams)
+		})
 	})
 }
 
 func TestFailedToUpdateFilterOutput(t *testing.T) {
 	t.Parallel()
+
+	expectedAuditParams := common.Params{"filter_output_id": "21312"}
+
 	Convey("When no data store is available, an internal error is returned", t, func() {
+		mockAuditor := getMockAuditor()
 		reader := strings.NewReader(`{"downloads":{"csv":{"size":"12mb", "public":"s3-public-csv-location"}}}`)
 		r := createAuthenticatedRequest("PUT", "http://localhost:22100/filter-outputs/21312", reader)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{InternalError: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, getMockAuditor())
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{InternalError: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, mockAuditor)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusInternalServerError)
 
 		response := w.Body.String()
 		So(response, ShouldResemble, internalErrResponse)
-	})
 
-	Convey("When an invalid json message is sent, a bad request is returned", t, func() {
-		reader := strings.NewReader("{")
-		r := createAuthenticatedRequest("PUT", "http://localhost:22100/filter-outputs/21312", reader)
-
-		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, getMockAuditor())
-		api.router.ServeHTTP(w, r)
-		So(w.Code, ShouldEqual, http.StatusBadRequest)
-
-		response := w.Body.String()
-		So(response, ShouldResemble, badRequestResponse)
+		Convey("Then the auditor is called for the attempt and outcome", func() {
+			assertAuditCalled(mockAuditor, updateFilterOutputAction, actionUnsuccessful, expectedAuditParams)
+		})
 	})
 
 	Convey("When an update to a filter output resource that does not exist, a not found is returned", t, func() {
+		mockAuditor := getMockAuditor()
 		reader := strings.NewReader(`{"downloads":{"csv":{"size":"12mb", "public":"s3-public-csv-location"}}}`)
 		r := createAuthenticatedRequest("PUT", "http://localhost:22100/filter-outputs/21312", reader)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{NotFound: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, getMockAuditor())
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{NotFound: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, mockAuditor)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
+
+		Convey("Then the auditor is called for the attempt and outcome", func() {
+			assertAuditCalled(mockAuditor, updateFilterOutputAction, actionUnsuccessful, expectedAuditParams)
+		})
 	})
 
-	Convey("When a empty json message is sent, a bad request is returned", t, func() {
-		reader := strings.NewReader("{}")
-		r := createAuthenticatedRequest("PUT", "http://localhost:22100/filter-outputs/21312", reader)
-
-		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, getMockAuditor())
-		api.router.ServeHTTP(w, r)
-		So(w.Code, ShouldEqual, http.StatusBadRequest)
-
-		response := w.Body.String()
-		So(response, ShouldResemble, badRequestResponse)
-	})
-
-	Convey("When a json message contains fields that are not allowed to be updated, a forbidden status is returned", t, func() {
-		reader := strings.NewReader(`{"dataset":{"version":1, "edition":"1", "id":"1"}}`)
-		r := createAuthenticatedRequest("PUT", "http://localhost:22100/filter-outputs/21312", reader)
-
-		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, getMockAuditor())
-		api.router.ServeHTTP(w, r)
-		So(w.Code, ShouldEqual, http.StatusForbidden)
-
-		response := w.Body.String()
-		So(response, ShouldResemble, "Forbidden from updating the following fields: [dataset.id dataset.edition dataset.version]\n")
-	})
-
-	Convey("When a json message is sent to change a filter output with the wrong authorisation header, an unauthorised status is returned", t, func() {
-		reader := strings.NewReader(`{"downloads":{"csv":{"size":"12mb", "public":"s3-public-csv-location"}}}`)
-		r, err := http.NewRequest("PUT", "http://localhost:22100/filter-outputs/21312", reader)
-		So(err, ShouldBeNil)
-
-		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, getMockAuditor())
-		api.router.ServeHTTP(w, r)
-		So(w.Code, ShouldEqual, http.StatusUnauthorized)
-
-		response := w.Body.String()
-		So(response, ShouldResemble, filters.ErrUnauthorised.Error()+"\n")
-	})
-
-	Convey("When a json message contains downloads object but current filter output has public csv download links already and version is published, than a forbidden status is returned", t, func() {
-		reader := strings.NewReader(`{"downloads":{"csv":{"size":"12mb", "public":"s3-public-csv-location"}}}`)
-		r := createAuthenticatedRequest("PUT", "http://localhost:22100/filter-outputs/21312", reader)
-
-		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, getMockAuditor())
-		api.router.ServeHTTP(w, r)
-		So(w.Code, ShouldEqual, http.StatusForbidden)
-
-		response := w.Body.String()
-		So(response, ShouldResemble, "Forbidden from updating the following fields: [downloads.csv]\n")
-	})
-
-	Convey("When a json message contains downloads object but current filter ouput has public xls download links already and version is published, than a forbidden status is returned", t, func() {
-		reader := strings.NewReader(`{"downloads":{"xls":{"href":"s3-xls-location","size":"12mb", "public":"s3-public-xls-location"}}}`)
-		r := createAuthenticatedRequest("PUT", "http://localhost:22100/filter-outputs/21312", reader)
-
-		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, getMockAuditor())
-		api.router.ServeHTTP(w, r)
-		So(w.Code, ShouldEqual, http.StatusForbidden)
-
-		response := w.Body.String()
-		So(response, ShouldResemble, "Forbidden from updating the following fields: [downloads.xls]\n")
-	})
-
-	Convey("When a json message contains private csv link but current filter ouput has private csv download links already and version is published, than a forbidden status is returned", t, func() {
+	Convey("When a json message contains private csv link but current filter output has private csv download links already and version is published, than a forbidden status is returned", t, func() {
+		mockAuditor := getMockAuditor()
 		reader := strings.NewReader(`{"downloads":{"csv":{"size":"12mb", "private":"s3-private-csv-location"}}}`)
 		r := createAuthenticatedRequest("PUT", "http://localhost:22100/filter-outputs/21312", reader)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{MissingPublicLinks: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, getMockAuditor())
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{MissingPublicLinks: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, mockAuditor)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusForbidden)
 
 		response := w.Body.String()
 		So(response, ShouldResemble, "Forbidden from updating the following fields: [downloads.csv.private]\n")
+
+		Convey("Then the auditor is called for the attempt and outcome", func() {
+			assertAuditCalled(mockAuditor, updateFilterOutputAction, actionUnsuccessful, expectedAuditParams)
+		})
 	})
 
-	Convey("When a json message contains private xls link but current filter ouput has private xls download links already and version is published, than a forbidden status is returned", t, func() {
+	Convey("When a json message contains private xls link but current filter output has private xls download links already and version is published, than a forbidden status is returned", t, func() {
+		mockAuditor := getMockAuditor()
 		reader := strings.NewReader(`{"downloads":{"xls":{"size":"12mb", "private":"s3-private-xls-location"}}}`)
 		r := createAuthenticatedRequest("PUT", "http://localhost:22100/filter-outputs/21312", reader)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{MissingPublicLinks: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, getMockAuditor())
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{MissingPublicLinks: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, mockAuditor)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusForbidden)
 
 		response := w.Body.String()
 		So(response, ShouldResemble, "Forbidden from updating the following fields: [downloads.xls.private]\n")
+
+		Convey("Then the auditor is called for the attempt and outcome", func() {
+			assertAuditCalled(mockAuditor, updateFilterOutputAction, actionUnsuccessful, expectedAuditParams)
+		})
+	})
+}
+
+func TestFailedToUpdateFilterOutput_BadRequest(t *testing.T) {
+	t.Parallel()
+
+	expectedAuditParams := common.Params{"filter_output_id": "21312"}
+
+	Convey("Given an existing filter output with download links", t, func() {
+
+		mockAuditor := getMockAuditor()
+		w := httptest.NewRecorder()
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, mockAuditor)
+
+		Convey("When a PUT request is made to the filter output endpoint with invalid JSON", func() {
+			reader := strings.NewReader("{")
+			r := createAuthenticatedRequest("PUT", "http://localhost:22100/filter-outputs/21312", reader)
+
+			api.router.ServeHTTP(w, r)
+
+			Convey("Then the response is 400 bad request", func() {
+				So(w.Code, ShouldEqual, http.StatusBadRequest)
+			})
+
+			Convey("Then the response contains the expected content", func() {
+				response := w.Body.String()
+				So(response, ShouldResemble, badRequestResponse)
+			})
+
+			Convey("Then the auditor is called for the attempt and outcome", func() {
+				assertAuditCalled(mockAuditor, updateFilterOutputAction, actionUnsuccessful, expectedAuditParams)
+			})
+		})
+
+		Convey("When a PUT request is made to the filter output endpoint with empty JSON", func() {
+			reader := strings.NewReader("{}")
+			r := createAuthenticatedRequest("PUT", "http://localhost:22100/filter-outputs/21312", reader)
+
+			api.router.ServeHTTP(w, r)
+
+			Convey("Then the response is 400 bad request", func() {
+				So(w.Code, ShouldEqual, http.StatusBadRequest)
+			})
+
+			Convey("Then the response contains the expected content", func() {
+				response := w.Body.String()
+				So(response, ShouldResemble, badRequestResponse)
+			})
+
+			Convey("Then the auditor is called for the attempt and outcome", func() {
+				assertAuditCalled(mockAuditor, updateFilterOutputAction, actionUnsuccessful, expectedAuditParams)
+			})
+		})
+
+		Convey("When a PUT request is made to the filter output endpoint with fields that are not allowed to be updated", func() {
+			reader := strings.NewReader(`{"dataset":{"version":1, "edition":"1", "id":"1"}}`)
+			r := createAuthenticatedRequest("PUT", "http://localhost:22100/filter-outputs/21312", reader)
+
+			api.router.ServeHTTP(w, r)
+
+			Convey("Then the response is 403 forbidden", func() {
+				So(w.Code, ShouldEqual, http.StatusForbidden)
+			})
+
+			Convey("Then the response contains the expected content", func() {
+				response := w.Body.String()
+				So(response, ShouldResemble, "Forbidden from updating the following fields: [dataset.id dataset.edition dataset.version]\n")
+			})
+
+			Convey("Then the auditor is called for the attempt and outcome", func() {
+				assertAuditCalled(mockAuditor, updateFilterOutputAction, actionUnsuccessful, expectedAuditParams)
+			})
+		})
+
+		Convey("When a PUT request is made to the filter output endpoint with the wrong authorisation header", func() {
+			reader := strings.NewReader(`{"downloads":{"csv":{"size":"12mb", "public":"s3-public-csv-location"}}}`)
+			r, err := http.NewRequest("PUT", "http://localhost:22100/filter-outputs/21312", reader)
+			So(err, ShouldBeNil)
+
+			api.router.ServeHTTP(w, r)
+
+			Convey("Then the response is 401 unauthorised", func() {
+				So(w.Code, ShouldEqual, http.StatusUnauthorized)
+			})
+
+			Convey("Then the response contains the expected content", func() {
+				response := w.Body.String()
+				So(response, ShouldResemble, filters.ErrUnauthorised.Error()+"\n")
+			})
+
+			Convey("Then the auditor is called for the attempt and outcome", func() {
+				assertAuditCalled(mockAuditor, updateFilterOutputAction, actionUnsuccessful, expectedAuditParams)
+			})
+		})
+
+		Convey("When a PUT request is made to the filter output endpoint with contains a CSV download", func() {
+			reader := strings.NewReader(`{"downloads":{"csv":{"size":"12mb", "public":"s3-public-csv-location"}}}`)
+			r := createAuthenticatedRequest("PUT", "http://localhost:22100/filter-outputs/21312", reader)
+
+			api.router.ServeHTTP(w, r)
+
+			Convey("Then the response is 403 forbidden", func() {
+				So(w.Code, ShouldEqual, http.StatusForbidden)
+			})
+
+			Convey("Then the response contains the expected content", func() {
+				response := w.Body.String()
+				So(response, ShouldResemble, "Forbidden from updating the following fields: [downloads.csv]\n")
+			})
+
+			Convey("Then the auditor is called for the attempt and outcome", func() {
+				assertAuditCalled(mockAuditor, updateFilterOutputAction, actionUnsuccessful, expectedAuditParams)
+			})
+		})
+
+		Convey("When a PUT request is made to the filter output endpoint with contains an XLS download", func() {
+			reader := strings.NewReader(`{"downloads":{"xls":{"href":"s3-xls-location","size":"12mb", "public":"s3-public-xls-location"}}}`)
+			r := createAuthenticatedRequest("PUT", "http://localhost:22100/filter-outputs/21312", reader)
+
+			api.router.ServeHTTP(w, r)
+
+			Convey("Then the response is 403 forbidden", func() {
+				So(w.Code, ShouldEqual, http.StatusForbidden)
+			})
+
+			Convey("Then the response contains the expected content", func() {
+				response := w.Body.String()
+				So(response, ShouldResemble, "Forbidden from updating the following fields: [downloads.xls]\n")
+			})
+
+			Convey("Then the auditor is called for the attempt and outcome", func() {
+				assertAuditCalled(mockAuditor, updateFilterOutputAction, actionUnsuccessful, expectedAuditParams)
+			})
+		})
 	})
 }
 
@@ -721,6 +823,87 @@ func TestUpdateFilterOutput_PrivateEndpointsNotEnabled(t *testing.T) {
 		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, false, downloadServiceURL, downloadServiceToken, getMockAuditor())
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusMethodNotAllowed)
+	})
+}
+
+func TestFailedToUpdateFilterOutput_AuditFailure(t *testing.T) {
+	t.Parallel()
+
+	expectedAuditParams := common.Params{"filter_output_id": "21312"}
+
+	Convey("Given an existing filter output", t, func() {
+
+		mockAuditor := getMockAuditor()
+		w := httptest.NewRecorder()
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{MissingPublicLinks: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, mockAuditor)
+
+		Convey("When a PUT request is made to the filter output endpoint and the attempt audit fails", func() {
+
+			reader := strings.NewReader(`{"downloads":{"csv":{"size":"12mb", "public":"s3-public-csv-location"}}}`)
+			r := createAuthenticatedRequest("PUT", "http://localhost:22100/filter-outputs/21312", reader)
+
+			mockAuditor.RecordFunc = func(ctx context.Context, action string, result string, params common.Params) error {
+				return errAudit
+			}
+
+			api.router.ServeHTTP(w, r)
+
+			Convey("Then the auditor is called for the action being attempted", func() {
+				recCalls := mockAuditor.RecordCalls()
+				So(len(recCalls), ShouldEqual, 1)
+				verifyAuditRecordCalls(recCalls[0], updateFilterOutputAction, actionAttempted, expectedAuditParams)
+			})
+
+			Convey("Then the response is 500 internal server error", func() {
+				So(w.Code, ShouldEqual, http.StatusInternalServerError)
+			})
+		})
+
+		Convey("When a PUT request is made to the filter output endpoint and the outcome audit fails", func() {
+
+			reader := strings.NewReader(`{"downloads":{"csv":{"size":"12mb", "public":"s3-public-csv-location"}}}`)
+			r := createAuthenticatedRequest("PUT", "http://localhost:22100/filter-outputs/21312", reader)
+
+			mockAuditor.RecordFunc = func(ctx context.Context, action string, result string, params common.Params) error {
+				if action == updateFilterOutputAction && result == actionSuccessful {
+					return errAudit
+				}
+				return nil
+			}
+
+			api.router.ServeHTTP(w, r)
+
+			Convey("Then the auditor is called for the attempt and outcome", func() {
+				assertAuditCalled(mockAuditor, updateFilterOutputAction, actionSuccessful, expectedAuditParams)
+			})
+
+			Convey("Then the response is 200 OK", func() {
+				So(w.Code, ShouldEqual, http.StatusOK)
+			})
+		})
+
+		Convey("When a PUT request is made to the filter output endpoint with invalid json and the outcome audit fails", func() {
+
+			reader := strings.NewReader("{")
+			r := createAuthenticatedRequest("PUT", "http://localhost:22100/filter-outputs/21312", reader)
+
+			mockAuditor.RecordFunc = func(ctx context.Context, action string, result string, params common.Params) error {
+				if action == updateFilterOutputAction && result == actionUnsuccessful {
+					return errAudit
+				}
+				return nil
+			}
+
+			api.router.ServeHTTP(w, r)
+
+			Convey("Then the auditor is called for the attempt and outcome", func() {
+				assertAuditCalled(mockAuditor, updateFilterOutputAction, actionUnsuccessful, expectedAuditParams)
+			})
+
+			Convey("Then the response is 500 internal server error", func() {
+				So(w.Code, ShouldEqual, http.StatusInternalServerError)
+			})
+		})
 	})
 }
 
