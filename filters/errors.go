@@ -28,28 +28,15 @@ func (e BadRequestErr) Error() string {
 	return e.s
 }
 
-func NewInvalidDimensionErr(text string) error {
-	return &InvalidDimensionErr{text}
+func NewForbiddenErr(text string) error {
+	return ForbiddenErr{text}
 }
 
 // errorString is a trivial implementation of error.
-type InvalidDimensionErr struct {
+type ForbiddenErr struct {
 	s string
 }
 
-func (e InvalidDimensionErr) Error() string {
-	return e.s
-}
-
-func NewInvalidOptionErr(text string) error {
-	return &InvalidDimensionErr{text}
-}
-
-// errorString is a trivial implementation of error.
-type InvalidOptionErr struct {
-	s string
-}
-
-func (e InvalidOptionErr) Error() string {
+func (e ForbiddenErr) Error() string {
 	return e.s
 }

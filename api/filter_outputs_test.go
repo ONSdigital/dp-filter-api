@@ -658,7 +658,7 @@ func TestFailedToUpdateFilterOutput(t *testing.T) {
 		So(response, ShouldResemble, filters.ErrUnauthorised.Error()+"\n")
 	})
 
-	Convey("When a json message contains downloads object but current filter ouput has public csv download links already and version is published, than a forbidden status is returned", t, func() {
+	Convey("When a json message contains downloads object but current filter output has public csv download links already and version is published, than a forbidden status is returned", t, func() {
 		reader := strings.NewReader(`{"downloads":{"csv":{"size":"12mb", "public":"s3-public-csv-location"}}}`)
 		r := createAuthenticatedRequest("PUT", "http://localhost:22100/filter-outputs/21312", reader)
 

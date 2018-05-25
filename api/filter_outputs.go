@@ -10,10 +10,10 @@ import (
 
 	"strconv"
 
-	"github.com/ONSdigital/dp-filter-api/filters"
-	"github.com/ONSdigital/go-ns/common"
-	"github.com/ONSdigital/dp-filter-api/preview"
 	"context"
+	"github.com/ONSdigital/dp-filter-api/filters"
+	"github.com/ONSdigital/dp-filter-api/preview"
+	"github.com/ONSdigital/go-ns/common"
 )
 
 var (
@@ -23,7 +23,7 @@ var (
 
 const (
 	// audit actions
-	getFilterOutputAction = "getFilterOutput"
+	getFilterOutputAction  = "getFilterOutput"
 	getFilterPreviewAction = "getFilterPreviewAction"
 )
 
@@ -81,18 +81,12 @@ func (api *FilterAPI) getFilterOutputHandler(w http.ResponseWriter, r *http.Requ
 	log.Info("got filter output", logData)
 }
 
-func (api *FilterAPI) updateFilterOutput(w http.ResponseWriter, r *http.Request) {
+func (api *FilterAPI) updateFilterOutputHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	filterOutputID := vars["filter_output_id"]
 
 	logData := log.Data{"filter_output_id": filterOutputID}
 	log.Info("updating filter output", logData)
-
-	if !common.IsCallerPresent(r.Context()) {
-		log.ErrorC("failed to update filter output", filters.ErrUnauthorised, logData)
-		setErrorCode(w, filters.ErrUnauthorised)
-		return
-	}
 
 	filterOutput, err := models.CreateFilter(r.Body)
 	if err != nil {
@@ -102,18 +96,39 @@ func (api *FilterAPI) updateFilterOutput(w http.ResponseWriter, r *http.Request)
 	}
 	logData["filter_output"] = filterOutput
 
-	// check filter output resource for current downloads and published flag
-	previousFilterOutput, err := api.dataStore.GetFilterOutput(filterOutputID)
+	err = api.updateFilterOutput(r.Context(), filterOutputID, filterOutput)
 	if err != nil {
-		log.ErrorC("unable to get current filter output", err, logData)
+		log.ErrorC("failed to update filter output", err, logData)
 		setErrorCode(w, err)
 		return
 	}
 
+	setJSONContentType(w)
+	w.WriteHeader(http.StatusOK)
+
+	log.Info("update filter output", logData)
+}
+
+func (api *FilterAPI) updateFilterOutput(ctx context.Context, filterOutputID string, filterOutput *models.Filter) error {
+
+	logData := log.Data{"filter_output_id": filterOutputID}
+	log.Info("updating filter output", logData)
+
+	if !common.IsCallerPresent(ctx) {
+		log.ErrorC("failed to update filter output", filters.ErrUnauthorised, logData)
+		return filters.ErrUnauthorised
+	}
+
+	// check filter output resource for current downloads and published flag
+	previousFilterOutput, err := api.dataStore.GetFilterOutput(filterOutputID)
+	if err != nil {
+		log.ErrorC("unable to get current filter output", err, logData)
+		return err
+	}
+
 	if err = filterOutput.ValidateFilterOutputUpdate(previousFilterOutput); err != nil {
 		log.ErrorC("filter output failed validation", err, logData)
-		http.Error(w, err.Error(), http.StatusForbidden)
-		return
+		return filters.NewForbiddenErr(err.Error())
 	}
 
 	filterOutput.FilterID = filterOutputID
@@ -128,14 +143,10 @@ func (api *FilterAPI) updateFilterOutput(w http.ResponseWriter, r *http.Request)
 
 	if err = api.dataStore.UpdateFilterOutput(filterOutputUpdate); err != nil {
 		log.ErrorC("unable to update filter blueprint", err, logData)
-		setErrorCode(w, err)
-		return
+		return err
 	}
 
-	setJSONContentType(w)
-	w.WriteHeader(http.StatusOK)
-
-	log.Info("update filter output", logData)
+	return nil
 }
 
 func (api *FilterAPI) getFilterOutputPreviewHandler(w http.ResponseWriter, r *http.Request) {
@@ -167,7 +178,7 @@ func (api *FilterAPI) getFilterOutputPreviewHandler(w http.ResponseWriter, r *ht
 		}
 	}
 
-	preview, err :=  api.getFilterOutputPreview(r.Context(), filterOutputID, limit)
+	preview, err := api.getFilterOutputPreview(r.Context(), filterOutputID, limit)
 	if err != nil {
 		log.ErrorC("failed to get filter output preview", err, logData)
 		if auditErr := api.auditor.Record(r.Context(), getFilterPreviewAction, actionUnsuccessful, auditParams); auditErr != nil {
@@ -210,8 +221,8 @@ func (api *FilterAPI) getFilterOutputPreview(ctx context.Context, filterOutputID
 
 	logData := log.Data{
 		"filter_output_id": filterOutputID,
-		"limit": limit,
-		}
+		"limit":            limit,
+	}
 	log.Info("get filter output preview", logData)
 
 	hideS3Links := true // do not require s3 links for preview

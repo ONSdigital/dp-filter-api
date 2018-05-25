@@ -581,6 +581,9 @@ func setErrorCode(w http.ResponseWriter, err error, typ ...string) {
 		case filters.BadRequestErr:
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
+		case filters.ForbiddenErr:
+			http.Error(w, err.Error(), http.StatusForbidden)
+			return
 		default:
 			http.Error(w, internalError, http.StatusInternalServerError)
 			return
