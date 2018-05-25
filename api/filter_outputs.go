@@ -12,19 +12,22 @@ import (
 
 	"github.com/ONSdigital/dp-filter-api/filters"
 	"github.com/ONSdigital/go-ns/common"
+	"github.com/ONSdigital/dp-filter-api/preview"
+	"context"
 )
 
 var (
 	errRequestLimitNotNumber = errors.New("requested limit is not a number")
-	errMissingDimensions     = errors.New("missing dimensions")
+	errMissingDimensions     = filters.NewBadRequestErr("no dimensions are present in the filter")
 )
 
 const (
 	// audit actions
 	getFilterOutputAction = "getFilterOutput"
+	getFilterPreviewAction = "getFilterPreviewAction"
 )
 
-func (api *FilterAPI) getFilterOutput(w http.ResponseWriter, r *http.Request) {
+func (api *FilterAPI) getFilterOutputHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	filterOutputID := vars["filter_output_id"]
 
@@ -37,7 +40,8 @@ func (api *FilterAPI) getFilterOutput(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	filterOutput, err := api.getOutput(r, filterOutputID)
+	hideS3Links := api.requestHasDownloadServiceToken(r)
+	filterOutput, err := api.getOutput(r.Context(), filterOutputID, hideS3Links)
 	if err != nil {
 		log.ErrorC("unable to get filter output", err, logData)
 		if auditErr := api.auditor.Record(r.Context(), getFilterOutputAction, actionUnsuccessful, auditParams); auditErr != nil {
@@ -134,17 +138,21 @@ func (api *FilterAPI) updateFilterOutput(w http.ResponseWriter, r *http.Request)
 	log.Info("update filter output", logData)
 }
 
-func (api *FilterAPI) getFilterOutputPreview(w http.ResponseWriter, r *http.Request) {
+func (api *FilterAPI) getFilterOutputPreviewHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	filterID := vars["filter_output_id"]
+	filterOutputID := vars["filter_output_id"]
 	requestedLimit := r.URL.Query().Get("limit")
 
-	logData := log.Data{"filter_output_id": filterID}
-	log.Info("get filter output preview", logData)
+	logData := log.Data{"filter_output_id": filterOutputID}
 
-	var limit = 20
+	auditParams := common.Params{"filter_output_id": filterOutputID}
+	if auditErr := api.auditor.Record(r.Context(), getFilterPreviewAction, actionAttempted, auditParams); auditErr != nil {
+		handleAuditingFailure(r.Context(), getFilterPreviewAction, w, auditErr, logData)
+		return
+	}
+
+	var limit = 20 // default if no limit is given
 	var err error
-
 	if requestedLimit != "" {
 		limit, err = strconv.Atoi(requestedLimit)
 		if err != nil {
@@ -154,31 +162,15 @@ func (api *FilterAPI) getFilterOutputPreview(w http.ResponseWriter, r *http.Requ
 			return
 		}
 	}
-	logData["limit"] = limit
 
-	filterOutput, err := api.getOutput(r, filterID)
+	preview, err :=  api.getFilterOutputPreview(r.Context(), filterOutputID, limit)
 	if err != nil {
-		log.ErrorC("failed to find filter output", err, logData)
+		log.ErrorC("failed to get filter output preview", err, logData)
 		setErrorCode(w, err)
 		return
 	}
 
-	logData["filter_output_dimensions"] = filterOutput.Dimensions
-
-	if len(filterOutput.Dimensions) == 0 {
-		log.ErrorC("no dimensions are present in the filter", errMissingDimensions, logData)
-		http.Error(w, "no dimensions are present in the filter", http.StatusBadRequest)
-		return
-	}
-
-	data, err := api.preview.GetPreview(filterOutput, limit)
-	if err != nil {
-		log.ErrorC("failed to query the graph database", err, logData)
-		http.Error(w, "internal server error", http.StatusInternalServerError)
-		return
-	}
-
-	bytes, err := json.Marshal(data)
+	bytes, err := json.Marshal(preview)
 	if err != nil {
 		log.ErrorC("failed to marshal preview of filter ouput into bytes", err, logData)
 		http.Error(w, internalError, http.StatusInternalServerError)
@@ -197,9 +189,43 @@ func (api *FilterAPI) getFilterOutputPreview(w http.ResponseWriter, r *http.Requ
 	log.Info("preview filter output", logData)
 }
 
-func (api *FilterAPI) getOutput(r *http.Request, filterID string) (*models.Filter, error) {
+func (api *FilterAPI) getFilterOutputPreview(ctx context.Context, filterOutputID string, limit int) (*preview.FilterPreview, error) {
 
-	ctx := r.Context()
+	logData := log.Data{
+		"filter_output_id": filterOutputID,
+		"limit": limit,
+		}
+	log.Info("get filter output preview", logData)
+
+	hideS3Links := true // do not require s3 links for preview
+	filterOutput, err := api.getOutput(ctx, filterOutputID, hideS3Links)
+	if err != nil {
+		log.ErrorC("failed to find filter output", err, logData)
+		return nil, err
+	}
+
+	logData["filter_output_dimensions"] = filterOutput.Dimensions
+
+	if len(filterOutput.Dimensions) == 0 {
+		log.ErrorC(errMissingDimensions.Error(), errMissingDimensions, logData)
+		return nil, errMissingDimensions
+	}
+
+	filterOutputPreview, err := api.preview.GetPreview(filterOutput, limit)
+	if err != nil {
+		log.ErrorC("failed to query the graph database", err, logData)
+		return nil, filters.ErrInternalError
+	}
+
+	return filterOutputPreview, nil
+}
+
+func (api *FilterAPI) requestHasDownloadServiceToken(r *http.Request) bool {
+	return r.Header.Get(common.DownloadServiceHeaderKey) != api.downloadServiceToken
+}
+
+func (api *FilterAPI) getOutput(ctx context.Context, filterID string, hideS3Links bool) (*models.Filter, error) {
+
 	logData := log.Data{"filter_output_id": filterID}
 
 	output, err := api.dataStore.GetFilterOutput(filterID)
@@ -211,7 +237,7 @@ func (api *FilterAPI) getOutput(r *http.Request, filterID string) (*models.Filte
 	logData["filter_blueprint_id"] = output.Links.FilterBlueprint.ID
 
 	// Hide private download links if request is not authenticated
-	if r.Header.Get(common.DownloadServiceHeaderKey) != api.downloadServiceToken {
+	if hideS3Links {
 
 		log.Info("a valid download service token has not been provided. hiding links", logData)
 

@@ -12,6 +12,7 @@ var (
 	ErrBadRequest               = errors.New("invalid request body")
 	ErrForbidden                = errors.New("forbidden")
 	ErrUnauthorised             = errors.New("unauthorised")
+	ErrInternalError            = errors.New("internal server error")
 )
 
 func NewBadRequestErr(text string) error {

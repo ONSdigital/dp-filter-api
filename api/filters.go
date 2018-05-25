@@ -571,6 +571,9 @@ func setErrorCode(w http.ResponseWriter, err error, typ ...string) {
 	case filters.ErrBadRequest:
 		http.Error(w, badRequest, http.StatusBadRequest)
 		return
+	case filters.ErrInternalError:
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 
 	default:
 
