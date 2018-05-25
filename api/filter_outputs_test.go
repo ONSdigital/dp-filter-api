@@ -13,6 +13,7 @@ import (
 	"net/http/httptest"
 	"strings"
 
+	"context"
 	"errors"
 	"github.com/ONSdigital/dp-filter-api/mocks"
 	"github.com/ONSdigital/go-ns/common"
@@ -308,12 +309,16 @@ var expectedDownloadItems = []struct {
 
 func TestSuccessfulGetFilterOutput(t *testing.T) {
 	t.Parallel()
+
+	expectedAuditParams := common.Params{"filter_output_id": "12345678"}
+
 	Convey("Successfully get a filter output from an unauthenticated request", t, func() {
+		mockAuditor := getMockAuditor()
 		r, err := http.NewRequest("GET", "http://localhost:22100/filter-outputs/12345678", nil)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, getMockAuditor())
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, mockAuditor)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusOK)
 
@@ -328,15 +333,20 @@ func TestSuccessfulGetFilterOutput(t *testing.T) {
 
 		So(filterOutput.Downloads.CSV, ShouldResemble, &models.DownloadItem{HRef: "ons-test-site.gov.uk/87654321.csv", Private: "", Public: "", Size: "12mb"})
 		So(filterOutput.Downloads.XLS, ShouldResemble, &models.DownloadItem{HRef: "ons-test-site.gov.uk/87654321.xls", Private: "", Public: "", Size: "24mb"})
+
+		Convey("Then the auditor is called for the attempt and outcome", func() {
+			assertAuditCalled(mockAuditor, getFilterOutputAction, actionSuccessful, expectedAuditParams)
+		})
 	})
 
 	Convey("Successfully get a filter output from a request with an authorised download service token", t, func() {
 
+		mockAuditor := getMockAuditor()
 		r := createAuthenticatedRequest("GET", "http://localhost:22100/filter-outputs/12345678", nil)
 		r.Header.Add(common.DownloadServiceHeaderKey, downloadServiceToken)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, getMockAuditor())
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, mockAuditor)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusOK)
 
@@ -351,58 +361,173 @@ func TestSuccessfulGetFilterOutput(t *testing.T) {
 
 		So(filterOutput.Downloads.CSV, ShouldResemble, &models.DownloadItem{HRef: "ons-test-site.gov.uk/87654321.csv", Private: "csv-private-link", Public: "csv-public-link", Size: "12mb"})
 		So(filterOutput.Downloads.XLS, ShouldResemble, &models.DownloadItem{HRef: "ons-test-site.gov.uk/87654321.xls", Private: "xls-private-link", Public: "xls-public-link", Size: "24mb"})
+
+		Convey("Then the auditor is called for the attempt and outcome", func() {
+			assertAuditCalled(mockAuditor, getFilterOutputAction, actionSuccessful, expectedAuditParams)
+		})
 	})
 
 	Convey("Successfully get an unpublished filter output", t, func() {
+		mockAuditor := getMockAuditor()
 		r := createAuthenticatedRequest("GET", "http://localhost:22100/filter-outputs/12345678", nil)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, getMockAuditor())
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, mockAuditor)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusOK)
+
+		Convey("Then the auditor is called for the attempt and outcome", func() {
+			assertAuditCalled(mockAuditor, getFilterOutputAction, actionSuccessful, expectedAuditParams)
+		})
 	})
 }
 
 func TestFailedToGetFilterOutput(t *testing.T) {
 	t.Parallel()
+
+	expectedAuditParams := common.Params{"filter_output_id": "12345678"}
+
 	Convey("When no data store is available, an internal error is returned", t, func() {
-		r, err := http.NewRequest("GET", "http://localhost:22100/filter-outputs/1234568", nil)
+		mockAuditor := getMockAuditor()
+		r, err := http.NewRequest("GET", "http://localhost:22100/filter-outputs/12345678", nil)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
 
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{InternalError: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, getMockAuditor())
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{InternalError: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, mockAuditor)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusInternalServerError)
 
 		response := w.Body.String()
 		So(response, ShouldResemble, internalErrResponse)
+
+		Convey("Then the auditor is called for the attempt and outcome", func() {
+			assertAuditCalled(mockAuditor, getFilterOutputAction, actionUnsuccessful, expectedAuditParams)
+		})
 	})
 
 	Convey("When filter output does not exist, a not found is returned", t, func() {
+		mockAuditor := getMockAuditor()
 		r, err := http.NewRequest("GET", "http://localhost:22100/filter-outputs/12345678", nil)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{NotFound: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, getMockAuditor())
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{NotFound: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, mockAuditor)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
 		response := w.Body.String()
 		So(response, ShouldResemble, filters.ErrFilterOutputNotFound.Error()+"\n")
+
+		Convey("Then the auditor is called for the attempt and outcome", func() {
+			assertAuditCalled(mockAuditor, getFilterOutputAction, actionUnsuccessful, expectedAuditParams)
+		})
 	})
 
 	Convey("When filter output is unpublished and the request is unauthenticated, a not found is returned", t, func() {
+		mockAuditor := getMockAuditor()
 		r, err := http.NewRequest("GET", "http://localhost:22100/filter-outputs/12345678", nil)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, getMockAuditor())
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, mockAuditor)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
 		response := w.Body.String()
 		So(response, ShouldResemble, filters.ErrFilterOutputNotFound.Error()+"\n")
+
+		Convey("Then the auditor is called for the attempt and outcome", func() {
+			assertAuditCalled(mockAuditor, getFilterOutputAction, actionUnsuccessful, expectedAuditParams)
+		})
+	})
+}
+
+func TestFailedToGetFilterOutput_AuditFailure(t *testing.T) {
+	t.Parallel()
+
+	expectedAuditParams := common.Params{"filter_output_id": "12345678"}
+
+	Convey("Given an existing published filter", t, func() {
+
+		mockAuditor := getMockAuditor()
+		w := httptest.NewRecorder()
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, mockAuditor)
+
+		Convey("When a GET request is made to the filter outputs endpoint and the attempt audit fails", func() {
+
+			r, err := http.NewRequest("GET", "http://localhost:22100/filter-outputs/12345678", nil)
+			So(err, ShouldBeNil)
+
+			mockAuditor.RecordFunc = func(ctx context.Context, action string, result string, params common.Params) error {
+				return errAudit
+			}
+
+			api.router.ServeHTTP(w, r)
+
+			Convey("Then the auditor is called for the action being attempted", func() {
+				recCalls := mockAuditor.RecordCalls()
+				So(len(recCalls), ShouldEqual, 1)
+				verifyAuditRecordCalls(recCalls[0], getFilterOutputAction, actionAttempted, expectedAuditParams)
+			})
+
+			Convey("Then the response is 500 internal server error", func() {
+				So(w.Code, ShouldEqual, http.StatusInternalServerError)
+			})
+		})
+
+		Convey("When a GET request is made to the filter outputs endpoint and the outcome audit fails", func() {
+
+			r, err := http.NewRequest("GET", "http://localhost:22100/filter-outputs/12345678", nil)
+			So(err, ShouldBeNil)
+
+			mockAuditor.RecordFunc = func(ctx context.Context, action string, result string, params common.Params) error {
+				if action == getFilterOutputAction && result == actionSuccessful {
+					return errAudit
+				}
+				return nil
+			}
+
+			api.router.ServeHTTP(w, r)
+
+			Convey("Then the auditor is called for the attempt and outcome", func() {
+				assertAuditCalled(mockAuditor, getFilterOutputAction, actionSuccessful, expectedAuditParams)
+			})
+
+			Convey("Then the response is 500 internal server error", func() {
+				So(w.Code, ShouldEqual, http.StatusInternalServerError)
+			})
+		})
+	})
+
+	Convey("Given that the database returns an error when getting a filter output", t, func() {
+
+		mockAuditor := getMockAuditor()
+		w := httptest.NewRecorder()
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{InternalError: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, mockAuditor)
+
+		Convey("When a GET request is made to the filter outputs endpoint, and the outcome audit fails", func() {
+
+			r, err := http.NewRequest("GET", "http://localhost:22100/filter-outputs/12345678", nil)
+			So(err, ShouldBeNil)
+
+			mockAuditor.RecordFunc = func(ctx context.Context, action string, result string, params common.Params) error {
+				if action == getFilterOutputAction && result == actionUnsuccessful {
+					return errAudit
+				}
+				return nil
+			}
+
+			api.router.ServeHTTP(w, r)
+
+			Convey("Then the auditor is called for the attempt and outcome", func() {
+				assertAuditCalled(mockAuditor, getFilterOutputAction, actionUnsuccessful, expectedAuditParams)
+			})
+
+			Convey("Then the response is 500 internal server error", func() {
+				So(w.Code, ShouldEqual, http.StatusInternalServerError)
+			})
+		})
 	})
 }
 
