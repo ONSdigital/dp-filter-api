@@ -37,7 +37,7 @@ func (api *FilterAPI) getFilterOutputHandler(w http.ResponseWriter, r *http.Requ
 
 	auditParams := common.Params{"filter_output_id": filterOutputID}
 	if auditErr := api.auditor.Record(r.Context(), getFilterOutputAction, actionAttempted, auditParams); auditErr != nil {
-		handleAuditingFailure(r.Context(), getFilterOutputAction, w, auditErr, logData)
+		handleAuditingFailure(r.Context(), getFilterOutputAction, actionAttempted, w, auditErr, logData)
 		return
 	}
 
@@ -46,7 +46,7 @@ func (api *FilterAPI) getFilterOutputHandler(w http.ResponseWriter, r *http.Requ
 	if err != nil {
 		log.ErrorC("unable to get filter output", err, logData)
 		if auditErr := api.auditor.Record(r.Context(), getFilterOutputAction, actionUnsuccessful, auditParams); auditErr != nil {
-			handleAuditingFailure(r.Context(), getFilterOutputAction, w, auditErr, logData)
+			handleAuditingFailure(r.Context(), getFilterOutputAction, actionUnsuccessful, w, auditErr, logData)
 			return
 		}
 		setErrorCode(w, err)
@@ -58,7 +58,7 @@ func (api *FilterAPI) getFilterOutputHandler(w http.ResponseWriter, r *http.Requ
 	if err != nil {
 		log.ErrorC("failed to marshal filter output into bytes", err, logData)
 		if auditErr := api.auditor.Record(r.Context(), getFilterOutputAction, actionUnsuccessful, auditParams); auditErr != nil {
-			handleAuditingFailure(r.Context(), getFilterOutputAction, w, auditErr, logData)
+			handleAuditingFailure(r.Context(), getFilterOutputAction, actionUnsuccessful, w, auditErr, logData)
 			return
 		}
 		http.Error(w, internalError, http.StatusInternalServerError)
@@ -66,7 +66,7 @@ func (api *FilterAPI) getFilterOutputHandler(w http.ResponseWriter, r *http.Requ
 	}
 
 	if auditErr := api.auditor.Record(r.Context(), getFilterOutputAction, actionSuccessful, auditParams); auditErr != nil {
-		handleAuditingFailure(r.Context(), getFilterOutputAction, w, auditErr, logData)
+		handleAuditingFailure(r.Context(), getFilterOutputAction, actionSuccessful, w, auditErr, logData)
 		return
 	}
 
@@ -91,7 +91,7 @@ func (api *FilterAPI) updateFilterOutputHandler(w http.ResponseWriter, r *http.R
 
 	auditParams := common.Params{"filter_output_id": filterOutputID}
 	if auditErr := api.auditor.Record(r.Context(), updateFilterOutputAction, actionAttempted, auditParams); auditErr != nil {
-		handleAuditingFailure(r.Context(), updateFilterOutputAction, w, auditErr, logData)
+		handleAuditingFailure(r.Context(), updateFilterOutputAction, actionAttempted, w, auditErr, logData)
 		return
 	}
 
@@ -99,7 +99,7 @@ func (api *FilterAPI) updateFilterOutputHandler(w http.ResponseWriter, r *http.R
 	if err != nil {
 		log.ErrorC("unable to unmarshal request body", err, logData)
 		if auditErr := api.auditor.Record(r.Context(), updateFilterOutputAction, actionUnsuccessful, auditParams); auditErr != nil {
-			handleAuditingFailure(r.Context(), updateFilterOutputAction, w, auditErr, logData)
+			handleAuditingFailure(r.Context(), updateFilterOutputAction, actionUnsuccessful, w, auditErr, logData)
 			return
 		}
 		http.Error(w, badRequest, http.StatusBadRequest)
@@ -111,7 +111,7 @@ func (api *FilterAPI) updateFilterOutputHandler(w http.ResponseWriter, r *http.R
 	if err != nil {
 		log.ErrorC("failed to update filter output", err, logData)
 		if auditErr := api.auditor.Record(r.Context(), updateFilterOutputAction, actionUnsuccessful, auditParams); auditErr != nil {
-			handleAuditingFailure(r.Context(), updateFilterOutputAction, w, auditErr, logData)
+			handleAuditingFailure(r.Context(), updateFilterOutputAction, actionUnsuccessful, w, auditErr, logData)
 			return
 		}
 		setErrorCode(w, err)
@@ -120,7 +120,7 @@ func (api *FilterAPI) updateFilterOutputHandler(w http.ResponseWriter, r *http.R
 
 	log.Info("updated filter output", logData)
 	if auditErr := api.auditor.Record(r.Context(), updateFilterOutputAction, actionSuccessful, auditParams); auditErr != nil {
-		logAuditFailure(r.Context(), updateFilterOutputAction, auditErr, logData)
+		logAuditFailure(r.Context(), updateFilterOutputAction, actionSuccessful, auditErr, logData)
 		return
 	}
 
@@ -177,7 +177,7 @@ func (api *FilterAPI) getFilterOutputPreviewHandler(w http.ResponseWriter, r *ht
 
 	auditParams := common.Params{"filter_output_id": filterOutputID}
 	if auditErr := api.auditor.Record(r.Context(), getFilterPreviewAction, actionAttempted, auditParams); auditErr != nil {
-		handleAuditingFailure(r.Context(), getFilterPreviewAction, w, auditErr, logData)
+		handleAuditingFailure(r.Context(), getFilterPreviewAction, actionAttempted, w, auditErr, logData)
 		return
 	}
 
@@ -189,7 +189,7 @@ func (api *FilterAPI) getFilterOutputPreviewHandler(w http.ResponseWriter, r *ht
 			logData["requested_limit"] = requestedLimit
 			log.ErrorC("requested limit is not a number", err, logData)
 			if auditErr := api.auditor.Record(r.Context(), getFilterPreviewAction, actionUnsuccessful, auditParams); auditErr != nil {
-				handleAuditingFailure(r.Context(), getFilterPreviewAction, w, auditErr, logData)
+				handleAuditingFailure(r.Context(), getFilterPreviewAction, actionUnsuccessful, w, auditErr, logData)
 				return
 			}
 			http.Error(w, errRequestLimitNotNumber.Error(), http.StatusBadRequest)
@@ -201,7 +201,7 @@ func (api *FilterAPI) getFilterOutputPreviewHandler(w http.ResponseWriter, r *ht
 	if err != nil {
 		log.ErrorC("failed to get filter output preview", err, logData)
 		if auditErr := api.auditor.Record(r.Context(), getFilterPreviewAction, actionUnsuccessful, auditParams); auditErr != nil {
-			handleAuditingFailure(r.Context(), getFilterPreviewAction, w, auditErr, logData)
+			handleAuditingFailure(r.Context(), getFilterPreviewAction, actionUnsuccessful, w, auditErr, logData)
 			return
 		}
 		setErrorCode(w, err)
@@ -212,7 +212,7 @@ func (api *FilterAPI) getFilterOutputPreviewHandler(w http.ResponseWriter, r *ht
 	if err != nil {
 		log.ErrorC("failed to marshal preview of filter ouput into bytes", err, logData)
 		if auditErr := api.auditor.Record(r.Context(), getFilterPreviewAction, actionUnsuccessful, auditParams); auditErr != nil {
-			handleAuditingFailure(r.Context(), getFilterPreviewAction, w, auditErr, logData)
+			handleAuditingFailure(r.Context(), getFilterPreviewAction, actionUnsuccessful, w, auditErr, logData)
 			return
 		}
 		http.Error(w, internalError, http.StatusInternalServerError)
@@ -220,7 +220,7 @@ func (api *FilterAPI) getFilterOutputPreviewHandler(w http.ResponseWriter, r *ht
 	}
 
 	if auditErr := api.auditor.Record(r.Context(), getFilterPreviewAction, actionSuccessful, auditParams); auditErr != nil {
-		handleAuditingFailure(r.Context(), getFilterPreviewAction, w, auditErr, logData)
+		handleAuditingFailure(r.Context(), getFilterPreviewAction, actionSuccessful, w, auditErr, logData)
 		return
 	}
 
