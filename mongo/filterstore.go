@@ -7,6 +7,7 @@ import (
 	"github.com/ONSdigital/dp-filter-api/config"
 	"github.com/ONSdigital/dp-filter-api/filters"
 	"github.com/ONSdigital/dp-filter-api/models"
+	mongolib "github.com/ONSdigital/go-ns/mongo"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 )
@@ -72,7 +73,7 @@ func (s *FilterStore) UpdateFilter(updatedFilter *models.Filter) error {
 	session := s.Session.Copy()
 	defer session.Close()
 
-	update := createUpdateFilterBlueprint(updatedFilter, time.Now())
+	update := mongolib.WithUpdates(createUpdateFilterBlueprint(updatedFilter, time.Now()))
 
 	selector := bson.M{"filter_id": updatedFilter.FilterID}
 	if err := session.DB(s.db).C(s.filtersCollection).Update(selector, update); err != nil {
@@ -127,7 +128,7 @@ func (s *FilterStore) AddFilterDimension(filterID, name string, options []string
 	}
 
 	queryFilter := bson.M{"filter_id": filterID}
-	update := bson.M{"$set": bson.M{"dimensions": list}}
+	update := mongolib.WithUpdates(bson.M{"$set": bson.M{"dimensions": list}})
 
 	if err := session.DB(s.db).C(s.filtersCollection).Update(queryFilter, update); err != nil {
 		if err == mgo.ErrNotFound {
@@ -145,7 +146,7 @@ func (s *FilterStore) RemoveFilterDimension(filterID, name string) error {
 	defer session.Close()
 
 	queryFilter := bson.M{"filter_id": filterID}
-	update := bson.M{"$pull": bson.M{"dimensions": bson.M{"name": name}}}
+	update := mongolib.WithUpdates(bson.M{"$pull": bson.M{"dimensions": bson.M{"name": name}}})
 
 	info, err := session.DB(s.db).C(s.filtersCollection).UpdateAll(queryFilter, update)
 	if err != nil {
@@ -168,7 +169,7 @@ func (s *FilterStore) AddFilterDimensionOption(filterID, name, option string) er
 	defer session.Close()
 
 	queryOptions := bson.M{"filter_id": filterID, "dimensions": bson.M{"$elemMatch": bson.M{"name": name}}}
-	update := bson.M{"$addToSet": bson.M{"dimensions.$.options": option}}
+	update := mongolib.WithUpdates(bson.M{"$addToSet": bson.M{"dimensions.$.options": option}})
 
 	if err := session.DB(s.db).C(s.filtersCollection).Update(queryOptions, update); err != nil {
 		if err == mgo.ErrNotFound {
@@ -186,7 +187,7 @@ func (s *FilterStore) RemoveFilterDimensionOption(filterID string, name string, 
 	defer session.Close()
 
 	queryOptions := bson.M{"filter_id": filterID, "dimensions": bson.M{"$elemMatch": bson.M{"name": name}}}
-	update := bson.M{"$pull": bson.M{"dimensions.$.options": option}}
+	update := mongolib.WithUpdates(bson.M{"$pull": bson.M{"dimensions.$.options": option}})
 
 	info, err := session.DB(s.db).C(s.filtersCollection).UpdateAll(queryOptions, update)
 	if err != nil {
@@ -209,11 +210,7 @@ func (s *FilterStore) CreateFilterOutput(filter *models.Filter) error {
 	session := s.Session.Copy()
 	defer session.Close()
 
-	if err := session.DB(s.db).C(s.outputsCollection).Insert(filter); err != nil {
-		return err
-	}
-
-	return nil
+	return session.DB(s.db).C(s.outputsCollection).Insert(filter)
 }
 
 // GetFilterOutput returns a filter output resource
@@ -240,14 +237,10 @@ func (s *FilterStore) UpdateFilterOutput(filter *models.Filter) error {
 	session := s.Session.Copy()
 	defer session.Close()
 
-	update := createUpdateFilterOutput(filter, time.Now())
+	update := mongolib.WithUpdates(createUpdateFilterOutput(filter, time.Now()))
 
-	if err := session.DB(s.db).C(s.outputsCollection).
-		Update(bson.M{"filter_id": filter.FilterID}, update); err != nil {
-		return err
-	}
-
-	return nil
+	return session.DB(s.db).C(s.outputsCollection).
+		Update(bson.M{"filter_id": filter.FilterID}, update)
 }
 
 func createUpdateFilterBlueprint(filter *models.Filter, currentTime time.Time) bson.M {
