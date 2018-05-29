@@ -14,8 +14,9 @@ import (
 
 const (
 	// audit actions
-	getDimensionsAction = "getFilterBlueprintDimensionsHandler"
-	getDimensionAction  = "getFilterBlueprintDimensionHandler"
+	getDimensionsAction   = "getFilterBlueprintDimensions"
+	getDimensionAction    = "getFilterBlueprintDimension"
+	removeDimensionAction = "removeFilterBlueprintDimension"
 )
 
 func (api *FilterAPI) getFilterBlueprintDimensionsHandler(w http.ResponseWriter, r *http.Request) {
@@ -137,35 +138,39 @@ func (api *FilterAPI) getFilterBlueprintDimensionHandler(w http.ResponseWriter, 
 
 func (api *FilterAPI) removeFilterBlueprintDimensionHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	filterID := vars["filter_blueprint_id"]
-	name := vars["name"]
+	filterBlueprintID := vars["filter_blueprint_id"]
+	dimensionName := vars["name"]
 	logData := log.Data{
-		"filter_blueprint_id": filterID,
-		"dimension":           name,
+		"filter_blueprint_id": filterBlueprintID,
+		"dimension":           dimensionName,
 	}
 	log.Info("removing filter blueprint dimension", logData)
 
-	filter, err := api.getFilterBlueprint(r.Context(), filterID)
-	if err != nil {
-		log.Error(err, logData)
-		switch err {
-		case filters.ErrFilterBlueprintNotFound:
-			setErrorCode(w, err, statusBadRequest)
-		default:
-			setErrorCode(w, err)
+	auditParams := common.Params{
+		"filter_blueprint_id": filterBlueprintID,
+		"dimension":           dimensionName,
+	}
+	if auditErr := api.auditor.Record(r.Context(), removeDimensionAction, actionAttempted, auditParams); auditErr != nil {
+		handleAuditingFailure(r.Context(), removeDimensionAction, actionAttempted, w, auditErr, logData)
+		return
+	}
+
+	if err := api.removeFilterBlueprintDimension(r.Context(), filterBlueprintID, dimensionName); err != nil {
+		log.ErrorC("failed to remove dimension from filter blueprint", err, logData)
+		if auditErr := api.auditor.Record(r.Context(), removeDimensionAction, actionUnsuccessful, auditParams); auditErr != nil {
+			handleAuditingFailure(r.Context(), removeDimensionAction, actionUnsuccessful, w, auditErr, logData)
+			return
 		}
-		return
-	}
-
-	if filter.State == models.SubmittedState {
-		log.Error(errForbidden, logData)
-		setErrorCode(w, errForbidden)
-		return
-	}
-
-	if err := api.dataStore.RemoveFilterDimension(filterID, name); err != nil {
-		log.ErrorC("unable to remove dimension from filter blueprint", err, logData)
+		if err == filters.ErrFilterBlueprintNotFound {
+			setErrorCode(w, err, statusBadRequest)
+			return
+		}
 		setErrorCode(w, err)
+		return
+	}
+
+	if auditErr := api.auditor.Record(r.Context(), removeDimensionAction, actionSuccessful, auditParams); auditErr != nil {
+		logAuditFailure(r.Context(), removeDimensionAction, actionSuccessful, auditErr, logData)
 		return
 	}
 
@@ -173,6 +178,24 @@ func (api *FilterAPI) removeFilterBlueprintDimensionHandler(w http.ResponseWrite
 	w.WriteHeader(http.StatusOK)
 
 	log.Info("delete dimension from filter blueprint", logData)
+}
+
+func (api *FilterAPI) removeFilterBlueprintDimension(ctx context.Context, filterBlueprintID, dimensionName string) error {
+
+	filter, err := api.getFilterBlueprint(ctx, filterBlueprintID)
+	if err != nil {
+		return err
+	}
+
+	if filter.State == models.SubmittedState {
+		return filters.NewForbiddenErr("filter has already been submitted")
+	}
+
+	if err := api.dataStore.RemoveFilterDimension(filterBlueprintID, dimensionName); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (api *FilterAPI) addFilterBlueprintDimensionHandler(w http.ResponseWriter, r *http.Request) {

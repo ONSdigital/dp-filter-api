@@ -533,6 +533,12 @@ func TestFailedToGetFilterBlueprintDimension_AuditFailure(t *testing.T) {
 
 func TestSuccessfulRemoveFilterBlueprintDimension(t *testing.T) {
 	t.Parallel()
+
+	expectedAuditParams := common.Params{
+		"filter_blueprint_id": "12345678",
+		"dimension":           "1_age",
+	}
+
 	Convey("Successfully remove a dimension for a filter blueprint, returns 200", t, func() {
 		mockAuditor := getMockAuditor()
 		r, err := http.NewRequest("DELETE", "http://localhost:22100/filters/12345678/dimensions/1_age", nil)
@@ -542,6 +548,10 @@ func TestSuccessfulRemoveFilterBlueprintDimension(t *testing.T) {
 		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, mockAuditor)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusOK)
+
+		Convey("Then the auditor is called for the attempt and outcome", func() {
+			assertAuditCalled(mockAuditor, removeDimensionAction, actionSuccessful, expectedAuditParams)
+		})
 	})
 
 	Convey("Successfully remove a dimension for an unpublished filter blueprint, returns 200", t, func() {
@@ -552,11 +562,21 @@ func TestSuccessfulRemoveFilterBlueprintDimension(t *testing.T) {
 		api := routes(host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, mockAuditor)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusOK)
+
+		Convey("Then the auditor is called for the attempt and outcome", func() {
+			assertAuditCalled(mockAuditor, removeDimensionAction, actionSuccessful, expectedAuditParams)
+		})
 	})
 }
 
 func TestFailedToRemoveFilterBlueprintDimension(t *testing.T) {
 	t.Parallel()
+
+	expectedAuditParams := common.Params{
+		"filter_blueprint_id": "12345678",
+		"dimension":           "1_age",
+	}
+
 	Convey("When no data store is available, an internal error is returned", t, func() {
 		mockAuditor := getMockAuditor()
 		r, err := http.NewRequest("DELETE", "http://localhost:22100/filters/12345678/dimensions/1_age", nil)
@@ -569,6 +589,10 @@ func TestFailedToRemoveFilterBlueprintDimension(t *testing.T) {
 
 		response := w.Body.String()
 		So(response, ShouldResemble, internalErrResponse)
+
+		Convey("Then the auditor is called for the attempt and outcome", func() {
+			assertAuditCalled(mockAuditor, removeDimensionAction, actionUnsuccessful, expectedAuditParams)
+		})
 	})
 
 	Convey("When filter blueprint does not exist, a bad request is returned", t, func() {
@@ -583,6 +607,10 @@ func TestFailedToRemoveFilterBlueprintDimension(t *testing.T) {
 
 		response := w.Body.String()
 		So(response, ShouldResemble, filterNotFoundResponse)
+
+		Convey("Then the auditor is called for the attempt and outcome", func() {
+			assertAuditCalled(mockAuditor, removeDimensionAction, actionUnsuccessful, expectedAuditParams)
+		})
 	})
 
 	Convey("When filter blueprint is unpublished, and request is not authenticated, a bad request is returned", t, func() {
@@ -597,6 +625,10 @@ func TestFailedToRemoveFilterBlueprintDimension(t *testing.T) {
 
 		response := w.Body.String()
 		So(response, ShouldResemble, filterNotFoundResponse)
+
+		Convey("Then the auditor is called for the attempt and outcome", func() {
+			assertAuditCalled(mockAuditor, removeDimensionAction, actionUnsuccessful, expectedAuditParams)
+		})
 	})
 
 	Convey("When dimension does not exist against filter blueprint, the response is idempotent and returns 200 OK", t, func() {
@@ -608,5 +640,100 @@ func TestFailedToRemoveFilterBlueprintDimension(t *testing.T) {
 		api := routes(host, mux.NewRouter(), &mocks.DataStore{DimensionNotFound: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, mockAuditor)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusOK)
+
+		Convey("Then the auditor is called for the attempt and outcome", func() {
+			assertAuditCalled(mockAuditor, removeDimensionAction, actionSuccessful, expectedAuditParams)
+		})
+	})
+}
+
+func TestFailedToRemoveFilterBlueprintDimension_AuditFailure(t *testing.T) {
+	t.Parallel()
+
+	expectedAuditParams := common.Params{
+		"filter_blueprint_id": "12345678",
+		"dimension":           "1_age",
+	}
+
+	Convey("Given an existing filter for a published dataset", t, func() {
+
+		mockAuditor := getMockAuditor()
+		w := httptest.NewRecorder()
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, mockAuditor)
+
+		Convey("When a DELETE request is made to the filter dimension endpoint and the attempt audit fails", func() {
+
+			r, err := http.NewRequest("DELETE", "http://localhost:22100/filters/12345678/dimensions/1_age", nil)
+			So(err, ShouldBeNil)
+
+			mockAuditor.RecordFunc = func(ctx context.Context, action string, result string, params common.Params) error {
+				return errAudit
+			}
+
+			api.router.ServeHTTP(w, r)
+
+			Convey("Then the auditor is called for the action being attempted", func() {
+				recCalls := mockAuditor.RecordCalls()
+				So(len(recCalls), ShouldEqual, 1)
+				verifyAuditRecordCalls(recCalls[0], removeDimensionAction, actionAttempted, expectedAuditParams)
+			})
+
+			Convey("Then the response is 500 internal server error", func() {
+				So(w.Code, ShouldEqual, http.StatusInternalServerError)
+			})
+		})
+
+		Convey("When a DELETE request is made to the filter dimension endpoint and the outcome audit fails", func() {
+
+			r, err := http.NewRequest("DELETE", "http://localhost:22100/filters/12345678/dimensions/1_age", nil)
+			So(err, ShouldBeNil)
+
+			mockAuditor.RecordFunc = func(ctx context.Context, action string, result string, params common.Params) error {
+				if action == removeDimensionAction && result == actionSuccessful {
+					return errAudit
+				}
+				return nil
+			}
+
+			api.router.ServeHTTP(w, r)
+
+			Convey("Then the auditor is called for the attempt and outcome", func() {
+				assertAuditCalled(mockAuditor, removeDimensionAction, actionSuccessful, expectedAuditParams)
+			})
+
+			Convey("Then the response is 200 ok", func() {
+				So(w.Code, ShouldEqual, http.StatusOK)
+			})
+		})
+	})
+
+	Convey("Given that the database returns an error when getting a filter output", t, func() {
+
+		mockAuditor := getMockAuditor()
+		w := httptest.NewRecorder()
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{NotFound: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, mockAuditor)
+
+		Convey("When a DELETE request is made to the filter dimension endpoint, and the outcome audit fails", func() {
+
+			r, err := http.NewRequest("DELETE", "http://localhost:22100/filters/12345678/dimensions/1_age", nil)
+			So(err, ShouldBeNil)
+
+			mockAuditor.RecordFunc = func(ctx context.Context, action string, result string, params common.Params) error {
+				if action == removeDimensionAction && result == actionUnsuccessful {
+					return errAudit
+				}
+				return nil
+			}
+
+			api.router.ServeHTTP(w, r)
+
+			Convey("Then the auditor is called for the attempt and outcome", func() {
+				assertAuditCalled(mockAuditor, removeDimensionAction, actionUnsuccessful, expectedAuditParams)
+			})
+
+			Convey("Then the response is 500 internal server error", func() {
+				So(w.Code, ShouldEqual, http.StatusInternalServerError)
+			})
+		})
 	})
 }

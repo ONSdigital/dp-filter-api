@@ -25,7 +25,7 @@ const (
 	// audit actions
 	getFilterOutputAction    = "getFilterOutput"
 	updateFilterOutputAction = "updateFilterOutput"
-	getFilterPreviewAction   = "getFilterPreviewAction"
+	getFilterPreviewAction   = "getFilterPreview"
 )
 
 func (api *FilterAPI) getFilterOutputHandler(w http.ResponseWriter, r *http.Request) {
