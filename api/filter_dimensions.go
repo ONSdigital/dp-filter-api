@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"github.com/ONSdigital/dp-filter-api/filters"
 	"github.com/ONSdigital/dp-filter-api/models"
+	"github.com/ONSdigital/go-ns/common"
 	"github.com/ONSdigital/go-ns/log"
 	"github.com/gorilla/mux"
 	"net/http"
-	"github.com/ONSdigital/go-ns/common"
 )
 
 const (
@@ -116,7 +116,16 @@ func (api *FilterAPI) getFilterBlueprintDimensionHandler(w http.ResponseWriter, 
 
 	if err := api.dataStore.GetFilterDimension(filterBlueprintID, name); err != nil {
 		log.Error(err, logData)
+		if auditErr := api.auditor.Record(r.Context(), getDimensionAction, actionUnsuccessful, auditParams); auditErr != nil {
+			handleAuditingFailure(r.Context(), getDimensionAction, actionUnsuccessful, w, auditErr, logData)
+			return
+		}
 		setErrorCode(w, err)
+		return
+	}
+
+	if auditErr := api.auditor.Record(r.Context(), getDimensionAction, actionSuccessful, auditParams); auditErr != nil {
+		handleAuditingFailure(r.Context(), getDimensionAction, actionSuccessful, w, auditErr, logData)
 		return
 	}
 
