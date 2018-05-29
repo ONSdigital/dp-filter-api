@@ -121,7 +121,6 @@ func (api *FilterAPI) updateFilterOutputHandler(w http.ResponseWriter, r *http.R
 	log.Info("updated filter output", logData)
 	if auditErr := api.auditor.Record(r.Context(), updateFilterOutputAction, actionSuccessful, auditParams); auditErr != nil {
 		logAuditFailure(r.Context(), updateFilterOutputAction, actionSuccessful, auditErr, logData)
-		return
 	}
 
 	setJSONContentType(w)

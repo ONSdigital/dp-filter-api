@@ -17,6 +17,7 @@ const (
 	getDimensionsAction   = "getFilterBlueprintDimensions"
 	getDimensionAction    = "getFilterBlueprintDimension"
 	removeDimensionAction = "removeFilterBlueprintDimension"
+	addDimensionAction    = "addFilterBlueprintDimension"
 )
 
 func (api *FilterAPI) getFilterBlueprintDimensionsHandler(w http.ResponseWriter, r *http.Request) {
@@ -171,7 +172,6 @@ func (api *FilterAPI) removeFilterBlueprintDimensionHandler(w http.ResponseWrite
 
 	if auditErr := api.auditor.Record(r.Context(), removeDimensionAction, actionSuccessful, auditParams); auditErr != nil {
 		logAuditFailure(r.Context(), removeDimensionAction, actionSuccessful, auditErr, logData)
-		return
 	}
 
 	setJSONContentType(w)
@@ -200,55 +200,78 @@ func (api *FilterAPI) removeFilterBlueprintDimension(ctx context.Context, filter
 
 func (api *FilterAPI) addFilterBlueprintDimensionHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	filterID := vars["filter_blueprint_id"]
-	name := vars["name"]
+	filterBlueprintID := vars["filter_blueprint_id"]
+	dimensionName := vars["name"]
 	logData := log.Data{
-		"filter_blueprint_id": filterID,
-		"dimension":           name,
+		"filter_blueprint_id": filterBlueprintID,
+		"dimension":           dimensionName,
 	}
 	log.Info("add filter blueprint dimension", logData)
+
+	auditParams := common.Params{
+		"filter_blueprint_id": filterBlueprintID,
+		"dimension":           dimensionName,
+	}
+	if auditErr := api.auditor.Record(r.Context(), addDimensionAction, actionAttempted, auditParams); auditErr != nil {
+		handleAuditingFailure(r.Context(), addDimensionAction, actionAttempted, w, auditErr, logData)
+		return
+	}
 
 	options, err := models.CreateDimensionOptions(r.Body)
 	if err != nil {
 		log.ErrorC("unable to unmarshal request body", err, logData)
+		if auditErr := api.auditor.Record(r.Context(), addDimensionAction, actionUnsuccessful, auditParams); auditErr != nil {
+			handleAuditingFailure(r.Context(), addDimensionAction, actionUnsuccessful, w, auditErr, logData)
+			return
+		}
 		http.Error(w, badRequest, http.StatusBadRequest)
 		return
 	}
 
-	filterBlueprint, err := api.getFilterBlueprint(r.Context(), filterID)
+	err = api.addFilterBlueprintDimension(r.Context(), filterBlueprintID, dimensionName, options)
 	if err != nil {
-		log.Error(err, logData)
-		setErrorCode(w, err)
-		return
-	}
-	logData["current_filter_blueprint"] = filterBlueprint
-
-	if filterBlueprint.State == models.SubmittedState {
-		log.Error(errForbidden, logData)
-		setErrorCode(w, errForbidden)
-		return
-	}
-
-	if err = api.checkNewFilterDimension(r.Context(), name, options, *filterBlueprint.Dataset); err != nil {
-		log.ErrorC("unable to get filter blueprint", err, logData)
+		if auditErr := api.auditor.Record(r.Context(), addDimensionAction, actionUnsuccessful, auditParams); auditErr != nil {
+			handleAuditingFailure(r.Context(), addDimensionAction, actionUnsuccessful, w, auditErr, logData)
+			return
+		}
 		if err == filters.ErrVersionNotFound {
 			setErrorCode(w, err, statusUnprocessableEntity)
 			return
 		}
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		setErrorCode(w, err)
 		return
 	}
 
-	if err = api.dataStore.AddFilterDimension(filterID, name, options, filterBlueprint.Dimensions); err != nil {
-		log.ErrorC("failed to add dimension to filter blueprint", err, logData)
-		setErrorCode(w, err)
-		return
+	if auditErr := api.auditor.Record(r.Context(), addDimensionAction, actionSuccessful, auditParams); auditErr != nil {
+		logAuditFailure(r.Context(), addDimensionAction, actionSuccessful, auditErr, logData)
 	}
 
 	setJSONContentType(w)
 	w.WriteHeader(http.StatusCreated)
 
 	log.Info("created new dimension for filter blueprint", logData)
+}
+
+func (api *FilterAPI) addFilterBlueprintDimension(ctx context.Context, filterBlueprintID, dimensionName string, options []string) error {
+
+	filterBlueprint, err := api.getFilterBlueprint(ctx, filterBlueprintID)
+	if err != nil {
+		return err
+	}
+
+	if filterBlueprint.State == models.SubmittedState {
+		return errForbidden
+	}
+
+	if err = api.checkNewFilterDimension(ctx, dimensionName, options, *filterBlueprint.Dataset); err != nil {
+		return filters.NewBadRequestErr(err.Error())
+	}
+
+	if err = api.dataStore.AddFilterDimension(filterBlueprintID, dimensionName, options, filterBlueprint.Dimensions); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (api *FilterAPI) checkNewFilterDimension(ctx context.Context, name string, options []string, dataset models.Dataset) error {
@@ -260,7 +283,7 @@ func (api *FilterAPI) checkNewFilterDimension(ctx context.Context, name string, 
 	// list endpoint and iterate over items to find if dimension exists
 	datasetDimensions, err := api.datasetAPI.GetVersionDimensions(ctx, dataset)
 	if err != nil {
-		log.ErrorC("failed to retreive a list of dimensions from the dataset API", err, logData)
+		log.ErrorC("failed to retrieve a list of dimensions from the dataset API", err, logData)
 		return err
 	}
 
