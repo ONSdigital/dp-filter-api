@@ -9,17 +9,33 @@ import (
 	"github.com/ONSdigital/go-ns/log"
 	"github.com/gorilla/mux"
 	"net/http"
+	"github.com/ONSdigital/go-ns/common"
+)
+
+const (
+	// audit actions
+	getDimensionsAction = "getFilterBlueprintDimensions"
 )
 
 func (api *FilterAPI) getFilterBlueprintDimensions(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	filterID := vars["filter_blueprint_id"]
-	logData := log.Data{"filter_blueprint_id": filterID}
+	filterBlueprintID := vars["filter_blueprint_id"]
+	logData := log.Data{"filter_blueprint_id": filterBlueprintID}
 	log.Info("getting filter blueprint dimensions", logData)
 
-	filter, err := api.getFilterBlueprint(r.Context(), filterID)
+	auditParams := common.Params{"filter_blueprint_id": filterBlueprintID}
+	if auditErr := api.auditor.Record(r.Context(), getDimensionsAction, actionAttempted, auditParams); auditErr != nil {
+		handleAuditingFailure(r.Context(), getDimensionsAction, w, auditErr, logData)
+		return
+	}
+
+	filter, err := api.getFilterBlueprint(r.Context(), filterBlueprintID)
 	if err != nil {
 		log.ErrorC("unable to get dimensions for filter blueprint", err, logData)
+		if auditErr := api.auditor.Record(r.Context(), getDimensionsAction, actionUnsuccessful, auditParams); auditErr != nil {
+			handleAuditingFailure(r.Context(), getDimensionsAction, w, auditErr, logData)
+			return
+		}
 		setErrorCode(w, err)
 		return
 	}
@@ -28,6 +44,10 @@ func (api *FilterAPI) getFilterBlueprintDimensions(w http.ResponseWriter, r *htt
 
 	if len(filter.Dimensions) == 0 {
 		log.Error(filters.ErrDimensionNotFound, logData)
+		if auditErr := api.auditor.Record(r.Context(), getDimensionsAction, actionUnsuccessful, auditParams); auditErr != nil {
+			handleAuditingFailure(r.Context(), getDimensionsAction, w, auditErr, logData)
+			return
+		}
 		setErrorCode(w, filters.ErrDimensionNotFound)
 		return
 	}
@@ -35,7 +55,16 @@ func (api *FilterAPI) getFilterBlueprintDimensions(w http.ResponseWriter, r *htt
 	bytes, err := json.Marshal(filter.Dimensions)
 	if err != nil {
 		log.ErrorC("failed to marshal filter blueprint dimensions into bytes", err, logData)
+		if auditErr := api.auditor.Record(r.Context(), getDimensionsAction, actionUnsuccessful, auditParams); auditErr != nil {
+			handleAuditingFailure(r.Context(), getDimensionsAction, w, auditErr, logData)
+			return
+		}
 		http.Error(w, internalError, http.StatusInternalServerError)
+		return
+	}
+
+	if auditErr := api.auditor.Record(r.Context(), getDimensionsAction, actionSuccessful, auditParams); auditErr != nil {
+		handleAuditingFailure(r.Context(), getDimensionsAction, w, auditErr, logData)
 		return
 	}
 
