@@ -2,12 +2,14 @@ package api
 
 import (
 	"encoding/json"
+	"net/http"
+
 	"github.com/ONSdigital/dp-filter-api/models"
 	"github.com/ONSdigital/go-ns/log"
 	"github.com/gorilla/mux"
-	"net/http"
 
 	"fmt"
+
 	"github.com/ONSdigital/dp-filter-api/filters"
 )
 
@@ -144,6 +146,8 @@ func (api *FilterAPI) addFilterBlueprintDimensionOption(w http.ResponseWriter, r
 		return
 	}
 
+	timestamp := filterBlueprint.UniqueTimestamp
+
 	if filterBlueprint.State == models.SubmittedState {
 		log.Error(errForbidden, logData)
 		setErrorCode(w, errForbidden, filterBlueprint.State)
@@ -177,7 +181,7 @@ func (api *FilterAPI) addFilterBlueprintDimensionOption(w http.ResponseWriter, r
 		return
 	}
 
-	if err := api.dataStore.AddFilterDimensionOption(filterID, name, option); err != nil {
+	if err := api.dataStore.AddFilterDimensionOption(filterID, name, option, timestamp); err != nil {
 		log.ErrorC("failed to add dimension option to filter blueprint", err, logData)
 		setErrorCode(w, err)
 		return
@@ -214,6 +218,8 @@ func (api *FilterAPI) removeFilterBlueprintDimensionOption(w http.ResponseWriter
 		return
 	}
 
+	timestamp := filterBlueprint.UniqueTimestamp
+
 	// Check if dimension exists
 	var hasDimension bool
 	for _, dimension := range filterBlueprint.Dimensions {
@@ -235,7 +241,7 @@ func (api *FilterAPI) removeFilterBlueprintDimensionOption(w http.ResponseWriter
 		return
 	}
 
-	if err = api.dataStore.RemoveFilterDimensionOption(filterID, name, option); err != nil {
+	if err = api.dataStore.RemoveFilterDimensionOption(filterID, name, option, timestamp); err != nil {
 		log.ErrorC("unable to remove dimension option from filter blueprint", err, logData)
 		setErrorCode(w, err)
 		return

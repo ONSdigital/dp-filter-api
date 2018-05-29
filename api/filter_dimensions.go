@@ -4,11 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
+
 	"github.com/ONSdigital/dp-filter-api/filters"
 	"github.com/ONSdigital/dp-filter-api/models"
 	"github.com/ONSdigital/go-ns/log"
 	"github.com/gorilla/mux"
-	"net/http"
 )
 
 func (api *FilterAPI) getFilterBlueprintDimensions(w http.ResponseWriter, r *http.Request) {
@@ -106,13 +107,15 @@ func (api *FilterAPI) removeFilterBlueprintDimension(w http.ResponseWriter, r *h
 		return
 	}
 
+	timestamp := filter.UniqueTimestamp
+
 	if filter.State == models.SubmittedState {
 		log.Error(errForbidden, logData)
 		setErrorCode(w, errForbidden)
 		return
 	}
 
-	if err := api.dataStore.RemoveFilterDimension(filterID, name); err != nil {
+	if err := api.dataStore.RemoveFilterDimension(filterID, name, timestamp); err != nil {
 		log.ErrorC("unable to remove dimension from filter blueprint", err, logData)
 		setErrorCode(w, err)
 		return
@@ -149,6 +152,9 @@ func (api *FilterAPI) addFilterBlueprintDimension(w http.ResponseWriter, r *http
 	}
 	logData["current_filter_blueprint"] = filterBlueprint
 
+	timestamp := filterBlueprint.UniqueTimestamp
+	logData["current_filter_timestamp"] = timestamp
+
 	if filterBlueprint.State == models.SubmittedState {
 		log.Error(errForbidden, logData)
 		setErrorCode(w, errForbidden)
@@ -165,7 +171,7 @@ func (api *FilterAPI) addFilterBlueprintDimension(w http.ResponseWriter, r *http
 		return
 	}
 
-	if err = api.dataStore.AddFilterDimension(filterID, name, options, filterBlueprint.Dimensions); err != nil {
+	if err = api.dataStore.AddFilterDimension(filterID, name, options, filterBlueprint.Dimensions, timestamp); err != nil {
 		log.ErrorC("failed to add dimension to filter blueprint", err, logData)
 		setErrorCode(w, err)
 		return

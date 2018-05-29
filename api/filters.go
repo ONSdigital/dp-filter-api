@@ -3,21 +3,23 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"net/http"
+
 	"github.com/ONSdigital/dp-filter-api/models"
 	"github.com/ONSdigital/go-ns/log"
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
-	"net/http"
 
 	"fmt"
 
 	"strconv"
 
+	"regexp"
+
 	"github.com/ONSdigital/dp-filter-api/filters"
 	"github.com/ONSdigital/go-ns/common"
 	"github.com/ONSdigital/go-ns/handlers/requestID"
 	"github.com/satori/go.uuid"
-	"regexp"
 )
 
 var (
@@ -316,6 +318,8 @@ func (api *FilterAPI) updateFilterBlueprint(ctx context.Context, filter *models.
 		return nil, err
 	}
 
+	timestamp := currentFilter.UniqueTimestamp
+
 	logData["current_filter"] = currentFilter
 
 	newFilter, versionHasChanged := createNewFilter(filter, currentFilter)
@@ -346,6 +350,8 @@ func (api *FilterAPI) updateFilterBlueprint(ctx context.Context, filter *models.
 			return nil, filters.NewBadRequestErr(err.Error())
 		}
 	}
+
+	newFilter.UniqueTimestamp = timestamp
 
 	err = api.dataStore.UpdateFilter(newFilter)
 	if err != nil {
@@ -532,6 +538,10 @@ func setErrorCode(w http.ResponseWriter, err error, typ ...string) {
 	case filters.ErrBadRequest:
 		http.Error(w, badRequest, http.StatusBadRequest)
 		return
+	case filters.ErrFilterBlueprintConflict:
+		fallthrough
+	case filters.ErrFilterOutputConflict:
+		http.Error(w, err.Error(), http.StatusConflict)
 
 	default:
 

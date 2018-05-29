@@ -87,6 +87,8 @@ func (api *FilterAPI) updateFilterOutput(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	timestamp := previousFilterOutput.UniqueTimestamp
+
 	if err = filterOutput.ValidateFilterOutputUpdate(previousFilterOutput); err != nil {
 		log.ErrorC("filter output failed validation", err, logData)
 		http.Error(w, err.Error(), http.StatusForbidden)
@@ -102,6 +104,7 @@ func (api *FilterAPI) updateFilterOutput(w http.ResponseWriter, r *http.Request)
 	}
 
 	filterOutputUpdate := buildDownloadsObject(previousFilterOutput, filterOutput, api.downloadServiceURL)
+	filterOutputUpdate.UniqueTimestamp = timestamp
 
 	if err = api.dataStore.UpdateFilterOutput(filterOutputUpdate); err != nil {
 		log.ErrorC("unable to update filter blueprint", err, logData)

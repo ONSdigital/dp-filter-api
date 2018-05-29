@@ -41,6 +41,9 @@ func (s *FilterStore) AddFilter(host string, filter *models.Filter) (*models.Fil
 	session := s.Session.Copy()
 	defer session.Close()
 
+	// Initialise with a timestamp
+	filter.UniqueTimestamp = 1
+
 	if err := session.DB(s.db).C(s.filtersCollection).Insert(filter); err != nil {
 		return nil, err
 	}
@@ -75,10 +78,10 @@ func (s *FilterStore) UpdateFilter(updatedFilter *models.Filter) error {
 
 	update := mongolib.WithUpdates(createUpdateFilterBlueprint(updatedFilter, time.Now()))
 
-	selector := bson.M{"filter_id": updatedFilter.FilterID}
+	selector := bson.M{"filter_id": updatedFilter.FilterID, "unique_timestamp": updatedFilter.UniqueTimestamp}
 	if err := session.DB(s.db).C(s.filtersCollection).Update(selector, update); err != nil {
 		if err == mgo.ErrNotFound {
-			return filters.ErrFilterBlueprintNotFound
+			return filters.ErrFilterBlueprintConflict
 		}
 		return err
 	}
@@ -106,7 +109,7 @@ func (s *FilterStore) GetFilterDimension(filterID string, name string) error {
 }
 
 // AddFilterDimension to a filter
-func (s *FilterStore) AddFilterDimension(filterID, name string, options []string, dimensions []models.Dimension) error {
+func (s *FilterStore) AddFilterDimension(filterID, name string, options []string, dimensions []models.Dimension, timestamp bson.MongoTimestamp) error {
 	session := s.Session.Copy()
 	defer session.Close()
 
@@ -127,12 +130,12 @@ func (s *FilterStore) AddFilterDimension(filterID, name string, options []string
 		list = append(list, d)
 	}
 
-	queryFilter := bson.M{"filter_id": filterID}
+	queryFilter := bson.M{"filter_id": filterID, "unique_timestamp": timestamp}
 	update := mongolib.WithUpdates(bson.M{"$set": bson.M{"dimensions": list}})
 
 	if err := session.DB(s.db).C(s.filtersCollection).Update(queryFilter, update); err != nil {
 		if err == mgo.ErrNotFound {
-			return filters.ErrFilterBlueprintNotFound
+			return filters.ErrFilterBlueprintConflict
 		}
 		return err
 	}
@@ -141,17 +144,17 @@ func (s *FilterStore) AddFilterDimension(filterID, name string, options []string
 }
 
 // RemoveFilterDimension from a filter
-func (s *FilterStore) RemoveFilterDimension(filterID, name string) error {
+func (s *FilterStore) RemoveFilterDimension(filterID, name string, timestamp bson.MongoTimestamp) error {
 	session := s.Session.Copy()
 	defer session.Close()
 
-	queryFilter := bson.M{"filter_id": filterID}
+	queryFilter := bson.M{"filter_id": filterID, "unique_timestamp": timestamp}
 	update := mongolib.WithUpdates(bson.M{"$pull": bson.M{"dimensions": bson.M{"name": name}}})
 
 	info, err := session.DB(s.db).C(s.filtersCollection).UpdateAll(queryFilter, update)
 	if err != nil {
 		if err == mgo.ErrNotFound {
-			return filters.ErrFilterBlueprintNotFound
+			return filters.ErrFilterBlueprintConflict
 		}
 		return err
 	}
@@ -164,16 +167,16 @@ func (s *FilterStore) RemoveFilterDimension(filterID, name string) error {
 }
 
 // AddFilterDimensionOption to a filter
-func (s *FilterStore) AddFilterDimensionOption(filterID, name, option string) error {
+func (s *FilterStore) AddFilterDimensionOption(filterID, name, option string, timestamp bson.MongoTimestamp) error {
 	session := s.Session.Copy()
 	defer session.Close()
 
-	queryOptions := bson.M{"filter_id": filterID, "dimensions": bson.M{"$elemMatch": bson.M{"name": name}}}
+	queryOptions := bson.M{"filter_id": filterID, "unique_timestamp": timestamp, "dimensions": bson.M{"$elemMatch": bson.M{"name": name}}}
 	update := mongolib.WithUpdates(bson.M{"$addToSet": bson.M{"dimensions.$.options": option}})
 
 	if err := session.DB(s.db).C(s.filtersCollection).Update(queryOptions, update); err != nil {
 		if err == mgo.ErrNotFound {
-			return filters.ErrDimensionNotFound
+			return filters.ErrFilterBlueprintConflict
 		}
 		return err
 	}
@@ -182,17 +185,17 @@ func (s *FilterStore) AddFilterDimensionOption(filterID, name, option string) er
 }
 
 // RemoveFilterDimensionOption from a filter
-func (s *FilterStore) RemoveFilterDimensionOption(filterID string, name string, option string) error {
+func (s *FilterStore) RemoveFilterDimensionOption(filterID string, name string, option string, timestamp bson.MongoTimestamp) error {
 	session := s.Session.Copy()
 	defer session.Close()
 
-	queryOptions := bson.M{"filter_id": filterID, "dimensions": bson.M{"$elemMatch": bson.M{"name": name}}}
+	queryOptions := bson.M{"filter_id": filterID, "unique_timestamp": timestamp, "dimensions": bson.M{"$elemMatch": bson.M{"name": name}}}
 	update := mongolib.WithUpdates(bson.M{"$pull": bson.M{"dimensions.$.options": option}})
 
 	info, err := session.DB(s.db).C(s.filtersCollection).UpdateAll(queryOptions, update)
 	if err != nil {
 		if err == mgo.ErrNotFound {
-			return filters.ErrOptionNotFound
+			return filters.ErrFilterBlueprintConflict
 		}
 		return err
 	}
@@ -239,8 +242,15 @@ func (s *FilterStore) UpdateFilterOutput(filter *models.Filter) error {
 
 	update := mongolib.WithUpdates(createUpdateFilterOutput(filter, time.Now()))
 
-	return session.DB(s.db).C(s.outputsCollection).
-		Update(bson.M{"filter_id": filter.FilterID}, update)
+	var err error
+	if err = session.DB(s.db).C(s.outputsCollection).
+		Update(bson.M{"filter_id": filter.FilterID, "unique_timestamp": filter.UniqueTimestamp}, update); err != nil {
+		if err == mgo.ErrNotFound {
+			return filters.ErrFilterOutputConflict
+		}
+	}
+
+	return err
 }
 
 func createUpdateFilterBlueprint(filter *models.Filter, currentTime time.Time) bson.M {

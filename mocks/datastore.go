@@ -5,6 +5,7 @@ import (
 
 	"github.com/ONSdigital/dp-filter-api/filters"
 	"github.com/ONSdigital/dp-filter-api/models"
+	"gopkg.in/mgo.v2/bson"
 )
 
 // A list of errors that can be returned by mock package
@@ -35,7 +36,7 @@ func (ds *DataStore) AddFilter(host string, filterJob *models.Filter) (*models.F
 }
 
 // AddFilterDimension represents the mocked version of creating a filter dimension to the datastore
-func (ds *DataStore) AddFilterDimension(filterID, name string, options []string, dimensions []models.Dimension) error {
+func (ds *DataStore) AddFilterDimension(filterID, name string, options []string, dimensions []models.Dimension, timestamp bson.MongoTimestamp) error {
 	if ds.InternalError {
 		return errorInternalServer
 	}
@@ -48,7 +49,7 @@ func (ds *DataStore) AddFilterDimension(filterID, name string, options []string,
 }
 
 // AddFilterDimensionOption represents the mocked version of creating a filter dimension option to the datastore
-func (ds *DataStore) AddFilterDimensionOption(filterID, name, option string) error {
+func (ds *DataStore) AddFilterDimensionOption(filterID, name, option string, timestamp bson.MongoTimestamp) error {
 	if ds.InternalError {
 		return errorInternalServer
 	}
@@ -149,7 +150,7 @@ func (ds *DataStore) GetFilterOutput(filterID string) (*models.Filter, error) {
 }
 
 // RemoveFilterDimension represents the mocked version of removing a filter dimension from the datastore
-func (ds *DataStore) RemoveFilterDimension(string, string) error {
+func (ds *DataStore) RemoveFilterDimension(string, string, bson.MongoTimestamp) error {
 	if ds.InternalError {
 		return errorInternalServer
 	}
@@ -162,7 +163,7 @@ func (ds *DataStore) RemoveFilterDimension(string, string) error {
 }
 
 // RemoveFilterDimensionOption represents the mocked version of removing a filter dimension option from the datastore
-func (ds *DataStore) RemoveFilterDimensionOption(filterJobID, name, option string) error {
+func (ds *DataStore) RemoveFilterDimensionOption(filterJobID, name, option string, timestamp bson.MongoTimestamp) error {
 	if ds.InternalError {
 		return errorInternalServer
 	}
