@@ -1,13 +1,15 @@
 package api
 
 import (
-	"github.com/ONSdigital/dp-filter-api/mocks"
-	"github.com/gorilla/mux"
-	. "github.com/smartystreets/goconvey/convey"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/ONSdigital/dp-filter-api/filters"
+	"github.com/ONSdigital/dp-filter-api/mocks"
+	"github.com/gorilla/mux"
+	. "github.com/smartystreets/goconvey/convey"
 )
 
 func TestSuccessfulGetFilterBlueprintDimensions(t *testing.T) {
@@ -192,6 +194,20 @@ func TestFailedToAddFilterBlueprintDimension(t *testing.T) {
 		response := w.Body.String()
 		So(response, ShouldResemble, "incorrect dimension options chosen: [22]\n")
 	})
+
+	Convey("When the filter document has been modified by an external source, a conflict request status is returned", t, func() {
+		reader := strings.NewReader("")
+		r, err := http.NewRequest("POST", "http://localhost:22100/filters/12345678/dimensions/age", reader)
+		So(err, ShouldBeNil)
+
+		w := httptest.NewRecorder()
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{ConflictRequest: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, getMockAuditor())
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusConflict)
+
+		response := w.Body.String()
+		So(response, ShouldResemble, filters.ErrFilterBlueprintConflict.Error()+"\n")
+	})
 }
 
 func TestSuccessfulGetFilterBlueprintDimension(t *testing.T) {
@@ -342,5 +358,18 @@ func TestFailedToRemoveFilterBlueprintDimension(t *testing.T) {
 		api := routes(host, mux.NewRouter(), &mocks.DataStore{DimensionNotFound: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, getMockAuditor())
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusOK)
+	})
+
+	Convey("When the filter document has been modified by an external source, a conflict request status is returned", t, func() {
+		r, err := http.NewRequest("DELETE", "http://localhost:22100/filters/12345678/dimensions/1_age", nil)
+		So(err, ShouldBeNil)
+
+		w := httptest.NewRecorder()
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{ConflictRequest: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, getMockAuditor())
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusConflict)
+
+		response := w.Body.String()
+		So(response, ShouldResemble, filters.ErrFilterBlueprintConflict.Error()+"\n")
 	})
 }

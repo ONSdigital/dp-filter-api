@@ -321,6 +321,7 @@ func (api *FilterAPI) updateFilterBlueprint(ctx context.Context, filter *models.
 	}
 
 	timestamp := currentFilter.UniqueTimestamp
+	logData["current_filter_timestamp"] = timestamp
 
 	logData["current_filter"] = currentFilter
 
@@ -578,7 +579,7 @@ func setErrorCode(w http.ResponseWriter, err error, typ ...string) {
 		http.Error(w, badRequest, http.StatusBadRequest)
 		return
 	case filters.ErrFilterBlueprintConflict:
-		fallthrough
+		http.Error(w, err.Error(), http.StatusConflict)
 	case filters.ErrFilterOutputConflict:
 		http.Error(w, err.Error(), http.StatusConflict)
 	case filters.ErrInternalError:

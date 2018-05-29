@@ -147,6 +147,7 @@ func (api *FilterAPI) updateFilterOutput(ctx context.Context, filterOutputID str
 	}
 
 	timestamp := previousFilterOutput.UniqueTimestamp
+	logData["current_filter_timestamp"] = timestamp
 
 	if err = filterOutput.ValidateFilterOutputUpdate(previousFilterOutput); err != nil {
 		log.ErrorC("filter output failed validation", err, logData)

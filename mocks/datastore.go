@@ -25,6 +25,7 @@ type DataStore struct {
 	Unpublished            bool
 	MissingPublicLinks     bool
 	BadRequest             bool
+	ConflictRequest        bool
 }
 
 // AddFilter represents the mocked version of creating a filter blueprint to the datastore
@@ -45,6 +46,10 @@ func (ds *DataStore) AddFilterDimension(filterID, name string, options []string,
 		return filters.ErrFilterBlueprintNotFound
 	}
 
+	if ds.ConflictRequest {
+		return filters.ErrFilterBlueprintConflict
+	}
+
 	return nil
 }
 
@@ -56,6 +61,10 @@ func (ds *DataStore) AddFilterDimensionOption(filterID, name, option string, tim
 
 	if ds.NotFound {
 		return filters.ErrFilterBlueprintNotFound
+	}
+
+	if ds.ConflictRequest {
+		return filters.ErrFilterBlueprintConflict
 	}
 
 	return nil
@@ -159,6 +168,10 @@ func (ds *DataStore) RemoveFilterDimension(string, string, bson.MongoTimestamp) 
 		return filters.ErrFilterBlueprintNotFound
 	}
 
+	if ds.ConflictRequest {
+		return filters.ErrFilterBlueprintConflict
+	}
+
 	return nil
 }
 
@@ -170,6 +183,10 @@ func (ds *DataStore) RemoveFilterDimensionOption(filterJobID, name, option strin
 
 	if ds.DimensionNotFound {
 		return filters.ErrDimensionNotFound
+	}
+
+	if ds.ConflictRequest {
+		return filters.ErrFilterBlueprintConflict
 	}
 
 	return nil
@@ -188,6 +205,11 @@ func (ds *DataStore) UpdateFilter(filterJob *models.Filter) error {
 	if ds.VersionNotFound {
 		return filters.ErrVersionNotFound
 	}
+
+	if ds.ConflictRequest {
+		return filters.ErrFilterBlueprintConflict
+	}
+
 	return nil
 }
 
@@ -199,6 +221,10 @@ func (ds *DataStore) UpdateFilterOutput(filterJob *models.Filter) error {
 
 	if ds.NotFound {
 		return filters.ErrFilterBlueprintNotFound
+	}
+
+	if ds.ConflictRequest {
+		return filters.ErrFilterOutputConflict
 	}
 
 	return nil

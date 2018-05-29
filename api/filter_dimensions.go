@@ -108,6 +108,7 @@ func (api *FilterAPI) removeFilterBlueprintDimension(w http.ResponseWriter, r *h
 	}
 
 	timestamp := filter.UniqueTimestamp
+	logData["current_filter_timestamp"] = timestamp
 
 	if filter.State == models.SubmittedState {
 		log.Error(errForbidden, logData)

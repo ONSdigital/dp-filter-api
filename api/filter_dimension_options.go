@@ -147,6 +147,7 @@ func (api *FilterAPI) addFilterBlueprintDimensionOption(w http.ResponseWriter, r
 	}
 
 	timestamp := filterBlueprint.UniqueTimestamp
+	logData["current_filter_timestamp"] = timestamp
 
 	if filterBlueprint.State == models.SubmittedState {
 		log.Error(errForbidden, logData)
@@ -219,6 +220,7 @@ func (api *FilterAPI) removeFilterBlueprintDimensionOption(w http.ResponseWriter
 	}
 
 	timestamp := filterBlueprint.UniqueTimestamp
+	logData["current_filter_timestamp"] = timestamp
 
 	// Check if dimension exists
 	var hasDimension bool
