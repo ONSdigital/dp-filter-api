@@ -90,7 +90,7 @@ func (api *FilterAPI) getFilterBlueprintDimensionOptionHandler(w http.ResponseWr
 	}
 	log.Info("get filter blueprint dimension option", logData)
 
-	filter, err := api.getFilterBlueprint(r.Context(), filterID)
+	err := api.getFilterBlueprintDimensionOption(r.Context(), filterID, name, option)
 	if err != nil {
 		log.ErrorC("unable to get dimension option for filter blueprint", err, logData)
 		switch err {
@@ -102,46 +102,20 @@ func (api *FilterAPI) getFilterBlueprintDimensionOptionHandler(w http.ResponseWr
 		return
 	}
 
-	dimensionFound := false
-	optionFound := false
-	for _, d := range filter.Dimensions {
-		if d.Name == name {
-			dimensionFound = true
-			for _, o := range d.Options {
-				if o == option {
-					optionFound = true
-				}
-			}
-		}
-	}
-
-	if !dimensionFound {
-		log.Error(filters.ErrDimensionNotFound, logData)
-		setErrorCode(w, filters.ErrDimensionNotFound)
-		return
-	}
-
-	if !optionFound {
-		log.Error(filters.ErrOptionNotFound, logData)
-		setErrorCode(w, filters.ErrOptionNotFound)
-		return
-	}
-
 	setJSONContentType(w)
 	w.WriteHeader(http.StatusNoContent)
 
 	log.Info("got dimension option for filter blueprint", logData)
 }
 
-func (api *FilterAPI) getFilterBlueprintDimensionOption(ctx context.Context, filterBlueprintID, dimensionName, option string) (optionFound bool, err error) {
-
-	optionFound = false
+func (api *FilterAPI) getFilterBlueprintDimensionOption(ctx context.Context, filterBlueprintID, dimensionName, option string) (error) {
 
 	filter, err := api.getFilterBlueprint(ctx, filterBlueprintID)
 	if err != nil {
-		return optionFound, err
+		return err
 	}
 
+	optionFound := false
 	dimensionFound := false
 	for _, d := range filter.Dimensions {
 		if d.Name == dimensionName {
@@ -155,15 +129,14 @@ func (api *FilterAPI) getFilterBlueprintDimensionOption(ctx context.Context, fil
 	}
 
 	if !dimensionFound {
-		return optionFound, filters.ErrDimensionNotFound
+		return filters.ErrDimensionNotFound
 	}
 
 	if !optionFound {
-		return optionFound, filters.ErrOptionNotFound
+		return filters.ErrOptionNotFound
 	}
 
-	optionFound = true
-	return
+	return nil
 }
 
 func (api *FilterAPI) addFilterBlueprintDimensionOptionHandler(w http.ResponseWriter, r *http.Request) {
@@ -173,54 +146,17 @@ func (api *FilterAPI) addFilterBlueprintDimensionOptionHandler(w http.ResponseWr
 	option := vars["option"]
 	logData := log.Data{"filter_id": filterID, "dimension_name": name, "dimension_option": option}
 
-	filterBlueprint, err := api.getFilterBlueprint(r.Context(), filterID)
+	err := api.addFilterBlueprintDimensionOption(r.Context(), filterID, name, option)
 	if err != nil {
 		log.Error(err, logData)
 		switch err {
 		case filters.ErrFilterBlueprintNotFound:
 			setErrorCode(w, err, statusBadRequest)
+		case filters.ErrVersionNotFound:
+			setErrorCode(w, err, statusUnprocessableEntity)
 		default:
 			setErrorCode(w, err)
 		}
-		return
-	}
-
-	if filterBlueprint.State == models.SubmittedState {
-		log.Error(errForbidden, logData)
-		setErrorCode(w, errForbidden, filterBlueprint.State)
-		return
-	}
-
-	// FIXME - Once dataset API has an endpoint to check single option exists,
-	// refactor code below instead of creating an AddDimension object from the
-	// AddDimensionOption object (to be able to use checkNewFilterDimension method)
-	if err = api.checkNewFilterDimension(r.Context(), name, []string{option}, *filterBlueprint.Dataset); err != nil {
-		if err == filters.ErrVersionNotFound {
-			log.ErrorC("failed to select valid version", err, logData)
-			setErrorCode(w, err, statusUnprocessableEntity)
-			return
-		}
-
-		if incorrectDimensionOptions.MatchString(err.Error()) {
-			log.ErrorC("failed to select valid filter dimension options", err, logData)
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
-
-		if incorrectDimension.MatchString(err.Error()) {
-			log.ErrorC("failed to select valid filter dimension", err, logData)
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
-
-		log.ErrorC("failed to successfully check filter dimensions", err, logData)
-		setErrorCode(w, err)
-		return
-	}
-
-	if err := api.dataStore.AddFilterDimensionOption(filterID, name, option); err != nil {
-		log.ErrorC("failed to add dimension option to filter blueprint", err, logData)
-		setErrorCode(w, err)
 		return
 	}
 
@@ -228,6 +164,39 @@ func (api *FilterAPI) addFilterBlueprintDimensionOptionHandler(w http.ResponseWr
 	w.WriteHeader(http.StatusCreated)
 
 	log.Info("created new dimension option for filter blueprint", logData)
+}
+
+func (api *FilterAPI) addFilterBlueprintDimensionOption(ctx context.Context, filterBlueprintID, dimensionName, option string) (error) {
+
+	filterBlueprint, err := api.getFilterBlueprint(ctx, filterBlueprintID)
+	if err != nil {
+		return err
+	}
+
+	if filterBlueprint.State == models.SubmittedState {
+		return err
+	}
+
+	// FIXME - Once dataset API has an endpoint to check single option exists,
+	// refactor code below instead of creating an AddDimension object from the
+	// AddDimensionOption object (to be able to use checkNewFilterDimension method)
+	if err = api.checkNewFilterDimension(ctx, dimensionName, []string{option}, *filterBlueprint.Dataset); err != nil {
+		if incorrectDimensionOptions.MatchString(err.Error()) {
+			return filters.NewBadRequestErr(err.Error())
+		}
+
+		if incorrectDimension.MatchString(err.Error()) {
+			return filters.NewBadRequestErr(err.Error())
+		}
+
+		return err
+	}
+
+	if err := api.dataStore.AddFilterDimensionOption(filterBlueprintID, dimensionName, option); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (api *FilterAPI) removeFilterBlueprintDimensionOptionHandler(w http.ResponseWriter, r *http.Request) {
@@ -243,42 +212,18 @@ func (api *FilterAPI) removeFilterBlueprintDimensionOptionHandler(w http.Respons
 	}
 	log.Info("remove filter blueprint dimension option", logData)
 
-	filterBlueprint, err := api.getFilterBlueprint(r.Context(), filterID)
+
+	err := api.removeFilterBlueprintDimensionOption(r.Context(), filterID, name, option)
 	if err != nil {
 		log.Error(err, logData)
 		switch err {
 		case filters.ErrFilterBlueprintNotFound:
 			setErrorCode(w, err, statusBadRequest)
+		case filters.ErrVersionNotFound:
+			setErrorCode(w, err, statusUnprocessableEntity)
 		default:
 			setErrorCode(w, err)
 		}
-		return
-	}
-
-	// Check if dimension exists
-	var hasDimension bool
-	for _, dimension := range filterBlueprint.Dimensions {
-		if dimension.Name == name {
-			hasDimension = true
-			break
-		}
-	}
-
-	if !hasDimension {
-		log.Error(filters.ErrDimensionNotFound, logData)
-		setErrorCode(w, filters.ErrDimensionNotFound)
-		return
-	}
-
-	if filterBlueprint.State == models.SubmittedState {
-		log.Error(errForbidden, logData)
-		setErrorCode(w, errForbidden)
-		return
-	}
-
-	if err = api.dataStore.RemoveFilterDimensionOption(filterID, name, option); err != nil {
-		log.ErrorC("unable to remove dimension option from filter blueprint", err, logData)
-		setErrorCode(w, err)
 		return
 	}
 
@@ -286,4 +231,35 @@ func (api *FilterAPI) removeFilterBlueprintDimensionOptionHandler(w http.Respons
 	w.WriteHeader(http.StatusOK)
 
 	log.Info("delete dimension option on filter blueprint", logData)
+}
+
+func (api *FilterAPI) removeFilterBlueprintDimensionOption(ctx context.Context, filterBlueprintID, dimensionName, option string) (error) {
+
+	filterBlueprint, err := api.getFilterBlueprint(ctx, filterBlueprintID)
+	if err != nil {
+		return err
+	}
+
+	// Check if dimension exists
+	var hasDimension bool
+	for _, dimension := range filterBlueprint.Dimensions {
+		if dimension.Name == dimensionName {
+			hasDimension = true
+			break
+		}
+	}
+
+	if !hasDimension {
+		return filters.ErrDimensionNotFound
+	}
+
+	if filterBlueprint.State == models.SubmittedState {
+		return errForbidden
+	}
+
+	if err = api.dataStore.RemoveFilterDimensionOption(filterBlueprintID, dimensionName, option); err != nil {
+		return err
+	}
+
+	return nil
 }
