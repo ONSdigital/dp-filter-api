@@ -189,6 +189,18 @@
 			"revisionTime": "2017-12-21T09:34:27Z"
 		},
 		{
+			"checksumSHA1": "Tsc4M+xTb2NgaCq3y8dbIcgBJ0A=",
+			"path": "github.com/gedge/mgo",
+			"revision": "a170908eafcff6f64b9ad83db3943fe6332d52a1",
+			"revisionTime": "2018-05-23T09:46:01Z"
+		},
+		{
+			"checksumSHA1": "SAegSFbBQ3lKgxV3opxcqTPwz+o=",
+			"path": "github.com/gedge/mgo/bson",
+			"revision": "a170908eafcff6f64b9ad83db3943fe6332d52a1",
+			"revisionTime": "2018-05-23T09:46:01Z"
+		},
+		{
 			"checksumSHA1": "I6MnUzkLJt+sh73CodD0NKswFrs=",
 			"origin": "github.com/ONSdigital/go-ns/vendor/github.com/go-avro/avro",
 			"path": "github.com/go-avro/avro",
