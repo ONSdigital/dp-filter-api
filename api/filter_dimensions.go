@@ -264,6 +264,9 @@ func (api *FilterAPI) addFilterBlueprintDimension(ctx context.Context, filterBlu
 	}
 
 	if err = api.checkNewFilterDimension(ctx, dimensionName, options, *filterBlueprint.Dataset); err != nil {
+		if err == filters.ErrVersionNotFound {
+			return err
+		}
 		return filters.NewBadRequestErr(err.Error())
 	}
 
