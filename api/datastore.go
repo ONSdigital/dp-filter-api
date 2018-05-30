@@ -2,7 +2,7 @@ package api
 
 import (
 	"github.com/ONSdigital/dp-filter-api/models"
-	"gopkg.in/mgo.v2/bson"
+	"github.com/gedge/mgo/bson"
 )
 
 //go:generate moq -out datastoretest/datastore.go -pkg datastoretest . DataStore

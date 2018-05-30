@@ -6,8 +6,9 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"time"
 
-	mongolib "github.com/ONSdigital/go-ns/mongo"
+	"github.com/gedge/mgo/bson"
 )
 
 // A list of states
@@ -37,7 +38,8 @@ type NewFilter struct {
 
 // Filter represents a structure for a filter job
 type Filter struct {
-	mongolib.Timestamps `bson:",inline"`
+	UniqueTimestamp bson.MongoTimestamp `bson:"unique_timestamp,omitempty" json:"-"`
+	LastUpdated     time.Time           `bson:"last_updated"         json:"-"`
 
 	Dataset    *Dataset    `bson:"dataset"              json:"dataset"`
 	InstanceID string      `bson:"instance_id"          json:"instance_id"`

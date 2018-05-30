@@ -5,7 +5,7 @@ import (
 
 	"github.com/ONSdigital/dp-filter-api/filters"
 	"github.com/ONSdigital/dp-filter-api/models"
-	"gopkg.in/mgo.v2/bson"
+	"github.com/gedge/mgo/bson"
 )
 
 // A list of errors that can be returned by mock package
@@ -26,6 +26,7 @@ type DataStore struct {
 	MissingPublicLinks     bool
 	BadRequest             bool
 	ConflictRequest        bool
+	AgeDimension           bool
 }
 
 // AddFilter represents the mocked version of creating a filter blueprint to the datastore
@@ -98,10 +99,16 @@ func (ds *DataStore) GetFilter(filterID string) (*models.Filter, error) {
 	}
 
 	if ds.Unpublished {
-		return &models.Filter{Dataset: &models.Dataset{ID: "123", Edition: "2017", Version: 1}, InstanceID: "12345678", Dimensions: []models.Dimension{{Name: "time", Options: []string{"2014", "2015"}}}}, nil
+		if ds.DimensionNotFound {
+			return &models.Filter{Dataset: &models.Dataset{ID: "123", Edition: "2017", Version: 1}, InstanceID: "12345678", Dimensions: []models.Dimension{{Name: "time", Options: []string{"2014", "2015"}}}}, nil
+		}
+		return &models.Filter{Dataset: &models.Dataset{ID: "123", Edition: "2017", Version: 1}, InstanceID: "12345678", Dimensions: []models.Dimension{{Name: "time", Options: []string{"2014", "2015"}}, {Name: "1_age"}}}, nil
 	}
 
-	return &models.Filter{Dataset: &models.Dataset{ID: "123", Edition: "2017", Version: 1}, InstanceID: "12345678", Published: &models.Published, Dimensions: []models.Dimension{{Name: "time", Options: []string{"2014", "2015"}}}}, nil
+	if ds.DimensionNotFound {
+		return &models.Filter{Dataset: &models.Dataset{ID: "123", Edition: "2017", Version: 1}, InstanceID: "12345678", Dimensions: []models.Dimension{{Name: "time", Options: []string{"2014", "2015"}}}}, nil
+	}
+	return &models.Filter{Dataset: &models.Dataset{ID: "123", Edition: "2017", Version: 1}, InstanceID: "12345678", Published: &models.Published, Dimensions: []models.Dimension{{Name: "time", Options: []string{"2014", "2015"}}, {Name: "1_age"}}}, nil
 }
 
 // GetFilterDimension represents the mocked version of getting a filter dimension from the datastore

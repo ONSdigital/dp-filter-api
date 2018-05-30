@@ -107,6 +107,19 @@ func (api *FilterAPI) removeFilterBlueprintDimension(w http.ResponseWriter, r *h
 		return
 	}
 
+	var dimensionExists bool
+	for _, dimension := range filter.Dimensions {
+		if dimension.Name == name {
+			dimensionExists = true
+			break
+		}
+	}
+	if !dimensionExists {
+		log.Error(filters.ErrDimensionNotFound, logData)
+		setErrorCode(w, filters.ErrDimensionNotFound)
+		return
+	}
+
 	timestamp := filter.UniqueTimestamp
 	logData["current_filter_timestamp"] = timestamp
 

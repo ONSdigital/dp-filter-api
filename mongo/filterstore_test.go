@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"github.com/ONSdigital/dp-filter-api/models"
+	"github.com/gedge/mgo/bson"
 	. "github.com/smartystreets/goconvey/convey"
-	"gopkg.in/mgo.v2/bson"
 )
 
 func TestCreateUpdateFilterOutput(t *testing.T) {

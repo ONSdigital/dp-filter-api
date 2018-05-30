@@ -222,11 +222,18 @@ func (api *FilterAPI) removeFilterBlueprintDimensionOption(w http.ResponseWriter
 	timestamp := filterBlueprint.UniqueTimestamp
 	logData["current_filter_timestamp"] = timestamp
 
-	// Check if dimension exists
+	// Check if dimension and option exists
 	var hasDimension bool
+	var hasOption bool
 	for _, dimension := range filterBlueprint.Dimensions {
 		if dimension.Name == name {
 			hasDimension = true
+			for _, dimOption := range dimension.Options {
+				if dimOption == option {
+					hasOption = true
+					break
+				}
+			}
 			break
 		}
 	}
@@ -234,6 +241,12 @@ func (api *FilterAPI) removeFilterBlueprintDimensionOption(w http.ResponseWriter
 	if !hasDimension {
 		log.Error(filters.ErrDimensionNotFound, logData)
 		setErrorCode(w, filters.ErrDimensionNotFound)
+		return
+	}
+
+	if !hasOption {
+		log.Error(filters.ErrOptionNotFound, logData)
+		setErrorCode(w, filters.ErrOptionNotFound)
 		return
 	}
 

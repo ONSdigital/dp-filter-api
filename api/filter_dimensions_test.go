@@ -350,16 +350,6 @@ func TestFailedToRemoveFilterBlueprintDimension(t *testing.T) {
 		So(response, ShouldResemble, filterNotFoundResponse)
 	})
 
-	Convey("When dimension does not exist against filter blueprint, the response is idempotent and returns 200 OK", t, func() {
-		r, err := http.NewRequest("DELETE", "http://localhost:22100/filters/12345678/dimensions/1_age", nil)
-		So(err, ShouldBeNil)
-
-		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{DimensionNotFound: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, getMockAuditor())
-		api.router.ServeHTTP(w, r)
-		So(w.Code, ShouldEqual, http.StatusOK)
-	})
-
 	Convey("When the filter document has been modified by an external source, a conflict request status is returned", t, func() {
 		r, err := http.NewRequest("DELETE", "http://localhost:22100/filters/12345678/dimensions/1_age", nil)
 		So(err, ShouldBeNil)
