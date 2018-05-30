@@ -9,42 +9,23 @@ import (
 
 	"fmt"
 	"github.com/ONSdigital/dp-filter-api/filters"
+	"context"
 )
 
 func (api *FilterAPI) getFilterBlueprintDimensionOptionsHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	filterID := vars["filter_blueprint_id"]
+	filterBlueprintID := vars["filter_blueprint_id"]
 	dimensionName := vars["name"]
 	logData := log.Data{
-		"filter_blueprint_id": filterID,
+		"filter_blueprint_id": filterBlueprintID,
 		"dimension":           dimensionName,
 	}
 	log.Info("get filter blueprint dimension options", logData)
 
-	filter, err := api.getFilterBlueprint(r.Context(), filterID)
+	options, err := api.getFilterBlueprintDimensionOptions(r.Context(), filterBlueprintID, dimensionName)
 	if err != nil {
-		log.ErrorC("unable to get dimension options for filter blueprint", err, logData)
+		log.ErrorC("failed to get dimension options for filter blueprint", err, logData)
 		setErrorCode(w, err)
-		return
-	}
-
-	var options []models.DimensionOption
-	dimensionFound := false
-	for _, dimension := range filter.Dimensions {
-
-		if dimension.Name == dimensionName {
-			dimensionFound = true
-			for _, option := range dimension.Options {
-				url := fmt.Sprintf("%s/filter/%s/dimensions/%s/option/%s", api.host, filterID, dimension.Name, option)
-				dimensionOption := models.DimensionOption{Option: option, DimensionOptionURL: url}
-				options = append(options, dimensionOption)
-			}
-		}
-	}
-
-	if !dimensionFound {
-		log.Error(filters.ErrDimensionNotFound, logData)
-		setErrorCode(w, filters.ErrDimensionNotFound)
 		return
 	}
 
@@ -67,6 +48,35 @@ func (api *FilterAPI) getFilterBlueprintDimensionOptionsHandler(w http.ResponseW
 	}
 
 	log.Info("got dimension options for filter blueprint", logData)
+}
+
+
+func (api *FilterAPI) getFilterBlueprintDimensionOptions(ctx context.Context, filterBlueprintID, dimensionName string) ([]models.DimensionOption, error) {
+
+	filter, err := api.getFilterBlueprint(ctx, filterBlueprintID)
+	if err != nil {
+		return nil, err
+	}
+
+	var options []models.DimensionOption
+	dimensionFound := false
+	for _, dimension := range filter.Dimensions {
+
+		if dimension.Name == dimensionName {
+			dimensionFound = true
+			for _, option := range dimension.Options {
+				url := fmt.Sprintf("%s/filter/%s/dimensions/%s/option/%s", api.host, filterBlueprintID, dimension.Name, option)
+				dimensionOption := models.DimensionOption{Option: option, DimensionOptionURL: url}
+				options = append(options, dimensionOption)
+			}
+		}
+	}
+
+	if !dimensionFound {
+		return nil, filters.ErrDimensionNotFound
+	}
+
+	return options, nil
 }
 
 func (api *FilterAPI) getFilterBlueprintDimensionOptionHandler(w http.ResponseWriter, r *http.Request) {
