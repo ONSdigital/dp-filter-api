@@ -50,7 +50,6 @@ func (api *FilterAPI) getFilterBlueprintDimensionOptionsHandler(w http.ResponseW
 	log.Info("got dimension options for filter blueprint", logData)
 }
 
-
 func (api *FilterAPI) getFilterBlueprintDimensionOptions(ctx context.Context, filterBlueprintID, dimensionName string) ([]models.DimensionOption, error) {
 
 	filter, err := api.getFilterBlueprint(ctx, filterBlueprintID)
@@ -132,6 +131,39 @@ func (api *FilterAPI) getFilterBlueprintDimensionOptionHandler(w http.ResponseWr
 	w.WriteHeader(http.StatusNoContent)
 
 	log.Info("got dimension option for filter blueprint", logData)
+}
+
+func (api *FilterAPI) getFilterBlueprintDimensionOption(ctx context.Context, filterBlueprintID, dimensionName, option string) (optionFound bool, err error) {
+
+	optionFound = false
+
+	filter, err := api.getFilterBlueprint(ctx, filterBlueprintID)
+	if err != nil {
+		return optionFound, err
+	}
+
+	dimensionFound := false
+	for _, d := range filter.Dimensions {
+		if d.Name == dimensionName {
+			dimensionFound = true
+			for _, o := range d.Options {
+				if o == option {
+					optionFound = true
+				}
+			}
+		}
+	}
+
+	if !dimensionFound {
+		return optionFound, filters.ErrDimensionNotFound
+	}
+
+	if !optionFound {
+		return optionFound, filters.ErrOptionNotFound
+	}
+
+	optionFound = true
+	return
 }
 
 func (api *FilterAPI) addFilterBlueprintDimensionOptionHandler(w http.ResponseWriter, r *http.Request) {
