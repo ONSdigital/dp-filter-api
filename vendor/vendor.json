@@ -201,6 +201,24 @@
 			"revisionTime": "2018-05-23T09:46:01Z"
 		},
 		{
+			"checksumSHA1": "+soDoin5Apt/Dyk73uC1trzHx5M=",
+			"path": "github.com/gedge/mgo/internal/json",
+			"revision": "a170908eafcff6f64b9ad83db3943fe6332d52a1",
+			"revisionTime": "2018-05-23T09:46:01Z"
+		},
+		{
+			"checksumSHA1": "PZU+CtYXLjDXogLC2nNePsLBlkU=",
+			"path": "github.com/gedge/mgo/internal/sasl",
+			"revision": "a170908eafcff6f64b9ad83db3943fe6332d52a1",
+			"revisionTime": "2018-05-23T09:46:01Z"
+		},
+		{
+			"checksumSHA1": "Uoi1jh9qrlyApl2Q5JgW7OW9wy4=",
+			"path": "github.com/gedge/mgo/internal/scram",
+			"revision": "a170908eafcff6f64b9ad83db3943fe6332d52a1",
+			"revisionTime": "2018-05-23T09:46:01Z"
+		},
+		{
 			"checksumSHA1": "I6MnUzkLJt+sh73CodD0NKswFrs=",
 			"origin": "github.com/ONSdigital/go-ns/vendor/github.com/go-avro/avro",
 			"path": "github.com/go-avro/avro",
