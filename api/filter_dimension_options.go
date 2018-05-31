@@ -226,7 +226,6 @@ func (api *FilterAPI) addFilterBlueprintDimensionOptionHandler(w http.ResponseWr
 
 	if auditErr := api.auditor.Record(r.Context(), addOptionAction, actionSuccessful, auditParams); auditErr != nil {
 		logAuditFailure(r.Context(), addOptionAction, actionSuccessful, auditErr, logData)
-		return
 	}
 
 	setJSONContentType(w)
@@ -311,7 +310,6 @@ func (api *FilterAPI) removeFilterBlueprintDimensionOptionHandler(w http.Respons
 
 	if auditErr := api.auditor.Record(r.Context(), removeOptionAction, actionSuccessful, auditParams); auditErr != nil {
 		logAuditFailure(r.Context(), removeOptionAction, actionSuccessful, auditErr, logData)
-		return
 	}
 
 	setJSONContentType(w)

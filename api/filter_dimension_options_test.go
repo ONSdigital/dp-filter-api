@@ -215,8 +215,8 @@ func TestFailedToAddFilterBlueprintDimensionOption_AuditFailure(t *testing.T) {
 				assertAuditCalled(mockAuditor, addOptionAction, actionSuccessful, expectedAuditParams)
 			})
 
-			Convey("Then the response is 200 OK", func() {
-				So(w.Code, ShouldEqual, http.StatusOK)
+			Convey("Then the response is 201 Created", func() {
+				So(w.Code, ShouldEqual, http.StatusCreated)
 			})
 		})
 	})
