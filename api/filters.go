@@ -602,8 +602,8 @@ func logAuditFailure(ctx context.Context, auditAction, auditResult string, err e
 		logData = log.Data{}
 	}
 
-	logData["auditAction"] = auditAction
-	logData["auditResult"] = auditResult
+	logData["audit_action"] = auditAction
+	logData["audit_result"] = auditResult
 
 	if user := common.User(ctx); user != "" {
 		logData["user"] = user
