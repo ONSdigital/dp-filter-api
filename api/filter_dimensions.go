@@ -141,6 +141,8 @@ func (api *FilterAPI) addFilterBlueprintDimension(w http.ResponseWriter, r *http
 		return
 	}
 
+	options = removeDuplicates(options)
+
 	filterBlueprint, err := api.getFilterBlueprint(r.Context(), filterID)
 	if err != nil {
 		log.Error(err, logData)
@@ -220,4 +222,18 @@ func (api *FilterAPI) checkNewFilterDimension(ctx context.Context, name string, 
 	}
 
 	return nil
+}
+
+func removeDuplicates(elements []string) []string {
+	encountered := map[string]bool{}
+	result := []string{}
+
+	for v := range elements {
+		if !encountered[elements[v]] {
+			encountered[elements[v]] = true
+			result = append(result, elements[v])
+		}
+	}
+
+	return result
 }
