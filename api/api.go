@@ -70,7 +70,7 @@ func CreateFilterAPI(host, bindAddr, zebedeeURL string,
 	}
 
 	alice := middlewareChain.Then(router)
-	httpServer := server.New(bindAddr, alice)
+	httpServer = server.New(bindAddr, alice)
 
 	// Disable this here to allow main to manage graceful shutdown of the entire app.
 	httpServer.HandleOSSignals = false
