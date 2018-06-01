@@ -218,6 +218,8 @@ func (api *FilterAPI) addFilterBlueprintDimensionOptionHandler(w http.ResponseWr
 		switch err {
 		case filters.ErrFilterBlueprintNotFound:
 			setErrorCode(w, err, statusBadRequest)
+		case filters.ErrDimensionsNotFound:
+			fallthrough
 		case filters.ErrVersionNotFound:
 			setErrorCode(w, err, statusUnprocessableEntity)
 		default:
