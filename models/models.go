@@ -14,7 +14,6 @@ import (
 // A list of states
 const (
 	CreatedState   = "created"
-	SubmittedState = "submitted"
 	CompletedState = "completed"
 )
 

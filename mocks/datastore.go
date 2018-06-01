@@ -200,7 +200,7 @@ func (ds *DataStore) RemoveFilterDimensionOption(filterJobID, name, option strin
 }
 
 // UpdateFilter represents the mocked version of updating a filter blueprint from the datastore
-func (ds *DataStore) UpdateFilter(filterJob *models.Filter) error {
+func (ds *DataStore) UpdateFilter(filterJob *models.Filter, timestamp bson.MongoTimestamp) error {
 	if ds.InternalError {
 		return errorInternalServer
 	}
@@ -221,7 +221,7 @@ func (ds *DataStore) UpdateFilter(filterJob *models.Filter) error {
 }
 
 // UpdateFilterOutput represents the mocked version of updating a filter output from the datastore
-func (ds *DataStore) UpdateFilterOutput(filterJob *models.Filter) error {
+func (ds *DataStore) UpdateFilterOutput(filterJob *models.Filter, timestamp bson.MongoTimestamp) error {
 	if ds.InternalError {
 		return errorInternalServer
 	}

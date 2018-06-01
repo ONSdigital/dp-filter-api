@@ -123,12 +123,6 @@ func (api *FilterAPI) removeFilterBlueprintDimension(w http.ResponseWriter, r *h
 	timestamp := filter.UniqueTimestamp
 	logData["current_filter_timestamp"] = timestamp
 
-	if filter.State == models.SubmittedState {
-		log.Error(errForbidden, logData)
-		setErrorCode(w, errForbidden)
-		return
-	}
-
 	if err := api.dataStore.RemoveFilterDimension(filterID, name, timestamp); err != nil {
 		log.ErrorC("unable to remove dimension from filter blueprint", err, logData)
 		setErrorCode(w, err)
@@ -168,12 +162,6 @@ func (api *FilterAPI) addFilterBlueprintDimension(w http.ResponseWriter, r *http
 
 	timestamp := filterBlueprint.UniqueTimestamp
 	logData["current_filter_timestamp"] = timestamp
-
-	if filterBlueprint.State == models.SubmittedState {
-		log.Error(errForbidden, logData)
-		setErrorCode(w, errForbidden)
-		return
-	}
 
 	if err = api.checkNewFilterDimension(r.Context(), name, options, *filterBlueprint.Dataset); err != nil {
 		log.ErrorC("unable to get filter blueprint", err, logData)

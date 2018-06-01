@@ -354,9 +354,7 @@ func (api *FilterAPI) updateFilterBlueprint(ctx context.Context, filter *models.
 		}
 	}
 
-	newFilter.UniqueTimestamp = timestamp
-
-	err = api.dataStore.UpdateFilter(newFilter)
+	err = api.dataStore.UpdateFilter(newFilter, timestamp)
 	if err != nil {
 		log.ErrorC("unable to update filter blueprint", err, logData)
 		return nil, err
@@ -409,7 +407,7 @@ func (api *FilterAPI) getFilterBlueprint(ctx context.Context, filterID string) (
 	//version has been published since filter was last requested, so update filter and return
 	if version.State == publishedState {
 		filter.Published = &models.Published
-		if err := api.dataStore.UpdateFilter(filter); err != nil {
+		if err := api.dataStore.UpdateFilter(filter, filter.UniqueTimestamp); err != nil {
 			log.Error(err, logData)
 			return nil, filters.ErrFilterBlueprintNotFound
 		}

@@ -114,7 +114,7 @@ func TestFailedToAddFilterBlueprintDimensionOption(t *testing.T) {
 		So(w.Code, ShouldEqual, http.StatusConflict)
 
 		response := w.Body.String()
-		So(response, ShouldResemble, filters.ErrFilterBlueprintConflict.Error()+"\n")
+		So(response, ShouldContainSubstring, filters.ErrFilterBlueprintConflict.Error())
 	})
 }
 
@@ -204,7 +204,7 @@ func TestFailedToRemoveFilterBlueprintDimensionOption(t *testing.T) {
 		So(w.Code, ShouldEqual, http.StatusConflict)
 
 		response := w.Body.String()
-		So(response, ShouldResemble, filters.ErrFilterBlueprintConflict.Error()+"\n")
+		So(response, ShouldContainSubstring, filters.ErrFilterBlueprintConflict.Error())
 	})
 }
 

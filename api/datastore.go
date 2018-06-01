@@ -18,6 +18,6 @@ type DataStore interface {
 	GetFilterOutput(filterOutputID string) (*models.Filter, error)
 	RemoveFilterDimension(filterID string, name string, timestamp bson.MongoTimestamp) error
 	RemoveFilterDimensionOption(filterID string, name string, option string, timestamp bson.MongoTimestamp) error
-	UpdateFilter(filter *models.Filter) error
-	UpdateFilterOutput(filterOutput *models.Filter) error
+	UpdateFilter(filter *models.Filter, timestamp bson.MongoTimestamp) error
+	UpdateFilterOutput(filterOutput *models.Filter, timestamp bson.MongoTimestamp) error
 }

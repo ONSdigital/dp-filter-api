@@ -42,9 +42,13 @@ func (s *FilterStore) AddFilter(host string, filter *models.Filter) (*models.Fil
 	defer session.Close()
 
 	// Initialise with a timestamp
-	filter.UniqueTimestamp = 1
+	var err error
+	filter.UniqueTimestamp, err = bson.NewMongoTimestamp(time.Now(), 1)
+	if err != nil {
+		return nil, err
+	}
 
-	if err := session.DB(s.db).C(s.filtersCollection).Insert(filter); err != nil {
+	if err = session.DB(s.db).C(s.filtersCollection).Insert(filter); err != nil {
 		return nil, err
 	}
 
@@ -72,16 +76,16 @@ func (s *FilterStore) GetFilter(filterID string) (*models.Filter, error) {
 }
 
 // UpdateFilter replaces the stored filter properties
-func (s *FilterStore) UpdateFilter(updatedFilter *models.Filter) error {
+func (s *FilterStore) UpdateFilter(updatedFilter *models.Filter, timestamp bson.MongoTimestamp) error {
 	session := s.Session.Copy()
 	defer session.Close()
 
-	update, err := mongolib.WithUpdates(createUpdateFilterBlueprint(updatedFilter, time.Now()))
+	update, err := mongolib.WithUpdates(createUpdateFilterBlueprint(updatedFilter))
 	if err != nil {
 		return err
 	}
 
-	selector := bson.M{"filter_id": updatedFilter.FilterID, "unique_timestamp": updatedFilter.UniqueTimestamp}
+	selector := bson.M{"filter_id": updatedFilter.FilterID, "unique_timestamp": timestamp}
 	if err := session.DB(s.db).C(s.filtersCollection).Update(selector, update); err != nil {
 		if err == mgo.ErrNotFound {
 			return filters.ErrFilterBlueprintConflict
@@ -133,13 +137,13 @@ func (s *FilterStore) AddFilterDimension(filterID, name string, options []string
 		list = append(list, d)
 	}
 
-	queryFilter := bson.M{"filter_id": filterID, "unique_timestamp": timestamp}
+	selector := bson.M{"filter_id": filterID, "unique_timestamp": timestamp}
 	update, err := mongolib.WithUpdates(bson.M{"$set": bson.M{"dimensions": list}})
 	if err != nil {
 		return err
 	}
 
-	if err := session.DB(s.db).C(s.filtersCollection).Update(queryFilter, update); err != nil {
+	if err := session.DB(s.db).C(s.filtersCollection).Update(selector, update); err != nil {
 		if err == mgo.ErrNotFound {
 			return filters.ErrFilterBlueprintConflict
 		}
@@ -224,9 +228,14 @@ func (s *FilterStore) RemoveFilterDimensionOption(filterID string, name string, 
 }
 
 // CreateFilterOutput creates a filter ouput resource
-func (s *FilterStore) CreateFilterOutput(filter *models.Filter) error {
+func (s *FilterStore) CreateFilterOutput(filter *models.Filter) (err error) {
 	session := s.Session.Copy()
 	defer session.Close()
+
+	filter.UniqueTimestamp, err = bson.NewMongoTimestamp(time.Now(), 1)
+	if err != nil {
+		return
+	}
 
 	return session.DB(s.db).C(s.outputsCollection).Insert(filter)
 }
@@ -251,17 +260,17 @@ func (s *FilterStore) GetFilterOutput(filterID string) (*models.Filter, error) {
 }
 
 // UpdateFilterOutput updates a filter output resource
-func (s *FilterStore) UpdateFilterOutput(filter *models.Filter) error {
+func (s *FilterStore) UpdateFilterOutput(filter *models.Filter, timestamp bson.MongoTimestamp) error {
 	session := s.Session.Copy()
 	defer session.Close()
 
-	update, err := mongolib.WithUpdates(createUpdateFilterOutput(filter, time.Now()))
+	update, err := mongolib.WithUpdates(createUpdateFilterOutput(filter))
 	if err != nil {
 		return err
 	}
 
 	if err = session.DB(s.db).C(s.outputsCollection).
-		Update(bson.M{"filter_id": filter.FilterID, "unique_timestamp": filter.UniqueTimestamp}, update); err != nil {
+		Update(bson.M{"filter_id": filter.FilterID, "unique_timestamp": timestamp}, update); err != nil {
 		if err == mgo.ErrNotFound {
 			return filters.ErrFilterOutputConflict
 		}
@@ -270,7 +279,7 @@ func (s *FilterStore) UpdateFilterOutput(filter *models.Filter) error {
 	return err
 }
 
-func createUpdateFilterBlueprint(filter *models.Filter, currentTime time.Time) bson.M {
+func createUpdateFilterBlueprint(filter *models.Filter) bson.M {
 
 	update := bson.M{
 		"$set": bson.M{
@@ -278,15 +287,12 @@ func createUpdateFilterBlueprint(filter *models.Filter, currentTime time.Time) b
 			"filter.instance_id": filter.InstanceID,
 			"filter.published":   filter.Published,
 		},
-		"$setOnInsert": bson.M{
-			"last_updated": currentTime,
-		},
 	}
 
 	return update
 }
 
-func createUpdateFilterOutput(filter *models.Filter, currentTime time.Time) bson.M {
+func createUpdateFilterOutput(filter *models.Filter) bson.M {
 	var downloads models.Downloads
 	state := models.CreatedState
 	var update bson.M
@@ -317,9 +323,6 @@ func createUpdateFilterOutput(filter *models.Filter, currentTime time.Time) bson
 				"state":     models.CompletedState,
 				"published": filter.Published,
 			},
-			"$setOnInsert": bson.M{
-				"last_updated": currentTime,
-			},
 		}
 	} else {
 		update = bson.M{
@@ -328,9 +331,6 @@ func createUpdateFilterOutput(filter *models.Filter, currentTime time.Time) bson
 				"downloads": downloads,
 				"events":    filter.Events,
 				"published": filter.Published,
-			},
-			"$setOnInsert": bson.M{
-				"last_updated": currentTime,
 			},
 		}
 	}

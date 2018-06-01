@@ -163,9 +163,8 @@ func (api *FilterAPI) updateFilterOutput(ctx context.Context, filterOutputID str
 	}
 
 	filterOutputUpdate := buildDownloadsObject(previousFilterOutput, filterOutput, api.downloadServiceURL)
-	filterOutputUpdate.UniqueTimestamp = timestamp
 
-	if err = api.dataStore.UpdateFilterOutput(filterOutputUpdate); err != nil {
+	if err = api.dataStore.UpdateFilterOutput(filterOutputUpdate, timestamp); err != nil {
 		log.ErrorC("unable to update filter output", err, logData)
 		return err
 	}
@@ -319,7 +318,7 @@ func (api *FilterAPI) getOutput(ctx context.Context, filterID string, hideS3Link
 	//filter has been published since output was last requested, so update output and return
 	if filter.Published != nil && *filter.Published == models.Published {
 		output.Published = &models.Published
-		if err := api.dataStore.UpdateFilterOutput(output); err != nil {
+		if err := api.dataStore.UpdateFilterOutput(output, output.UniqueTimestamp); err != nil {
 			log.Error(err, logData)
 			return nil, filters.ErrFilterOutputNotFound
 		}

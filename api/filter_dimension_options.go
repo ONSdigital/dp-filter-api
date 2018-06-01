@@ -149,12 +149,6 @@ func (api *FilterAPI) addFilterBlueprintDimensionOption(w http.ResponseWriter, r
 	timestamp := filterBlueprint.UniqueTimestamp
 	logData["current_filter_timestamp"] = timestamp
 
-	if filterBlueprint.State == models.SubmittedState {
-		log.Error(errForbidden, logData)
-		setErrorCode(w, errForbidden, filterBlueprint.State)
-		return
-	}
-
 	// FIXME - Once dataset API has an endpoint to check single option exists,
 	// refactor code below instead of creating an AddDimension object from the
 	// AddDimensionOption object (to be able to use checkNewFilterDimension method)
@@ -247,12 +241,6 @@ func (api *FilterAPI) removeFilterBlueprintDimensionOption(w http.ResponseWriter
 	if !hasOption {
 		log.Error(filters.ErrOptionNotFound, logData)
 		setErrorCode(w, filters.ErrOptionNotFound)
-		return
-	}
-
-	if filterBlueprint.State == models.SubmittedState {
-		log.Error(errForbidden, logData)
-		setErrorCode(w, errForbidden)
 		return
 	}
 
