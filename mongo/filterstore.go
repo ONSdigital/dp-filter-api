@@ -191,14 +191,14 @@ func (s *FilterStore) RemoveFilterDimensionOption(filterID string, name string, 
 	info, err := session.DB(s.db).C(s.filtersCollection).UpdateAll(queryOptions, update)
 	if err != nil {
 		if err == mgo.ErrNotFound {
-			return filters.ErrOptionNotFound
+			return filters.ErrDimensionOptionNotFound
 		}
 		return err
 	}
 
 	// document was match but nothing was removed
 	if info.Updated == 0 {
-		return filters.ErrOptionNotFound
+		return filters.ErrDimensionOptionNotFound
 	}
 
 	return nil

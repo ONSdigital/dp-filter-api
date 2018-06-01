@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/ONSdigital/go-ns/clients/dataset"
 	"io"
 	"io/ioutil"
 	"time"
@@ -151,10 +152,10 @@ type DatasetDimension struct {
 
 // ValidateFilterDimensions checks the selected filter dimension
 // are valid for a version of a dataset
-func ValidateFilterDimensions(filterDimensions []Dimension, datasetDimensions *DatasetDimensionResults) error {
+func ValidateFilterDimensions(filterDimensions []Dimension, dimensions *dataset.Dimensions) error {
 	dimensionNames := make(map[string]int)
-	for _, datasetDimension := range datasetDimensions.Items {
-		dimensionNames[datasetDimension.Name] = 1
+	for _, dimension := range dimensions.Items {
+		dimensionNames[dimension.Name] = 1
 	}
 
 	var incorrectDimensions []string
@@ -185,7 +186,7 @@ type PublicDimensionOption struct {
 
 // ValidateFilterDimensionOptions checks the selected filter dimension options
 // are valid for a dimension of a single version of a dataset
-func ValidateFilterDimensionOptions(filterDimensionOptions []string, datasetDimensionOptions *DatasetDimensionOptionResults) []string {
+func ValidateFilterDimensionOptions(filterDimensionOptions []string, datasetDimensionOptions *dataset.Options) []string {
 	dimensionOptions := make(map[string]int)
 	for _, datasetOption := range datasetDimensionOptions.Items {
 		dimensionOptions[datasetOption.Option] = 1

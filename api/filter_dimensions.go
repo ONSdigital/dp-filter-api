@@ -234,7 +234,8 @@ func (api *FilterAPI) addFilterBlueprintDimensionHandler(w http.ResponseWriter, 
 			handleAuditingFailure(r.Context(), addDimensionAction, actionUnsuccessful, w, auditErr, logData)
 			return
 		}
-		if err == filters.ErrVersionNotFound {
+
+		if err == filters.ErrVersionNotFound || err == filters.ErrDimensionsNotFound {
 			setErrorCode(w, err, statusUnprocessableEntity)
 			return
 		}
@@ -263,8 +264,8 @@ func (api *FilterAPI) addFilterBlueprintDimension(ctx context.Context, filterBlu
 		return errForbidden
 	}
 
-	if err = api.checkNewFilterDimension(ctx, dimensionName, options, *filterBlueprint.Dataset); err != nil {
-		if err == filters.ErrVersionNotFound {
+	if err = api.checkNewFilterDimension(ctx, dimensionName, options, filterBlueprint.Dataset); err != nil {
+		if err == filters.ErrVersionNotFound || err == filters.ErrDimensionsNotFound {
 			return err
 		}
 		return filters.NewBadRequestErr(err.Error())
@@ -277,14 +278,15 @@ func (api *FilterAPI) addFilterBlueprintDimension(ctx context.Context, filterBlu
 	return nil
 }
 
-func (api *FilterAPI) checkNewFilterDimension(ctx context.Context, name string, options []string, dataset models.Dataset) error {
+func (api *FilterAPI) checkNewFilterDimension(ctx context.Context, name string, options []string, dataset *models.Dataset) error {
+
 	logData := log.Data{"dimension_name": name, "dimension_options": options, "dataset": dataset}
 	log.Info("check filter dimensions and dimension options before calling api, see version number", logData)
 
 	// FIXME - We should be calling dimension endpoint on dataset API to check if
 	// dimension exists but this endpoint doesn't exist yet so call dimension
 	// list endpoint and iterate over items to find if dimension exists
-	datasetDimensions, err := api.datasetAPI.GetVersionDimensions(ctx, dataset)
+	datasetDimensions, err := api.getDimensions(ctx, dataset)
 	if err != nil {
 		log.ErrorC("failed to retrieve a list of dimensions from the dataset API", err, logData)
 		return err
@@ -301,7 +303,7 @@ func (api *FilterAPI) checkNewFilterDimension(ctx context.Context, name string, 
 	}
 
 	// Call dimension options endpoint
-	datasetDimensionOptions, err := api.datasetAPI.GetVersionDimensionOptions(ctx, dataset, dimension.Name)
+	datasetDimensionOptions, err := api.getDimensionOptions(ctx, dataset, dimension.Name)
 	if err != nil {
 		log.ErrorC("failed to retrieve a list of dimension options from the dataset API", err, logData)
 		return err

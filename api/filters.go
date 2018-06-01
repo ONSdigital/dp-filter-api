@@ -19,12 +19,12 @@ import (
 	"github.com/satori/go.uuid"
 	"regexp"
 	"time"
+	datasetAPI "github.com/ONSdigital/go-ns/clients/dataset"
 )
 
 var (
 	internalError = "Failed to process the request due to an internal error"
 	badRequest    = "Bad request - Invalid request body"
-	forbidden     = "Forbidden, the filter output has been locked as it has been submitted to be processed"
 
 	statusBadRequest          = "bad request"
 	statusUnprocessableEntity = "unprocessable entity"
@@ -33,6 +33,8 @@ var (
 	incorrectDimension        = regexp.MustCompile("incorrect dimensions chosen")
 
 	errForbidden = errors.New("forbidden")
+
+	publishedState = "published"
 )
 
 const (
@@ -121,7 +123,7 @@ func (api *FilterAPI) createFilterBlueprint(ctx context.Context, filter *models.
 	logData["new_filter"] = newFilter
 
 	// add version information from datasetAPI
-	version, err := api.datasetAPI.GetVersion(ctx, *filter.Dataset)
+	version, err := api.getVersion(ctx, filter.Dataset)
 	if err != nil {
 		log.ErrorC("unable to retrieve version document", err, logData)
 		return nil, err
@@ -129,7 +131,7 @@ func (api *FilterAPI) createFilterBlueprint(ctx context.Context, filter *models.
 
 	if version.State != publishedState && !common.IsCallerPresent(ctx) {
 		log.Info("unauthenticated request to filter unpublished version", log.Data{"dataset": *filter.Dataset, "state": version.State})
-		return nil, filters.ErrBadRequest
+		return nil, filters.ErrVersionNotFound
 	}
 
 	if version.State == publishedState {
@@ -144,7 +146,7 @@ func (api *FilterAPI) createFilterBlueprint(ctx context.Context, filter *models.
 			HRef: fmt.Sprintf("%s/filters/%s", api.host, newFilter.FilterID),
 		},
 		Version: models.LinkObject{
-			HRef: version.Links.Self.HRef,
+			HRef: version.Links.Self.URL,
 			ID:   strconv.Itoa(version.Version),
 		},
 	}
@@ -326,9 +328,7 @@ func (api *FilterAPI) updateFilterBlueprint(ctx context.Context, filter *models.
 	if versionHasChanged {
 		log.Info("finding new version details for filter after version change", logData)
 
-		var version *models.Version
-		// add version information from datasetAPI for new version
-		version, err = api.datasetAPI.GetVersion(ctx, *newFilter.Dataset)
+		version, err := api.getVersion(ctx, newFilter.Dataset)
 		if err != nil {
 			log.ErrorC("unable to retrieve version document", err, logData)
 			return nil, filters.NewBadRequestErr(err.Error())
@@ -340,7 +340,7 @@ func (api *FilterAPI) updateFilterBlueprint(ctx context.Context, filter *models.
 		}
 
 		newFilter.InstanceID = version.ID
-		newFilter.Links.Version.HRef = version.Links.Self.HRef
+		newFilter.Links.Version.HRef = version.Links.Self.URL
 
 		// Check existing dimensions work for new version
 		if err = api.checkFilterOptions(ctx, newFilter, version); err != nil {
@@ -393,7 +393,7 @@ func (api *FilterAPI) getFilterBlueprint(ctx context.Context, filterID string) (
 
 	log.Info("unauthenticated request to access unpublished filter", logData)
 
-	version, err := api.datasetAPI.GetVersion(ctx, *filter.Dataset)
+	version, err := api.getVersion(ctx, filter.Dataset)
 	if err != nil {
 		log.Error(errors.New("failed to retrieve version from dataset api"), logData)
 		return nil, err
@@ -414,19 +414,19 @@ func (api *FilterAPI) getFilterBlueprint(ctx context.Context, filterID string) (
 	return nil, filters.ErrFilterBlueprintNotFound
 }
 
-func (api *FilterAPI) checkFilterOptions(ctx context.Context, newFilter *models.Filter, version *models.Version) error {
+func (api *FilterAPI) checkFilterOptions(ctx context.Context, newFilter *models.Filter, version *datasetAPI.Version) error {
 	logData := log.Data{"new_filter": newFilter, "version": version.Version}
 	log.Info("check filter dimension options before calling api, see version number", logData)
 
 	// Call dimensions list endpoint
-	datasetDimensions, err := api.datasetAPI.GetVersionDimensions(ctx, *newFilter.Dataset)
+	datasetDimensions, err := api.getDimensions(ctx, newFilter.Dataset)
 	if err != nil {
-		log.ErrorC("failed to retreive a list of dimensions from the dataset API", err, logData)
+		log.ErrorC("failed to retrieve a list of dimensions from the dataset API", err, logData)
 		return err
 	}
 	logData["dataset_dimensions"] = datasetDimensions
 
-	log.Info("dimensions retreived from dataset API", logData)
+	log.Info("dimensions retrieved from dataset API", logData)
 
 	if err = models.ValidateFilterDimensions(newFilter.Dimensions, datasetDimensions); err != nil {
 		log.ErrorC("filter dimensions failed validation", err, logData)
@@ -438,17 +438,15 @@ func (api *FilterAPI) checkFilterOptions(ctx context.Context, newFilter *models.
 	for _, filterDimension := range newFilter.Dimensions {
 		localData := logData
 
-		var datasetDimensionOptions *models.DatasetDimensionOptionResults
-		// Call dimension options list endpoint
-		datasetDimensionOptions, err = api.datasetAPI.GetVersionDimensionOptions(ctx, *newFilter.Dataset, filterDimension.Name)
+		datasetDimensionOptions, err := api.getDimensionOptions(ctx, newFilter.Dataset, filterDimension.Name)
 		if err != nil {
 			localData["dimension"] = filterDimension
-			log.ErrorC("failed to retreive a list of dimension options from dataset API", err, localData)
+			log.ErrorC("failed to retrieve a list of dimension options from dataset API", err, localData)
 			return err
 		}
 		localData["dimension_options"] = datasetDimensionOptions
 
-		log.Info("dimension options retreived from dataset API", localData)
+		log.Info("dimension options retrieved from dataset API", localData)
 
 		incorrectOptions := models.ValidateFilterDimensionOptions(filterDimension.Options, datasetDimensionOptions)
 		if incorrectOptions != nil {
@@ -464,6 +462,57 @@ func (api *FilterAPI) checkFilterOptions(ctx context.Context, newFilter *models.
 	}
 
 	return nil
+}
+
+func (api *FilterAPI) getVersion(ctx context.Context, dataset *models.Dataset) (*datasetAPI.Version, error) {
+
+	dimensions, err := api.datasetAPI.GetVersion(ctx, dataset.ID, dataset.Edition, strconv.Itoa(dataset.Version))
+	if err != nil {
+		if apiErr, ok := err.(*datasetAPI.ErrInvalidDatasetAPIResponse); ok {
+			switch apiErr.Code() {
+			case http.StatusNotFound:
+				return nil, filters.ErrVersionNotFound
+			}
+		}
+
+		return nil, err
+	}
+
+	return &dimensions, nil
+}
+
+func (api *FilterAPI) getDimensions(ctx context.Context, dataset *models.Dataset) (*datasetAPI.Dimensions, error) {
+
+	dimensions, err := api.datasetAPI.GetDimensions(ctx, dataset.ID, dataset.Edition, strconv.Itoa(dataset.Version))
+	if err != nil {
+		if apiErr, ok := err.(*datasetAPI.ErrInvalidDatasetAPIResponse); ok {
+			switch apiErr.Code() {
+			case http.StatusNotFound:
+				return nil, filters.ErrDimensionsNotFound
+			}
+		}
+
+		return nil, err
+	}
+
+	return &dimensions, nil
+}
+
+func (api *FilterAPI) getDimensionOptions(ctx context.Context, dataset *models.Dataset, dimensionName string) (*datasetAPI.Options, error) {
+
+	options, err := api.datasetAPI.GetOptions(ctx, dataset.ID, dataset.Edition, strconv.Itoa(dataset.Version), dimensionName)
+	if err != nil {
+		if apiErr, ok := err.(*datasetAPI.ErrInvalidDatasetAPIResponse); ok {
+			switch apiErr.Code() {
+			case http.StatusNotFound:
+				return nil, filters.ErrDimensionOptionsNotFound
+			}
+		}
+
+		return nil, err
+	}
+
+	return &options, nil
 }
 
 func (api *FilterAPI) createFilterOutputResource(newFilter *models.Filter, filterBlueprintID string) (models.Filter, error) {
@@ -547,7 +596,9 @@ func setErrorCode(w http.ResponseWriter, err error, typ ...string) {
 		}
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
-	case filters.ErrVersionNotFound:
+	case filters.ErrDimensionsNotFound:
+		fallthrough
+	case filters.ErrVersionNotFound :
 		if typ != nil {
 			if typ[0] == statusBadRequest {
 				http.Error(w, err.Error(), http.StatusBadRequest)
@@ -560,7 +611,7 @@ func setErrorCode(w http.ResponseWriter, err error, typ ...string) {
 		}
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
-	case filters.ErrOptionNotFound:
+	case filters.ErrDimensionOptionNotFound:
 		fallthrough
 	case filters.ErrFilterOutputNotFound:
 		http.Error(w, err.Error(), http.StatusNotFound)

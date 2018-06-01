@@ -3,12 +3,13 @@ package filters
 import "errors"
 
 var (
-	ErrFilterBlueprintNotFound  = errors.New("filter blueprint not found")
-	ErrDimensionNotFound        = errors.New("dimension not found")
-	ErrOptionNotFound           = errors.New("option not found")
 	ErrVersionNotFound          = errors.New("version not found")
-	ErrDimensionOptionsNotFound = errors.New("dimension options not found")
+	ErrFilterBlueprintNotFound  = errors.New("filter blueprint not found")
 	ErrFilterOutputNotFound     = errors.New("filter output not found")
+	ErrDimensionNotFound        = errors.New("dimension not found")
+	ErrDimensionsNotFound       = errors.New("dimensions not found")
+	ErrDimensionOptionNotFound  = errors.New("option not found")
+	ErrDimensionOptionsNotFound = errors.New("dimension options not found")
 	ErrBadRequest               = errors.New("invalid request body")
 	ErrForbidden                = errors.New("forbidden")
 	ErrUnauthorised             = errors.New("unauthorised")
