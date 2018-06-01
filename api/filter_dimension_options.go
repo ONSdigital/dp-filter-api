@@ -13,13 +13,13 @@ import (
 	"github.com/ONSdigital/dp-filter-api/filters"
 )
 
-func (api *FilterAPI) getFilterBlueprintDimensionOptions(w http.ResponseWriter, r *http.Request) {
+func (api *FilterAPI) getFilterBlueprintDimensionOptionsHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	filterID := vars["filter_blueprint_id"]
-	name := vars["name"]
+	dimensionName := vars["name"]
 	logData := log.Data{
 		"filter_blueprint_id": filterID,
-		"dimension":           name,
+		"dimension":           dimensionName,
 	}
 	log.Info("get filter blueprint dimension options", logData)
 
@@ -34,14 +34,13 @@ func (api *FilterAPI) getFilterBlueprintDimensionOptions(w http.ResponseWriter, 
 	dimensionFound := false
 	for _, dimension := range filter.Dimensions {
 
-		if dimension.Name == name {
+		if dimension.Name == dimensionName {
 			dimensionFound = true
 			for _, option := range dimension.Options {
 				url := fmt.Sprintf("%s/filter/%s/dimensions/%s/option/%s", api.host, filterID, dimension.Name, option)
 				dimensionOption := models.DimensionOption{Option: option, DimensionOptionURL: url}
 				options = append(options, dimensionOption)
 			}
-
 		}
 	}
 
@@ -72,7 +71,7 @@ func (api *FilterAPI) getFilterBlueprintDimensionOptions(w http.ResponseWriter, 
 	log.Info("got dimension options for filter blueprint", logData)
 }
 
-func (api *FilterAPI) getFilterBlueprintDimensionOption(w http.ResponseWriter, r *http.Request) {
+func (api *FilterAPI) getFilterBlueprintDimensionOptionHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	filterID := vars["filter_blueprint_id"]
 	name := vars["name"]
@@ -127,7 +126,7 @@ func (api *FilterAPI) getFilterBlueprintDimensionOption(w http.ResponseWriter, r
 	log.Info("got dimension option for filter blueprint", logData)
 }
 
-func (api *FilterAPI) addFilterBlueprintDimensionOption(w http.ResponseWriter, r *http.Request) {
+func (api *FilterAPI) addFilterBlueprintDimensionOptionHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	filterID := vars["filter_blueprint_id"]
 	name := vars["name"]
@@ -188,7 +187,7 @@ func (api *FilterAPI) addFilterBlueprintDimensionOption(w http.ResponseWriter, r
 	log.Info("created new dimension option for filter blueprint", logData)
 }
 
-func (api *FilterAPI) removeFilterBlueprintDimensionOption(w http.ResponseWriter, r *http.Request) {
+func (api *FilterAPI) removeFilterBlueprintDimensionOptionHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	filterID := vars["filter_blueprint_id"]
 	name := vars["name"]
