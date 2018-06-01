@@ -2,12 +2,14 @@ package api
 
 import (
 	"encoding/json"
+	"net/http"
+
 	"github.com/ONSdigital/dp-filter-api/models"
 	"github.com/ONSdigital/go-ns/log"
 	"github.com/gorilla/mux"
-	"net/http"
 
 	"fmt"
+
 	"github.com/ONSdigital/dp-filter-api/filters"
 )
 
@@ -143,11 +145,8 @@ func (api *FilterAPI) addFilterBlueprintDimensionOptionHandler(w http.ResponseWr
 		return
 	}
 
-	if filterBlueprint.State == models.SubmittedState {
-		log.Error(errForbidden, logData)
-		setErrorCode(w, errForbidden, filterBlueprint.State)
-		return
-	}
+	timestamp := filterBlueprint.UniqueTimestamp
+	logData["current_filter_timestamp"] = timestamp
 
 	// FIXME - Once dataset API has an endpoint to check single option exists,
 	// refactor code below instead of creating an AddDimension object from the
@@ -176,7 +175,7 @@ func (api *FilterAPI) addFilterBlueprintDimensionOptionHandler(w http.ResponseWr
 		return
 	}
 
-	if err := api.dataStore.AddFilterDimensionOption(filterID, name, option); err != nil {
+	if err := api.dataStore.AddFilterDimensionOption(filterID, name, option, timestamp); err != nil {
 		log.ErrorC("failed to add dimension option to filter blueprint", err, logData)
 		setErrorCode(w, err)
 		return
@@ -213,11 +212,21 @@ func (api *FilterAPI) removeFilterBlueprintDimensionOptionHandler(w http.Respons
 		return
 	}
 
-	// Check if dimension exists
+	timestamp := filterBlueprint.UniqueTimestamp
+	logData["current_filter_timestamp"] = timestamp
+
+	// Check if dimension and option exists
 	var hasDimension bool
+	var hasOption bool
 	for _, dimension := range filterBlueprint.Dimensions {
 		if dimension.Name == name {
 			hasDimension = true
+			for _, dimOption := range dimension.Options {
+				if dimOption == option {
+					hasOption = true
+					break
+				}
+			}
 			break
 		}
 	}
@@ -228,13 +237,13 @@ func (api *FilterAPI) removeFilterBlueprintDimensionOptionHandler(w http.Respons
 		return
 	}
 
-	if filterBlueprint.State == models.SubmittedState {
-		log.Error(errForbidden, logData)
-		setErrorCode(w, errForbidden)
+	if !hasOption {
+		log.Error(filters.ErrOptionNotFound, logData)
+		setErrorCode(w, filters.ErrOptionNotFound)
 		return
 	}
 
-	if err = api.dataStore.RemoveFilterDimensionOption(filterID, name, option); err != nil {
+	if err = api.dataStore.RemoveFilterDimensionOption(filterID, name, option, timestamp); err != nil {
 		log.ErrorC("unable to remove dimension option from filter blueprint", err, logData)
 		setErrorCode(w, err)
 		return

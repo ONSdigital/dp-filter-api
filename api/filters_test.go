@@ -3,16 +3,17 @@ package api
 import (
 	"context"
 	"errors"
-	"github.com/ONSdigital/dp-filter-api/mocks"
-	"github.com/ONSdigital/go-ns/audit"
-	"github.com/ONSdigital/go-ns/common"
-	"github.com/gorilla/mux"
-	. "github.com/smartystreets/goconvey/convey"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/ONSdigital/dp-filter-api/mocks"
+	"github.com/ONSdigital/go-ns/audit"
+	"github.com/ONSdigital/go-ns/common"
+	"github.com/gorilla/mux"
+	. "github.com/smartystreets/goconvey/convey"
 )
 
 var (
@@ -841,7 +842,7 @@ func TestFailedToUpdateFilterBlueprint(t *testing.T) {
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
 		response := w.Body.String()
-		So(response, ShouldResemble, "incorrect dimensions chosen: [time]\n")
+		So(response, ShouldResemble, "incorrect dimensions chosen: [time 1_age]\n")
 
 		Convey("Then the auditor is called for the attempt and outcome", func() {
 			assertAuditCalled(mockAuditor, updateFilterBlueprintAction, actionUnsuccessful, expectedAuditParams)

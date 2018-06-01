@@ -3,14 +3,16 @@ package api
 import (
 	"encoding/json"
 	"errors"
+	"net/http"
+
 	"github.com/ONSdigital/dp-filter-api/models"
 	"github.com/ONSdigital/go-ns/log"
 	"github.com/gorilla/mux"
-	"net/http"
 
 	"strconv"
 
 	"context"
+
 	"github.com/ONSdigital/dp-filter-api/filters"
 	"github.com/ONSdigital/dp-filter-api/preview"
 	"github.com/ONSdigital/go-ns/common"
@@ -118,7 +120,6 @@ func (api *FilterAPI) updateFilterOutputHandler(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	log.Info("updated filter output", logData)
 	if auditErr := api.auditor.Record(r.Context(), updateFilterOutputAction, actionSuccessful, auditParams); auditErr != nil {
 		logAuditFailure(r.Context(), updateFilterOutputAction, actionSuccessful, auditErr, logData)
 	}
@@ -144,6 +145,9 @@ func (api *FilterAPI) updateFilterOutput(ctx context.Context, filterOutputID str
 		return err
 	}
 
+	timestamp := previousFilterOutput.UniqueTimestamp
+	logData["current_filter_timestamp"] = timestamp
+
 	if err = filterOutput.ValidateFilterOutputUpdate(previousFilterOutput); err != nil {
 		log.ErrorC("filter output failed validation", err, logData)
 		return filters.NewForbiddenErr(err.Error())
@@ -159,7 +163,7 @@ func (api *FilterAPI) updateFilterOutput(ctx context.Context, filterOutputID str
 
 	filterOutputUpdate := buildDownloadsObject(previousFilterOutput, filterOutput, api.downloadServiceURL)
 
-	if err = api.dataStore.UpdateFilterOutput(filterOutputUpdate); err != nil {
+	if err = api.dataStore.UpdateFilterOutput(filterOutputUpdate, timestamp); err != nil {
 		log.ErrorC("unable to update filter output", err, logData)
 		return err
 	}
@@ -313,7 +317,7 @@ func (api *FilterAPI) getOutput(ctx context.Context, filterID string, hideS3Link
 	//filter has been published since output was last requested, so update output and return
 	if filter.Published != nil && *filter.Published == models.Published {
 		output.Published = &models.Published
-		if err := api.dataStore.UpdateFilterOutput(output); err != nil {
+		if err := api.dataStore.UpdateFilterOutput(output, output.UniqueTimestamp); err != nil {
 			log.Error(err, logData)
 			return nil, filters.ErrFilterOutputNotFound
 		}
