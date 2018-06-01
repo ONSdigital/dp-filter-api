@@ -3,11 +3,12 @@ package filters
 import "errors"
 
 var (
+	ErrVersionNotFound          = errors.New("version not found")
 	ErrFilterBlueprintNotFound  = errors.New("filter blueprint not found")
 	ErrFilterBlueprintConflict  = errors.New("conflict while updating filter blueprint")
 	ErrDimensionNotFound        = errors.New("dimension not found")
-	ErrOptionNotFound           = errors.New("option not found")
-	ErrVersionNotFound          = errors.New("version not found")
+	ErrDimensionsNotFound       = errors.New("dimensions not found")
+	ErrDimensionOptionNotFound  = errors.New("option not found")
 	ErrDimensionOptionsNotFound = errors.New("dimension options not found")
 	ErrFilterOutputNotFound     = errors.New("filter output not found")
 	ErrFilterOutputConflict     = errors.New("conflict while updating filter output")

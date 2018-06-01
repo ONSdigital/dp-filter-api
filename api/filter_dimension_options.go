@@ -115,8 +115,8 @@ func (api *FilterAPI) getFilterBlueprintDimensionOptionHandler(w http.ResponseWr
 	}
 
 	if !optionFound {
-		log.Error(filters.ErrOptionNotFound, logData)
-		setErrorCode(w, filters.ErrOptionNotFound)
+		log.Error(filters.ErrDimensionOptionNotFound, logData)
+		setErrorCode(w, filters.ErrDimensionOptionNotFound)
 		return
 	}
 
@@ -151,8 +151,8 @@ func (api *FilterAPI) addFilterBlueprintDimensionOptionHandler(w http.ResponseWr
 	// FIXME - Once dataset API has an endpoint to check single option exists,
 	// refactor code below instead of creating an AddDimension object from the
 	// AddDimensionOption object (to be able to use checkNewFilterDimension method)
-	if err = api.checkNewFilterDimension(r.Context(), name, []string{option}, *filterBlueprint.Dataset); err != nil {
-		if err == filters.ErrVersionNotFound {
+	if err = api.checkNewFilterDimension(r.Context(), name, []string{option}, filterBlueprint.Dataset); err != nil {
+		if err == filters.ErrVersionNotFound || err == filters.ErrDimensionsNotFound {
 			log.ErrorC("failed to select valid version", err, logData)
 			setErrorCode(w, err, statusUnprocessableEntity)
 			return
@@ -238,8 +238,8 @@ func (api *FilterAPI) removeFilterBlueprintDimensionOptionHandler(w http.Respons
 	}
 
 	if !hasOption {
-		log.Error(filters.ErrOptionNotFound, logData)
-		setErrorCode(w, filters.ErrOptionNotFound)
+		log.Error(filters.ErrDimensionOptionNotFound, logData)
+		setErrorCode(w, filters.ErrDimensionOptionNotFound)
 		return
 	}
 

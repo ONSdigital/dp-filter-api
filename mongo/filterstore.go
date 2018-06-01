@@ -221,7 +221,7 @@ func (s *FilterStore) RemoveFilterDimensionOption(filterID string, name string, 
 
 	// document was match but nothing was removed
 	if info.Updated == 0 {
-		return filters.ErrOptionNotFound
+		return filters.ErrDimensionOptionNotFound
 	}
 
 	return nil
