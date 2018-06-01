@@ -797,7 +797,7 @@ func TestFailedToRemoveFilterBlueprintDimension(t *testing.T) {
 		})
 	})
 
-	Convey("When dimension does not exist against filter blueprint, the response is idempotent and returns 200 OK", t, func() {
+	Convey("When dimension does not exist against filter blueprint, the response is 404 Status Not Found", t, func() {
 		mockAuditor := getMockAuditor()
 		r, err := http.NewRequest("DELETE", "http://localhost:22100/filters/12345678/dimensions/1_age", nil)
 		So(err, ShouldBeNil)
@@ -805,10 +805,10 @@ func TestFailedToRemoveFilterBlueprintDimension(t *testing.T) {
 		w := httptest.NewRecorder()
 		api := routes(host, mux.NewRouter(), &mocks.DataStore{DimensionNotFound: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, mockAuditor)
 		api.router.ServeHTTP(w, r)
-		So(w.Code, ShouldEqual, http.StatusOK)
+		So(w.Code, ShouldEqual, http.StatusNotFound)
 
 		Convey("Then the auditor is called for the attempt and outcome", func() {
-			assertAuditCalled(mockAuditor, removeDimensionAction, actionSuccessful, expectedAuditParams)
+			assertAuditCalled(mockAuditor, removeDimensionAction, actionUnsuccessful, expectedAuditParams)
 		})
 	})
 }

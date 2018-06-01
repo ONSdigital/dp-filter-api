@@ -188,6 +188,17 @@ func (api *FilterAPI) removeFilterBlueprintDimension(ctx context.Context, filter
 		return err
 	}
 
+	var dimensionExists bool
+	for _, dimension := range filter.Dimensions {
+		if dimension.Name == dimensionName {
+			dimensionExists = true
+			break
+		}
+	}
+	if !dimensionExists {
+		return filters.ErrDimensionNotFound
+	}
+
 	timestamp := filter.UniqueTimestamp
 
 	return api.dataStore.RemoveFilterDimension(filterBlueprintID, dimensionName, timestamp)
