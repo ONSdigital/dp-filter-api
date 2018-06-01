@@ -4,12 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
+
 	"github.com/ONSdigital/dp-filter-api/filters"
 	"github.com/ONSdigital/dp-filter-api/models"
 	"github.com/ONSdigital/go-ns/common"
 	"github.com/ONSdigital/go-ns/log"
 	"github.com/gorilla/mux"
-	"net/http"
 )
 
 const (
@@ -55,7 +56,7 @@ func (api *FilterAPI) getFilterBlueprintDimensionsHandler(w http.ResponseWriter,
 		return
 	}
 
-	bytes, err := json.Marshal(filter.Dimensions)
+	b, err := json.Marshal(filter.Dimensions)
 	if err != nil {
 		log.ErrorC("failed to marshal filter blueprint dimensions into bytes", err, logData)
 		if auditErr := api.auditor.Record(r.Context(), getDimensionsAction, actionUnsuccessful, auditParams); auditErr != nil {
@@ -73,7 +74,7 @@ func (api *FilterAPI) getFilterBlueprintDimensionsHandler(w http.ResponseWriter,
 
 	setJSONContentType(w)
 	w.WriteHeader(http.StatusOK)
-	_, err = w.Write(bytes)
+	_, err = w.Write(b)
 	if err != nil {
 		log.ErrorC("failed to write bytes for http response", err, logData)
 		setErrorCode(w, err)
@@ -187,15 +188,20 @@ func (api *FilterAPI) removeFilterBlueprintDimension(ctx context.Context, filter
 		return err
 	}
 
-	if filter.State == models.SubmittedState {
-		return filters.NewForbiddenErr("filter has already been submitted")
+	var dimensionExists bool
+	for _, dimension := range filter.Dimensions {
+		if dimension.Name == dimensionName {
+			dimensionExists = true
+			break
+		}
+	}
+	if !dimensionExists {
+		return filters.ErrDimensionNotFound
 	}
 
-	if err := api.dataStore.RemoveFilterDimension(filterBlueprintID, dimensionName); err != nil {
-		return err
-	}
+	timestamp := filter.UniqueTimestamp
 
-	return nil
+	return api.dataStore.RemoveFilterDimension(filterBlueprintID, dimensionName, timestamp)
 }
 
 func (api *FilterAPI) addFilterBlueprintDimensionHandler(w http.ResponseWriter, r *http.Request) {
@@ -230,6 +236,7 @@ func (api *FilterAPI) addFilterBlueprintDimensionHandler(w http.ResponseWriter, 
 
 	err = api.addFilterBlueprintDimension(r.Context(), filterBlueprintID, dimensionName, options)
 	if err != nil {
+		log.Error(err, logData)
 		if auditErr := api.auditor.Record(r.Context(), addDimensionAction, actionUnsuccessful, auditParams); auditErr != nil {
 			handleAuditingFailure(r.Context(), addDimensionAction, actionUnsuccessful, w, auditErr, logData)
 			return
@@ -239,6 +246,7 @@ func (api *FilterAPI) addFilterBlueprintDimensionHandler(w http.ResponseWriter, 
 			setErrorCode(w, err, statusUnprocessableEntity)
 			return
 		}
+
 		setErrorCode(w, err)
 		return
 	}
@@ -260,9 +268,7 @@ func (api *FilterAPI) addFilterBlueprintDimension(ctx context.Context, filterBlu
 		return err
 	}
 
-	if filterBlueprint.State == models.SubmittedState {
-		return errForbidden
-	}
+	timestamp := filterBlueprint.UniqueTimestamp
 
 	if err = api.checkNewFilterDimension(ctx, dimensionName, options, filterBlueprint.Dataset); err != nil {
 		if err == filters.ErrVersionNotFound || err == filters.ErrDimensionsNotFound {
@@ -271,11 +277,7 @@ func (api *FilterAPI) addFilterBlueprintDimension(ctx context.Context, filterBlu
 		return filters.NewBadRequestErr(err.Error())
 	}
 
-	if err = api.dataStore.AddFilterDimension(filterBlueprintID, dimensionName, options, filterBlueprint.Dimensions); err != nil {
-		return err
-	}
-
-	return nil
+	return api.dataStore.AddFilterDimension(filterBlueprintID, dimensionName, options, filterBlueprint.Dimensions, timestamp)
 }
 
 func (api *FilterAPI) checkNewFilterDimension(ctx context.Context, name string, options []string, dataset *models.Dataset) error {

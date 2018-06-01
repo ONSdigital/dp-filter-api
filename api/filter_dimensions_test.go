@@ -2,14 +2,17 @@ package api
 
 import (
 	"context"
-	"github.com/ONSdigital/dp-filter-api/mocks"
-	"github.com/ONSdigital/go-ns/common"
-	"github.com/gorilla/mux"
-	. "github.com/smartystreets/goconvey/convey"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/ONSdigital/dp-filter-api/mocks"
+	"github.com/ONSdigital/go-ns/common"
+	"github.com/gorilla/mux"
+	. "github.com/smartystreets/goconvey/convey"
+
+	"github.com/ONSdigital/dp-filter-api/filters"
 )
 
 func TestSuccessfulGetFilterBlueprintDimensions(t *testing.T) {
@@ -468,6 +471,20 @@ func TestFailedToAddFilterBlueprintDimension_AuditFailure(t *testing.T) {
 			})
 		})
 	})
+
+	Convey("When the filter document has been modified by an external source, a conflict request status is returned", t, func() {
+		reader := strings.NewReader("")
+		r, err := http.NewRequest("POST", "http://localhost:22100/filters/12345678/dimensions/age", reader)
+		So(err, ShouldBeNil)
+
+		w := httptest.NewRecorder()
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{ConflictRequest: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, getMockAuditor())
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusConflict)
+
+		response := w.Body.String()
+		So(response, ShouldResemble, filters.ErrFilterBlueprintConflict.Error()+"\n")
+	})
 }
 
 func TestSuccessfulGetFilterBlueprintDimension(t *testing.T) {
@@ -780,7 +797,7 @@ func TestFailedToRemoveFilterBlueprintDimension(t *testing.T) {
 		})
 	})
 
-	Convey("When dimension does not exist against filter blueprint, the response is idempotent and returns 200 OK", t, func() {
+	Convey("When dimension does not exist against filter blueprint, the response is 404 Status Not Found", t, func() {
 		mockAuditor := getMockAuditor()
 		r, err := http.NewRequest("DELETE", "http://localhost:22100/filters/12345678/dimensions/1_age", nil)
 		So(err, ShouldBeNil)
@@ -788,10 +805,10 @@ func TestFailedToRemoveFilterBlueprintDimension(t *testing.T) {
 		w := httptest.NewRecorder()
 		api := routes(host, mux.NewRouter(), &mocks.DataStore{DimensionNotFound: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, mockAuditor)
 		api.router.ServeHTTP(w, r)
-		So(w.Code, ShouldEqual, http.StatusOK)
+		So(w.Code, ShouldEqual, http.StatusNotFound)
 
 		Convey("Then the auditor is called for the attempt and outcome", func() {
-			assertAuditCalled(mockAuditor, removeDimensionAction, actionSuccessful, expectedAuditParams)
+			assertAuditCalled(mockAuditor, removeDimensionAction, actionUnsuccessful, expectedAuditParams)
 		})
 	})
 }

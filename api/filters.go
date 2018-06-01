@@ -3,22 +3,24 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"net/http"
+
 	"github.com/ONSdigital/dp-filter-api/models"
 	"github.com/ONSdigital/go-ns/log"
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
-	"net/http"
 
 	"fmt"
 
 	"strconv"
 
+	"regexp"
+	"time"
+
 	"github.com/ONSdigital/dp-filter-api/filters"
 	"github.com/ONSdigital/go-ns/common"
 	"github.com/ONSdigital/go-ns/handlers/requestID"
 	"github.com/satori/go.uuid"
-	"regexp"
-	"time"
 	datasetAPI "github.com/ONSdigital/go-ns/clients/dataset"
 )
 
@@ -320,6 +322,9 @@ func (api *FilterAPI) updateFilterBlueprint(ctx context.Context, filter *models.
 		return nil, err
 	}
 
+	timestamp := currentFilter.UniqueTimestamp
+	logData["current_filter_timestamp"] = timestamp
+
 	logData["current_filter"] = currentFilter
 
 	newFilter, versionHasChanged := createNewFilter(filter, currentFilter)
@@ -349,7 +354,7 @@ func (api *FilterAPI) updateFilterBlueprint(ctx context.Context, filter *models.
 		}
 	}
 
-	err = api.dataStore.UpdateFilter(newFilter)
+	err = api.dataStore.UpdateFilter(newFilter, timestamp)
 	if err != nil {
 		log.ErrorC("unable to update filter blueprint", err, logData)
 		return nil, err
@@ -402,7 +407,7 @@ func (api *FilterAPI) getFilterBlueprint(ctx context.Context, filterID string) (
 	//version has been published since filter was last requested, so update filter and return
 	if version.State == publishedState {
 		filter.Published = &models.Published
-		if err := api.dataStore.UpdateFilter(filter); err != nil {
+		if err := api.dataStore.UpdateFilter(filter, filter.UniqueTimestamp); err != nil {
 			log.Error(err, logData)
 			return nil, filters.ErrFilterBlueprintNotFound
 		}
@@ -598,7 +603,7 @@ func setErrorCode(w http.ResponseWriter, err error, typ ...string) {
 		return
 	case filters.ErrDimensionsNotFound:
 		fallthrough
-	case filters.ErrVersionNotFound :
+	case filters.ErrVersionNotFound:
 		if typ != nil {
 			if typ[0] == statusBadRequest {
 				http.Error(w, err.Error(), http.StatusBadRequest)
@@ -622,6 +627,10 @@ func setErrorCode(w http.ResponseWriter, err error, typ ...string) {
 	case filters.ErrBadRequest:
 		http.Error(w, badRequest, http.StatusBadRequest)
 		return
+	case filters.ErrFilterBlueprintConflict:
+		http.Error(w, err.Error(), http.StatusConflict)
+	case filters.ErrFilterOutputConflict:
+		http.Error(w, err.Error(), http.StatusConflict)
 	case filters.ErrInternalError:
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

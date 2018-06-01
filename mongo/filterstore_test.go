@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"github.com/ONSdigital/dp-filter-api/models"
+	"github.com/gedge/mgo/bson"
 	. "github.com/smartystreets/goconvey/convey"
-	"gopkg.in/mgo.v2/bson"
 )
 
 func TestCreateUpdateFilterOutput(t *testing.T) {
@@ -19,7 +19,7 @@ func TestCreateUpdateFilterOutput(t *testing.T) {
 				},
 			},
 		}
-		data := createUpdateFilterOutput(&filterOutput, time.Now())
+		data := createUpdateFilterOutput(&filterOutput)
 		Convey("Then the returned bson object contains the latest changes", func() {
 			downloads := data["$set"].(bson.M)["downloads"].(models.Downloads)
 			So(downloads.CSV.HRef, ShouldEndWith, filterOutput.Downloads.CSV.HRef)
@@ -36,7 +36,7 @@ func TestCreateUpdateFilterOutput(t *testing.T) {
 				},
 			},
 		}
-		data := createUpdateFilterOutput(&filterOutput, time.Now())
+		data := createUpdateFilterOutput(&filterOutput)
 		Convey("Then the returned bson object contains the latest changes", func() {
 			downloads := data["$set"].(bson.M)["downloads"].(models.Downloads)
 			So(downloads.XLS.HRef, ShouldEndWith, filterOutput.Downloads.XLS.HRef)
@@ -57,7 +57,7 @@ func TestCreateUpdateFilterOutput(t *testing.T) {
 				},
 			},
 		}
-		data := createUpdateFilterOutput(&filterOutput, time.Now())
+		data := createUpdateFilterOutput(&filterOutput)
 		Convey("Then the returned bson object contains the latest changes", func() {
 			state := data["$set"].(bson.M)["state"].(string)
 			downloads := data["$set"].(bson.M)["downloads"].(models.Downloads)
@@ -79,7 +79,7 @@ func TestCreateUpdateFilterOutput(t *testing.T) {
 				}},
 			},
 		}
-		data := createUpdateFilterOutput(&filterOutput, time.Now())
+		data := createUpdateFilterOutput(&filterOutput)
 		Convey("Then the returned bson object contains the latest changes", func() {
 			state := data["$set"].(bson.M)["state"].(string)
 			event := data["$set"].(bson.M)["events"].(models.Events)
