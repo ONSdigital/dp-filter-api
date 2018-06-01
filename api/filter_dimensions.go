@@ -4,12 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
+
 	"github.com/ONSdigital/dp-filter-api/filters"
 	"github.com/ONSdigital/dp-filter-api/models"
 	"github.com/ONSdigital/go-ns/common"
 	"github.com/ONSdigital/go-ns/log"
 	"github.com/gorilla/mux"
-	"net/http"
 )
 
 const (
@@ -55,7 +56,7 @@ func (api *FilterAPI) getFilterBlueprintDimensionsHandler(w http.ResponseWriter,
 		return
 	}
 
-	bytes, err := json.Marshal(filter.Dimensions)
+	b, err := json.Marshal(filter.Dimensions)
 	if err != nil {
 		log.ErrorC("failed to marshal filter blueprint dimensions into bytes", err, logData)
 		if auditErr := api.auditor.Record(r.Context(), getDimensionsAction, actionUnsuccessful, auditParams); auditErr != nil {
@@ -73,7 +74,7 @@ func (api *FilterAPI) getFilterBlueprintDimensionsHandler(w http.ResponseWriter,
 
 	setJSONContentType(w)
 	w.WriteHeader(http.StatusOK)
-	_, err = w.Write(bytes)
+	_, err = w.Write(b)
 	if err != nil {
 		log.ErrorC("failed to write bytes for http response", err, logData)
 		setErrorCode(w, err)
@@ -187,15 +188,20 @@ func (api *FilterAPI) removeFilterBlueprintDimension(ctx context.Context, filter
 		return err
 	}
 
-	if filter.State == models.SubmittedState {
-		return filters.NewForbiddenErr("filter has already been submitted")
+	var dimensionExists bool
+	for _, dimension := range filter.Dimensions {
+		if dimension.Name == dimensionName {
+			dimensionExists = true
+			break
+		}
+	}
+	if !dimensionExists {
+		return filters.ErrDimensionNotFound
 	}
 
-	if err := api.dataStore.RemoveFilterDimension(filterBlueprintID, dimensionName); err != nil {
-		return err
-	}
+	timestamp := filter.UniqueTimestamp
 
-	return nil
+	return api.dataStore.RemoveFilterDimension(filterBlueprintID, dimensionName, timestamp)
 }
 
 func (api *FilterAPI) addFilterBlueprintDimensionHandler(w http.ResponseWriter, r *http.Request) {
@@ -230,14 +236,17 @@ func (api *FilterAPI) addFilterBlueprintDimensionHandler(w http.ResponseWriter, 
 
 	err = api.addFilterBlueprintDimension(r.Context(), filterBlueprintID, dimensionName, options)
 	if err != nil {
+		log.Error(err, logData)
 		if auditErr := api.auditor.Record(r.Context(), addDimensionAction, actionUnsuccessful, auditParams); auditErr != nil {
 			handleAuditingFailure(r.Context(), addDimensionAction, actionUnsuccessful, w, auditErr, logData)
 			return
 		}
-		if err == filters.ErrVersionNotFound {
+
+		if err == filters.ErrVersionNotFound || err == filters.ErrDimensionsNotFound {
 			setErrorCode(w, err, statusUnprocessableEntity)
 			return
 		}
+
 		setErrorCode(w, err)
 		return
 	}
@@ -259,32 +268,27 @@ func (api *FilterAPI) addFilterBlueprintDimension(ctx context.Context, filterBlu
 		return err
 	}
 
-	if filterBlueprint.State == models.SubmittedState {
-		return errForbidden
-	}
+	timestamp := filterBlueprint.UniqueTimestamp
 
-	if err = api.checkNewFilterDimension(ctx, dimensionName, options, *filterBlueprint.Dataset); err != nil {
-		if err == filters.ErrVersionNotFound {
+	if err = api.checkNewFilterDimension(ctx, dimensionName, options, filterBlueprint.Dataset); err != nil {
+		if err == filters.ErrVersionNotFound || err == filters.ErrDimensionsNotFound {
 			return err
 		}
 		return filters.NewBadRequestErr(err.Error())
 	}
 
-	if err = api.dataStore.AddFilterDimension(filterBlueprintID, dimensionName, options, filterBlueprint.Dimensions); err != nil {
-		return err
-	}
-
-	return nil
+	return api.dataStore.AddFilterDimension(filterBlueprintID, dimensionName, options, filterBlueprint.Dimensions, timestamp)
 }
 
-func (api *FilterAPI) checkNewFilterDimension(ctx context.Context, name string, options []string, dataset models.Dataset) error {
+func (api *FilterAPI) checkNewFilterDimension(ctx context.Context, name string, options []string, dataset *models.Dataset) error {
+
 	logData := log.Data{"dimension_name": name, "dimension_options": options, "dataset": dataset}
 	log.Info("check filter dimensions and dimension options before calling api, see version number", logData)
 
 	// FIXME - We should be calling dimension endpoint on dataset API to check if
 	// dimension exists but this endpoint doesn't exist yet so call dimension
 	// list endpoint and iterate over items to find if dimension exists
-	datasetDimensions, err := api.datasetAPI.GetVersionDimensions(ctx, dataset)
+	datasetDimensions, err := api.getDimensions(ctx, dataset)
 	if err != nil {
 		log.ErrorC("failed to retrieve a list of dimensions from the dataset API", err, logData)
 		return err
@@ -301,7 +305,7 @@ func (api *FilterAPI) checkNewFilterDimension(ctx context.Context, name string, 
 	}
 
 	// Call dimension options endpoint
-	datasetDimensionOptions, err := api.datasetAPI.GetVersionDimensionOptions(ctx, dataset, dimension.Name)
+	datasetDimensionOptions, err := api.getDimensionOptions(ctx, dataset, dimension.Name)
 	if err != nil {
 		log.ErrorC("failed to retrieve a list of dimension options from the dataset API", err, logData)
 		return err

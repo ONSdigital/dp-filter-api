@@ -6,6 +6,7 @@ import (
 	"github.com/ONSdigital/dp-filter-api/models"
 	"github.com/ONSdigital/dp-filter-api/preview"
 	"github.com/ONSdigital/go-ns/audit"
+	"github.com/ONSdigital/go-ns/clients/dataset"
 	"github.com/ONSdigital/go-ns/healthcheck"
 	"github.com/ONSdigital/go-ns/identity"
 	"github.com/ONSdigital/go-ns/log"
@@ -14,18 +15,21 @@ import (
 	"github.com/justinas/alice"
 )
 
+//go:generate moq -out datastoretest/preview.go -pkg datastoretest . PreviewDataset
+
 var httpServer *server.Server
 
-type key string
-
-const internalTokenKey key = "Internal-Token"
+// DatasetAPI - An interface used to access the DatasetAPI
+type DatasetAPI interface {
+	GetVersion(ctx context.Context, id, edition, version string) (m dataset.Version, err error)
+	GetDimensions(ctx context.Context, id, edition, version string) (m dataset.Dimensions, err error)
+	GetOptions(ctx context.Context, id, edition, version, dimension string) (m dataset.Options, err error)
+}
 
 // OutputQueue - An interface used to queue filter outputs
 type OutputQueue interface {
 	Queue(output *models.Filter) error
 }
-
-//go:generate moq -out datastoretest/preview.go -pkg datastoretest . PreviewDataset
 
 // PreviewDataset An interface used to generate previews
 type PreviewDataset interface {
@@ -38,7 +42,7 @@ type FilterAPI struct {
 	dataStore            DataStore
 	outputQueue          OutputQueue
 	router               *mux.Router
-	datasetAPI           DatasetAPIer
+	datasetAPI           DatasetAPI
 	preview              PreviewDataset
 	downloadServiceURL   string
 	downloadServiceToken string
@@ -50,7 +54,7 @@ func CreateFilterAPI(host, bindAddr, zebedeeURL string,
 	datastore DataStore,
 	outputQueue OutputQueue,
 	errorChan chan error,
-	datasetAPI DatasetAPIer,
+	datasetAPI DatasetAPI,
 	preview PreviewDataset,
 	enablePrivateEndpoints bool,
 	downloadServiceURL, downloadServiceToken string,
@@ -89,7 +93,7 @@ func routes(host string,
 	router *mux.Router,
 	dataStore DataStore,
 	outputQueue OutputQueue,
-	datasetAPI DatasetAPIer,
+	datasetAPI DatasetAPI,
 	preview PreviewDataset,
 	enablePrivateEndpoints bool,
 	downloadServiceURL, downloadServiceToken string,

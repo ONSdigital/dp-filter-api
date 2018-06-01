@@ -9,6 +9,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/ONSdigital/dp-filter-api/filters"
 )
 
 func TestSuccessfulAddFilterBlueprintDimensionOption(t *testing.T) {
@@ -250,6 +252,19 @@ func TestFailedToAddFilterBlueprintDimensionOption_AuditFailure(t *testing.T) {
 			})
 		})
 	})
+
+	Convey("When the filter document has been modified by an external source, a conflict request status is returned", t, func() {
+		r, err := http.NewRequest("POST", "http://localhost:22100/filters/12345678/dimensions/age/options/33", nil)
+		So(err, ShouldBeNil)
+
+		w := httptest.NewRecorder()
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{ConflictRequest: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, getMockAuditor())
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusConflict)
+
+		response := w.Body.String()
+		So(response, ShouldContainSubstring, filters.ErrFilterBlueprintConflict.Error())
+	})
 }
 
 func TestSuccessfulRemoveFilterBlueprintDimensionOption(t *testing.T) {
@@ -462,6 +477,19 @@ func TestFailedToRemoveFilterBlueprintDimensionOption_AuditFailure(t *testing.T)
 				So(w.Code, ShouldEqual, http.StatusInternalServerError)
 			})
 		})
+	})
+
+	Convey("When the filter document has been modified by an external source, a conflict request status is returned", t, func() {
+		r, err := http.NewRequest("DELETE", "http://localhost:22100/filters/12345678/dimensions/time/options/2015", nil)
+		So(err, ShouldBeNil)
+
+		w := httptest.NewRecorder()
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{ConflictRequest: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, getMockAuditor())
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusConflict)
+
+		response := w.Body.String()
+		So(response, ShouldContainSubstring, filters.ErrFilterBlueprintConflict.Error())
 	})
 }
 

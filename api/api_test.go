@@ -23,10 +23,9 @@ const (
 
 var (
 	filterNotFoundResponse       = filters.ErrFilterBlueprintNotFound.Error() + "\n"
-	filterOutputNotFoundResponse = filters.ErrFilterOutputNotFound.Error() + "\n"
 	dimensionNotFoundResponse    = filters.ErrDimensionNotFound.Error() + "\n"
 	versionNotFoundResponse      = filters.ErrVersionNotFound.Error() + "\n"
-	optionNotFoundResponse       = filters.ErrOptionNotFound.Error() + "\n"
+	optionNotFoundResponse       = filters.ErrDimensionOptionNotFound.Error() + "\n"
 	badRequestResponse           = badRequest + "\n"
 	internalErrResponse          = internalError + "\n"
 )

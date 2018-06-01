@@ -4,15 +4,17 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/ONSdigital/go-ns/clients/dataset"
 	"io"
 	"io/ioutil"
 	"time"
+
+	"github.com/gedge/mgo/bson"
 )
 
 // A list of states
 const (
 	CreatedState   = "created"
-	SubmittedState = "submitted"
 	CompletedState = "completed"
 )
 
@@ -36,16 +38,18 @@ type NewFilter struct {
 
 // Filter represents a structure for a filter job
 type Filter struct {
-	Dataset     *Dataset    `bson:"dataset"              json:"dataset"`
-	InstanceID  string      `bson:"instance_id"          json:"instance_id"`
-	Dimensions  []Dimension `bson:"dimensions,omitempty" json:"dimensions,omitempty"`
-	Downloads   *Downloads  `bson:"downloads,omitempty"  json:"downloads,omitempty"`
-	Events      Events      `bson:"events,omitempty"     json:"events,omitempty"`
-	FilterID    string      `bson:"filter_id"            json:"filter_id,omitempty"`
-	State       string      `bson:"state,omitempty"      json:"state,omitempty"`
-	Published   *bool       `bson:"published,omitempty"  json:"published,omitempty"`
-	Links       LinkMap     `bson:"links"                json:"links,omitempty"`
-	LastUpdated time.Time   `bson:"last_updated"         json:"-"`
+	UniqueTimestamp bson.MongoTimestamp `bson:"unique_timestamp,omitempty" json:"-"`
+	LastUpdated     time.Time           `bson:"last_updated"         json:"-"`
+
+	Dataset    *Dataset    `bson:"dataset"              json:"dataset"`
+	InstanceID string      `bson:"instance_id"          json:"instance_id"`
+	Dimensions []Dimension `bson:"dimensions,omitempty" json:"dimensions,omitempty"`
+	Downloads  *Downloads  `bson:"downloads,omitempty"  json:"downloads,omitempty"`
+	Events     Events      `bson:"events,omitempty"     json:"events,omitempty"`
+	FilterID   string      `bson:"filter_id"            json:"filter_id,omitempty"`
+	State      string      `bson:"state,omitempty"      json:"state,omitempty"`
+	Published  *bool       `bson:"published,omitempty"  json:"published,omitempty"`
+	Links      LinkMap     `bson:"links"                json:"links,omitempty"`
 }
 
 // LinkMap contains a named LinkObject for each link to other resources
@@ -151,10 +155,10 @@ type DatasetDimension struct {
 
 // ValidateFilterDimensions checks the selected filter dimension
 // are valid for a version of a dataset
-func ValidateFilterDimensions(filterDimensions []Dimension, datasetDimensions *DatasetDimensionResults) error {
+func ValidateFilterDimensions(filterDimensions []Dimension, dimensions *dataset.Dimensions) error {
 	dimensionNames := make(map[string]int)
-	for _, datasetDimension := range datasetDimensions.Items {
-		dimensionNames[datasetDimension.Name] = 1
+	for _, dimension := range dimensions.Items {
+		dimensionNames[dimension.Name] = 1
 	}
 
 	var incorrectDimensions []string
@@ -185,7 +189,7 @@ type PublicDimensionOption struct {
 
 // ValidateFilterDimensionOptions checks the selected filter dimension options
 // are valid for a dimension of a single version of a dataset
-func ValidateFilterDimensionOptions(filterDimensionOptions []string, datasetDimensionOptions *DatasetDimensionOptionResults) []string {
+func ValidateFilterDimensionOptions(filterDimensionOptions []string, datasetDimensionOptions *dataset.Options) []string {
 	dimensionOptions := make(map[string]int)
 	for _, datasetOption := range datasetDimensionOptions.Items {
 		dimensionOptions[datasetOption.Option] = 1

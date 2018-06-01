@@ -2,13 +2,15 @@ package api
 
 import (
 	"encoding/json"
+	"net/http"
+
 	"github.com/ONSdigital/dp-filter-api/models"
 	"github.com/ONSdigital/go-ns/log"
 	"github.com/gorilla/mux"
-	"net/http"
 
 	"context"
 	"fmt"
+
 	"github.com/ONSdigital/dp-filter-api/filters"
 	"github.com/ONSdigital/go-ns/common"
 )
@@ -183,7 +185,7 @@ func (api *FilterAPI) getFilterBlueprintDimensionOption(ctx context.Context, fil
 	}
 
 	if !optionFound {
-		return filters.ErrOptionNotFound
+		return filters.ErrDimensionOptionNotFound
 	}
 
 	return nil
@@ -241,14 +243,16 @@ func (api *FilterAPI) addFilterBlueprintDimensionOption(ctx context.Context, fil
 		return err
 	}
 
-	if filterBlueprint.State == models.SubmittedState {
-		return err
-	}
+	timestamp := filterBlueprint.UniqueTimestamp
 
 	// FIXME - Once dataset API has an endpoint to check single option exists,
 	// refactor code below instead of creating an AddDimension object from the
 	// AddDimensionOption object (to be able to use checkNewFilterDimension method)
-	if err = api.checkNewFilterDimension(ctx, dimensionName, []string{option}, *filterBlueprint.Dataset); err != nil {
+	if err = api.checkNewFilterDimension(ctx, dimensionName, []string{option}, filterBlueprint.Dataset); err != nil {
+		if err == filters.ErrVersionNotFound || err == filters.ErrDimensionsNotFound {
+			return err
+		}
+
 		if incorrectDimensionOptions.MatchString(err.Error()) {
 			return filters.NewBadRequestErr(err.Error())
 		}
@@ -260,7 +264,7 @@ func (api *FilterAPI) addFilterBlueprintDimensionOption(ctx context.Context, fil
 		return err
 	}
 
-	if err := api.dataStore.AddFilterDimensionOption(filterBlueprintID, dimensionName, option); err != nil {
+	if err := api.dataStore.AddFilterDimensionOption(filterBlueprintID, dimensionName, option, timestamp); err != nil {
 		return err
 	}
 
@@ -325,11 +329,20 @@ func (api *FilterAPI) removeFilterBlueprintDimensionOption(ctx context.Context, 
 		return err
 	}
 
-	// Check if dimension exists
+	timestamp := filterBlueprint.UniqueTimestamp
+
+	// Check if dimension and option exists
 	var hasDimension bool
+	var hasOption bool
 	for _, dimension := range filterBlueprint.Dimensions {
 		if dimension.Name == dimensionName {
 			hasDimension = true
+			for _, dimOption := range dimension.Options {
+				if dimOption == option {
+					hasOption = true
+					break
+				}
+			}
 			break
 		}
 	}
@@ -338,11 +351,11 @@ func (api *FilterAPI) removeFilterBlueprintDimensionOption(ctx context.Context, 
 		return filters.ErrDimensionNotFound
 	}
 
-	if filterBlueprint.State == models.SubmittedState {
-		return errForbidden
+	if !hasOption {
+		return filters.ErrDimensionOptionNotFound
 	}
 
-	if err = api.dataStore.RemoveFilterDimensionOption(filterBlueprintID, dimensionName, option); err != nil {
+	if err = api.dataStore.RemoveFilterDimensionOption(filterBlueprintID, dimensionName, option, timestamp); err != nil {
 		return err
 	}
 
