@@ -14,7 +14,7 @@ type DataStore interface {
 	AddFilterDimensionOption(filterID, name, option string, timestamp bson.MongoTimestamp) error
 	CreateFilterOutput(filter *models.Filter) error
 	GetFilter(filterID string) (*models.Filter, error)
-	GetFilterDimension(filterID string, name string) error
+	GetFilterDimension(filterID string, name string) (*models.Dimension, error)
 	GetFilterOutput(filterOutputID string) (*models.Filter, error)
 	RemoveFilterDimension(filterID string, name string, timestamp bson.MongoTimestamp) error
 	RemoveFilterDimensionOption(filterID string, name string, option string, timestamp bson.MongoTimestamp) error

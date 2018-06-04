@@ -22,12 +22,12 @@ const (
 )
 
 var (
-	filterNotFoundResponse       = filters.ErrFilterBlueprintNotFound.Error() + "\n"
-	dimensionNotFoundResponse    = filters.ErrDimensionNotFound.Error() + "\n"
-	versionNotFoundResponse      = filters.ErrVersionNotFound.Error() + "\n"
-	optionNotFoundResponse       = filters.ErrDimensionOptionNotFound.Error() + "\n"
-	badRequestResponse           = badRequest + "\n"
-	internalErrResponse          = internalError + "\n"
+	filterNotFoundResponse    = filters.ErrFilterBlueprintNotFound.Error() + "\n"
+	dimensionNotFoundResponse = filters.ErrDimensionNotFound.Error() + "\n"
+	versionNotFoundResponse   = filters.ErrVersionNotFound.Error() + "\n"
+	optionNotFoundResponse    = filters.ErrDimensionOptionNotFound.Error() + "\n"
+	badRequestResponse        = badRequest + "\n"
+	internalErrResponse       = internalError + "\n"
 )
 
 var previewMock = &datastoretest.PreviewDatasetMock{

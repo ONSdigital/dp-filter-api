@@ -10,6 +10,9 @@ import (
 	mongolib "github.com/ONSdigital/go-ns/mongo"
 	"github.com/gedge/mgo"
 	"github.com/gedge/mgo/bson"
+
+	// TODO - remove
+	"github.com/ONSdigital/go-ns/log"
 )
 
 // FilterStore containing all filter jobs stored in mongodb
@@ -97,22 +100,42 @@ func (s *FilterStore) UpdateFilter(updatedFilter *models.Filter, timestamp bson.
 }
 
 // GetFilterDimension return a single dimension
-func (s *FilterStore) GetFilterDimension(filterID string, name string) error {
+func (s *FilterStore) GetFilterDimension(filterID string, name string) (*models.Dimension, error) {
 	session := s.Session.Copy()
 	defer session.Close()
 
-	queryDimension := bson.M{"filter_id": filterID, "dimensions": bson.M{"$elemMatch": bson.M{"name": name}}}
-	dimensionSelect := bson.M{"dimensions": 1}
-	var result models.Filter
+	/*
+		log.Debug("Data going in", log.Data{"filterID":filterID, "name":name})
 
-	if err := session.DB(s.db).C(s.filtersCollection).Find(queryDimension).Select(dimensionSelect).One(&result); err != nil {
-		if err == mgo.ErrNotFound {
-			return filters.ErrDimensionNotFound
+		queryDimension := bson.M{"filter_id": filterID, "dimensions": bson.M{"$elemMatch": bson.M{"name": name}}}
+		dimensionSelect := bson.M{"dimensions": 1}
+		var result models.Dimension
+
+		if err := session.DB(s.db).C(s.filtersCollection).Find(queryDimension).Select(dimensionSelect).One(&result); err != nil {
+			if err == mgo.ErrNotFound {
+				return nil, filters.ErrDimensionNotFound
+			}
+			return nil, err
 		}
-		return err
+
+		log.Debug("Data coming out", log.Data{"this:":&result})
+	*/
+
+	// TODO - the above is knackered ... why?
+
+	filter, err := s.GetFilter(filterID)
+	if err != nil {
+		log.Debug("FAILED", nil)
 	}
 
-	return nil
+	var dim *models.Dimension
+	for i := range filter.Dimensions {
+		if filter.Dimensions[i].Name == name {
+			dim = &filter.Dimensions[i]
+		}
+	}
+
+	return dim, nil
 }
 
 // AddFilterDimension to a filter

@@ -74,6 +74,31 @@ type Dimension struct {
 	Options []string `bson:"options"                 json:"options"`
 }
 
+// PublicDimension represents information about a single dimension as served by /dimensions and /dimensions/<id>
+type PublicDimension struct {
+	Name  string                  `bson:"name"                    json:"name"`
+	Links *PublicDimensionLinkMap `bson:"links"                    json:"links"`
+}
+
+// PublicDimensionLinkMap is the links map for the PublicDimension structure
+type PublicDimensionLinkMap struct {
+	Self    LinkObject `bson:"self"                 json:"self"`
+	Filter  LinkObject `bson:"filter"               json:"filter"`
+	Options LinkObject `bson:"options"              json:"options, omitempty"`
+}
+
+// PublicDimensionOptions represents information about a single dimension option as served by /options and /options/<id>
+type PublicDimensionOption struct {
+	Links  *PublicDimensionOptionLinkMap `bson:"links"                    json:"links"`
+	Option string                        `bson:"option"              json:"option"`
+}
+
+// PublicDimensionOptionLinkMap is the links map for the PublicDimensionOption structure
+type PublicDimensionOptionLinkMap struct {
+	Self   LinkObject `bson:"self"                 json:"self"`
+	Filter LinkObject `bson:"filter"               json:"filter"`
+}
+
 // Downloads represents a list of file types possible to download
 type Downloads struct {
 	CSV *DownloadItem `bson:"csv,omitempty"  json:"csv,omitempty"`
@@ -173,18 +198,6 @@ func ValidateFilterDimensions(filterDimensions []Dimension, dimensions *dataset.
 	}
 
 	return nil
-}
-
-// DatasetDimensionOptionResults represents a structure for a list of dimension options
-type DatasetDimensionOptionResults struct {
-	Items []PublicDimensionOption `json:"items"`
-}
-
-// PublicDimensionOption hides values which are only used by interval services
-type PublicDimensionOption struct {
-	Name   string `bson:"name,omitempty"           json:"dimension"`
-	Label  string `bson:"label,omitempty"          json:"label"`
-	Option string `bson:"option,omitempty"         json:"option"`
 }
 
 // ValidateFilterDimensionOptions checks the selected filter dimension options

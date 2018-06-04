@@ -9,10 +9,9 @@ import (
 	"github.com/gorilla/mux"
 
 	"context"
-	"fmt"
-
 	"github.com/ONSdigital/dp-filter-api/filters"
 	"github.com/ONSdigital/go-ns/common"
+	"fmt"
 )
 
 const (
@@ -83,26 +82,38 @@ func (api *FilterAPI) getFilterBlueprintDimensionOptionsHandler(w http.ResponseW
 	log.Info("got dimension options for filter blueprint", logData)
 }
 
-func (api *FilterAPI) getFilterBlueprintDimensionOptions(ctx context.Context, filterBlueprintID, dimensionName string) ([]models.DimensionOption, error) {
+func (api *FilterAPI) getFilterBlueprintDimensionOptions(ctx context.Context, filterBlueprintID, dimensionName string) ([]models.PublicDimensionOption, error) {
 
 	filter, err := api.getFilterBlueprint(ctx, filterBlueprintID)
 	if err != nil {
 		return nil, err
 	}
 
-	var options []models.DimensionOption
+	var options []models.PublicDimensionOption
 	dimensionFound := false
 	for _, dimension := range filter.Dimensions {
 
 		if dimension.Name == dimensionName {
 			dimensionFound = true
+
+			dimLink := fmt.Sprintf("%s/filter/%s/dimensions", api.host, filterBlueprintID)
+			filterObject := models.LinkObject{
+				HRef: fmt.Sprintf("%s/filter/%s", api.host, filterBlueprintID),
+				ID:	filterBlueprintID,
+			}
+
 			for _, option := range dimension.Options {
-				url := fmt.Sprintf("%s/filter/%s/dimensions/%s/option/%s", api.host, filterBlueprintID, dimension.Name, option)
-				dimensionOption := models.DimensionOption{Option: option, DimensionOptionURL: url}
-				options = append(options, dimensionOption)
+				dimensionOption := &models.PublicDimensionOption{
+					Links: &models.PublicDimensionOptionLinkMap{
+						Self: models.LinkObject{HRef:dimLink + "/options/" + option,ID:option},
+						Filter: filterObject,
+					},
+					Option: option,
+				}
+				options = append(options, *dimensionOption)
+			}
 			}
 		}
-	}
 
 	if !dimensionFound {
 		return nil, filters.ErrDimensionNotFound
@@ -133,7 +144,7 @@ func (api *FilterAPI) getFilterBlueprintDimensionOptionHandler(w http.ResponseWr
 		return
 	}
 
-	err := api.getFilterBlueprintDimensionOption(r.Context(), filterBlueprintID, dimensionName, option)
+	dimensionOption, err := api.getFilterBlueprintDimensionOption(r.Context(), filterBlueprintID, dimensionName, option)
 	if err != nil {
 		log.ErrorC("unable to get dimension option for filter blueprint", err, logData)
 		if auditErr := api.auditor.Record(r.Context(), getOptionAction, actionUnsuccessful, auditParams); auditErr != nil {
@@ -149,46 +160,82 @@ func (api *FilterAPI) getFilterBlueprintDimensionOptionHandler(w http.ResponseWr
 		return
 	}
 
+	bytes, err := json.Marshal(dimensionOption)
+	if err != nil {
+		log.ErrorC("failed to marshal filter blueprint dimension options into bytes", err, logData)
+		if auditErr := api.auditor.Record(r.Context(), getOptionsAction, actionUnsuccessful, auditParams); auditErr != nil {
+			handleAuditingFailure(r.Context(), getOptionsAction, actionUnsuccessful, w, auditErr, logData)
+			return
+		}
+		http.Error(w, internalError, http.StatusInternalServerError)
+		return
+	}
+
 	if auditErr := api.auditor.Record(r.Context(), getOptionAction, actionSuccessful, auditParams); auditErr != nil {
 		handleAuditingFailure(r.Context(), getOptionAction, actionSuccessful, w, auditErr, logData)
 		return
 	}
 
 	setJSONContentType(w)
-	w.WriteHeader(http.StatusNoContent)
+	w.WriteHeader(http.StatusOK)
+	_, err = w.Write(bytes)
+	if err != nil {
+		log.ErrorC("failed to write bytes for http response", err, logData)
+		setErrorCode(w, err)
+		return
+	}
 
 	log.Info("got dimension option for filter blueprint", logData)
 }
 
-func (api *FilterAPI) getFilterBlueprintDimensionOption(ctx context.Context, filterBlueprintID, dimensionName, option string) error {
+func (api *FilterAPI) getFilterBlueprintDimensionOption(ctx context.Context, filterBlueprintID, dimensionName, option string) (*models.PublicDimensionOption, error) {
 
 	filter, err := api.getFilterBlueprint(ctx, filterBlueprintID)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	optionFound := false
 	dimensionFound := false
+
+	var dimensionOption *models.PublicDimensionOption
+
 	for _, d := range filter.Dimensions {
 		if d.Name == dimensionName {
 			dimensionFound = true
 			for _, o := range d.Options {
+
 				if o == option {
 					optionFound = true
+
+					dimLink := fmt.Sprintf("%s/filter/%s/dimensions", api.host, filterBlueprintID)
+					filterObject := models.LinkObject{
+						HRef: fmt.Sprintf("%s/filter/%s", api.host, filterBlueprintID),
+						ID:	filterBlueprintID,
+					}
+
+					dimensionOption = &models.PublicDimensionOption{
+					Links: &models.PublicDimensionOptionLinkMap{
+						Self:   models.LinkObject{HRef: dimLink + "/options/" + option, ID: option},
+						Filter: filterObject,
+						},
+					Option: option,
+					}
+					break
 				}
 			}
 		}
 	}
 
 	if !dimensionFound {
-		return filters.ErrDimensionNotFound
+		return nil, filters.ErrDimensionNotFound
 	}
 
 	if !optionFound {
-		return filters.ErrDimensionOptionNotFound
+		return nil, filters.ErrDimensionOptionNotFound
 	}
 
-	return nil
+	return dimensionOption, nil
 }
 
 func (api *FilterAPI) addFilterBlueprintDimensionOptionHandler(w http.ResponseWriter, r *http.Request) {
@@ -362,4 +409,18 @@ func (api *FilterAPI) removeFilterBlueprintDimensionOption(ctx context.Context, 
 	}
 
 	return nil
+}
+
+// createPublicOption creates a Public struct from a Dimension struct
+func createPublicOption(option string, dimensionSelfObject, dimensionFilterObject models.LinkObject) *models.PublicDimensionOption {
+
+	publicOption := &models.PublicDimensionOption{
+		Links: &models.PublicDimensionOptionLinkMap{
+			Self:   models.LinkObject{ID: option, HRef: dimensionSelfObject.HRef + "/options/" + option},
+			Filter: dimensionFilterObject,
+		},
+		Option: option,
+	}
+
+	return publicOption
 }

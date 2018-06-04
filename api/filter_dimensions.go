@@ -56,7 +56,8 @@ func (api *FilterAPI) getFilterBlueprintDimensionsHandler(w http.ResponseWriter,
 		return
 	}
 
-	b, err := json.Marshal(filter.Dimensions)
+	publicDimensions := createPublicDimensions(filter.Dimensions, filter.FilterID, filter.Links.Self.HRef)
+	bytes, err := json.Marshal(publicDimensions)
 	if err != nil {
 		log.ErrorC("failed to marshal filter blueprint dimensions into bytes", err, logData)
 		if auditErr := api.auditor.Record(r.Context(), getDimensionsAction, actionUnsuccessful, auditParams); auditErr != nil {
@@ -74,7 +75,7 @@ func (api *FilterAPI) getFilterBlueprintDimensionsHandler(w http.ResponseWriter,
 
 	setJSONContentType(w)
 	w.WriteHeader(http.StatusOK)
-	_, err = w.Write(b)
+	_, err = w.Write(bytes)
 	if err != nil {
 		log.ErrorC("failed to write bytes for http response", err, logData)
 		setErrorCode(w, err)
@@ -103,7 +104,8 @@ func (api *FilterAPI) getFilterBlueprintDimensionHandler(w http.ResponseWriter, 
 		return
 	}
 
-	if _, err := api.getFilterBlueprint(r.Context(), filterBlueprintID); err != nil {
+	filter, err := api.getFilterBlueprint(r.Context(), filterBlueprintID)
+	if err != nil {
 		log.Error(err, logData)
 		if auditErr := api.auditor.Record(r.Context(), getDimensionAction, actionUnsuccessful, auditParams); auditErr != nil {
 			handleAuditingFailure(r.Context(), getDimensionAction, actionUnsuccessful, w, auditErr, logData)
@@ -117,7 +119,8 @@ func (api *FilterAPI) getFilterBlueprintDimensionHandler(w http.ResponseWriter, 
 		return
 	}
 
-	if err := api.dataStore.GetFilterDimension(filterBlueprintID, name); err != nil {
+	dimension, err := api.dataStore.GetFilterDimension(filterBlueprintID, name)
+	if err != nil {
 		log.Error(err, logData)
 		if auditErr := api.auditor.Record(r.Context(), getDimensionAction, actionUnsuccessful, auditParams); auditErr != nil {
 			handleAuditingFailure(r.Context(), getDimensionAction, actionUnsuccessful, w, auditErr, logData)
@@ -127,13 +130,30 @@ func (api *FilterAPI) getFilterBlueprintDimensionHandler(w http.ResponseWriter, 
 		return
 	}
 
+	publicDimension := createPublicDimension(*dimension, filter.FilterID, filter.Links.Self.HRef)
+	bytes, err := json.Marshal(publicDimension)
+	if err != nil {
+		log.ErrorC("failed to marshal filter blueprint dimensions into bytes", err, logData)
+		if auditErr := api.auditor.Record(r.Context(), getDimensionsAction, actionUnsuccessful, auditParams); auditErr != nil {
+			handleAuditingFailure(r.Context(), getDimensionsAction, actionUnsuccessful, w, auditErr, logData)
+			return
+		}
+		http.Error(w, internalError, http.StatusInternalServerError)
+		return
+	}
+
 	if auditErr := api.auditor.Record(r.Context(), getDimensionAction, actionSuccessful, auditParams); auditErr != nil {
 		handleAuditingFailure(r.Context(), getDimensionAction, actionSuccessful, w, auditErr, logData)
 		return
 	}
 
 	setJSONContentType(w)
-	w.WriteHeader(http.StatusNoContent)
+	_, err = w.Write(bytes)
+	if err != nil {
+		log.ErrorC("failed to write bytes for http response", err, logData)
+		setErrorCode(w, err)
+		return
+	}
 
 	log.Info("got filtered blueprint dimension", logData)
 }
@@ -324,4 +344,33 @@ func (api *FilterAPI) checkNewFilterDimension(ctx context.Context, name string, 
 	}
 
 	return nil
+}
+
+// createPublicDimensions wraps createPublicDimension for converting arrays of dimensions
+func createPublicDimensions(inputDimensions []models.Dimension, filterID, filterURl string) []*models.PublicDimension {
+
+	var outputDimensions []*models.PublicDimension
+	for i := range inputDimensions {
+
+		publicDimension := createPublicDimension(inputDimensions[i], filterID, filterURl)
+		outputDimensions = append(outputDimensions, publicDimension)
+	}
+
+	return outputDimensions
+}
+
+// createPublicDimension creates a PublicDimension struct from a Dimension struct
+func createPublicDimension(dimension models.Dimension, filterID, filterURL string) *models.PublicDimension {
+
+	SelfObject := &models.LinkObject{HRef: filterURL + "/dimensions/" + dimension.Name, ID: dimension.Name}
+
+	publicDim := &models.PublicDimension{
+		Name: dimension.Name,
+		Links: &models.PublicDimensionLinkMap{
+			Self:    *SelfObject,
+			Filter:  models.LinkObject{HRef: filterURL, ID: filterID},
+			Options: models.LinkObject{HRef: SelfObject.HRef + "/options"},
+		},
+	}
+	return publicDim
 }

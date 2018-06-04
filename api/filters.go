@@ -18,10 +18,10 @@ import (
 	"time"
 
 	"github.com/ONSdigital/dp-filter-api/filters"
+	datasetAPI "github.com/ONSdigital/go-ns/clients/dataset"
 	"github.com/ONSdigital/go-ns/common"
 	"github.com/ONSdigital/go-ns/handlers/requestID"
 	"github.com/satori/go.uuid"
-	datasetAPI "github.com/ONSdigital/go-ns/clients/dataset"
 )
 
 var (
