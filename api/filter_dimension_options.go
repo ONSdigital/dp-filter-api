@@ -224,6 +224,7 @@ func (api *FilterAPI) getFilterBlueprintDimensionOption(ctx context.Context, fil
 					break
 				}
 			}
+			break
 		}
 	}
 
