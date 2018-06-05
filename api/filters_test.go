@@ -7,8 +7,6 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
-	"time"
-
 	"github.com/ONSdigital/dp-filter-api/mocks"
 	"github.com/ONSdigital/go-ns/audit"
 	"github.com/ONSdigital/go-ns/common"
@@ -586,9 +584,7 @@ func TestSuccessfulUpdateFilterBlueprint_PublishedDataset(t *testing.T) {
 
 		Convey("When a PUT request is made to the filters endpoint with events and dataset version update", func() {
 
-			updateBlueprintData := `{"dataset":{"version":1}, "events":{"info":[{"time":"` + time.Now().String() +
-				`","type":"something changed","message":"something happened"}],"error":[{"time":"` + time.Now().String() +
-				`","type":"errored","message":"something errored"}]}}`
+			updateBlueprintData := `{"dataset":{"version":1}, "events":[{"type":"wut","time":"2018-06-05T11:34:35.291735535+01:00"}]}`
 
 			reader := strings.NewReader(updateBlueprintData)
 			r, err := http.NewRequest("PUT", "http://localhost:22100/filters/21312", reader)

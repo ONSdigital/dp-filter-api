@@ -344,11 +344,7 @@ func validateFilter(filter *models.Filter) {
 		filter.Dimensions = []models.Dimension{}
 	}
 
-	if filter.Events.Info == nil {
-		filter.Events.Info = []models.EventItem{}
-	}
-
-	if filter.Events.Error == nil {
-		filter.Events.Error = []models.EventItem{}
+	if filter.Events == nil {
+		filter.Events = []*models.Event{}
 	}
 }

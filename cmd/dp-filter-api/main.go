@@ -22,9 +22,22 @@ import (
 	mongolib "github.com/ONSdigital/go-ns/mongo"
 	neo4jhealth "github.com/ONSdigital/go-ns/neo4j"
 	bolt "github.com/ONSdigital/golang-neo4j-bolt-driver"
+	"time"
+	"github.com/ONSdigital/dp-filter-api/models"
+	"encoding/json"
 )
 
 func main() {
+
+	event := &models.Event{
+		Time:time.Now(),
+		Type:"wut",
+	}
+
+	b, err := json.Marshal(event)
+
+	fmt.Println(string(b))
+	return
 	log.Namespace = "dp-filter-api"
 
 	signals := make(chan os.Signal, 1)

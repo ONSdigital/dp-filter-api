@@ -72,20 +72,17 @@ func TestCreateUpdateFilterOutput(t *testing.T) {
 	Convey("When a filter output is updated with event and state", t, func() {
 		filterOutput := models.Filter{
 			State: models.CompletedState,
-			Events: models.Events{
-				Info: []models.EventItem{{
-					Message: "empty filter job",
-					Time:    time.Now().UTC().String(),
-				}},
-			},
+			Events: []*models.Event{{
+				Type: "wut",
+				Time: time.Now().UTC(),
+			}},
 		}
 		data := createUpdateFilterOutput(&filterOutput)
 		Convey("Then the returned bson object contains the latest changes", func() {
 			state := data["$set"].(bson.M)["state"].(string)
-			event := data["$set"].(bson.M)["events"].(models.Events)
-			So(len(event.Info), ShouldEqual, 1)
+			events := data["$set"].(bson.M)["events"].([]*models.Event)
+			So(len(events), ShouldEqual, 1)
 			So(state, ShouldEqual, models.CompletedState)
-
 		})
 	})
 }
