@@ -3,8 +3,9 @@ package mocks
 import (
 	"errors"
 
-	"github.com/ONSdigital/dp-filter-api/models"
 	"github.com/ONSdigital/dp-filter-api/filters"
+	"github.com/ONSdigital/dp-filter-api/models"
+	"github.com/gedge/mgo/bson"
 )
 
 // A list of errors that can be returned by mock package
@@ -24,6 +25,8 @@ type DataStore struct {
 	Unpublished            bool
 	MissingPublicLinks     bool
 	BadRequest             bool
+	ConflictRequest        bool
+	AgeDimension           bool
 }
 
 // AddFilter represents the mocked version of creating a filter blueprint to the datastore
@@ -35,26 +38,34 @@ func (ds *DataStore) AddFilter(host string, filterJob *models.Filter) (*models.F
 }
 
 // AddFilterDimension represents the mocked version of creating a filter dimension to the datastore
-func (ds *DataStore) AddFilterDimension(filterID, name string, options []string, dimensions []models.Dimension) error {
+func (ds *DataStore) AddFilterDimension(filterID, name string, options []string, dimensions []models.Dimension, timestamp bson.MongoTimestamp) error {
 	if ds.InternalError {
 		return errorInternalServer
 	}
 
 	if ds.NotFound {
 		return filters.ErrFilterBlueprintNotFound
+	}
+
+	if ds.ConflictRequest {
+		return filters.ErrFilterBlueprintConflict
 	}
 
 	return nil
 }
 
 // AddFilterDimensionOption represents the mocked version of creating a filter dimension option to the datastore
-func (ds *DataStore) AddFilterDimensionOption(filterID, name, option string) error {
+func (ds *DataStore) AddFilterDimensionOption(filterID, name, option string, timestamp bson.MongoTimestamp) error {
 	if ds.InternalError {
 		return errorInternalServer
 	}
 
 	if ds.NotFound {
 		return filters.ErrFilterBlueprintNotFound
+	}
+
+	if ds.ConflictRequest {
+		return filters.ErrFilterBlueprintConflict
 	}
 
 	return nil
@@ -83,19 +94,21 @@ func (ds *DataStore) GetFilter(filterID string) (*models.Filter, error) {
 		return &models.Filter{Dataset: &models.Dataset{ID: "123", Edition: "2017", Version: 1}, InstanceID: "12345678"}, nil
 	}
 
-	if ds.ChangeInstanceRequest {
-		return &models.Filter{Dataset: &models.Dataset{ID: "123", Edition: "2017", Version: 1}, InstanceID: "12345678", Published: &models.Published, Dimensions: []models.Dimension{{Name: "age", Options: []string{"33"}}}}, nil
-	}
-
 	if ds.InvalidDimensionOption {
 		return &models.Filter{Dataset: &models.Dataset{ID: "123", Edition: "2017", Version: 1}, InstanceID: "12345678", Published: &models.Published, Dimensions: []models.Dimension{{Name: "age", Options: []string{"28"}}}}, nil
 	}
 
 	if ds.Unpublished {
-		return &models.Filter{Dataset: &models.Dataset{ID: "123", Edition: "2017", Version: 1}, InstanceID: "12345678", Dimensions: []models.Dimension{{Name: "time", Options: []string{"2014", "2015"}}}}, nil
+		if ds.DimensionNotFound {
+			return &models.Filter{Dataset: &models.Dataset{ID: "123", Edition: "2017", Version: 1}, InstanceID: "12345678", Dimensions: []models.Dimension{{Name: "time", Options: []string{"2014", "2015"}}}}, nil
+		}
+		return &models.Filter{Dataset: &models.Dataset{ID: "123", Edition: "2017", Version: 1}, InstanceID: "12345678", Dimensions: []models.Dimension{{Name: "time", Options: []string{"2014", "2015"}}, {Name: "1_age"}}}, nil
 	}
 
-	return &models.Filter{Dataset: &models.Dataset{ID: "123", Edition: "2017", Version: 1}, InstanceID: "12345678", Published: &models.Published, Dimensions: []models.Dimension{{Name: "time", Options: []string{"2014", "2015"}}}}, nil
+	if ds.DimensionNotFound {
+		return &models.Filter{Dataset: &models.Dataset{ID: "123", Edition: "2017", Version: 1}, InstanceID: "12345678", Dimensions: []models.Dimension{{Name: "time", Options: []string{"2014", "2015"}}}}, nil
+	}
+	return &models.Filter{Dataset: &models.Dataset{ID: "123", Edition: "2017", Version: 1}, InstanceID: "12345678", Published: &models.Published, Dimensions: []models.Dimension{{Name: "time", Options: []string{"2014", "2015"}}, {Name: "1_age"}}}, nil
 }
 
 // GetFilterDimension represents the mocked version of getting a filter dimension from the datastore
@@ -153,7 +166,7 @@ func (ds *DataStore) GetFilterOutput(filterID string) (*models.Filter, error) {
 }
 
 // RemoveFilterDimension represents the mocked version of removing a filter dimension from the datastore
-func (ds *DataStore) RemoveFilterDimension(string, string) error {
+func (ds *DataStore) RemoveFilterDimension(string, string, bson.MongoTimestamp) error {
 	if ds.InternalError {
 		return errorInternalServer
 	}
@@ -162,11 +175,15 @@ func (ds *DataStore) RemoveFilterDimension(string, string) error {
 		return filters.ErrFilterBlueprintNotFound
 	}
 
+	if ds.ConflictRequest {
+		return filters.ErrFilterBlueprintConflict
+	}
+
 	return nil
 }
 
 // RemoveFilterDimensionOption represents the mocked version of removing a filter dimension option from the datastore
-func (ds *DataStore) RemoveFilterDimensionOption(filterJobID, name, option string) error {
+func (ds *DataStore) RemoveFilterDimensionOption(filterJobID, name, option string, timestamp bson.MongoTimestamp) error {
 	if ds.InternalError {
 		return errorInternalServer
 	}
@@ -175,11 +192,15 @@ func (ds *DataStore) RemoveFilterDimensionOption(filterJobID, name, option strin
 		return filters.ErrDimensionNotFound
 	}
 
+	if ds.ConflictRequest {
+		return filters.ErrFilterBlueprintConflict
+	}
+
 	return nil
 }
 
 // UpdateFilter represents the mocked version of updating a filter blueprint from the datastore
-func (ds *DataStore) UpdateFilter(filterJob *models.Filter) error {
+func (ds *DataStore) UpdateFilter(filterJob *models.Filter, timestamp bson.MongoTimestamp) error {
 	if ds.InternalError {
 		return errorInternalServer
 	}
@@ -191,17 +212,26 @@ func (ds *DataStore) UpdateFilter(filterJob *models.Filter) error {
 	if ds.VersionNotFound {
 		return filters.ErrVersionNotFound
 	}
+
+	if ds.ConflictRequest {
+		return filters.ErrFilterBlueprintConflict
+	}
+
 	return nil
 }
 
 // UpdateFilterOutput represents the mocked version of updating a filter output from the datastore
-func (ds *DataStore) UpdateFilterOutput(filterJob *models.Filter) error {
+func (ds *DataStore) UpdateFilterOutput(filterJob *models.Filter, timestamp bson.MongoTimestamp) error {
 	if ds.InternalError {
 		return errorInternalServer
 	}
 
 	if ds.NotFound {
 		return filters.ErrFilterBlueprintNotFound
+	}
+
+	if ds.ConflictRequest {
+		return filters.ErrFilterOutputConflict
 	}
 
 	return nil

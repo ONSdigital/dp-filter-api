@@ -2,52 +2,52 @@ package mocks
 
 import (
 	"context"
-	"github.com/ONSdigital/dp-filter-api/models"
 	"github.com/ONSdigital/dp-filter-api/filters"
+	"github.com/ONSdigital/go-ns/clients/dataset"
 )
 
 // DatasetAPI represents a list of error flags to set error in mocked dataset API
 type DatasetAPI struct {
-	VersionNotFound          bool
-	InternalServerError      bool
-	Unpublished              bool
+	VersionNotFound     bool
+	InternalServerError bool
+	Unpublished         bool
 }
 
 // GetVersion represents the mocked version of getting an version document from dataset API
-func (ds *DatasetAPI) GetVersion(ctx context.Context, dataset models.Dataset) (*models.Version, error) {
+func (ds *DatasetAPI) GetVersion(ctx context.Context, id, edition, version string) (m dataset.Version, err error) {
 	if ds.InternalServerError {
-		return nil, errorInternalServer
+		return m, errorInternalServer
 	}
 
 	if ds.VersionNotFound {
-		return nil, filters.ErrVersionNotFound
+		return m, filters.ErrVersionNotFound
 	}
 
 	if ds.Unpublished {
-		return &models.Version{
-			Links: models.VersionLinks{
-				Dataset: models.LinkObject{
+		return dataset.Version{
+			Links: dataset.Links{
+				Dataset: dataset.Link{
 					ID: "123",
 				},
-				Edition: models.LinkObject{
+				Edition: dataset.Link{
 					ID: "2017",
 				},
-				Version: models.LinkObject{
+				Version: dataset.Link{
 					ID: "1",
 				},
 			},
 		}, nil
 	}
 
-	return &models.Version{
-		Links: models.VersionLinks{
-			Dataset: models.LinkObject{
+	return dataset.Version{
+		Links: dataset.Links{
+			Dataset: dataset.Link{
 				ID: "123",
 			},
-			Edition: models.LinkObject{
+			Edition: dataset.Link{
 				ID: "2017",
 			},
-			Version: models.LinkObject{
+			Version: dataset.Link{
 				ID: "1",
 			},
 		},
@@ -56,39 +56,37 @@ func (ds *DatasetAPI) GetVersion(ctx context.Context, dataset models.Dataset) (*
 }
 
 // GetVersionDimensions represents the mocked version of getting a list of dimensions from the dataset API
-func (ds *DatasetAPI) GetVersionDimensions(ctx context.Context, dataset models.Dataset) (*models.DatasetDimensionResults, error) {
+func (ds *DatasetAPI) GetDimensions(ctx context.Context, id, edition, version string) (m dataset.Dimensions, err error) {
 	if ds.InternalServerError {
-		return nil, errorInternalServer
+		return m, errorInternalServer
 	}
 
-	dimension := models.DatasetDimension{
+	dimension := dataset.Dimension{
 		Name: "age",
 	}
 
-	return &models.DatasetDimensionResults{
-		Items: []models.DatasetDimension{dimension},
+	return dataset.Dimensions{
+		Items: []dataset.Dimension{dimension},
 	}, nil
 }
 
 // GetVersionDimensionOptions represents the mocked version of getting a list of dimension options from the dataset API
-func (ds *DatasetAPI) GetVersionDimensionOptions(ctx context.Context, dataset models.Dataset, dimension string) (*models.DatasetDimensionOptionResults, error) {
+func (ds *DatasetAPI) GetOptions(ctx context.Context, id, edition, version, dimension string) (m dataset.Options, err error) {
 	if ds.InternalServerError {
-		return nil, errorInternalServer
+		return m, errorInternalServer
 	}
 
-	dimensionOptionOne := models.PublicDimensionOption{
-		Name:   "age",
+	dimensionOptionOne := dataset.Option{
 		Label:  "age",
 		Option: "27",
 	}
 
-	dimensionOptionTwo := models.PublicDimensionOption{
-		Name:   "age",
+	dimensionOptionTwo := dataset.Option{
 		Label:  "age",
 		Option: "33",
 	}
 
-	return &models.DatasetDimensionOptionResults{
-		Items: []models.PublicDimensionOption{dimensionOptionOne, dimensionOptionTwo},
+	return dataset.Options{
+		Items: []dataset.Option{dimensionOptionOne, dimensionOptionTwo},
 	}, nil
 }

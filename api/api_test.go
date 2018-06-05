@@ -1,15 +1,17 @@
 package api
 
 import (
-	"net/http"
 	"io"
+	"net/http"
 
+	"context"
 	"github.com/ONSdigital/dp-filter-api/api/datastoretest"
+	"github.com/ONSdigital/dp-filter-api/filters"
 	"github.com/ONSdigital/dp-filter-api/models"
 	"github.com/ONSdigital/dp-filter-api/preview"
+	"github.com/ONSdigital/go-ns/audit"
 	"github.com/ONSdigital/go-ns/common"
 	. "github.com/smartystreets/goconvey/convey"
-	"github.com/ONSdigital/dp-filter-api/filters"
 )
 
 const (
@@ -21,10 +23,9 @@ const (
 
 var (
 	filterNotFoundResponse       = filters.ErrFilterBlueprintNotFound.Error() + "\n"
-	filterOutputNotFoundResponse = filters.ErrFilterOutputNotFound.Error() + "\n"
 	dimensionNotFoundResponse    = filters.ErrDimensionNotFound.Error() + "\n"
 	versionNotFoundResponse      = filters.ErrVersionNotFound.Error() + "\n"
-	optionNotFoundResponse       = filters.ErrOptionNotFound.Error() + "\n"
+	optionNotFoundResponse       = filters.ErrDimensionOptionNotFound.Error() + "\n"
 	badRequestResponse           = badRequest + "\n"
 	internalErrResponse          = internalError + "\n"
 )
@@ -44,4 +45,12 @@ func createAuthenticatedRequest(method, url string, body io.Reader) *http.Reques
 
 	So(err, ShouldBeNil)
 	return r
+}
+
+func getMockAuditor() *audit.AuditorServiceMock {
+	return &audit.AuditorServiceMock{
+		RecordFunc: func(ctx context.Context, action string, result string, params common.Params) error {
+			return nil
+		},
+	}
 }
