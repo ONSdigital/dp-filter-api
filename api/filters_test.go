@@ -894,7 +894,7 @@ func TestRemoveDuplicates(t *testing.T) {
 		duplicates := []string{"1", "2", "2", "2", "abcde", "abd", "abcde"}
 
 		Convey("When I call remove duplicates function", func() {
-			withoutDuplicates := removeDuplicates(duplicates)
+			withoutDuplicates := removeDuplicateOptions(duplicates)
 
 			Convey("Then the duplicates are removed", func() {
 				expected := []string{"1", "2", "abcde", "abd"}
