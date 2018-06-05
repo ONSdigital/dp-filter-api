@@ -9,9 +9,9 @@ import (
 	"github.com/gorilla/mux"
 
 	"context"
+	"fmt"
 	"github.com/ONSdigital/dp-filter-api/filters"
 	"github.com/ONSdigital/go-ns/common"
-	"fmt"
 )
 
 const (
@@ -99,21 +99,21 @@ func (api *FilterAPI) getFilterBlueprintDimensionOptions(ctx context.Context, fi
 			dimLink := fmt.Sprintf("%s/filters/%s/dimensions/%s", api.host, filterBlueprintID, dimension.Name)
 			filterObject := models.LinkObject{
 				HRef: fmt.Sprintf("%s/filters/%s", api.host, filterBlueprintID),
-				ID:	filterBlueprintID,
+				ID:   filterBlueprintID,
 			}
 
 			for _, option := range dimension.Options {
 				dimensionOption := &models.PublicDimensionOption{
 					Links: &models.PublicDimensionOptionLinkMap{
-						Self: models.LinkObject{HRef:dimLink + "/options/" + option,ID:option},
+						Self:   models.LinkObject{HRef: dimLink + "/options/" + option, ID: option},
 						Filter: filterObject,
 					},
 					Option: option,
 				}
 				options = append(options, *dimensionOption)
 			}
-			}
 		}
+	}
 
 	if !dimensionFound {
 		return nil, filters.ErrDimensionNotFound
@@ -211,15 +211,15 @@ func (api *FilterAPI) getFilterBlueprintDimensionOption(ctx context.Context, fil
 					dimLink := fmt.Sprintf("%s/filter/%s/dimensions", api.host, filterBlueprintID)
 					filterObject := models.LinkObject{
 						HRef: fmt.Sprintf("%s/filter/%s", api.host, filterBlueprintID),
-						ID:	filterBlueprintID,
+						ID:   filterBlueprintID,
 					}
 
 					dimensionOption = &models.PublicDimensionOption{
-					Links: &models.PublicDimensionOptionLinkMap{
-						Self:   models.LinkObject{HRef: dimLink + "/options/" + option, ID: option},
-						Filter: filterObject,
+						Links: &models.PublicDimensionOptionLinkMap{
+							Self:   models.LinkObject{HRef: dimLink + "/options/" + option, ID: option},
+							Filter: filterObject,
 						},
-					Option: option,
+						Option: option,
 					}
 					break
 				}
