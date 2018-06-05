@@ -404,6 +404,8 @@ func (api *FilterAPI) getFilterBlueprint(ctx context.Context, filterID string) (
 		return nil, err
 	}
 
+	fmt.Println(filter)
+
 	//version has been published since filter was last requested, so update filter and return
 	if version.State == publishedState {
 		filter.Published = &models.Published

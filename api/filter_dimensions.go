@@ -11,6 +11,7 @@ import (
 	"github.com/ONSdigital/go-ns/common"
 	"github.com/ONSdigital/go-ns/log"
 	"github.com/gorilla/mux"
+	"strings"
 )
 
 const (
@@ -56,7 +57,7 @@ func (api *FilterAPI) getFilterBlueprintDimensionsHandler(w http.ResponseWriter,
 		return
 	}
 
-	publicDimensions := createPublicDimensions(filter.Dimensions, filter.FilterID, filter.Links.Self.HRef)
+	publicDimensions := createPublicDimensions(filter.Dimensions)
 	bytes, err := json.Marshal(publicDimensions)
 	if err != nil {
 		log.ErrorC("failed to marshal filter blueprint dimensions into bytes", err, logData)
@@ -104,8 +105,7 @@ func (api *FilterAPI) getFilterBlueprintDimensionHandler(w http.ResponseWriter, 
 		return
 	}
 
-	filter, err := api.getFilterBlueprint(r.Context(), filterBlueprintID)
-	if err != nil {
+	if _, err := api.getFilterBlueprint(r.Context(), filterBlueprintID); err != nil {
 		log.Error(err, logData)
 		if auditErr := api.auditor.Record(r.Context(), getDimensionAction, actionUnsuccessful, auditParams); auditErr != nil {
 			handleAuditingFailure(r.Context(), getDimensionAction, actionUnsuccessful, w, auditErr, logData)
@@ -130,7 +130,7 @@ func (api *FilterAPI) getFilterBlueprintDimensionHandler(w http.ResponseWriter, 
 		return
 	}
 
-	publicDimension := createPublicDimension(*dimension, filter.FilterID, filter.Links.Self.HRef)
+	publicDimension := createPublicDimension(*dimension)
 	bytes, err := json.Marshal(publicDimension)
 	if err != nil {
 		log.ErrorC("failed to marshal filter blueprint dimensions into bytes", err, logData)
@@ -347,12 +347,12 @@ func (api *FilterAPI) checkNewFilterDimension(ctx context.Context, name string, 
 }
 
 // createPublicDimensions wraps createPublicDimension for converting arrays of dimensions
-func createPublicDimensions(inputDimensions []models.Dimension, filterID, filterURl string) []*models.PublicDimension {
+func createPublicDimensions(inputDimensions []models.Dimension) []*models.PublicDimension {
 
 	var outputDimensions []*models.PublicDimension
 	for i := range inputDimensions {
 
-		publicDimension := createPublicDimension(inputDimensions[i], filterID, filterURl)
+		publicDimension := createPublicDimension(inputDimensions[i])
 		outputDimensions = append(outputDimensions, publicDimension)
 	}
 
@@ -360,9 +360,13 @@ func createPublicDimensions(inputDimensions []models.Dimension, filterID, filter
 }
 
 // createPublicDimension creates a PublicDimension struct from a Dimension struct
-func createPublicDimension(dimension models.Dimension, filterID, filterURL string) *models.PublicDimension {
+func createPublicDimension(dimension models.Dimension) *models.PublicDimension {
 
-	SelfObject := &models.LinkObject{HRef: filterURL + "/dimensions/" + dimension.Name, ID: dimension.Name}
+	SelfObject := &models.LinkObject{HRef: dimension.URL, ID: dimension.Name}
+
+	// split out filterID and URL from dimension.URL
+	filterURL := strings.Split(dimension.URL, "/dimensions/")[0]
+	filterID := strings.Split(filterURL, "/filters/")[1]
 
 	publicDim := &models.PublicDimension{
 		Name: dimension.Name,
