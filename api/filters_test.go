@@ -3,16 +3,17 @@ package api
 import (
 	"context"
 	"errors"
-	"github.com/ONSdigital/dp-filter-api/mocks"
-	"github.com/ONSdigital/go-ns/audit"
-	"github.com/ONSdigital/go-ns/common"
-	"github.com/gorilla/mux"
-	. "github.com/smartystreets/goconvey/convey"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/ONSdigital/dp-filter-api/mocks"
+	"github.com/ONSdigital/go-ns/audit"
+	"github.com/ONSdigital/go-ns/common"
+	"github.com/gorilla/mux"
+	. "github.com/smartystreets/goconvey/convey"
 )
 
 var (
@@ -241,7 +242,7 @@ func TestFailedToAddFilterBlueprint(t *testing.T) {
 		})
 	})
 
-	Convey("When version is unpublished and the request is not authenticated, a bad request error is returned", t, func() {
+	Convey("When version is unpublished and the request is not authenticated, a not found error is returned", t, func() {
 		reader := strings.NewReader(`{"dataset":{"version":1, "edition":"1", "id":"1"}, "dimensions":[{"name": "age", "options": ["27","33"]}]}`)
 		r, err := http.NewRequest("POST", "http://localhost:22100/filters", reader)
 		So(err, ShouldBeNil)
@@ -250,10 +251,10 @@ func TestFailedToAddFilterBlueprint(t *testing.T) {
 		w := httptest.NewRecorder()
 		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, mockAuditor)
 		api.router.ServeHTTP(w, r)
-		So(w.Code, ShouldEqual, http.StatusBadRequest)
+		So(w.Code, ShouldEqual, http.StatusNotFound)
 
 		response := w.Body.String()
-		So(response, ShouldResemble, badRequestResponse)
+		So(response, ShouldResemble, versionNotFoundResponse)
 
 		Convey("Then the auditor is called for the attempt and outcome", func() {
 			assertAuditCalled(mockAuditor, createFilterBlueprintAction, actionUnsuccessful, nil)
@@ -841,7 +842,7 @@ func TestFailedToUpdateFilterBlueprint(t *testing.T) {
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
 		response := w.Body.String()
-		So(response, ShouldResemble, "incorrect dimensions chosen: [time]\n")
+		So(response, ShouldResemble, "incorrect dimensions chosen: [time 1_age]\n")
 
 		Convey("Then the auditor is called for the attempt and outcome", func() {
 			assertAuditCalled(mockAuditor, updateFilterBlueprintAction, actionUnsuccessful, expectedAuditParams)

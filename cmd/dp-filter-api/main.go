@@ -15,12 +15,12 @@ import (
 	"github.com/ONSdigital/dp-filter-api/preview"
 	"github.com/ONSdigital/dp-filter/observation"
 	"github.com/ONSdigital/go-ns/audit"
+	"github.com/ONSdigital/go-ns/clients/dataset"
 	"github.com/ONSdigital/go-ns/healthcheck"
 	"github.com/ONSdigital/go-ns/kafka"
 	"github.com/ONSdigital/go-ns/log"
 	mongolib "github.com/ONSdigital/go-ns/mongo"
 	neo4jhealth "github.com/ONSdigital/go-ns/neo4j"
-	"github.com/ONSdigital/go-ns/rchttp"
 	bolt "github.com/ONSdigital/golang-neo4j-bolt-driver"
 )
 
@@ -69,8 +69,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	client := rchttp.DefaultClient
-
 	var auditor audit.AuditorService
 	var auditProducer kafka.Producer
 
@@ -90,7 +88,7 @@ func main() {
 	}
 
 	// todo: remove config.DatasetAPIAuthToken when the DatasetAPI supports identity based auth.
-	datasetAPI := api.NewDatasetAPI(client, cfg.DatasetAPIURL, cfg.DatasetAPIAuthToken, cfg.ServiceAuthToken)
+	datasetAPI := dataset.NewAPIClient(cfg.DatasetAPIURL, cfg.ServiceAuthToken, "")
 
 	observationStore := observation.NewStore(pool)
 	previewDatasets := preview.DatasetStore{Store: observationStore}
@@ -100,7 +98,7 @@ func main() {
 		cfg.HealthCheckInterval,
 		neo4jhealth.NewHealthCheckClient(pool),
 		mongolib.NewHealthCheckClient(dataStore.Session),
-		datasetAPI.GetHealthCheckClient(),
+		datasetAPI,
 	)
 
 	apiErrors := make(chan error, 1)

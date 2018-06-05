@@ -33,10 +33,10 @@
 			"revisionTime": "2018-05-08T08:56:58Z"
 		},
 		{
-			"checksumSHA1": "Yai6m/QNbCKqk+vgWt+8TAfbCvQ=",
+			"checksumSHA1": "y1C9WNOMJBZowa/oQGlFfdC7Yhc=",
 			"path": "github.com/ONSdigital/go-ns/clients/dataset",
-			"revision": "7d241b721903e1b6a9a1f5c916cdbfa661d230f1",
-			"revisionTime": "2018-05-08T08:56:58Z"
+			"revision": "9586510b6785ec27b22cbb02404d4a0d898d3876",
+			"revisionTime": "2018-05-31T06:18:11Z"
 		},
 		{
 			"checksumSHA1": "wJILt43hrfiel7QXOV3VfV21OhU=",
@@ -81,10 +81,10 @@
 			"revisionTime": "2018-05-08T08:56:58Z"
 		},
 		{
-			"checksumSHA1": "7qnU2KaLcrNltdsVw4zWEh4vmTM=",
+			"checksumSHA1": "/I1BHzejhYoOtk9JrLHAqmt5HTs=",
 			"path": "github.com/ONSdigital/go-ns/mongo",
-			"revision": "7d241b721903e1b6a9a1f5c916cdbfa661d230f1",
-			"revisionTime": "2018-05-08T08:56:58Z"
+			"revision": "4fc74bdcfbafb9e49161ff17600eaeb79106aadb",
+			"revisionTime": "2018-05-29T15:38:49Z"
 		},
 		{
 			"checksumSHA1": "rFpFke/Hl7rcH3ND5b4M0idiL0c=",
@@ -187,6 +187,36 @@
 			"path": "github.com/eapache/queue",
 			"revision": "02d3d2f2e96f4d8583192a90d6c8e6932d8ff7b6",
 			"revisionTime": "2017-12-21T09:34:27Z"
+		},
+		{
+			"checksumSHA1": "Tsc4M+xTb2NgaCq3y8dbIcgBJ0A=",
+			"path": "github.com/gedge/mgo",
+			"revision": "a170908eafcff6f64b9ad83db3943fe6332d52a1",
+			"revisionTime": "2018-05-23T09:46:01Z"
+		},
+		{
+			"checksumSHA1": "SAegSFbBQ3lKgxV3opxcqTPwz+o=",
+			"path": "github.com/gedge/mgo/bson",
+			"revision": "a170908eafcff6f64b9ad83db3943fe6332d52a1",
+			"revisionTime": "2018-05-23T09:46:01Z"
+		},
+		{
+			"checksumSHA1": "+soDoin5Apt/Dyk73uC1trzHx5M=",
+			"path": "github.com/gedge/mgo/internal/json",
+			"revision": "a170908eafcff6f64b9ad83db3943fe6332d52a1",
+			"revisionTime": "2018-05-23T09:46:01Z"
+		},
+		{
+			"checksumSHA1": "PZU+CtYXLjDXogLC2nNePsLBlkU=",
+			"path": "github.com/gedge/mgo/internal/sasl",
+			"revision": "a170908eafcff6f64b9ad83db3943fe6332d52a1",
+			"revisionTime": "2018-05-23T09:46:01Z"
+		},
+		{
+			"checksumSHA1": "Uoi1jh9qrlyApl2Q5JgW7OW9wy4=",
+			"path": "github.com/gedge/mgo/internal/scram",
+			"revision": "a170908eafcff6f64b9ad83db3943fe6332d52a1",
+			"revisionTime": "2018-05-23T09:46:01Z"
 		},
 		{
 			"checksumSHA1": "I6MnUzkLJt+sh73CodD0NKswFrs=",
