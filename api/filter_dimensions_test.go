@@ -495,7 +495,7 @@ func TestSuccessfulGetFilterBlueprintDimension(t *testing.T) {
 		"dimension":           "1_age",
 	}
 
-	Convey("Successfully get a dimension for a filter blueprint, returns 204", t, func() {
+	Convey("Successfully get a dimension for a filter blueprint, returns 200", t, func() {
 		mockAuditor := getMockAuditor()
 		r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678/dimensions/1_age", nil)
 		So(err, ShouldBeNil)
@@ -503,21 +503,21 @@ func TestSuccessfulGetFilterBlueprintDimension(t *testing.T) {
 		w := httptest.NewRecorder()
 		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, mockAuditor)
 		api.router.ServeHTTP(w, r)
-		So(w.Code, ShouldEqual, http.StatusNoContent)
+		So(w.Code, ShouldEqual, http.StatusOK)
 
 		Convey("Then the auditor is called for the attempt and outcome", func() {
 			assertAuditCalled(mockAuditor, getDimensionAction, actionSuccessful, expectedAuditParams)
 		})
 	})
 
-	Convey("Successfully get a dimension for an unpublished filter blueprint, returns 204", t, func() {
+	Convey("Successfully get a dimension for an unpublished filter blueprint, returns 200", t, func() {
 		mockAuditor := getMockAuditor()
 		r := createAuthenticatedRequest("GET", "http://localhost:22100/filters/12345678/dimensions/1_age", nil)
 
 		w := httptest.NewRecorder()
 		api := routes(host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, mockAuditor)
 		api.router.ServeHTTP(w, r)
-		So(w.Code, ShouldEqual, http.StatusNoContent)
+		So(w.Code, ShouldEqual, http.StatusOK)
 
 		Convey("Then the auditor is called for the attempt and outcome", func() {
 			assertAuditCalled(mockAuditor, getDimensionAction, actionSuccessful, expectedAuditParams)

@@ -112,16 +112,16 @@ func (ds *DataStore) GetFilter(filterID string) (*models.Filter, error) {
 }
 
 // GetFilterDimension represents the mocked version of getting a filter dimension from the datastore
-func (ds *DataStore) GetFilterDimension(filterID, name string) error {
+func (ds *DataStore) GetFilterDimension(filterID, name string) (*models.Dimension, error) {
 	if ds.DimensionNotFound {
-		return filters.ErrDimensionNotFound
+		return nil, filters.ErrDimensionNotFound
 	}
 
 	if ds.InternalError {
-		return errorInternalServer
+		return nil, errorInternalServer
 	}
 
-	return nil
+	return nil, nil
 }
 
 // GetFilterOutput represents the mocked version of getting a filter output from the datastore
