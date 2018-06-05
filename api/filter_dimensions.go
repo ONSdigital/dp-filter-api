@@ -148,6 +148,7 @@ func (api *FilterAPI) getFilterBlueprintDimensionHandler(w http.ResponseWriter, 
 	}
 
 	setJSONContentType(w)
+	w.WriteHeader(http.StatusOK)
 	_, err = w.Write(bytes)
 	if err != nil {
 		log.ErrorC("failed to write bytes for http response", err, logData)
@@ -350,9 +351,9 @@ func (api *FilterAPI) checkNewFilterDimension(ctx context.Context, name string, 
 func createPublicDimensions(inputDimensions []models.Dimension) []*models.PublicDimension {
 
 	var outputDimensions []*models.PublicDimension
-	for i := range inputDimensions {
+	for _, inputDimension := range inputDimensions {
 
-		publicDimension := createPublicDimension(inputDimensions[i])
+		publicDimension := createPublicDimension(inputDimension)
 		outputDimensions = append(outputDimensions, publicDimension)
 	}
 
