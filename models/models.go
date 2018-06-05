@@ -95,8 +95,9 @@ type PublicDimensionOption struct {
 
 // PublicDimensionOptionLinkMap is the links map for the PublicDimensionOption structure
 type PublicDimensionOptionLinkMap struct {
-	Self   LinkObject `bson:"self"                 json:"self"`
-	Filter LinkObject `bson:"filter"               json:"filter"`
+	Self      LinkObject `bson:"self"                 json:"self"`
+	Filter    LinkObject `bson:"filter"               json:"filter"`
+	Dimension LinkObject `bson:"dimension"               json:"dimension"`
 }
 
 // Downloads represents a list of file types possible to download
@@ -124,12 +125,6 @@ type EventItem struct {
 	Message string `bson:"message" json:"message,omitempty"`
 	Time    string `bson:"time"    json:"time,omitempty"`
 	Type    string `bson:"type"    json:"type,omitempty"`
-}
-
-// DimensionOption represents dimension option information
-type DimensionOption struct {
-	DimensionOptionURL string `json:"dimension_option_url"`
-	Option             string `json:"option"`
 }
 
 // A list of errors returned from package
