@@ -410,17 +410,3 @@ func (api *FilterAPI) removeFilterBlueprintDimensionOption(ctx context.Context, 
 
 	return nil
 }
-
-// createPublicOption creates a Public struct from a Dimension struct
-func createPublicOption(option string, dimensionSelfObject, dimensionFilterObject models.LinkObject) *models.PublicDimensionOption {
-
-	publicOption := &models.PublicDimensionOption{
-		Links: &models.PublicDimensionOptionLinkMap{
-			Self:   models.LinkObject{ID: option, HRef: dimensionSelfObject.HRef + "/options/" + option},
-			Filter: dimensionFilterObject,
-		},
-		Option: option,
-	}
-
-	return publicOption
-}
