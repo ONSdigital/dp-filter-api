@@ -162,6 +162,26 @@ func TestFailedToAddFilterBlueprint_AuditFailure(t *testing.T) {
 
 func TestFailedToAddFilterBlueprint(t *testing.T) {
 	t.Parallel()
+
+	Convey("When duplicate dimensions are sent then a bad request is returned", t, func() {
+		reader := strings.NewReader(`{"dataset":{"version":1, "edition":"1", "id":"1"},"dimensions":[{"name":"time","options":["Jun-15","Jun-12"]},{"name":"time","options":["Jun-14"]}]}`)
+		r, err := http.NewRequest("POST", "http://localhost:22100/filters", reader)
+		So(err, ShouldBeNil)
+
+		mockAuditor := getMockAuditor()
+		w := httptest.NewRecorder()
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, mockAuditor)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusBadRequest)
+
+		response := w.Body.String()
+		So(response, ShouldContainSubstring, "Bad request - duplicate dimension found: time")
+
+		Convey("Then the auditor is called for the attempt and outcome", func() {
+			assertAuditCalled(mockAuditor, createFilterBlueprintAction, actionUnsuccessful, nil)
+		})
+	})
+
 	Convey("When no data store is available, an internal error is returned", t, func() {
 		reader := strings.NewReader(`{"dataset":{"version":1, "edition":"1", "id":"1"} }`)
 		r, err := http.NewRequest("POST", "http://localhost:22100/filters", reader)
@@ -865,6 +885,22 @@ func TestFailedToUpdateFilterBlueprint(t *testing.T) {
 
 		Convey("Then the auditor is called for the attempt and outcome", func() {
 			assertAuditCalled(mockAuditor, updateFilterBlueprintAction, actionUnsuccessful, expectedAuditParams)
+		})
+	})
+}
+
+func TestRemoveDuplicates(t *testing.T) {
+	Convey("Given a string array with duplicate options", t, func() {
+		duplicates := []string{"1", "2", "2", "2", "abcde", "abd", "abcde"}
+
+		Convey("When I call remove duplicates function", func() {
+			withoutDuplicates := removeDuplicateOptions(duplicates)
+
+			Convey("Then the duplicates are removed", func() {
+				expected := []string{"1", "2", "abcde", "abd"}
+				So(withoutDuplicates, ShouldResemble, expected)
+
+			})
 		})
 	})
 }

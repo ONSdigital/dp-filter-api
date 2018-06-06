@@ -18,9 +18,9 @@ import (
 	"time"
 
 	"github.com/ONSdigital/dp-filter-api/filters"
+	datasetAPI "github.com/ONSdigital/go-ns/clients/dataset"
 	"github.com/ONSdigital/go-ns/common"
 	"github.com/satori/go.uuid"
-	datasetAPI "github.com/ONSdigital/go-ns/clients/dataset"
 )
 
 var (
@@ -70,7 +70,11 @@ func (api *FilterAPI) postFilterBlueprintHandler(w http.ResponseWriter, r *http.
 			handleAuditingFailure(r.Context(), createFilterBlueprintAction, actionUnsuccessful, w, auditErr, logData)
 			return
 		}
-		http.Error(w, badRequest, http.StatusBadRequest)
+		if err, ok := err.(models.DuplicateDimensionError); ok {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+		} else {
+			http.Error(w, badRequest, http.StatusBadRequest)
+		}
 		return
 	}
 
