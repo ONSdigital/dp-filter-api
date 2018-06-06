@@ -363,8 +363,6 @@ func createPublicDimensions(inputDimensions []models.Dimension) []*models.Public
 // createPublicDimension creates a PublicDimension struct from a Dimension struct
 func createPublicDimension(dimension models.Dimension) *models.PublicDimension {
 
-	SelfObject := &models.LinkObject{HRef: dimension.URL, ID: dimension.Name}
-
 	// split out filterID and URL from dimension.URL
 	filterURL := strings.Split(dimension.URL, "/dimensions/")[0]
 	filterID := strings.Split(filterURL, "/filters/")[1]
@@ -372,9 +370,9 @@ func createPublicDimension(dimension models.Dimension) *models.PublicDimension {
 	publicDim := &models.PublicDimension{
 		Name: dimension.Name,
 		Links: &models.PublicDimensionLinkMap{
-			Self:    *SelfObject,
+			Self:    models.LinkObject{HRef: dimension.URL, ID: dimension.Name},
 			Filter:  models.LinkObject{HRef: filterURL, ID: filterID},
-			Options: models.LinkObject{HRef: SelfObject.HRef + "/options"},
+			Options: models.LinkObject{HRef: filterURL + "/dimension/" + dimension.Name + "/options"},
 		},
 	}
 	return publicDim

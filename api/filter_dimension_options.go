@@ -163,7 +163,7 @@ func (api *FilterAPI) getFilterBlueprintDimensionOptionHandler(w http.ResponseWr
 
 	bytes, err := json.Marshal(dimensionOption)
 	if err != nil {
-		log.ErrorC("failed to marshal filter blueprint dimension options into bytes", err, logData)
+		log.ErrorC("failed to marshal filter blueprint dimension option into bytes", err, logData)
 		if auditErr := api.auditor.Record(r.Context(), getOptionAction, actionUnsuccessful, auditParams); auditErr != nil {
 			handleAuditingFailure(r.Context(), getOptionAction, actionUnsuccessful, w, auditErr, logData)
 			return
