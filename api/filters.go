@@ -19,7 +19,6 @@ import (
 
 	"github.com/ONSdigital/dp-filter-api/filters"
 	"github.com/ONSdigital/go-ns/common"
-	"github.com/ONSdigital/go-ns/handlers/requestID"
 	"github.com/satori/go.uuid"
 	datasetAPI "github.com/ONSdigital/go-ns/clients/dataset"
 )
@@ -673,6 +672,6 @@ func logAuditFailure(ctx context.Context, auditAction, auditResult string, err e
 		logData["caller"] = caller
 	}
 
-	reqID := requestID.Get(ctx)
+	reqID := common.GetRequestId(ctx)
 	log.ErrorC(reqID, errors.WithMessage(err, "error while attempting to record audit event"), logData)
 }
