@@ -420,7 +420,7 @@ func (api *FilterAPI) getFilterBlueprint(ctx context.Context, filterID string) (
 
 func (api *FilterAPI) checkFilterOptions(ctx context.Context, newFilter *models.Filter, version *datasetAPI.Version) error {
 	logData := log.Data{"new_filter": newFilter, "version": version.Version}
-	log.Info("check filter dimension options before calling api, see version number", logData)
+	log.Info("check filter dimension options before calling dataset api", logData)
 
 	// Call dimensions list endpoint
 	datasetDimensions, err := api.getDimensions(ctx, newFilter.Dataset)
