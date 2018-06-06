@@ -21,10 +21,10 @@ import (
 	"github.com/ONSdigital/go-ns/log"
 	mongolib "github.com/ONSdigital/go-ns/mongo"
 	neo4jhealth "github.com/ONSdigital/go-ns/neo4j"
-	bolt "github.com/ONSdigital/golang-neo4j-bolt-driver"
 	"time"
 	"github.com/ONSdigital/dp-filter-api/models"
 	"encoding/json"
+	bolt "github.com/johnnadratowski/golang-neo4j-bolt-driver"
 )
 
 func main() {

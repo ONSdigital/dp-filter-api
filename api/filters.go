@@ -19,7 +19,6 @@ import (
 
 	"github.com/ONSdigital/dp-filter-api/filters"
 	"github.com/ONSdigital/go-ns/common"
-	"github.com/ONSdigital/go-ns/handlers/requestID"
 	"github.com/satori/go.uuid"
 	datasetAPI "github.com/ONSdigital/go-ns/clients/dataset"
 )
@@ -421,7 +420,7 @@ func (api *FilterAPI) getFilterBlueprint(ctx context.Context, filterID string) (
 
 func (api *FilterAPI) checkFilterOptions(ctx context.Context, newFilter *models.Filter, version *datasetAPI.Version) error {
 	logData := log.Data{"new_filter": newFilter, "version": version.Version}
-	log.Info("check filter dimension options before calling api, see version number", logData)
+	log.Info("check filter dimension options before calling dataset api", logData)
 
 	// Call dimensions list endpoint
 	datasetDimensions, err := api.getDimensions(ctx, newFilter.Dataset)
@@ -667,6 +666,6 @@ func logAuditFailure(ctx context.Context, auditAction, auditResult string, err e
 		logData["caller"] = caller
 	}
 
-	reqID := requestID.Get(ctx)
+	reqID := common.GetRequestId(ctx)
 	log.ErrorC(reqID, errors.WithMessage(err, "error while attempting to record audit event"), logData)
 }
