@@ -20,7 +20,6 @@ import (
 	"github.com/ONSdigital/dp-filter-api/filters"
 	datasetAPI "github.com/ONSdigital/go-ns/clients/dataset"
 	"github.com/ONSdigital/go-ns/common"
-	"github.com/ONSdigital/go-ns/handlers/requestID"
 	"github.com/satori/go.uuid"
 )
 
@@ -71,7 +70,11 @@ func (api *FilterAPI) postFilterBlueprintHandler(w http.ResponseWriter, r *http.
 			handleAuditingFailure(r.Context(), createFilterBlueprintAction, actionUnsuccessful, w, auditErr, logData)
 			return
 		}
-		http.Error(w, badRequest, http.StatusBadRequest)
+		if err, ok := err.(models.DuplicateDimensionError); ok {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+		} else {
+			http.Error(w, badRequest, http.StatusBadRequest)
+		}
 		return
 	}
 
@@ -673,6 +676,6 @@ func logAuditFailure(ctx context.Context, auditAction, auditResult string, err e
 		logData["caller"] = caller
 	}
 
-	reqID := requestID.Get(ctx)
+	reqID := common.GetRequestId(ctx)
 	log.ErrorC(reqID, errors.WithMessage(err, "error while attempting to record audit event"), logData)
 }
