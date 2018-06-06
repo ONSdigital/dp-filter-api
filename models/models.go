@@ -115,12 +115,12 @@ var (
 	ErrorNoData      = errors.New("Bad request - Missing data in body")
 )
 
-// ErrorDuplicateDimension is returned if a request contains a duplicate dimension
-type ErrorDuplicateDimension struct {
+// DuplicateDimensionError is returned if a request contains a duplicate dimension
+type DuplicateDimensionError struct {
 	duplicateDimension string
 }
 
-func (e ErrorDuplicateDimension) Error() string {
+func (e DuplicateDimensionError) Error() string {
 	return fmt.Sprintf("Bad request - duplicate dimension found: %s", e.duplicateDimension)
 }
 
@@ -378,7 +378,7 @@ func CreateNewFilter(reader io.Reader) (*NewFilter, error) {
 	dimensionValidator := make(map[string]bool)
 	for _, dimension := range filter.Dimensions {
 		if dimensionValidator[dimension.Name] {
-			return nil, ErrorDuplicateDimension{dimension.Name}
+			return nil, DuplicateDimensionError{dimension.Name}
 		}
 		dimensionValidator[dimension.Name] = true
 	}
