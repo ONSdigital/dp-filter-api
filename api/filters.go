@@ -18,9 +18,9 @@ import (
 	"time"
 
 	"github.com/ONSdigital/dp-filter-api/filters"
+	datasetAPI "github.com/ONSdigital/go-ns/clients/dataset"
 	"github.com/ONSdigital/go-ns/common"
 	"github.com/satori/go.uuid"
-	datasetAPI "github.com/ONSdigital/go-ns/clients/dataset"
 )
 
 var (
@@ -50,6 +50,8 @@ const (
 	actionAttempted    = "attempted"
 	actionSuccessful   = "successful"
 	actionUnsuccessful = "unsuccessful"
+
+	eventFilterOutputCreated = "FilterOutputCreated"
 )
 
 func (api *FilterAPI) postFilterBlueprintHandler(w http.ResponseWriter, r *http.Request) {
@@ -530,7 +532,12 @@ func (api *FilterAPI) createFilterOutputResource(newFilter *models.Filter, filte
 	filterOutput.LastUpdated = time.Now()
 
 	// Clear out any event information to output document
-	filterOutput.Events = []*models.Event{}
+	filterOutput.Events = []*models.Event{
+		{
+			Type: eventFilterOutputCreated,
+			Time: time.Now(),
+		},
+	}
 
 	// Downloads object should exist for filter output resource
 	// even if it they are empty

@@ -5,6 +5,7 @@ package datastoretest
 
 import (
 	"github.com/ONSdigital/dp-filter-api/models"
+	"github.com/gedge/mgo/bson"
 	"sync"
 )
 
@@ -31,10 +32,10 @@ var (
 //             AddFilterFunc: func(host string, filter *models.Filter) (*models.Filter, error) {
 // 	               panic("TODO: mock out the AddFilter method")
 //             },
-//             AddFilterDimensionFunc: func(filterID string, name string, options []string, dimensions []models.Dimension) error {
+//             AddFilterDimensionFunc: func(filterID string, name string, options []string, dimensions []models.Dimension, timestamp bson.MongoTimestamp) error {
 // 	               panic("TODO: mock out the AddFilterDimension method")
 //             },
-//             AddFilterDimensionOptionFunc: func(filterID string, name string, option string) error {
+//             AddFilterDimensionOptionFunc: func(filterID string, name string, option string, timestamp bson.MongoTimestamp) error {
 // 	               panic("TODO: mock out the AddFilterDimensionOption method")
 //             },
 //             CreateFilterOutputFunc: func(filter *models.Filter) error {
@@ -49,16 +50,16 @@ var (
 //             GetFilterOutputFunc: func(filterOutputID string) (*models.Filter, error) {
 // 	               panic("TODO: mock out the GetFilterOutput method")
 //             },
-//             RemoveFilterDimensionFunc: func(filterID string, name string) error {
+//             RemoveFilterDimensionFunc: func(filterID string, name string, timestamp bson.MongoTimestamp) error {
 // 	               panic("TODO: mock out the RemoveFilterDimension method")
 //             },
-//             RemoveFilterDimensionOptionFunc: func(filterID string, name string, option string) error {
+//             RemoveFilterDimensionOptionFunc: func(filterID string, name string, option string, timestamp bson.MongoTimestamp) error {
 // 	               panic("TODO: mock out the RemoveFilterDimensionOption method")
 //             },
-//             UpdateFilterFunc: func(filter *models.Filter) error {
+//             UpdateFilterFunc: func(filter *models.Filter, timestamp bson.MongoTimestamp) error {
 // 	               panic("TODO: mock out the UpdateFilter method")
 //             },
-//             UpdateFilterOutputFunc: func(filterOutput *models.Filter) error {
+//             UpdateFilterOutputFunc: func(filterOutput *models.Filter, timestamp bson.MongoTimestamp) error {
 // 	               panic("TODO: mock out the UpdateFilterOutput method")
 //             },
 //         }
@@ -72,10 +73,10 @@ type DataStoreMock struct {
 	AddFilterFunc func(host string, filter *models.Filter) (*models.Filter, error)
 
 	// AddFilterDimensionFunc mocks the AddFilterDimension method.
-	AddFilterDimensionFunc func(filterID string, name string, options []string, dimensions []models.Dimension) error
+	AddFilterDimensionFunc func(filterID string, name string, options []string, dimensions []models.Dimension, timestamp bson.MongoTimestamp) error
 
 	// AddFilterDimensionOptionFunc mocks the AddFilterDimensionOption method.
-	AddFilterDimensionOptionFunc func(filterID string, name string, option string) error
+	AddFilterDimensionOptionFunc func(filterID string, name string, option string, timestamp bson.MongoTimestamp) error
 
 	// CreateFilterOutputFunc mocks the CreateFilterOutput method.
 	CreateFilterOutputFunc func(filter *models.Filter) error
@@ -90,16 +91,16 @@ type DataStoreMock struct {
 	GetFilterOutputFunc func(filterOutputID string) (*models.Filter, error)
 
 	// RemoveFilterDimensionFunc mocks the RemoveFilterDimension method.
-	RemoveFilterDimensionFunc func(filterID string, name string) error
+	RemoveFilterDimensionFunc func(filterID string, name string, timestamp bson.MongoTimestamp) error
 
 	// RemoveFilterDimensionOptionFunc mocks the RemoveFilterDimensionOption method.
-	RemoveFilterDimensionOptionFunc func(filterID string, name string, option string) error
+	RemoveFilterDimensionOptionFunc func(filterID string, name string, option string, timestamp bson.MongoTimestamp) error
 
 	// UpdateFilterFunc mocks the UpdateFilter method.
-	UpdateFilterFunc func(filter *models.Filter) error
+	UpdateFilterFunc func(filter *models.Filter, timestamp bson.MongoTimestamp) error
 
 	// UpdateFilterOutputFunc mocks the UpdateFilterOutput method.
-	UpdateFilterOutputFunc func(filterOutput *models.Filter) error
+	UpdateFilterOutputFunc func(filterOutput *models.Filter, timestamp bson.MongoTimestamp) error
 
 	// calls tracks calls to the methods.
 	calls struct {
@@ -120,6 +121,8 @@ type DataStoreMock struct {
 			Options []string
 			// Dimensions is the dimensions argument value.
 			Dimensions []models.Dimension
+			// Timestamp is the timestamp argument value.
+			Timestamp bson.MongoTimestamp
 		}
 		// AddFilterDimensionOption holds details about calls to the AddFilterDimensionOption method.
 		AddFilterDimensionOption []struct {
@@ -129,6 +132,8 @@ type DataStoreMock struct {
 			Name string
 			// Option is the option argument value.
 			Option string
+			// Timestamp is the timestamp argument value.
+			Timestamp bson.MongoTimestamp
 		}
 		// CreateFilterOutput holds details about calls to the CreateFilterOutput method.
 		CreateFilterOutput []struct {
@@ -158,6 +163,8 @@ type DataStoreMock struct {
 			FilterID string
 			// Name is the name argument value.
 			Name string
+			// Timestamp is the timestamp argument value.
+			Timestamp bson.MongoTimestamp
 		}
 		// RemoveFilterDimensionOption holds details about calls to the RemoveFilterDimensionOption method.
 		RemoveFilterDimensionOption []struct {
@@ -167,16 +174,22 @@ type DataStoreMock struct {
 			Name string
 			// Option is the option argument value.
 			Option string
+			// Timestamp is the timestamp argument value.
+			Timestamp bson.MongoTimestamp
 		}
 		// UpdateFilter holds details about calls to the UpdateFilter method.
 		UpdateFilter []struct {
 			// Filter is the filter argument value.
 			Filter *models.Filter
+			// Timestamp is the timestamp argument value.
+			Timestamp bson.MongoTimestamp
 		}
 		// UpdateFilterOutput holds details about calls to the UpdateFilterOutput method.
 		UpdateFilterOutput []struct {
 			// FilterOutput is the filterOutput argument value.
 			FilterOutput *models.Filter
+			// Timestamp is the timestamp argument value.
+			Timestamp bson.MongoTimestamp
 		}
 	}
 }
@@ -217,7 +230,7 @@ func (mock *DataStoreMock) AddFilterCalls() []struct {
 }
 
 // AddFilterDimension calls AddFilterDimensionFunc.
-func (mock *DataStoreMock) AddFilterDimension(filterID string, name string, options []string, dimensions []models.Dimension) error {
+func (mock *DataStoreMock) AddFilterDimension(filterID string, name string, options []string, dimensions []models.Dimension, timestamp bson.MongoTimestamp) error {
 	if mock.AddFilterDimensionFunc == nil {
 		panic("moq: DataStoreMock.AddFilterDimensionFunc is nil but DataStore.AddFilterDimension was just called")
 	}
@@ -226,16 +239,18 @@ func (mock *DataStoreMock) AddFilterDimension(filterID string, name string, opti
 		Name       string
 		Options    []string
 		Dimensions []models.Dimension
+		Timestamp  bson.MongoTimestamp
 	}{
 		FilterID:   filterID,
 		Name:       name,
 		Options:    options,
 		Dimensions: dimensions,
+		Timestamp:  timestamp,
 	}
 	lockDataStoreMockAddFilterDimension.Lock()
 	mock.calls.AddFilterDimension = append(mock.calls.AddFilterDimension, callInfo)
 	lockDataStoreMockAddFilterDimension.Unlock()
-	return mock.AddFilterDimensionFunc(filterID, name, options, dimensions)
+	return mock.AddFilterDimensionFunc(filterID, name, options, dimensions, timestamp)
 }
 
 // AddFilterDimensionCalls gets all the calls that were made to AddFilterDimension.
@@ -246,12 +261,14 @@ func (mock *DataStoreMock) AddFilterDimensionCalls() []struct {
 	Name       string
 	Options    []string
 	Dimensions []models.Dimension
+	Timestamp  bson.MongoTimestamp
 } {
 	var calls []struct {
 		FilterID   string
 		Name       string
 		Options    []string
 		Dimensions []models.Dimension
+		Timestamp  bson.MongoTimestamp
 	}
 	lockDataStoreMockAddFilterDimension.RLock()
 	calls = mock.calls.AddFilterDimension
@@ -260,37 +277,41 @@ func (mock *DataStoreMock) AddFilterDimensionCalls() []struct {
 }
 
 // AddFilterDimensionOption calls AddFilterDimensionOptionFunc.
-func (mock *DataStoreMock) AddFilterDimensionOption(filterID string, name string, option string) error {
+func (mock *DataStoreMock) AddFilterDimensionOption(filterID string, name string, option string, timestamp bson.MongoTimestamp) error {
 	if mock.AddFilterDimensionOptionFunc == nil {
 		panic("moq: DataStoreMock.AddFilterDimensionOptionFunc is nil but DataStore.AddFilterDimensionOption was just called")
 	}
 	callInfo := struct {
-		FilterID string
-		Name     string
-		Option   string
+		FilterID  string
+		Name      string
+		Option    string
+		Timestamp bson.MongoTimestamp
 	}{
-		FilterID: filterID,
-		Name:     name,
-		Option:   option,
+		FilterID:  filterID,
+		Name:      name,
+		Option:    option,
+		Timestamp: timestamp,
 	}
 	lockDataStoreMockAddFilterDimensionOption.Lock()
 	mock.calls.AddFilterDimensionOption = append(mock.calls.AddFilterDimensionOption, callInfo)
 	lockDataStoreMockAddFilterDimensionOption.Unlock()
-	return mock.AddFilterDimensionOptionFunc(filterID, name, option)
+	return mock.AddFilterDimensionOptionFunc(filterID, name, option, timestamp)
 }
 
 // AddFilterDimensionOptionCalls gets all the calls that were made to AddFilterDimensionOption.
 // Check the length with:
 //     len(mockedDataStore.AddFilterDimensionOptionCalls())
 func (mock *DataStoreMock) AddFilterDimensionOptionCalls() []struct {
-	FilterID string
-	Name     string
-	Option   string
+	FilterID  string
+	Name      string
+	Option    string
+	Timestamp bson.MongoTimestamp
 } {
 	var calls []struct {
-		FilterID string
-		Name     string
-		Option   string
+		FilterID  string
+		Name      string
+		Option    string
+		Timestamp bson.MongoTimestamp
 	}
 	lockDataStoreMockAddFilterDimensionOption.RLock()
 	calls = mock.calls.AddFilterDimensionOption
@@ -427,33 +448,37 @@ func (mock *DataStoreMock) GetFilterOutputCalls() []struct {
 }
 
 // RemoveFilterDimension calls RemoveFilterDimensionFunc.
-func (mock *DataStoreMock) RemoveFilterDimension(filterID string, name string) error {
+func (mock *DataStoreMock) RemoveFilterDimension(filterID string, name string, timestamp bson.MongoTimestamp) error {
 	if mock.RemoveFilterDimensionFunc == nil {
 		panic("moq: DataStoreMock.RemoveFilterDimensionFunc is nil but DataStore.RemoveFilterDimension was just called")
 	}
 	callInfo := struct {
-		FilterID string
-		Name     string
+		FilterID  string
+		Name      string
+		Timestamp bson.MongoTimestamp
 	}{
-		FilterID: filterID,
-		Name:     name,
+		FilterID:  filterID,
+		Name:      name,
+		Timestamp: timestamp,
 	}
 	lockDataStoreMockRemoveFilterDimension.Lock()
 	mock.calls.RemoveFilterDimension = append(mock.calls.RemoveFilterDimension, callInfo)
 	lockDataStoreMockRemoveFilterDimension.Unlock()
-	return mock.RemoveFilterDimensionFunc(filterID, name)
+	return mock.RemoveFilterDimensionFunc(filterID, name, timestamp)
 }
 
 // RemoveFilterDimensionCalls gets all the calls that were made to RemoveFilterDimension.
 // Check the length with:
 //     len(mockedDataStore.RemoveFilterDimensionCalls())
 func (mock *DataStoreMock) RemoveFilterDimensionCalls() []struct {
-	FilterID string
-	Name     string
+	FilterID  string
+	Name      string
+	Timestamp bson.MongoTimestamp
 } {
 	var calls []struct {
-		FilterID string
-		Name     string
+		FilterID  string
+		Name      string
+		Timestamp bson.MongoTimestamp
 	}
 	lockDataStoreMockRemoveFilterDimension.RLock()
 	calls = mock.calls.RemoveFilterDimension
@@ -462,37 +487,41 @@ func (mock *DataStoreMock) RemoveFilterDimensionCalls() []struct {
 }
 
 // RemoveFilterDimensionOption calls RemoveFilterDimensionOptionFunc.
-func (mock *DataStoreMock) RemoveFilterDimensionOption(filterID string, name string, option string) error {
+func (mock *DataStoreMock) RemoveFilterDimensionOption(filterID string, name string, option string, timestamp bson.MongoTimestamp) error {
 	if mock.RemoveFilterDimensionOptionFunc == nil {
 		panic("moq: DataStoreMock.RemoveFilterDimensionOptionFunc is nil but DataStore.RemoveFilterDimensionOption was just called")
 	}
 	callInfo := struct {
-		FilterID string
-		Name     string
-		Option   string
+		FilterID  string
+		Name      string
+		Option    string
+		Timestamp bson.MongoTimestamp
 	}{
-		FilterID: filterID,
-		Name:     name,
-		Option:   option,
+		FilterID:  filterID,
+		Name:      name,
+		Option:    option,
+		Timestamp: timestamp,
 	}
 	lockDataStoreMockRemoveFilterDimensionOption.Lock()
 	mock.calls.RemoveFilterDimensionOption = append(mock.calls.RemoveFilterDimensionOption, callInfo)
 	lockDataStoreMockRemoveFilterDimensionOption.Unlock()
-	return mock.RemoveFilterDimensionOptionFunc(filterID, name, option)
+	return mock.RemoveFilterDimensionOptionFunc(filterID, name, option, timestamp)
 }
 
 // RemoveFilterDimensionOptionCalls gets all the calls that were made to RemoveFilterDimensionOption.
 // Check the length with:
 //     len(mockedDataStore.RemoveFilterDimensionOptionCalls())
 func (mock *DataStoreMock) RemoveFilterDimensionOptionCalls() []struct {
-	FilterID string
-	Name     string
-	Option   string
+	FilterID  string
+	Name      string
+	Option    string
+	Timestamp bson.MongoTimestamp
 } {
 	var calls []struct {
-		FilterID string
-		Name     string
-		Option   string
+		FilterID  string
+		Name      string
+		Option    string
+		Timestamp bson.MongoTimestamp
 	}
 	lockDataStoreMockRemoveFilterDimensionOption.RLock()
 	calls = mock.calls.RemoveFilterDimensionOption
@@ -501,29 +530,33 @@ func (mock *DataStoreMock) RemoveFilterDimensionOptionCalls() []struct {
 }
 
 // UpdateFilter calls UpdateFilterFunc.
-func (mock *DataStoreMock) UpdateFilter(filter *models.Filter) error {
+func (mock *DataStoreMock) UpdateFilter(filter *models.Filter, timestamp bson.MongoTimestamp) error {
 	if mock.UpdateFilterFunc == nil {
 		panic("moq: DataStoreMock.UpdateFilterFunc is nil but DataStore.UpdateFilter was just called")
 	}
 	callInfo := struct {
-		Filter *models.Filter
+		Filter    *models.Filter
+		Timestamp bson.MongoTimestamp
 	}{
-		Filter: filter,
+		Filter:    filter,
+		Timestamp: timestamp,
 	}
 	lockDataStoreMockUpdateFilter.Lock()
 	mock.calls.UpdateFilter = append(mock.calls.UpdateFilter, callInfo)
 	lockDataStoreMockUpdateFilter.Unlock()
-	return mock.UpdateFilterFunc(filter)
+	return mock.UpdateFilterFunc(filter, timestamp)
 }
 
 // UpdateFilterCalls gets all the calls that were made to UpdateFilter.
 // Check the length with:
 //     len(mockedDataStore.UpdateFilterCalls())
 func (mock *DataStoreMock) UpdateFilterCalls() []struct {
-	Filter *models.Filter
+	Filter    *models.Filter
+	Timestamp bson.MongoTimestamp
 } {
 	var calls []struct {
-		Filter *models.Filter
+		Filter    *models.Filter
+		Timestamp bson.MongoTimestamp
 	}
 	lockDataStoreMockUpdateFilter.RLock()
 	calls = mock.calls.UpdateFilter
@@ -532,19 +565,21 @@ func (mock *DataStoreMock) UpdateFilterCalls() []struct {
 }
 
 // UpdateFilterOutput calls UpdateFilterOutputFunc.
-func (mock *DataStoreMock) UpdateFilterOutput(filterOutput *models.Filter) error {
+func (mock *DataStoreMock) UpdateFilterOutput(filterOutput *models.Filter, timestamp bson.MongoTimestamp) error {
 	if mock.UpdateFilterOutputFunc == nil {
 		panic("moq: DataStoreMock.UpdateFilterOutputFunc is nil but DataStore.UpdateFilterOutput was just called")
 	}
 	callInfo := struct {
 		FilterOutput *models.Filter
+		Timestamp    bson.MongoTimestamp
 	}{
 		FilterOutput: filterOutput,
+		Timestamp:    timestamp,
 	}
 	lockDataStoreMockUpdateFilterOutput.Lock()
 	mock.calls.UpdateFilterOutput = append(mock.calls.UpdateFilterOutput, callInfo)
 	lockDataStoreMockUpdateFilterOutput.Unlock()
-	return mock.UpdateFilterOutputFunc(filterOutput)
+	return mock.UpdateFilterOutputFunc(filterOutput, timestamp)
 }
 
 // UpdateFilterOutputCalls gets all the calls that were made to UpdateFilterOutput.
@@ -552,9 +587,11 @@ func (mock *DataStoreMock) UpdateFilterOutput(filterOutput *models.Filter) error
 //     len(mockedDataStore.UpdateFilterOutputCalls())
 func (mock *DataStoreMock) UpdateFilterOutputCalls() []struct {
 	FilterOutput *models.Filter
+	Timestamp    bson.MongoTimestamp
 } {
 	var calls []struct {
 		FilterOutput *models.Filter
+		Timestamp    bson.MongoTimestamp
 	}
 	lockDataStoreMockUpdateFilterOutput.RLock()
 	calls = mock.calls.UpdateFilterOutput
