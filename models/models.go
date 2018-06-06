@@ -4,10 +4,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/ONSdigital/go-ns/clients/dataset"
 	"io"
 	"io/ioutil"
 	"time"
+
+	"github.com/ONSdigital/go-ns/clients/dataset"
 
 	"github.com/gedge/mgo/bson"
 )
@@ -105,6 +106,15 @@ var (
 	ErrorParsingBody = errors.New("Failed to parse json body")
 	ErrorNoData      = errors.New("Bad request - Missing data in body")
 )
+
+// DuplicateDimensionError is returned if a request contains a duplicate dimension
+type DuplicateDimensionError struct {
+	duplicateDimension string
+}
+
+func (e DuplicateDimensionError) Error() string {
+	return fmt.Sprintf("Bad request - duplicate dimension found: %s", e.duplicateDimension)
+}
 
 // ValidateNewFilter checks the content of the filter structure
 func (filter *NewFilter) ValidateNewFilter() error {
@@ -355,6 +365,14 @@ func CreateNewFilter(reader io.Reader) (*NewFilter, error) {
 	err = json.Unmarshal(bytes, &filter)
 	if err != nil {
 		return nil, ErrorParsingBody
+	}
+
+	dimensionValidator := make(map[string]bool)
+	for _, dimension := range filter.Dimensions {
+		if dimensionValidator[dimension.Name] {
+			return nil, DuplicateDimensionError{dimension.Name}
+		}
+		dimensionValidator[dimension.Name] = true
 	}
 
 	// This should be the last check before returning filter
