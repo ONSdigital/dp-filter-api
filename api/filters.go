@@ -51,7 +51,8 @@ const (
 	actionSuccessful   = "successful"
 	actionUnsuccessful = "unsuccessful"
 
-	eventFilterOutputCreated = "FilterOutputCreated"
+	eventFilterOutputCreated   = "FilterOutputCreated"
+	eventFilterOutputCompleted = "FilterOutputCompleted"
 )
 
 func (api *FilterAPI) postFilterBlueprintHandler(w http.ResponseWriter, r *http.Request) {

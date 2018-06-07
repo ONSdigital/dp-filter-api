@@ -8,11 +8,9 @@ import (
 	"strconv"
 	"syscall"
 
-	"encoding/json"
 	"github.com/ONSdigital/dp-filter-api/api"
 	"github.com/ONSdigital/dp-filter-api/config"
 	"github.com/ONSdigital/dp-filter-api/filterOutputQueue"
-	"github.com/ONSdigital/dp-filter-api/models"
 	"github.com/ONSdigital/dp-filter-api/mongo"
 	"github.com/ONSdigital/dp-filter-api/preview"
 	"github.com/ONSdigital/dp-filter/observation"
@@ -24,20 +22,10 @@ import (
 	mongolib "github.com/ONSdigital/go-ns/mongo"
 	neo4jhealth "github.com/ONSdigital/go-ns/neo4j"
 	bolt "github.com/johnnadratowski/golang-neo4j-bolt-driver"
-	"time"
 )
 
 func main() {
 
-	event := &models.Event{
-		Time: time.Now(),
-		Type: "wut",
-	}
-
-	b, err := json.Marshal(event)
-
-	fmt.Println(string(b))
-	return
 	log.Namespace = "dp-filter-api"
 
 	signals := make(chan os.Signal, 1)

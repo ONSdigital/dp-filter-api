@@ -17,6 +17,7 @@ import (
 	"errors"
 	"github.com/ONSdigital/dp-filter-api/mocks"
 	"github.com/ONSdigital/go-ns/common"
+	"github.com/gedge/mgo/bson"
 	"net/http"
 )
 
@@ -564,6 +565,72 @@ func TestSuccessfulUpdateFilterOutput(t *testing.T) {
 
 		Convey("Then the auditor is called for the attempt and outcome", func() {
 			assertAuditCalled(mockAuditor, updateFilterOutputAction, actionSuccessful, expectedAuditParams)
+		})
+	})
+}
+
+func TestSuccessfulUpdateFilterOutput_StatusComplete(t *testing.T) {
+	t.Parallel()
+
+	expectedAuditParams := common.Params{"filter_output_id": "21312"}
+
+	Convey("Given a filter output without downloads", t, func() {
+
+		mockAuditor := getMockAuditor()
+
+		mockDatastore := &datastoretest.DataStoreMock{
+			AddEventToFilterOutputFunc: func(filterOutputID string, event *models.Event) error {
+				return nil
+			},
+			GetFilterOutputFunc: func(filterOutputID string) (*models.Filter, error) {
+				downloads := &models.Downloads{
+					CSV: &models.DownloadItem{
+						HRef:    "ons-test-site.gov.uk/87654321.csv",
+						Private: "csv-private-link",
+						Size:    "12mb",
+					},
+					XLS: &models.DownloadItem{
+						HRef:    "ons-test-site.gov.uk/87654321.xls",
+						Private: "xls-private-link",
+						Size:    "24mb",
+					},
+				}
+				return &models.Filter{InstanceID: "12345678", FilterID: "543", Published: &models.Published, State: "created", Dimensions: []models.Dimension{{Name: "time"}}, Downloads: downloads}, nil
+			},
+			UpdateFilterOutputFunc: func(filterOutput *models.Filter, timestamp bson.MongoTimestamp) error {
+				return nil
+			},
+		}
+
+		api := routes(host, mux.NewRouter(), mockDatastore, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, mockAuditor)
+
+		Convey("When the PUT filter output endpoint is called with completed download data", func() {
+
+			reader := strings.NewReader(`{"downloads":{"csv":{"size":"12mb", "public":"s3-public-csv-location"}, "xls":{"size":"12mb", "public":"s3-public-xls-location"}}}`)
+			r := createAuthenticatedRequest("PUT", "http://localhost:22100/filter-outputs/21312", reader)
+
+			w := httptest.NewRecorder()
+			api.router.ServeHTTP(w, r)
+
+			Convey("Then the auditor is called for the attempt and outcome", func() {
+				assertAuditCalled(mockAuditor, updateFilterOutputAction, actionSuccessful, expectedAuditParams)
+			})
+
+			Convey("Then the data store is called to update the event", func() {
+				So(len(mockDatastore.UpdateFilterOutputCalls()), ShouldEqual, 1)
+				filterOutput := mockDatastore.UpdateFilterOutputCalls()[0].FilterOutput
+				So(filterOutput.State, ShouldEqual, models.CompletedState)
+			})
+
+			Convey("Then the data store is called to add a completed event", func() {
+				So(len(mockDatastore.AddEventToFilterOutputCalls()), ShouldEqual, 1)
+				filterOutput := mockDatastore.AddEventToFilterOutputCalls()[0]
+				So(filterOutput.Event.Type, ShouldEqual, eventFilterOutputCompleted)
+			})
+
+			Convey("Then the response code should be 200 OK", func() {
+				So(w.Code, ShouldEqual, http.StatusOK)
+			})
 		})
 	})
 }
