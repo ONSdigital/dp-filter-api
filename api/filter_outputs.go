@@ -161,9 +161,9 @@ func (api *FilterAPI) updateFilterOutput(ctx context.Context, filterOutputID str
 		filterOutput.Published = &models.Published
 	}
 
-	filterOutputUpdate := buildDownloadsObject(previousFilterOutput, filterOutput, api.downloadServiceURL)
+	buildDownloadsObject(previousFilterOutput, filterOutput, api.downloadServiceURL)
 
-	if err = api.dataStore.UpdateFilterOutput(filterOutputUpdate, timestamp); err != nil {
+	if err = api.dataStore.UpdateFilterOutput(filterOutput, timestamp); err != nil {
 		log.ErrorC("unable to update filter output", err, logData)
 		return err
 	}
@@ -328,11 +328,11 @@ func (api *FilterAPI) getOutput(ctx context.Context, filterID string, hideS3Link
 	return nil, filters.ErrFilterOutputNotFound
 }
 
-func buildDownloadsObject(previousFilterOutput, filterOutput *models.Filter, downloadServiceURL string) *models.Filter {
+func buildDownloadsObject(previousFilterOutput, filterOutput *models.Filter, downloadServiceURL string) {
 
 	if filterOutput.Downloads == nil {
 		filterOutput.Downloads = previousFilterOutput.Downloads
-		return filterOutput
+		return
 	}
 
 	if filterOutput.Downloads.CSV != nil {
@@ -378,6 +378,4 @@ func buildDownloadsObject(previousFilterOutput, filterOutput *models.Filter, dow
 			filterOutput.Downloads.XLS = previousFilterOutput.Downloads.XLS
 		}
 	}
-
-	return filterOutput
 }
