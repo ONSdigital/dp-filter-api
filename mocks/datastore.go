@@ -236,3 +236,16 @@ func (ds *DataStore) UpdateFilterOutput(filterJob *models.Filter, timestamp bson
 
 	return nil
 }
+
+// AddEventToFilterOutput adds the given event to the filter output of the given ID
+func (ds *DataStore) AddEventToFilterOutput(filterOutputID string, event *models.Event) error {
+	if ds.InternalError {
+		return errorInternalServer
+	}
+
+	if ds.NotFound {
+		return filters.ErrFilterOutputNotFound
+	}
+
+	return nil
+}

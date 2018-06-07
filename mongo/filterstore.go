@@ -279,6 +279,24 @@ func (s *FilterStore) UpdateFilterOutput(filter *models.Filter, timestamp bson.M
 	return err
 }
 
+// AddEventToFilterOutput adds the given event to the filter output of the given ID
+func (s *FilterStore) AddEventToFilterOutput(filterOutputID string, event *models.Event) error {
+	session := s.Session.Copy()
+	defer session.Close()
+
+	info, err := session.DB(s.db).C(s.outputsCollection).Upsert(bson.M{"id": filterOutputID},
+		bson.M{"$push": bson.M{"events": &event}, "$set": bson.M{"last_updated": time.Now().UTC()}})
+	if err != nil {
+		return err
+	}
+
+	if info.Updated == 0 {
+		return filters.ErrFilterOutputNotFound
+	}
+
+	return nil
+}
+
 func createUpdateFilterBlueprint(filter *models.Filter) bson.M {
 
 	update := bson.M{
