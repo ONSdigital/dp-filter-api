@@ -2,7 +2,6 @@ package api
 
 import (
 	"encoding/json"
-	"errors"
 	"net/http"
 
 	"github.com/ONSdigital/dp-filter-api/models"
@@ -16,6 +15,8 @@ import (
 	"github.com/ONSdigital/dp-filter-api/filters"
 	"github.com/ONSdigital/dp-filter-api/preview"
 	"github.com/ONSdigital/go-ns/common"
+	"github.com/pkg/errors"
+	"time"
 )
 
 var (
@@ -161,14 +162,52 @@ func (api *FilterAPI) updateFilterOutput(ctx context.Context, filterOutputID str
 		filterOutput.Published = &models.Published
 	}
 
-	filterOutputUpdate := buildDownloadsObject(previousFilterOutput, filterOutput, api.downloadServiceURL)
+	buildDownloadsObject(previousFilterOutput, filterOutput, api.downloadServiceURL)
 
-	if err = api.dataStore.UpdateFilterOutput(filterOutputUpdate, timestamp); err != nil {
+	isNowStatusCompleted := false
+	if downloadsAreGenerated(filterOutput) {
+		log.InfoCtx(ctx, "downloads have been generated, setting filter output status to completed", logData)
+		filterOutput.State = models.CompletedState
+		isNowStatusCompleted = true
+	}
+
+	if err = api.dataStore.UpdateFilterOutput(filterOutput, timestamp); err != nil {
 		log.ErrorC("unable to update filter output", err, logData)
 		return err
 	}
 
+	// save the completed event after saving the filter output if its now complete
+	if isNowStatusCompleted {
+		log.InfoCtx(ctx, "filter output status is now completed, creating completed event", logData)
+
+		completedEvent := &models.Event{
+			Type: eventFilterOutputCompleted,
+			Time: time.Now(),
+		}
+
+		if err = api.dataStore.AddEventToFilterOutput(filterOutput.FilterID, completedEvent); err != nil {
+			log.ErrorCtx(ctx, errors.Wrap(err, "failed to add event to filter output"), logData)
+			return err
+		}
+	}
+
 	return nil
+}
+
+func downloadsAreGenerated(filterOutput *models.Filter) bool {
+	if filterOutput.State != models.CompletedState {
+
+		// if all downloads are complete then set the filter state to complete
+		if filterOutput.Downloads != nil &&
+			filterOutput.Downloads.CSV != nil &&
+			filterOutput.Downloads.CSV.HRef != "" &&
+			filterOutput.Downloads.XLS != nil &&
+			filterOutput.Downloads.XLS.HRef != "" {
+			return true
+		}
+	}
+
+	return false
 }
 
 func (api *FilterAPI) getFilterOutputPreviewHandler(w http.ResponseWriter, r *http.Request) {
@@ -328,11 +367,11 @@ func (api *FilterAPI) getOutput(ctx context.Context, filterID string, hideS3Link
 	return nil, filters.ErrFilterOutputNotFound
 }
 
-func buildDownloadsObject(previousFilterOutput, filterOutput *models.Filter, downloadServiceURL string) *models.Filter {
+func buildDownloadsObject(previousFilterOutput, filterOutput *models.Filter, downloadServiceURL string) {
 
 	if filterOutput.Downloads == nil {
 		filterOutput.Downloads = previousFilterOutput.Downloads
-		return filterOutput
+		return
 	}
 
 	if filterOutput.Downloads.CSV != nil {
@@ -378,6 +417,4 @@ func buildDownloadsObject(previousFilterOutput, filterOutput *models.Filter, dow
 			filterOutput.Downloads.XLS = previousFilterOutput.Downloads.XLS
 		}
 	}
-
-	return filterOutput
 }

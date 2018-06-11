@@ -50,6 +50,9 @@ const (
 	actionAttempted    = "attempted"
 	actionSuccessful   = "successful"
 	actionUnsuccessful = "unsuccessful"
+
+	eventFilterOutputCreated   = "FilterOutputCreated"
+	eventFilterOutputCompleted = "FilterOutputCompleted"
 )
 
 func (api *FilterAPI) postFilterBlueprintHandler(w http.ResponseWriter, r *http.Request) {
@@ -534,7 +537,12 @@ func (api *FilterAPI) createFilterOutputResource(newFilter *models.Filter, filte
 	filterOutput.LastUpdated = time.Now()
 
 	// Clear out any event information to output document
-	filterOutput.Events = models.Events{}
+	filterOutput.Events = []*models.Event{
+		{
+			Type: eventFilterOutputCreated,
+			Time: time.Now(),
+		},
+	}
 
 	// Downloads object should exist for filter output resource
 	// even if it they are empty
@@ -574,13 +582,7 @@ func createNewFilter(filter *models.Filter, currentFilter *models.Filter) (newFi
 		}
 
 		if &filter.Events != nil {
-			if filter.Events.Info != nil {
-				newFilter.Events.Info = append(newFilter.Events.Info, filter.Events.Info...)
-			}
-
-			if filter.Events.Error != nil {
-				newFilter.Events.Error = append(newFilter.Events.Error, filter.Events.Error...)
-			}
+			newFilter.Events = append(newFilter.Events, filter.Events...)
 		}
 	}
 
