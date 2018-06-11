@@ -583,19 +583,7 @@ func TestSuccessfulUpdateFilterOutput_StatusComplete(t *testing.T) {
 				return nil
 			},
 			GetFilterOutputFunc: func(filterOutputID string) (*models.Filter, error) {
-				downloads := &models.Downloads{
-					CSV: &models.DownloadItem{
-						HRef:    "ons-test-site.gov.uk/87654321.csv",
-						Private: "csv-private-link",
-						Size:    "12mb",
-					},
-					XLS: &models.DownloadItem{
-						HRef:    "ons-test-site.gov.uk/87654321.xls",
-						Private: "xls-private-link",
-						Size:    "24mb",
-					},
-				}
-				return &models.Filter{InstanceID: "12345678", FilterID: "543", Published: &models.Published, State: "created", Dimensions: []models.Dimension{{Name: "time"}}, Downloads: downloads}, nil
+				return createFilter(), nil
 			},
 			UpdateFilterOutputFunc: func(filterOutput *models.Filter, timestamp bson.MongoTimestamp) error {
 				return nil
@@ -1237,4 +1225,142 @@ func TestFailedToGetPreview_AuditFailure(t *testing.T) {
 			})
 		})
 	})
+}
+
+func TestSuccessfulAddEventToFilterOutput(t *testing.T) {
+	t.Parallel()
+
+	Convey("Given an existing filter output", t, func() {
+
+		mockDatastore := &datastoretest.DataStoreMock{
+			AddEventToFilterOutputFunc: func(filterOutputID string, event *models.Event) error {
+				return nil
+			},
+			GetFilterOutputFunc: func(filterOutputID string) (*models.Filter, error) {
+				return createFilter(), nil
+			},
+		}
+
+		api := routes(host, mux.NewRouter(), mockDatastore, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, getMockAuditor())
+
+		Convey("When a POST request is made to the filter output event endpoint", func() {
+
+			reader := strings.NewReader(`{"type":"CSVCreated","time":"2018-06-10T05:59:05.893629647+01:00"}`)
+			r := createAuthenticatedRequest("POST", "http://localhost:22100/filter-outputs/21312/events", reader)
+
+			w := httptest.NewRecorder()
+			api.router.ServeHTTP(w, r)
+
+			Convey("Then the data store is called to add the event", func() {
+				So(len(mockDatastore.AddEventToFilterOutputCalls()), ShouldEqual, 1)
+				filterOutput := mockDatastore.AddEventToFilterOutputCalls()[0]
+				So(filterOutput.Event.Type, ShouldEqual, "CSVCreated")
+			})
+
+			Convey("Then the response is 200 OK", func() {
+				So(w.Code, ShouldEqual, http.StatusOK)
+			})
+		})
+	})
+}
+
+func TestFailedAddEventToFilterOutput_InvalidJson(t *testing.T) {
+	t.Parallel()
+
+	Convey("Given an existing filter output", t, func() {
+
+		mockDatastore := &datastoretest.DataStoreMock{}
+
+		api := routes(host, mux.NewRouter(), mockDatastore, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, getMockAuditor())
+
+		Convey("When a POST request is made to the filter output event endpoint with invalid json", func() {
+
+			reader := strings.NewReader(`{`)
+			r := createAuthenticatedRequest("POST", "http://localhost:22100/filter-outputs/21312/events", reader)
+
+			w := httptest.NewRecorder()
+			api.router.ServeHTTP(w, r)
+
+			Convey("Then the response is 400 bad request", func() {
+				So(w.Code, ShouldEqual, http.StatusBadRequest)
+			})
+		})
+	})
+}
+
+func TestFailedAddEventToFilterOutput_InvalidEvent(t *testing.T) {
+	t.Parallel()
+
+	Convey("Given an existing filter output", t, func() {
+
+		mockDatastore := &datastoretest.DataStoreMock{}
+
+		api := routes(host, mux.NewRouter(), mockDatastore, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, getMockAuditor())
+
+		Convey("When a POST request is made to the filter output event endpoint with an empty event type", func() {
+
+			reader := strings.NewReader(`{"type":""}`)
+			r := createAuthenticatedRequest("POST", "http://localhost:22100/filter-outputs/21312/events", reader)
+
+			w := httptest.NewRecorder()
+			api.router.ServeHTTP(w, r)
+
+			Convey("Then the response is 400 bad request", func() {
+				So(w.Code, ShouldEqual, http.StatusBadRequest)
+			})
+		})
+	})
+}
+
+func TestFaledAddEventToFilterOutput_DatastoreError(t *testing.T) {
+	t.Parallel()
+
+	Convey("Given an existing filter output", t, func() {
+
+		mockDatastore := &datastoretest.DataStoreMock{
+			AddEventToFilterOutputFunc: func(filterOutputID string, event *models.Event) error {
+				return errors.New("database is broken")
+			},
+			GetFilterOutputFunc: func(filterOutputID string) (*models.Filter, error) {
+				return createFilter(), nil
+			},
+		}
+
+		api := routes(host, mux.NewRouter(), mockDatastore, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, getMockAuditor())
+
+		Convey("When a POST request is made to the filter output event endpoint, and the data store returns an error", func() {
+
+			reader := strings.NewReader(`{"type":"CSVCreated","time":"2018-06-10T05:59:05.893629647+01:00"}`)
+			r := createAuthenticatedRequest("POST", "http://localhost:22100/filter-outputs/21312/events", reader)
+
+			w := httptest.NewRecorder()
+			api.router.ServeHTTP(w, r)
+
+			Convey("Then the data store is called to add the event", func() {
+				So(len(mockDatastore.AddEventToFilterOutputCalls()), ShouldEqual, 1)
+				filterOutput := mockDatastore.AddEventToFilterOutputCalls()[0]
+				So(filterOutput.Event.Type, ShouldEqual, "CSVCreated")
+			})
+
+			Convey("Then the response is 500 internal server error", func() {
+				So(w.Code, ShouldEqual, http.StatusInternalServerError)
+			})
+		})
+	})
+}
+
+func createFilter() *models.Filter {
+	downloads := &models.Downloads{
+		CSV: &models.DownloadItem{
+			HRef:    "ons-test-site.gov.uk/87654321.csv",
+			Private: "csv-private-link",
+			Size:    "12mb",
+		},
+		XLS: &models.DownloadItem{
+			HRef:    "ons-test-site.gov.uk/87654321.xls",
+			Private: "xls-private-link",
+			Size:    "24mb",
+		},
+	}
+	return &models.Filter{InstanceID: "12345678", FilterID: "543", Published: &models.Published, State: "created", Dimensions: []models.Dimension{{Name: "time"}}, Downloads: downloads}
 }

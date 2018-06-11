@@ -16,6 +16,7 @@ import (
 	"github.com/ONSdigital/dp-filter-api/preview"
 	"github.com/ONSdigital/go-ns/common"
 	"github.com/pkg/errors"
+	"io/ioutil"
 	"time"
 )
 
@@ -417,4 +418,50 @@ func buildDownloadsObject(previousFilterOutput, filterOutput *models.Filter, dow
 			filterOutput.Downloads.XLS = previousFilterOutput.Downloads.XLS
 		}
 	}
+}
+
+func (api *FilterAPI) addEventHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	filterOutputID := vars["filter_output_id"]
+
+	logData := log.Data{"filter_output_id": filterOutputID}
+	log.Info("add event to filter output endpoint called", logData)
+
+	defer r.Body.Close()
+
+	bytes, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		log.Error(errors.Wrap(err, "failed to read request body"), nil)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	event := &models.Event{}
+	err = json.Unmarshal([]byte(bytes), event)
+	if err != nil {
+		log.Error(errors.Wrap(err, "failed to parse json body"), nil)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	logData["event"] = event
+	log.Info("adding event to filter output", logData)
+
+	err = api.addEvent(filterOutputID, event)
+	if err != nil {
+		log.Error(errors.Wrap(err, "failed to add event to filter output"), logData)
+		setErrorCode(w, err)
+		return
+	}
+
+	log.Debug("added event to filter output", logData)
+}
+
+func (api *FilterAPI) addEvent(filterOutputID string, event *models.Event) error {
+
+	if event.Type == "" {
+		return filters.NewBadRequestErr("event type cannot be empty")
+	}
+
+	return api.dataStore.AddEventToFilterOutput(filterOutputID, event)
 }

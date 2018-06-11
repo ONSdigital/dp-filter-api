@@ -127,6 +127,7 @@ func routes(host string,
 
 	if enablePrivateEndpoints {
 		api.router.HandleFunc("/filter-outputs/{filter_output_id}", api.updateFilterOutputHandler).Methods("PUT")
+		api.router.HandleFunc("/filter-outputs/{filter_output_id}/events", api.addEventHandler).Methods("POST")
 	}
 
 	return &api
