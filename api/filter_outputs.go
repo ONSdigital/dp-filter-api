@@ -164,6 +164,8 @@ func (api *FilterAPI) updateFilterOutput(ctx context.Context, filterOutputID str
 
 	buildDownloadsObject(previousFilterOutput, filterOutput, api.downloadServiceURL)
 
+	filterOutput.State = previousFilterOutput.State
+
 	isNowStatusCompleted := false
 	if downloadsAreGenerated(filterOutput) {
 		log.InfoCtx(ctx, "downloads have been generated, setting filter output status to completed", logData)
