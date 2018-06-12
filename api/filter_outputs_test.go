@@ -1257,8 +1257,8 @@ func TestSuccessfulAddEventToFilterOutput(t *testing.T) {
 				So(filterOutput.Event.Type, ShouldEqual, "CSVCreated")
 			})
 
-			Convey("Then the response is 200 OK", func() {
-				So(w.Code, ShouldEqual, http.StatusOK)
+			Convey("Then the response is 201 OK", func() {
+				So(w.Code, ShouldEqual, http.StatusCreated)
 			})
 		})
 	})
@@ -1312,7 +1312,7 @@ func TestFailedAddEventToFilterOutput_InvalidEvent(t *testing.T) {
 	})
 }
 
-func TestFaledAddEventToFilterOutput_DatastoreError(t *testing.T) {
+func TestFailedAddEventToFilterOutput_DatastoreError(t *testing.T) {
 	t.Parallel()
 
 	Convey("Given an existing filter output", t, func() {

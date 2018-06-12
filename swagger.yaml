@@ -350,7 +350,7 @@ paths:
   /filter-outputs/{filter_id}/events:
     parameters:
       - $ref: '#/parameters/filter_id'
-    put:
+    post:
       tags:
       - "Private"
       summary: "Add an event to a filter output"

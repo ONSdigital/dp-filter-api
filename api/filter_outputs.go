@@ -454,6 +454,7 @@ func (api *FilterAPI) addEventHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	w.WriteHeader(http.StatusCreated)
 	log.Debug("added event to filter output", logData)
 }
 
