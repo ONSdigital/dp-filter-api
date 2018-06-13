@@ -139,6 +139,6 @@ func Close(ctx context.Context) error {
 		return err
 	}
 
-	log.Info("graceful shutdown of http server complete", nil)
+	log.InfoCtx(ctx, "graceful shutdown of http server complete", nil)
 	return nil
 }
