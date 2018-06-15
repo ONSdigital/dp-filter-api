@@ -2,7 +2,6 @@ package api
 
 import (
 	"encoding/json"
-	"errors"
 	"net/http"
 
 	"github.com/ONSdigital/dp-filter-api/models"
@@ -16,6 +15,9 @@ import (
 	"github.com/ONSdigital/dp-filter-api/filters"
 	"github.com/ONSdigital/dp-filter-api/preview"
 	"github.com/ONSdigital/go-ns/common"
+	"github.com/pkg/errors"
+	"io/ioutil"
+	"time"
 )
 
 var (
@@ -35,7 +37,7 @@ func (api *FilterAPI) getFilterOutputHandler(w http.ResponseWriter, r *http.Requ
 	filterOutputID := vars["filter_output_id"]
 
 	logData := log.Data{"filter_output_id": filterOutputID}
-	log.Info("getting filter output", logData)
+	log.InfoCtx(r.Context(), "getting filter output", logData)
 
 	auditParams := common.Params{"filter_output_id": filterOutputID}
 	if auditErr := api.auditor.Record(r.Context(), getFilterOutputAction, actionAttempted, auditParams); auditErr != nil {
@@ -81,7 +83,7 @@ func (api *FilterAPI) getFilterOutputHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	log.Info("got filter output", logData)
+	log.InfoCtx(r.Context(), "got filter output", logData)
 }
 
 func (api *FilterAPI) updateFilterOutputHandler(w http.ResponseWriter, r *http.Request) {
@@ -89,7 +91,7 @@ func (api *FilterAPI) updateFilterOutputHandler(w http.ResponseWriter, r *http.R
 	filterOutputID := vars["filter_output_id"]
 
 	logData := log.Data{"filter_output_id": filterOutputID}
-	log.Info("updating filter output", logData)
+	log.InfoCtx(r.Context(), "updating filter output", logData)
 
 	auditParams := common.Params{"filter_output_id": filterOutputID}
 	if auditErr := api.auditor.Record(r.Context(), updateFilterOutputAction, actionAttempted, auditParams); auditErr != nil {
@@ -131,7 +133,7 @@ func (api *FilterAPI) updateFilterOutputHandler(w http.ResponseWriter, r *http.R
 func (api *FilterAPI) updateFilterOutput(ctx context.Context, filterOutputID string, filterOutput *models.Filter) error {
 
 	logData := log.Data{"filter_output_id": filterOutputID}
-	log.Info("updating filter output", logData)
+	log.InfoCtx(ctx, "updating filter output", logData)
 
 	if !common.IsCallerPresent(ctx) {
 		log.ErrorC("failed to update filter output", filters.ErrUnauthorised, logData)
@@ -161,14 +163,54 @@ func (api *FilterAPI) updateFilterOutput(ctx context.Context, filterOutputID str
 		filterOutput.Published = &models.Published
 	}
 
-	filterOutputUpdate := buildDownloadsObject(previousFilterOutput, filterOutput, api.downloadServiceURL)
+	buildDownloadsObject(previousFilterOutput, filterOutput, api.downloadServiceURL)
 
-	if err = api.dataStore.UpdateFilterOutput(filterOutputUpdate, timestamp); err != nil {
+	filterOutput.State = previousFilterOutput.State
+
+	isNowStatusCompleted := false
+	if downloadsAreGenerated(filterOutput) {
+		log.InfoCtx(ctx, "downloads have been generated, setting filter output status to completed", logData)
+		filterOutput.State = models.CompletedState
+		isNowStatusCompleted = true
+	}
+
+	if err = api.dataStore.UpdateFilterOutput(filterOutput, timestamp); err != nil {
 		log.ErrorC("unable to update filter output", err, logData)
 		return err
 	}
 
+	// save the completed event after saving the filter output if its now complete
+	if isNowStatusCompleted {
+		log.InfoCtx(ctx, "filter output status is now completed, creating completed event", logData)
+
+		completedEvent := &models.Event{
+			Type: eventFilterOutputCompleted,
+			Time: time.Now(),
+		}
+
+		if err = api.dataStore.AddEventToFilterOutput(filterOutput.FilterID, completedEvent); err != nil {
+			log.ErrorCtx(ctx, errors.Wrap(err, "failed to add event to filter output"), logData)
+			return err
+		}
+	}
+
 	return nil
+}
+
+func downloadsAreGenerated(filterOutput *models.Filter) bool {
+	if filterOutput.State != models.CompletedState {
+
+		// if all downloads are complete then set the filter state to complete
+		if filterOutput.Downloads != nil &&
+			filterOutput.Downloads.CSV != nil &&
+			filterOutput.Downloads.CSV.HRef != "" &&
+			filterOutput.Downloads.XLS != nil &&
+			filterOutput.Downloads.XLS.HRef != "" {
+			return true
+		}
+	}
+
+	return false
 }
 
 func (api *FilterAPI) getFilterOutputPreviewHandler(w http.ResponseWriter, r *http.Request) {
@@ -236,7 +278,7 @@ func (api *FilterAPI) getFilterOutputPreviewHandler(w http.ResponseWriter, r *ht
 		return
 	}
 
-	log.Info("preview filter output", logData)
+	log.InfoCtx(r.Context(), "preview filter output", logData)
 }
 
 func (api *FilterAPI) getFilterOutputPreview(ctx context.Context, filterOutputID string, limit int) (*preview.FilterPreview, error) {
@@ -245,7 +287,7 @@ func (api *FilterAPI) getFilterOutputPreview(ctx context.Context, filterOutputID
 		"filter_output_id": filterOutputID,
 		"limit":            limit,
 	}
-	log.Info("get filter output preview", logData)
+	log.InfoCtx(ctx, "get filter output preview", logData)
 
 	hideS3Links := true // do not require s3 links for preview
 	filterOutput, err := api.getOutput(ctx, filterOutputID, hideS3Links)
@@ -276,7 +318,7 @@ func (api *FilterAPI) getOutput(ctx context.Context, filterID string, hideS3Link
 
 	output, err := api.dataStore.GetFilterOutput(filterID)
 	if err != nil {
-		log.Error(err, logData)
+		log.ErrorCtx(ctx, err, logData)
 		return nil, err
 	}
 
@@ -285,7 +327,7 @@ func (api *FilterAPI) getOutput(ctx context.Context, filterID string, hideS3Link
 	// Hide private download links if request is not authenticated
 	if hideS3Links {
 
-		log.Info("a valid download service token has not been provided. hiding links", logData)
+		log.InfoCtx(ctx, "a valid download service token has not been provided. hiding links", logData)
 
 		if output.Downloads != nil {
 			if output.Downloads.CSV != nil {
@@ -298,7 +340,7 @@ func (api *FilterAPI) getOutput(ctx context.Context, filterID string, hideS3Link
 			}
 		}
 	} else {
-		log.Info("a valid download service token has been provided. not hiding private links", logData)
+		log.InfoCtx(ctx, "a valid download service token has been provided. not hiding private links", logData)
 	}
 
 	//only return the filter if it is for published data or via authenticated request
@@ -306,11 +348,11 @@ func (api *FilterAPI) getOutput(ctx context.Context, filterID string, hideS3Link
 		return output, nil
 	}
 
-	log.Info("unauthenticated request to access unpublished filter output", logData)
+	log.InfoCtx(ctx, "unauthenticated request to access unpublished filter output", logData)
 
 	filter, err := api.getFilterBlueprint(ctx, output.Links.FilterBlueprint.ID)
 	if err != nil {
-		log.Error(errors.New("failed to retrieve filter blueprint"), logData)
+		log.ErrorCtx(ctx, errors.New("failed to retrieve filter blueprint"), logData)
 		return nil, filters.ErrFilterOutputNotFound
 	}
 
@@ -318,7 +360,7 @@ func (api *FilterAPI) getOutput(ctx context.Context, filterID string, hideS3Link
 	if filter.Published != nil && *filter.Published == models.Published {
 		output.Published = &models.Published
 		if err := api.dataStore.UpdateFilterOutput(output, output.UniqueTimestamp); err != nil {
-			log.Error(err, logData)
+			log.ErrorCtx(ctx, err, logData)
 			return nil, filters.ErrFilterOutputNotFound
 		}
 
@@ -328,11 +370,11 @@ func (api *FilterAPI) getOutput(ctx context.Context, filterID string, hideS3Link
 	return nil, filters.ErrFilterOutputNotFound
 }
 
-func buildDownloadsObject(previousFilterOutput, filterOutput *models.Filter, downloadServiceURL string) *models.Filter {
+func buildDownloadsObject(previousFilterOutput, filterOutput *models.Filter, downloadServiceURL string) {
 
 	if filterOutput.Downloads == nil {
 		filterOutput.Downloads = previousFilterOutput.Downloads
-		return filterOutput
+		return
 	}
 
 	if filterOutput.Downloads.CSV != nil {
@@ -378,6 +420,51 @@ func buildDownloadsObject(previousFilterOutput, filterOutput *models.Filter, dow
 			filterOutput.Downloads.XLS = previousFilterOutput.Downloads.XLS
 		}
 	}
+}
 
-	return filterOutput
+func (api *FilterAPI) addEventHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	filterOutputID := vars["filter_output_id"]
+
+	logData := log.Data{"filter_output_id": filterOutputID}
+	log.InfoCtx(r.Context(), "add event to filter output endpoint called", logData)
+
+	defer r.Body.Close()
+
+	bytes, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		log.ErrorCtx(r.Context(), errors.Wrap(err, "failed to read request body"), nil)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	event := &models.Event{}
+	err = json.Unmarshal([]byte(bytes), event)
+	if err != nil {
+		log.ErrorCtx(r.Context(), errors.Wrap(err, "failed to parse json body"), nil)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	logData["event"] = event
+	log.InfoCtx(r.Context(), "adding event to filter output", logData)
+
+	err = api.addEvent(filterOutputID, event)
+	if err != nil {
+		log.ErrorCtx(r.Context(), errors.Wrap(err, "failed to add event to filter output"), logData)
+		setErrorCode(w, err)
+		return
+	}
+
+	w.WriteHeader(http.StatusCreated)
+	log.InfoCtx(r.Context(), "added event to filter output", logData)
+}
+
+func (api *FilterAPI) addEvent(filterOutputID string, event *models.Event) error {
+
+	if event.Type == "" {
+		return filters.NewBadRequestErr("event type cannot be empty")
+	}
+
+	return api.dataStore.AddEventToFilterOutput(filterOutputID, event)
 }

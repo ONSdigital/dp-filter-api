@@ -3,17 +3,18 @@ package api
 import (
 	"context"
 	"errors"
+	"github.com/ONSdigital/dp-filter-api/api/datastoretest"
+	"github.com/ONSdigital/dp-filter-api/mocks"
+	"github.com/ONSdigital/dp-filter-api/models"
+	"github.com/ONSdigital/go-ns/audit"
+	"github.com/ONSdigital/go-ns/common"
+	"github.com/gedge/mgo/bson"
+	"github.com/gorilla/mux"
+	. "github.com/smartystreets/goconvey/convey"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
-	"time"
-
-	"github.com/ONSdigital/dp-filter-api/mocks"
-	"github.com/ONSdigital/go-ns/audit"
-	"github.com/ONSdigital/go-ns/common"
-	"github.com/gorilla/mux"
-	. "github.com/smartystreets/goconvey/convey"
 )
 
 var (
@@ -27,7 +28,17 @@ func TestSuccessfulAddFilterBlueprint_PublishedDataset(t *testing.T) {
 
 		mockAuditor := getMockAuditor()
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, mockAuditor)
+
+		mockDatastore := &datastoretest.DataStoreMock{
+			AddFilterFunc: func(host string, filter *models.Filter) (*models.Filter, error) {
+				return filter, nil
+			},
+			CreateFilterOutputFunc: func(filter *models.Filter) error {
+				return nil
+			},
+		}
+
+		api := routes(host, mux.NewRouter(), mockDatastore, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, mockAuditor)
 
 		Convey("When a POST request is made to the filters endpoint", func() {
 
@@ -38,6 +49,10 @@ func TestSuccessfulAddFilterBlueprint_PublishedDataset(t *testing.T) {
 
 			Convey("Then the auditor is called for the attempt and outcome", func() {
 				assertAuditCalled(mockAuditor, createFilterBlueprintAction, actionSuccessful, nil)
+			})
+
+			Convey("Then the data store is not called to create a new filter output", func() {
+				So(len(mockDatastore.CreateFilterOutputCalls()), ShouldEqual, 0)
 			})
 
 			Convey("Then the response is 201 created", func() {
@@ -56,6 +71,10 @@ func TestSuccessfulAddFilterBlueprint_PublishedDataset(t *testing.T) {
 				assertAuditCalled(mockAuditor, createFilterBlueprintAction, actionSuccessful, nil)
 			})
 
+			Convey("Then the data store is not called to create a new filter output", func() {
+				So(len(mockDatastore.CreateFilterOutputCalls()), ShouldEqual, 0)
+			})
+
 			Convey("Then the response is 201 created", func() {
 				So(w.Code, ShouldEqual, http.StatusCreated)
 			})
@@ -71,6 +90,17 @@ func TestSuccessfulAddFilterBlueprint_PublishedDataset(t *testing.T) {
 			Convey("Then the auditor is called for the attempt and outcome", func() {
 				assertAuditCalled(mockAuditor, createFilterBlueprintAction, actionSuccessful, nil)
 			})
+
+			Convey("Then the data store is called to create a new filter output", func() {
+
+				So(len(mockDatastore.CreateFilterOutputCalls()), ShouldEqual, 1)
+
+				filterOutput := mockDatastore.CreateFilterOutputCalls()[0]
+				So(len(filterOutput.Filter.Events), ShouldEqual, 1)
+
+				So(filterOutput.Filter.Events[0].Type, ShouldEqual, eventFilterOutputCreated)
+			})
+
 			Convey("Then the response is 201 created", func() {
 				So(w.Code, ShouldEqual, http.StatusCreated)
 			})
@@ -162,6 +192,26 @@ func TestFailedToAddFilterBlueprint_AuditFailure(t *testing.T) {
 
 func TestFailedToAddFilterBlueprint(t *testing.T) {
 	t.Parallel()
+
+	Convey("When duplicate dimensions are sent then a bad request is returned", t, func() {
+		reader := strings.NewReader(`{"dataset":{"version":1, "edition":"1", "id":"1"},"dimensions":[{"name":"time","options":["Jun-15","Jun-12"]},{"name":"time","options":["Jun-14"]}]}`)
+		r, err := http.NewRequest("POST", "http://localhost:22100/filters", reader)
+		So(err, ShouldBeNil)
+
+		mockAuditor := getMockAuditor()
+		w := httptest.NewRecorder()
+		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, mockAuditor)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusBadRequest)
+
+		response := w.Body.String()
+		So(response, ShouldContainSubstring, "Bad request - duplicate dimension found: time")
+
+		Convey("Then the auditor is called for the attempt and outcome", func() {
+			assertAuditCalled(mockAuditor, createFilterBlueprintAction, actionUnsuccessful, nil)
+		})
+	})
+
 	Convey("When no data store is available, an internal error is returned", t, func() {
 		reader := strings.NewReader(`{"dataset":{"version":1, "edition":"1", "id":"1"} }`)
 		r, err := http.NewRequest("POST", "http://localhost:22100/filters", reader)
@@ -565,7 +615,20 @@ func TestSuccessfulUpdateFilterBlueprint_PublishedDataset(t *testing.T) {
 
 		mockAuditor := getMockAuditor()
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, mockAuditor)
+
+		mockDatastore := &datastoretest.DataStoreMock{
+			CreateFilterOutputFunc: func(filter *models.Filter) error {
+				return nil
+			},
+			GetFilterFunc: func(filterID string) (*models.Filter, error) {
+				return &models.Filter{Dataset: &models.Dataset{ID: "123", Edition: "2017", Version: 1}, InstanceID: "12345678", Published: &models.Published, Dimensions: []models.Dimension{{Name: "time", Options: []string{"2014", "2015"}}, {Name: "1_age"}}}, nil
+			},
+			UpdateFilterFunc: func(filter *models.Filter, timestamp bson.MongoTimestamp) error {
+				return nil
+			},
+		}
+
+		api := routes(host, mux.NewRouter(), mockDatastore, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, mockAuditor)
 
 		Convey("When a PUT request is made to the filters endpoint", func() {
 
@@ -579,6 +642,10 @@ func TestSuccessfulUpdateFilterBlueprint_PublishedDataset(t *testing.T) {
 				assertAuditCalled(mockAuditor, updateFilterBlueprintAction, actionSuccessful, expectedAuditParams)
 			})
 
+			Convey("Then the data store is not called to create a new filter output", func() {
+				So(len(mockDatastore.CreateFilterOutputCalls()), ShouldEqual, 0)
+			})
+
 			Convey("Then the response is 200 OK", func() {
 				So(w.Code, ShouldEqual, http.StatusOK)
 			})
@@ -586,9 +653,7 @@ func TestSuccessfulUpdateFilterBlueprint_PublishedDataset(t *testing.T) {
 
 		Convey("When a PUT request is made to the filters endpoint with events and dataset version update", func() {
 
-			updateBlueprintData := `{"dataset":{"version":1}, "events":{"info":[{"time":"` + time.Now().String() +
-				`","type":"something changed","message":"something happened"}],"error":[{"time":"` + time.Now().String() +
-				`","type":"errored","message":"something errored"}]}}`
+			updateBlueprintData := `{"dataset":{"version":1}, "events":[{"type":"wut","time":"2018-06-05T11:34:35.291735535+01:00"}]}`
 
 			reader := strings.NewReader(updateBlueprintData)
 			r, err := http.NewRequest("PUT", "http://localhost:22100/filters/21312", reader)
@@ -598,6 +663,10 @@ func TestSuccessfulUpdateFilterBlueprint_PublishedDataset(t *testing.T) {
 
 			Convey("Then the auditor is called for the attempt and outcome", func() {
 				assertAuditCalled(mockAuditor, updateFilterBlueprintAction, actionSuccessful, expectedAuditParams)
+			})
+
+			Convey("Then the data store is not called to create a new filter output", func() {
+				So(len(mockDatastore.CreateFilterOutputCalls()), ShouldEqual, 0)
 			})
 
 			Convey("Then the response is 200 OK", func() {
@@ -615,6 +684,16 @@ func TestSuccessfulUpdateFilterBlueprint_PublishedDataset(t *testing.T) {
 
 			Convey("Then the auditor is called for the attempt and outcome", func() {
 				assertAuditCalled(mockAuditor, updateFilterBlueprintAction, actionSuccessful, expectedAuditParams)
+			})
+
+			Convey("Then the data store is called to create a new filter output", func() {
+
+				So(len(mockDatastore.CreateFilterOutputCalls()), ShouldEqual, 1)
+
+				filterOutput := mockDatastore.CreateFilterOutputCalls()[0]
+				So(len(filterOutput.Filter.Events), ShouldEqual, 1)
+
+				So(filterOutput.Filter.Events[0].Type, ShouldEqual, eventFilterOutputCreated)
 			})
 
 			Convey("Then the response is 200 OK", func() {
@@ -865,6 +944,22 @@ func TestFailedToUpdateFilterBlueprint(t *testing.T) {
 
 		Convey("Then the auditor is called for the attempt and outcome", func() {
 			assertAuditCalled(mockAuditor, updateFilterBlueprintAction, actionUnsuccessful, expectedAuditParams)
+		})
+	})
+}
+
+func TestRemoveDuplicates(t *testing.T) {
+	Convey("Given a string array with duplicate options", t, func() {
+		duplicates := []string{"1", "2", "2", "2", "abcde", "abd", "abcde"}
+
+		Convey("When I call remove duplicates function", func() {
+			withoutDuplicates := removeDuplicateOptions(duplicates)
+
+			Convey("Then the duplicates are removed", func() {
+				expected := []string{"1", "2", "abcde", "abd"}
+				So(withoutDuplicates, ShouldResemble, expected)
+
+			})
 		})
 	})
 }

@@ -25,7 +25,7 @@ func (api *FilterAPI) getFilterBlueprintDimensionsHandler(w http.ResponseWriter,
 	vars := mux.Vars(r)
 	filterBlueprintID := vars["filter_blueprint_id"]
 	logData := log.Data{"filter_blueprint_id": filterBlueprintID}
-	log.Info("getting filter blueprint dimensions", logData)
+	log.InfoCtx(r.Context(), "getting filter blueprint dimensions", logData)
 
 	auditParams := common.Params{"filter_blueprint_id": filterBlueprintID}
 	if auditErr := api.auditor.Record(r.Context(), getDimensionsAction, actionAttempted, auditParams); auditErr != nil {
@@ -47,7 +47,7 @@ func (api *FilterAPI) getFilterBlueprintDimensionsHandler(w http.ResponseWriter,
 	logData["dimensions"] = filter.Dimensions
 
 	if len(filter.Dimensions) == 0 {
-		log.Error(filters.ErrDimensionNotFound, logData)
+		log.ErrorCtx(r.Context(), filters.ErrDimensionNotFound, logData)
 		if auditErr := api.auditor.Record(r.Context(), getDimensionsAction, actionUnsuccessful, auditParams); auditErr != nil {
 			handleAuditingFailure(r.Context(), getDimensionsAction, actionUnsuccessful, w, auditErr, logData)
 			return
@@ -81,7 +81,7 @@ func (api *FilterAPI) getFilterBlueprintDimensionsHandler(w http.ResponseWriter,
 		return
 	}
 
-	log.Info("got dimensions for filter blueprint", logData)
+	log.InfoCtx(r.Context(), "got dimensions for filter blueprint", logData)
 }
 
 func (api *FilterAPI) getFilterBlueprintDimensionHandler(w http.ResponseWriter, r *http.Request) {
@@ -92,7 +92,7 @@ func (api *FilterAPI) getFilterBlueprintDimensionHandler(w http.ResponseWriter, 
 		"filter_blueprint_id": filterBlueprintID,
 		"dimension":           name,
 	}
-	log.Info("getting filter blueprint dimension", logData)
+	log.InfoCtx(r.Context(), "getting filter blueprint dimension", logData)
 
 	auditParams := common.Params{
 		"filter_blueprint_id": filterBlueprintID,
@@ -104,7 +104,7 @@ func (api *FilterAPI) getFilterBlueprintDimensionHandler(w http.ResponseWriter, 
 	}
 
 	if _, err := api.getFilterBlueprint(r.Context(), filterBlueprintID); err != nil {
-		log.Error(err, logData)
+		log.ErrorCtx(r.Context(), err, logData)
 		if auditErr := api.auditor.Record(r.Context(), getDimensionAction, actionUnsuccessful, auditParams); auditErr != nil {
 			handleAuditingFailure(r.Context(), getDimensionAction, actionUnsuccessful, w, auditErr, logData)
 			return
@@ -118,7 +118,7 @@ func (api *FilterAPI) getFilterBlueprintDimensionHandler(w http.ResponseWriter, 
 	}
 
 	if err := api.dataStore.GetFilterDimension(filterBlueprintID, name); err != nil {
-		log.Error(err, logData)
+		log.ErrorCtx(r.Context(), err, logData)
 		if auditErr := api.auditor.Record(r.Context(), getDimensionAction, actionUnsuccessful, auditParams); auditErr != nil {
 			handleAuditingFailure(r.Context(), getDimensionAction, actionUnsuccessful, w, auditErr, logData)
 			return
@@ -135,7 +135,7 @@ func (api *FilterAPI) getFilterBlueprintDimensionHandler(w http.ResponseWriter, 
 	setJSONContentType(w)
 	w.WriteHeader(http.StatusNoContent)
 
-	log.Info("got filtered blueprint dimension", logData)
+	log.InfoCtx(r.Context(), "got filtered blueprint dimension", logData)
 }
 
 func (api *FilterAPI) removeFilterBlueprintDimensionHandler(w http.ResponseWriter, r *http.Request) {
@@ -146,7 +146,7 @@ func (api *FilterAPI) removeFilterBlueprintDimensionHandler(w http.ResponseWrite
 		"filter_blueprint_id": filterBlueprintID,
 		"dimension":           dimensionName,
 	}
-	log.Info("removing filter blueprint dimension", logData)
+	log.InfoCtx(r.Context(), "removing filter blueprint dimension", logData)
 
 	auditParams := common.Params{
 		"filter_blueprint_id": filterBlueprintID,
@@ -178,7 +178,7 @@ func (api *FilterAPI) removeFilterBlueprintDimensionHandler(w http.ResponseWrite
 	setJSONContentType(w)
 	w.WriteHeader(http.StatusOK)
 
-	log.Info("delete dimension from filter blueprint", logData)
+	log.InfoCtx(r.Context(), "delete dimension from filter blueprint", logData)
 }
 
 func (api *FilterAPI) removeFilterBlueprintDimension(ctx context.Context, filterBlueprintID, dimensionName string) error {
@@ -212,7 +212,7 @@ func (api *FilterAPI) addFilterBlueprintDimensionHandler(w http.ResponseWriter, 
 		"filter_blueprint_id": filterBlueprintID,
 		"dimension":           dimensionName,
 	}
-	log.Info("add filter blueprint dimension", logData)
+	log.InfoCtx(r.Context(), "add filter blueprint dimension", logData)
 
 	auditParams := common.Params{
 		"filter_blueprint_id": filterBlueprintID,
@@ -234,9 +234,11 @@ func (api *FilterAPI) addFilterBlueprintDimensionHandler(w http.ResponseWriter, 
 		return
 	}
 
+	options = removeDuplicateOptions(options)
+
 	err = api.addFilterBlueprintDimension(r.Context(), filterBlueprintID, dimensionName, options)
 	if err != nil {
-		log.Error(err, logData)
+		log.ErrorCtx(r.Context(), err, logData)
 		if auditErr := api.auditor.Record(r.Context(), addDimensionAction, actionUnsuccessful, auditParams); auditErr != nil {
 			handleAuditingFailure(r.Context(), addDimensionAction, actionUnsuccessful, w, auditErr, logData)
 			return
@@ -258,7 +260,7 @@ func (api *FilterAPI) addFilterBlueprintDimensionHandler(w http.ResponseWriter, 
 	setJSONContentType(w)
 	w.WriteHeader(http.StatusCreated)
 
-	log.Info("created new dimension for filter blueprint", logData)
+	log.InfoCtx(r.Context(), "created new dimension for filter blueprint", logData)
 }
 
 func (api *FilterAPI) addFilterBlueprintDimension(ctx context.Context, filterBlueprintID, dimensionName string, options []string) error {
@@ -283,7 +285,7 @@ func (api *FilterAPI) addFilterBlueprintDimension(ctx context.Context, filterBlu
 func (api *FilterAPI) checkNewFilterDimension(ctx context.Context, name string, options []string, dataset *models.Dataset) error {
 
 	logData := log.Data{"dimension_name": name, "dimension_options": options, "dataset": dataset}
-	log.Info("check filter dimensions and dimension options before calling api, see version number", logData)
+	log.InfoCtx(ctx, "check filter dimensions and dimension options before calling api, see version number", logData)
 
 	// FIXME - We should be calling dimension endpoint on dataset API to check if
 	// dimension exists but this endpoint doesn't exist yet so call dimension
@@ -324,4 +326,18 @@ func (api *FilterAPI) checkNewFilterDimension(ctx context.Context, name string, 
 	}
 
 	return nil
+}
+
+func removeDuplicateOptions(elements []string) []string {
+	encountered := map[string]bool{}
+	result := []string{}
+
+	for v := range elements {
+		if !encountered[elements[v]] {
+			encountered[elements[v]] = true
+			result = append(result, elements[v])
+		}
+	}
+
+	return result
 }

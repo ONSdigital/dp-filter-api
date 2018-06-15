@@ -156,7 +156,7 @@ func (ds *DataStore) GetFilterOutput(filterID string) (*models.Filter, error) {
 	}
 
 	if ds.MissingPublicLinks {
-		return &models.Filter{InstanceID: "12345678", FilterID: filterID, Published: &models.Published, State: "completed", Dimensions: []models.Dimension{{Name: "time"}}, Downloads: downloads}, nil
+		return &models.Filter{InstanceID: "12345678", FilterID: filterID, Published: &models.Published, State: "created", Dimensions: []models.Dimension{{Name: "time"}}, Downloads: downloads}, nil
 	}
 
 	downloads.CSV.Public = "csv-public-link"
@@ -232,6 +232,19 @@ func (ds *DataStore) UpdateFilterOutput(filterJob *models.Filter, timestamp bson
 
 	if ds.ConflictRequest {
 		return filters.ErrFilterOutputConflict
+	}
+
+	return nil
+}
+
+// AddEventToFilterOutput adds the given event to the filter output of the given ID
+func (ds *DataStore) AddEventToFilterOutput(filterOutputID string, event *models.Event) error {
+	if ds.InternalError {
+		return errorInternalServer
+	}
+
+	if ds.NotFound {
+		return filters.ErrFilterOutputNotFound
 	}
 
 	return nil

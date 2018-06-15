@@ -4,10 +4,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/ONSdigital/go-ns/clients/dataset"
 	"io"
 	"io/ioutil"
 	"time"
+
+	"github.com/ONSdigital/go-ns/clients/dataset"
 
 	"github.com/gedge/mgo/bson"
 )
@@ -45,7 +46,7 @@ type Filter struct {
 	InstanceID string      `bson:"instance_id"          json:"instance_id"`
 	Dimensions []Dimension `bson:"dimensions,omitempty" json:"dimensions,omitempty"`
 	Downloads  *Downloads  `bson:"downloads,omitempty"  json:"downloads,omitempty"`
-	Events     Events      `bson:"events,omitempty"     json:"events,omitempty"`
+	Events     []*Event    `bson:"events,omitempty"     json:"events,omitempty"`
 	FilterID   string      `bson:"filter_id"            json:"filter_id,omitempty"`
 	State      string      `bson:"state,omitempty"      json:"state,omitempty"`
 	Published  *bool       `bson:"published,omitempty"  json:"published,omitempty"`
@@ -88,17 +89,9 @@ type DownloadItem struct {
 	Size    string `bson:"size,omitempty"    json:"size,omitempty"`
 }
 
-// Events represents a list of array objects containing event information against the filter job
-type Events struct {
-	Error []EventItem `bson:"error,omitempty" json:"error,omitempty"`
-	Info  []EventItem `bson:"info,omitempty"  json:"info,omitempty"`
-}
-
-// EventItem represents an event object containing event information
-type EventItem struct {
-	Message string `bson:"message" json:"message,omitempty"`
-	Time    string `bson:"time"    json:"time,omitempty"`
-	Type    string `bson:"type"    json:"type,omitempty"`
+type Event struct {
+	Type string    `bson:"type,omitempty" json:"type"`
+	Time time.Time `bson:"time,omitempty" json:"time"`
 }
 
 // DimensionOption represents dimension option information
@@ -113,6 +106,15 @@ var (
 	ErrorParsingBody = errors.New("Failed to parse json body")
 	ErrorNoData      = errors.New("Bad request - Missing data in body")
 )
+
+// DuplicateDimensionError is returned if a request contains a duplicate dimension
+type DuplicateDimensionError struct {
+	duplicateDimension string
+}
+
+func (e DuplicateDimensionError) Error() string {
+	return fmt.Sprintf("Bad request - duplicate dimension found: %s", e.duplicateDimension)
+}
 
 // ValidateNewFilter checks the content of the filter structure
 func (filter *NewFilter) ValidateNewFilter() error {
@@ -363,6 +365,14 @@ func CreateNewFilter(reader io.Reader) (*NewFilter, error) {
 	err = json.Unmarshal(bytes, &filter)
 	if err != nil {
 		return nil, ErrorParsingBody
+	}
+
+	dimensionValidator := make(map[string]bool)
+	for _, dimension := range filter.Dimensions {
+		if dimensionValidator[dimension.Name] {
+			return nil, DuplicateDimensionError{dimension.Name}
+		}
+		dimensionValidator[dimension.Name] = true
 	}
 
 	// This should be the last check before returning filter

@@ -86,6 +86,13 @@ parameters:
     required: true
     description: "Model of all editable properties within a filter"
     in: body
+  event:
+    name: event
+    schema:
+      $ref: '#/definitions/Event'
+    required: true
+    description: "The model of an event"
+    in: body
 securityDefinitions:
   InternalAPIKey:
     name: internal-token
@@ -340,6 +347,30 @@ paths:
           $ref: '#/responses/FilterOutputNotFound'
         500:
           $ref: '#/responses/InternalError'
+  /filter-outputs/{filter_id}/events:
+    parameters:
+      - $ref: '#/parameters/filter_id'
+    post:
+      tags:
+      - "Private"
+      summary: "Add an event to a filter output"
+      description: |
+        Add an event to a filter output
+      parameters:
+      - $ref: '#/parameters/event'
+      security:
+      - InternalAPIKey: []
+      responses:
+        201:
+          description: "The event has been created on the filter output"
+        400:
+          description: "Invalid request body"
+        401:
+          description: "Unauthorised, request lacks valid authentication credentials"
+        404:
+          $ref: '#/responses/FilterOutputNotFound'
+        500:
+          $ref: '#/responses/InternalError'
   /filter-outputs/{filter_id}/preview:
     parameters:
       - $ref: '#/parameters/filter_id'
@@ -408,13 +439,6 @@ definitions:
             version:
               type: integer
               description: "A version of the dataset to filter on"
-        events:
-          readOnly: false
-          type: object
-          description: |
-            A list of events which happened to the filter, can only be updated if authorised.
-          items:
-            $ref: '#/definitions/Events'
   NewFilterResponse:
     description: "A model for the response body when creating a new filter"
     allOf:
@@ -458,12 +482,10 @@ definitions:
           * submitted - The job has been submitted to be processed. This will lock the job and no further changes can be done
           * completed - The job has been completed, if the filter created results the download links will contain links. It is
                         possible that a job gets marked as completed but no download URLs are present, this is due to the filter job
-                        returning no results. See the information events for more information.
-          * failed - The job failed to be processed, See error events for more information
+                        returning no results. See the events for more information.
+          * failed - The job failed to be processed, See events for more information
       downloads:
         $ref: '#/definitions/Downloads'
-      events:
-        $ref: '#/definitions/Events'
   JobState:
     description: |
       A description of a job to generate a customised dataset
@@ -550,18 +572,11 @@ definitions:
         items:
           type: string
   Events:
-    type: object
+    type: array
+    items:
+      $ref: '#/definitions/Event'
     description: |
       A list of events which happened to the resource, can only be updated if authorised.
-    properties:
-      info:
-        type: array
-        items:
-          $ref: '#/definitions/Event'
-      error:
-        type: array
-        items:
-          $ref: '#/definitions/Event'
   Event:
     type: object
     description: "A description of an event which has happened to the resource"
@@ -572,9 +587,6 @@ definitions:
       type:
         type: string
         description: "The type of event which happened"
-      message:
-        type: string
-        description: "The description of the event which has happened"
   DownloadFile:
     type: object
     properties:

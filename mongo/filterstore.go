@@ -279,6 +279,24 @@ func (s *FilterStore) UpdateFilterOutput(filter *models.Filter, timestamp bson.M
 	return err
 }
 
+// AddEventToFilterOutput adds the given event to the filter output of the given ID
+func (s *FilterStore) AddEventToFilterOutput(filterOutputID string, event *models.Event) error {
+	session := s.Session.Copy()
+	defer session.Close()
+
+	info, err := session.DB(s.db).C(s.outputsCollection).Upsert(bson.M{"filter_id": filterOutputID},
+		bson.M{"$push": bson.M{"events": &event}, "$set": bson.M{"last_updated": time.Now().UTC()}})
+	if err != nil {
+		return err
+	}
+
+	if info.Updated == 0 {
+		return filters.ErrFilterOutputNotFound
+	}
+
+	return nil
+}
+
 func createUpdateFilterBlueprint(filter *models.Filter) bson.M {
 
 	update := bson.M{
@@ -293,8 +311,10 @@ func createUpdateFilterBlueprint(filter *models.Filter) bson.M {
 }
 
 func createUpdateFilterOutput(filter *models.Filter) bson.M {
+
 	var downloads models.Downloads
 	state := models.CreatedState
+
 	var update bson.M
 	if filter.Downloads != nil {
 		if filter.Downloads.XLS != nil {
@@ -314,25 +334,14 @@ func createUpdateFilterOutput(filter *models.Filter) bson.M {
 		state = filter.State
 	}
 
-	// Don't bother checking for JSON as it doesn't get generated at the moment
-	if downloads.CSV != nil && downloads.CSV.HRef != "" && downloads.XLS != nil && downloads.XLS.HRef != "" {
-		update = bson.M{
-			"$set": bson.M{
-				"downloads": downloads,
-				"events":    filter.Events,
-				"state":     models.CompletedState,
-				"published": filter.Published,
-			},
-		}
-	} else {
-		update = bson.M{
-			"$set": bson.M{
-				"state":     state,
-				"downloads": downloads,
-				"events":    filter.Events,
-				"published": filter.Published,
-			},
-		}
+	updates := bson.M{
+		"state":     state,
+		"downloads": downloads,
+		"published": filter.Published,
+	}
+
+	update = bson.M{
+		"$set": updates,
 	}
 
 	return update
@@ -344,11 +353,7 @@ func validateFilter(filter *models.Filter) {
 		filter.Dimensions = []models.Dimension{}
 	}
 
-	if filter.Events.Info == nil {
-		filter.Events.Info = []models.EventItem{}
-	}
-
-	if filter.Events.Error == nil {
-		filter.Events.Error = []models.EventItem{}
+	if filter.Events == nil {
+		filter.Events = []*models.Event{}
 	}
 }
