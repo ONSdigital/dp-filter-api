@@ -376,7 +376,7 @@ func createPublicDimension(dimension models.Dimension) *models.PublicDimension {
 		Links: &models.PublicDimensionLinkMap{
 			Self:    models.LinkObject{HRef: dimension.URL, ID: dimension.Name},
 			Filter:  models.LinkObject{HRef: filterURL, ID: filterID},
-			Options: models.LinkObject{HRef: filterURL + "/dimension/" + dimension.Name + "/options"},
+			Options: models.LinkObject{HRef: filterURL + "/dimensions/" + dimension.Name + "/options"},
 		},
 	}
 	return publicDim

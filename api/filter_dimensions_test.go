@@ -13,6 +13,7 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 
 	"github.com/ONSdigital/dp-filter-api/filters"
+	"github.com/ONSdigital/dp-filter-api/models"
 )
 
 func TestSuccessfulGetFilterBlueprintDimensions(t *testing.T) {
@@ -901,5 +902,66 @@ func TestFailedToRemoveFilterBlueprintDimension_AuditFailure(t *testing.T) {
 				So(w.Code, ShouldEqual, http.StatusInternalServerError)
 			})
 		})
+	})
+}
+
+
+func TestCreatePublicDimensionSucceeds(t *testing.T) {
+	t.Parallel()
+
+	// Dimenson test data
+	testDim := &models.Dimension{
+		URL:"/filters/1234/dimensions/testDim1",
+		Name:"testDim1",
+	}
+
+	Convey("When a Dimension struct is provided a PublicDimension struct is returned", t, func() {
+
+		publicDim := createPublicDimension(*testDim)
+
+		So(publicDim.Name, ShouldEqual, "testDim1")
+		So(publicDim.Links.Self.ID, ShouldEqual, "testDim1")
+		So(publicDim.Links.Self.HRef, ShouldEqual,  testDim.URL)
+		So(publicDim.Links.Filter.ID, ShouldEqual,  "1234")
+		So(publicDim.Links.Filter.HRef, ShouldEqual,  "/filters/1234")
+		So(publicDim.Links.Options.HRef, ShouldEqual, "/filters/1234/dimensions/testDim1/options")
+
+	})
+}
+
+
+func TestCreatePublicDimensionsSucceeds(t *testing.T) {
+	t.Parallel()
+
+	// Dimensons test data
+	testDims := []models.Dimension{
+		{
+			URL:  "/filters/1234/dimensions/testDim1",
+			Name: "testDim1",
+		},
+		{
+			URL:  "/filters/5678/dimensions/testDim2",
+			Name: "testDim2",
+		},
+	}
+
+	Convey("When an array of Dimension structs is provided an array of PublicDimension structs is returned", t, func() {
+
+		publicDims := createPublicDimensions(testDims)
+
+		So(len(publicDims), ShouldEqual, 2)
+
+		So(publicDims[0].Name, ShouldEqual, "testDim1")
+		So(publicDims[1].Name, ShouldEqual, "testDim2")
+		So(publicDims[0].Links.Self.ID, ShouldEqual, "testDim1")
+		So(publicDims[1].Links.Self.ID, ShouldEqual, "testDim2")
+		So(publicDims[0].Links.Self.HRef, ShouldEqual,  testDims[0].URL)
+		So(publicDims[1].Links.Self.HRef, ShouldEqual,  testDims[1].URL)
+		So(publicDims[0].Links.Filter.ID, ShouldEqual,  "1234")
+		So(publicDims[1].Links.Filter.ID, ShouldEqual,  "5678")
+		So(publicDims[0].Links.Filter.HRef, ShouldEqual,  "/filters/1234")
+		So(publicDims[1].Links.Filter.HRef, ShouldEqual,  "/filters/5678")
+		So(publicDims[0].Links.Options.HRef, ShouldEqual, "/filters/1234/dimensions/testDim1/options")
+		So(publicDims[1].Links.Options.HRef, ShouldEqual, "/filters/5678/dimensions/testDim2/options")
 	})
 }
