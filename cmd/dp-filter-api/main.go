@@ -25,6 +25,7 @@ import (
 )
 
 func main() {
+
 	log.Namespace = "dp-filter-api"
 
 	signals := make(chan os.Signal, 1)

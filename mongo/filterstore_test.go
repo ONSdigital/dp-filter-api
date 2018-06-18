@@ -1,12 +1,10 @@
 package mongo
 
 import (
-	"testing"
-	"time"
-
 	"github.com/ONSdigital/dp-filter-api/models"
 	"github.com/gedge/mgo/bson"
 	. "github.com/smartystreets/goconvey/convey"
+	"testing"
 )
 
 func TestCreateUpdateFilterOutput(t *testing.T) {
@@ -56,6 +54,7 @@ func TestCreateUpdateFilterOutput(t *testing.T) {
 					Size: "321",
 				},
 			},
+			State: models.CompletedState,
 		}
 		data := createUpdateFilterOutput(&filterOutput)
 		Convey("Then the returned bson object contains the latest changes", func() {
@@ -65,25 +64,6 @@ func TestCreateUpdateFilterOutput(t *testing.T) {
 			So(downloads.XLS.Size, ShouldEndWith, filterOutput.Downloads.XLS.Size)
 			So(downloads.CSV.HRef, ShouldEndWith, filterOutput.Downloads.CSV.HRef)
 			So(downloads.CSV.Size, ShouldEndWith, filterOutput.Downloads.CSV.Size)
-			So(state, ShouldEqual, models.CompletedState)
-
-		})
-	})
-	Convey("When a filter output is updated with event and state", t, func() {
-		filterOutput := models.Filter{
-			State: models.CompletedState,
-			Events: models.Events{
-				Info: []models.EventItem{{
-					Message: "empty filter job",
-					Time:    time.Now().UTC().String(),
-				}},
-			},
-		}
-		data := createUpdateFilterOutput(&filterOutput)
-		Convey("Then the returned bson object contains the latest changes", func() {
-			state := data["$set"].(bson.M)["state"].(string)
-			event := data["$set"].(bson.M)["events"].(models.Events)
-			So(len(event.Info), ShouldEqual, 1)
 			So(state, ShouldEqual, models.CompletedState)
 
 		})

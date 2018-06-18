@@ -46,7 +46,7 @@ type Filter struct {
 	InstanceID string      `bson:"instance_id"          json:"instance_id"`
 	Dimensions []Dimension `bson:"dimensions,omitempty" json:"dimensions,omitempty"`
 	Downloads  *Downloads  `bson:"downloads,omitempty"  json:"downloads,omitempty"`
-	Events     Events      `bson:"events,omitempty"     json:"events,omitempty"`
+	Events     []*Event    `bson:"events,omitempty"     json:"events,omitempty"`
 	FilterID   string      `bson:"filter_id"            json:"filter_id,omitempty"`
 	State      string      `bson:"state,omitempty"      json:"state,omitempty"`
 	Published  *bool       `bson:"published,omitempty"  json:"published,omitempty"`
@@ -115,17 +115,9 @@ type DownloadItem struct {
 	Size    string `bson:"size,omitempty"    json:"size,omitempty"`
 }
 
-// Events represents a list of array objects containing event information against the filter job
-type Events struct {
-	Error []EventItem `bson:"error,omitempty" json:"error,omitempty"`
-	Info  []EventItem `bson:"info,omitempty"  json:"info,omitempty"`
-}
-
-// EventItem represents an event object containing event information
-type EventItem struct {
-	Message string `bson:"message" json:"message,omitempty"`
-	Time    string `bson:"time"    json:"time,omitempty"`
-	Type    string `bson:"type"    json:"type,omitempty"`
+type Event struct {
+	Type string    `bson:"type,omitempty" json:"type"`
+	Time time.Time `bson:"time,omitempty" json:"time"`
 }
 
 // A list of errors returned from package

@@ -10,6 +10,7 @@ import (
 )
 
 var (
+	lockDataStoreMockAddEventToFilterOutput      sync.RWMutex
 	lockDataStoreMockAddFilter                   sync.RWMutex
 	lockDataStoreMockAddFilterDimension          sync.RWMutex
 	lockDataStoreMockAddFilterDimensionOption    sync.RWMutex
@@ -29,6 +30,9 @@ var (
 //
 //         // make and configure a mocked DataStore
 //         mockedDataStore := &DataStoreMock{
+//             AddEventToFilterOutputFunc: func(filterOutputID string, event *models.Event) error {
+// 	               panic("TODO: mock out the AddEventToFilterOutput method")
+//             },
 //             AddFilterFunc: func(host string, filter *models.Filter) (*models.Filter, error) {
 // 	               panic("TODO: mock out the AddFilter method")
 //             },
@@ -69,6 +73,9 @@ var (
 //
 //     }
 type DataStoreMock struct {
+	// AddEventToFilterOutputFunc mocks the AddEventToFilterOutput method.
+	AddEventToFilterOutputFunc func(filterOutputID string, event *models.Event) error
+
 	// AddFilterFunc mocks the AddFilter method.
 	AddFilterFunc func(host string, filter *models.Filter) (*models.Filter, error)
 
@@ -104,6 +111,13 @@ type DataStoreMock struct {
 
 	// calls tracks calls to the methods.
 	calls struct {
+		// AddEventToFilterOutput holds details about calls to the AddEventToFilterOutput method.
+		AddEventToFilterOutput []struct {
+			// FilterOutputID is the filterOutputID argument value.
+			FilterOutputID string
+			// Event is the event argument value.
+			Event *models.Event
+		}
 		// AddFilter holds details about calls to the AddFilter method.
 		AddFilter []struct {
 			// Host is the host argument value.
@@ -192,6 +206,41 @@ type DataStoreMock struct {
 			Timestamp bson.MongoTimestamp
 		}
 	}
+}
+
+// AddEventToFilterOutput calls AddEventToFilterOutputFunc.
+func (mock *DataStoreMock) AddEventToFilterOutput(filterOutputID string, event *models.Event) error {
+	if mock.AddEventToFilterOutputFunc == nil {
+		panic("moq: DataStoreMock.AddEventToFilterOutputFunc is nil but DataStore.AddEventToFilterOutput was just called")
+	}
+	callInfo := struct {
+		FilterOutputID string
+		Event          *models.Event
+	}{
+		FilterOutputID: filterOutputID,
+		Event:          event,
+	}
+	lockDataStoreMockAddEventToFilterOutput.Lock()
+	mock.calls.AddEventToFilterOutput = append(mock.calls.AddEventToFilterOutput, callInfo)
+	lockDataStoreMockAddEventToFilterOutput.Unlock()
+	return mock.AddEventToFilterOutputFunc(filterOutputID, event)
+}
+
+// AddEventToFilterOutputCalls gets all the calls that were made to AddEventToFilterOutput.
+// Check the length with:
+//     len(mockedDataStore.AddEventToFilterOutputCalls())
+func (mock *DataStoreMock) AddEventToFilterOutputCalls() []struct {
+	FilterOutputID string
+	Event          *models.Event
+} {
+	var calls []struct {
+		FilterOutputID string
+		Event          *models.Event
+	}
+	lockDataStoreMockAddEventToFilterOutput.RLock()
+	calls = mock.calls.AddEventToFilterOutput
+	lockDataStoreMockAddEventToFilterOutput.RUnlock()
+	return calls
 }
 
 // AddFilter calls AddFilterFunc.
