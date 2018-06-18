@@ -187,10 +187,10 @@ paths:
       tags:
       - "Public"
       summary: "Get a dimension from a filter"
-      description: "Check if a dimension exists within a filter"
+      description: "Return details of a specific dimension used by the filter"
       responses:
-        204:
-          description: "Dimension exists for filter"
+        200:
+          description: "A Dimension for a filter was returned"
         400:
           description: "Filter was not found"
         404:
@@ -264,8 +264,8 @@ paths:
       summary: "Get an option from a filtered dimension"
       description: "Check if a option exists within a dimension"
       responses:
-        204:
-          description: "Option exists within the dimension"
+        200:
+          description: "An option within a dimension was returned"
         400:
           $ref: '#/responses/FilterOrDimensionNotFound'
         404:
