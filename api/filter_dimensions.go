@@ -10,6 +10,7 @@ import (
 	"github.com/ONSdigital/dp-filter-api/models"
 	"github.com/ONSdigital/go-ns/common"
 	"github.com/ONSdigital/go-ns/log"
+	"github.com/ONSdigital/go-ns/request"
 	"github.com/gorilla/mux"
 )
 
@@ -205,6 +206,9 @@ func (api *FilterAPI) removeFilterBlueprintDimension(ctx context.Context, filter
 }
 
 func (api *FilterAPI) addFilterBlueprintDimensionHandler(w http.ResponseWriter, r *http.Request) {
+
+	defer request.DrainBody(r)
+
 	vars := mux.Vars(r)
 	filterBlueprintID := vars["filter_blueprint_id"]
 	dimensionName := vars["name"]
