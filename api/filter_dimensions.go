@@ -56,7 +56,6 @@ func (api *FilterAPI) getFilterBlueprintDimensionsHandler(w http.ResponseWriter,
 		return
 	}
 
-	log.Debug("Create array of public dimensions", nil)
 	publicDimensions := createPublicDimensions(filter.Dimensions, api.host, filter.FilterID)
 	b, err := json.Marshal(publicDimensions)
 	if err != nil {
@@ -119,7 +118,6 @@ func (api *FilterAPI) getFilterBlueprintDimensionHandler(w http.ResponseWriter, 
 		return
 	}
 
-
 	dimension, err := api.dataStore.GetFilterDimension(filterBlueprintID, name)
 		if err != nil {
 		log.ErrorCtx(r.Context(), err, logData)
@@ -130,8 +128,7 @@ func (api *FilterAPI) getFilterBlueprintDimensionHandler(w http.ResponseWriter, 
 		setErrorCode(w, err)
 		return
 	}
-
-	log.Debug("Create a single public dimension", nil)
+	
 	publicDimension := createPublicDimension(*dimension, api.host, filterBlueprintID)
 	b, err := json.Marshal(publicDimension)
 	if err != nil {
