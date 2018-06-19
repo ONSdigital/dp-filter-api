@@ -11,7 +11,6 @@ import (
 	"github.com/ONSdigital/go-ns/common"
 	"github.com/ONSdigital/go-ns/log"
 	"github.com/gorilla/mux"
-	"strings"
 )
 
 const (
@@ -57,7 +56,8 @@ func (api *FilterAPI) getFilterBlueprintDimensionsHandler(w http.ResponseWriter,
 		return
 	}
 
-	publicDimensions := createPublicDimensions(filter.Dimensions)
+	log.Debug("Create array of public dimensions", nil)
+	publicDimensions := createPublicDimensions(filter.Dimensions, api.host, filter.FilterID)
 	b, err := json.Marshal(publicDimensions)
 	if err != nil {
 		log.ErrorCtx(r.Context(), errors.Wrap(err, "failed to marshal filter blueprint dimensions into bytes"), logData)
@@ -131,7 +131,8 @@ func (api *FilterAPI) getFilterBlueprintDimensionHandler(w http.ResponseWriter, 
 		return
 	}
 
-	publicDimension := createPublicDimension(*dimension)
+	log.Debug("Create a single public dimension", nil)
+	publicDimension := createPublicDimension(*dimension, api.host, filterBlueprintID)
 	b, err := json.Marshal(publicDimension)
 	if err != nil {
 
@@ -352,12 +353,12 @@ func (api *FilterAPI) checkNewFilterDimension(ctx context.Context, name string, 
 }
 
 // createPublicDimensions wraps createPublicDimension for converting arrays of dimensions
-func createPublicDimensions(inputDimensions []models.Dimension) []*models.PublicDimension {
+func createPublicDimensions(inputDimensions []models.Dimension, host, filterID string) []*models.PublicDimension {
 
 	var outputDimensions []*models.PublicDimension
 	for _, inputDimension := range inputDimensions {
 
-		publicDimension := createPublicDimension(inputDimension)
+		publicDimension := createPublicDimension(inputDimension, host, filterID)
 		outputDimensions = append(outputDimensions, publicDimension)
 	}
 
@@ -365,18 +366,18 @@ func createPublicDimensions(inputDimensions []models.Dimension) []*models.Public
 }
 
 // createPublicDimension creates a PublicDimension struct from a Dimension struct
-func createPublicDimension(dimension models.Dimension) *models.PublicDimension {
+func createPublicDimension(dimension models.Dimension, host, filterID string) *models.PublicDimension {
 
 	// split out filterID and URL from dimension.URL
-	filterURL := strings.Split(dimension.URL, "/dimensions/")[0]
-	filterID := strings.Split(filterURL, "/filters/")[1]
+	filterURL := fmt.Sprintf("%s/filters/%s", host, filterID)
+	dimensionURL := fmt.Sprintf("%s/dimensions/%s", filterURL, dimension.Name)
 
 	publicDim := &models.PublicDimension{
 		Name: dimension.Name,
 		Links: &models.PublicDimensionLinkMap{
-			Self:    models.LinkObject{HRef: dimension.URL, ID: dimension.Name},
+			Self:    models.LinkObject{HRef: dimensionURL, ID: dimension.Name},
 			Filter:  models.LinkObject{HRef: filterURL, ID: filterID},
-			Options: models.LinkObject{HRef: filterURL + "/dimensions/" + dimension.Name + "/options"},
+			Options: models.LinkObject{HRef: dimensionURL + "/options"},
 		},
 	}
 	return publicDim

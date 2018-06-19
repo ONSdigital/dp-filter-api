@@ -917,7 +917,7 @@ func TestCreatePublicDimensionSucceeds(t *testing.T) {
 
 	Convey("When a Dimension struct is provided a PublicDimension struct is returned", t, func() {
 
-		publicDim := createPublicDimension(*testDim)
+		publicDim := createPublicDimension(*testDim, "", "1234")
 
 		So(publicDim.Name, ShouldEqual, "testDim1")
 		So(publicDim.Links.Self.ID, ShouldEqual, "testDim1")
@@ -936,7 +936,7 @@ func TestCreatePublicDimensionsSucceeds(t *testing.T) {
 	// Dimensons test data
 	testDims := []models.Dimension{
 		{
-			URL:  "/filters/1234/dimensions/testDim1",
+			URL:  "/filters/5678/dimensions/testDim1",
 			Name: "testDim1",
 		},
 		{
@@ -947,7 +947,7 @@ func TestCreatePublicDimensionsSucceeds(t *testing.T) {
 
 	Convey("When an array of Dimension structs is provided an array of PublicDimension structs is returned", t, func() {
 
-		publicDims := createPublicDimensions(testDims)
+		publicDims := createPublicDimensions(testDims, "", "5678")
 
 		So(len(publicDims), ShouldEqual, 2)
 
@@ -957,11 +957,11 @@ func TestCreatePublicDimensionsSucceeds(t *testing.T) {
 		So(publicDims[1].Links.Self.ID, ShouldEqual, "testDim2")
 		So(publicDims[0].Links.Self.HRef, ShouldEqual,  testDims[0].URL)
 		So(publicDims[1].Links.Self.HRef, ShouldEqual,  testDims[1].URL)
-		So(publicDims[0].Links.Filter.ID, ShouldEqual,  "1234")
+		So(publicDims[0].Links.Filter.ID, ShouldEqual,  "5678")
 		So(publicDims[1].Links.Filter.ID, ShouldEqual,  "5678")
-		So(publicDims[0].Links.Filter.HRef, ShouldEqual,  "/filters/1234")
+		So(publicDims[0].Links.Filter.HRef, ShouldEqual,  "/filters/5678")
 		So(publicDims[1].Links.Filter.HRef, ShouldEqual,  "/filters/5678")
-		So(publicDims[0].Links.Options.HRef, ShouldEqual, "/filters/1234/dimensions/testDim1/options")
+		So(publicDims[0].Links.Options.HRef, ShouldEqual, "/filters/5678/dimensions/testDim1/options")
 		So(publicDims[1].Links.Options.HRef, ShouldEqual, "/filters/5678/dimensions/testDim2/options")
 	})
 }

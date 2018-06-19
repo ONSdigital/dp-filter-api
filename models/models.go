@@ -11,6 +11,7 @@ import (
 	"github.com/ONSdigital/go-ns/clients/dataset"
 
 	"github.com/gedge/mgo/bson"
+	"github.com/ONSdigital/go-ns/log"
 )
 
 // A list of states
@@ -359,6 +360,7 @@ func CreateDimensionOptions(reader io.Reader) ([]string, error) {
 		return nil, ErrorParsingBody
 	}
 
+	log.Debug("CREATED DIMENSION OPTIONS", log.Data{"options":dimension.Options, "dimension":dimension})
 	return dimension.Options, nil
 }
 
