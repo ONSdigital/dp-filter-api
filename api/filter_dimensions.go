@@ -4,13 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"net/http"
-	"github.com/pkg/errors"
 	"github.com/ONSdigital/dp-filter-api/filters"
 	"github.com/ONSdigital/dp-filter-api/models"
 	"github.com/ONSdigital/go-ns/common"
 	"github.com/ONSdigital/go-ns/log"
 	"github.com/gorilla/mux"
+	"github.com/pkg/errors"
+	"net/http"
 )
 
 const (
@@ -119,7 +119,7 @@ func (api *FilterAPI) getFilterBlueprintDimensionHandler(w http.ResponseWriter, 
 	}
 
 	dimension, err := api.dataStore.GetFilterDimension(filterBlueprintID, name)
-		if err != nil {
+	if err != nil {
 		log.ErrorCtx(r.Context(), err, logData)
 		if auditErr := api.auditor.Record(r.Context(), getDimensionAction, actionUnsuccessful, auditParams); auditErr != nil {
 			handleAuditingFailure(r.Context(), getDimensionAction, actionUnsuccessful, w, auditErr, logData)
@@ -128,7 +128,7 @@ func (api *FilterAPI) getFilterBlueprintDimensionHandler(w http.ResponseWriter, 
 		setErrorCode(w, err)
 		return
 	}
-	
+
 	publicDimension := createPublicDimension(*dimension, api.host, filterBlueprintID)
 	b, err := json.Marshal(publicDimension)
 	if err != nil {
