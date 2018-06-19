@@ -333,7 +333,7 @@ func (api *FilterAPI) checkNewFilterDimension(ctx context.Context, name string, 
 	// Call dimension options endpoint
 	datasetDimensionOptions, err := api.getDimensionOptions(ctx, dataset, dimension.Name)
 	if err != nil {
-		log.ErrorCtx(ctx, errors.Wrap(err, "failed to retrieve a list of dimension options from the dataset AP"), logData)
+		log.ErrorCtx(ctx, errors.Wrap(err, "failed to retrieve a list of dimension options from the dataset API"), logData)
 		return err
 	}
 

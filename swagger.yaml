@@ -187,10 +187,10 @@ paths:
       tags:
       - "Public"
       summary: "Get a dimension from a filter"
-      description: "Return details of a specific dimension used by the filter"
+      description: "Return details of a specific dimension within a filter"
       responses:
         200:
-          description: "A Dimension for a filter was returned"
+          description: "A Dimension within a filter was returned"
         400:
           description: "Filter was not found"
         404:
