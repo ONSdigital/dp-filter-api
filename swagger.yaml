@@ -191,6 +191,8 @@ paths:
       responses:
         200:
           description: "A Dimension within a filter was returned"
+          schema:
+            $ref: '#/definitions/Dimension'
         400:
           description: "Filter was not found"
         404:
@@ -261,11 +263,13 @@ paths:
     get:
       tags:
       - "Public"
-      summary: "Get an option from a filtered dimension"
-      description: "Check if a option exists within a dimension"
+      summary: "Get a specific option for a filtered dimension"
+      description: "Get a specified option from the options which will be used to filter the dimension"
       responses:
         200:
           description: "An option within a dimension was returned"
+          schema:
+            $ref: '#/definitions/Option'
         400:
           $ref: '#/responses/FilterOrDimensionNotFound'
         404:

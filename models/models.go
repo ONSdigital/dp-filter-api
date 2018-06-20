@@ -78,7 +78,7 @@ type Dimension struct {
 // PublicDimension represents information about a single dimension as served by /dimensions and /dimensions/<id>
 type PublicDimension struct {
 	Name  string                  `bson:"name"                    json:"name"`
-	Links *PublicDimensionLinkMap `bson:"links"                    json:"links"`
+	Links *PublicDimensionLinkMap `bson:"links"                   json:"links"`
 }
 
 // PublicDimensionLinkMap is the links map for the PublicDimension structure
@@ -90,7 +90,7 @@ type PublicDimensionLinkMap struct {
 
 // PublicDimensionOptions represents information about a single dimension option as served by /options and /options/<id>
 type PublicDimensionOption struct {
-	Links  *PublicDimensionOptionLinkMap `bson:"links"                    json:"links"`
+	Links  *PublicDimensionOptionLinkMap `bson:"links"               json:"links"`
 	Option string                        `bson:"option"              json:"option"`
 }
 
@@ -98,7 +98,7 @@ type PublicDimensionOption struct {
 type PublicDimensionOptionLinkMap struct {
 	Self      LinkObject `bson:"self"                 json:"self"`
 	Filter    LinkObject `bson:"filter"               json:"filter"`
-	Dimension LinkObject `bson:"dimension"               json:"dimension"`
+	Dimension LinkObject `bson:"dimension"            json:"dimension"`
 }
 
 // Downloads represents a list of file types possible to download

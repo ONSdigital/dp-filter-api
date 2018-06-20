@@ -908,7 +908,7 @@ func TestFailedToRemoveFilterBlueprintDimension_AuditFailure(t *testing.T) {
 func TestCreatePublicDimensionSucceeds(t *testing.T) {
 	t.Parallel()
 
-	// Dimenson test data
+	// Dimension test data
 	testDim := &models.Dimension{
 		URL:  "/filters/1234/dimensions/testDim1",
 		Name: "testDim1",
@@ -931,7 +931,7 @@ func TestCreatePublicDimensionSucceeds(t *testing.T) {
 func TestCreatePublicDimensionsSucceeds(t *testing.T) {
 	t.Parallel()
 
-	// Dimensons test data
+	// Dimensions test data
 	testDims := []models.Dimension{
 		{
 			URL:  "/filters/5678/dimensions/testDim1",
