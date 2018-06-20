@@ -72,7 +72,6 @@ func (api *FilterAPI) getFilterBlueprintDimensionOptionsHandler(w http.ResponseW
 	}
 
 	setJSONContentType(w)
-	w.WriteHeader(http.StatusOK)
 	_, err = w.Write(b)
 	if err != nil {
 		log.ErrorCtx(r.Context(), errors.Wrap(err, "failed to write bytes for http response"), logData)
@@ -179,7 +178,6 @@ func (api *FilterAPI) getFilterBlueprintDimensionOptionHandler(w http.ResponseWr
 	}
 
 	setJSONContentType(w)
-	w.WriteHeader(http.StatusOK)
 	_, err = w.Write(b)
 	if err != nil {
 		log.ErrorCtx(r.Context(), errors.Wrap(err, "failed to write bytes for http response"), logData)
