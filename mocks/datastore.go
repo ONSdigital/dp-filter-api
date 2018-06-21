@@ -122,7 +122,7 @@ func (ds *DataStore) GetFilterDimension(filterID, name string) (*models.Dimensio
 		return nil, errorInternalServer
 	}
 
-	return &models.Dimension{Name: "time", URL: "http://localhost:22100/filters/12345678/dimensions/1_age", Options: []string{"2014", "2015"}}, nil
+	return &models.Dimension{Name: "1_age"}, nil
 }
 
 // GetFilterOutput represents the mocked version of getting a filter output from the datastore

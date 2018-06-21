@@ -506,6 +506,9 @@ func TestSuccessfulGetFilterBlueprintDimension(t *testing.T) {
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusOK)
 
+		So(w.Body.String(), ShouldContainSubstring, `{"self":{"id":"1_age","href":"http://localhost:80/filters/12345678/dimensions/1_age"}`)
+		So(w.Body.String(), ShouldContainSubstring, `"options":{"href":"http://localhost:80/filters/12345678/dimensions/1_age/options"`)
+
 		Convey("Then the auditor is called for the attempt and outcome", func() {
 			assertAuditCalled(mockAuditor, getDimensionAction, actionSuccessful, expectedAuditParams)
 		})
@@ -519,6 +522,10 @@ func TestSuccessfulGetFilterBlueprintDimension(t *testing.T) {
 		api := routes(host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, mockAuditor)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusOK)
+
+		So(w.Body.String(), ShouldContainSubstring, `{"self":{"id":"1_age","href":"http://localhost:80/filters/12345678/dimensions/1_age"}`)
+		So(w.Body.String(), ShouldContainSubstring, `"options":{"href":"http://localhost:80/filters/12345678/dimensions/1_age/options"`)
+
 
 		Convey("Then the auditor is called for the attempt and outcome", func() {
 			assertAuditCalled(mockAuditor, getDimensionAction, actionSuccessful, expectedAuditParams)
