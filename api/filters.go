@@ -20,6 +20,7 @@ import (
 	"github.com/ONSdigital/dp-filter-api/filters"
 	datasetAPI "github.com/ONSdigital/go-ns/clients/dataset"
 	"github.com/ONSdigital/go-ns/common"
+	"github.com/ONSdigital/go-ns/request"
 	"github.com/satori/go.uuid"
 )
 
@@ -32,8 +33,6 @@ var (
 
 	incorrectDimensionOptions = regexp.MustCompile("incorrect dimension options chosen")
 	incorrectDimension        = regexp.MustCompile("incorrect dimensions chosen")
-
-	errForbidden = errors.New("forbidden")
 
 	publishedState = "published"
 )
@@ -56,6 +55,8 @@ const (
 )
 
 func (api *FilterAPI) postFilterBlueprintHandler(w http.ResponseWriter, r *http.Request) {
+
+	defer request.DrainBody(r)
 
 	submitted := r.FormValue("submitted")
 	logData := log.Data{"submitted": submitted}
@@ -250,6 +251,9 @@ func (api *FilterAPI) getFilterBlueprintHandler(w http.ResponseWriter, r *http.R
 }
 
 func (api *FilterAPI) putFilterBlueprintHandler(w http.ResponseWriter, r *http.Request) {
+
+	defer request.DrainBody(r)
+
 	vars := mux.Vars(r)
 	filterID := vars["filter_blueprint_id"]
 	submitted := r.URL.Query().Get("submitted")
