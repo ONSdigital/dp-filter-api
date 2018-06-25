@@ -208,9 +208,9 @@ func (api *FilterAPI) getFilterBlueprintDimensionOption(ctx context.Context, fil
 				if o == option {
 					optionFound = true
 
-					dimLink := fmt.Sprintf("%s/filter/%s/dimensions/%s", api.host, filterBlueprintID, d.Name)
+					dimLink := fmt.Sprintf("%s/filters/%s/dimensions/%s", api.host, filterBlueprintID, d.Name)
 					filterObject := models.LinkObject{
-						HRef: fmt.Sprintf("%s/filter/%s", api.host, filterBlueprintID),
+						HRef: fmt.Sprintf("%s/filters/%s", api.host, filterBlueprintID),
 						ID:   filterBlueprintID,
 					}
 
