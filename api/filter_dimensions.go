@@ -4,14 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"net/http"
-
 	"github.com/ONSdigital/dp-filter-api/filters"
 	"github.com/ONSdigital/dp-filter-api/models"
 	"github.com/ONSdigital/go-ns/common"
 	"github.com/ONSdigital/go-ns/log"
 	"github.com/ONSdigital/go-ns/request"
 	"github.com/gorilla/mux"
+	"github.com/pkg/errors"
+	"net/http"
 )
 
 const (
@@ -36,7 +36,7 @@ func (api *FilterAPI) getFilterBlueprintDimensionsHandler(w http.ResponseWriter,
 
 	filter, err := api.getFilterBlueprint(r.Context(), filterBlueprintID)
 	if err != nil {
-		log.ErrorC("unable to get dimensions for filter blueprint", err, logData)
+		log.ErrorCtx(r.Context(), errors.Wrap(err, "unable to get dimensions for filter blueprint"), logData)
 		if auditErr := api.auditor.Record(r.Context(), getDimensionsAction, actionUnsuccessful, auditParams); auditErr != nil {
 			handleAuditingFailure(r.Context(), getDimensionsAction, actionUnsuccessful, w, auditErr, logData)
 			return
@@ -57,9 +57,10 @@ func (api *FilterAPI) getFilterBlueprintDimensionsHandler(w http.ResponseWriter,
 		return
 	}
 
-	b, err := json.Marshal(filter.Dimensions)
+	publicDimensions := createPublicDimensions(filter.Dimensions, api.host, filter.FilterID)
+	b, err := json.Marshal(publicDimensions)
 	if err != nil {
-		log.ErrorC("failed to marshal filter blueprint dimensions into bytes", err, logData)
+		log.ErrorCtx(r.Context(), errors.Wrap(err, "failed to marshal filter blueprint dimensions into bytes"), logData)
 		if auditErr := api.auditor.Record(r.Context(), getDimensionsAction, actionUnsuccessful, auditParams); auditErr != nil {
 			handleAuditingFailure(r.Context(), getDimensionsAction, actionUnsuccessful, w, auditErr, logData)
 			return
@@ -74,10 +75,9 @@ func (api *FilterAPI) getFilterBlueprintDimensionsHandler(w http.ResponseWriter,
 	}
 
 	setJSONContentType(w)
-	w.WriteHeader(http.StatusOK)
 	_, err = w.Write(b)
 	if err != nil {
-		log.ErrorC("failed to write bytes for http response", err, logData)
+		log.ErrorCtx(r.Context(), errors.Wrap(err, "failed to write bytes for http response"), logData)
 		setErrorCode(w, err)
 		return
 	}
@@ -118,7 +118,8 @@ func (api *FilterAPI) getFilterBlueprintDimensionHandler(w http.ResponseWriter, 
 		return
 	}
 
-	if err := api.dataStore.GetFilterDimension(filterBlueprintID, name); err != nil {
+	dimension, err := api.dataStore.GetFilterDimension(filterBlueprintID, name)
+	if err != nil {
 		log.ErrorCtx(r.Context(), err, logData)
 		if auditErr := api.auditor.Record(r.Context(), getDimensionAction, actionUnsuccessful, auditParams); auditErr != nil {
 			handleAuditingFailure(r.Context(), getDimensionAction, actionUnsuccessful, w, auditErr, logData)
@@ -128,13 +129,31 @@ func (api *FilterAPI) getFilterBlueprintDimensionHandler(w http.ResponseWriter, 
 		return
 	}
 
+	publicDimension := createPublicDimension(*dimension, api.host, filterBlueprintID)
+	b, err := json.Marshal(publicDimension)
+	if err != nil {
+
+		log.ErrorCtx(r.Context(), errors.Wrap(err, "failed to marshal filter blueprint dimensions into bytes"), logData)
+		if auditErr := api.auditor.Record(r.Context(), getDimensionsAction, actionUnsuccessful, auditParams); auditErr != nil {
+			handleAuditingFailure(r.Context(), getDimensionsAction, actionUnsuccessful, w, auditErr, logData)
+			return
+		}
+		http.Error(w, internalError, http.StatusInternalServerError)
+		return
+	}
+
 	if auditErr := api.auditor.Record(r.Context(), getDimensionAction, actionSuccessful, auditParams); auditErr != nil {
 		handleAuditingFailure(r.Context(), getDimensionAction, actionSuccessful, w, auditErr, logData)
 		return
 	}
 
 	setJSONContentType(w)
-	w.WriteHeader(http.StatusNoContent)
+	_, err = w.Write(b)
+	if err != nil {
+		log.ErrorCtx(r.Context(), errors.Wrap(err, "failed to write bytes for http response"), logData)
+		setErrorCode(w, err)
+		return
+	}
 
 	log.InfoCtx(r.Context(), "got filtered blueprint dimension", logData)
 }
@@ -159,7 +178,7 @@ func (api *FilterAPI) removeFilterBlueprintDimensionHandler(w http.ResponseWrite
 	}
 
 	if err := api.removeFilterBlueprintDimension(r.Context(), filterBlueprintID, dimensionName); err != nil {
-		log.ErrorC("failed to remove dimension from filter blueprint", err, logData)
+		log.ErrorCtx(r.Context(), errors.Wrap(err, "failed to remove dimension from filter blueprint"), logData)
 		if auditErr := api.auditor.Record(r.Context(), removeDimensionAction, actionUnsuccessful, auditParams); auditErr != nil {
 			handleAuditingFailure(r.Context(), removeDimensionAction, actionUnsuccessful, w, auditErr, logData)
 			return
@@ -296,7 +315,7 @@ func (api *FilterAPI) checkNewFilterDimension(ctx context.Context, name string, 
 	// list endpoint and iterate over items to find if dimension exists
 	datasetDimensions, err := api.getDimensions(ctx, dataset)
 	if err != nil {
-		log.ErrorC("failed to retrieve a list of dimensions from the dataset API", err, logData)
+		log.ErrorCtx(ctx, errors.Wrap(err, "failed to retrieve a list of dimensions from the dataset API"), logData)
 		return err
 	}
 
@@ -306,14 +325,14 @@ func (api *FilterAPI) checkNewFilterDimension(ctx context.Context, name string, 
 	}
 
 	if err = models.ValidateFilterDimensions([]models.Dimension{dimension}, datasetDimensions); err != nil {
-		log.ErrorC("filter dimensions failed validation", err, logData)
+		log.ErrorCtx(ctx, errors.Wrap(err, "filter dimensions failed validation"), logData)
 		return err
 	}
 
 	// Call dimension options endpoint
 	datasetDimensionOptions, err := api.getDimensionOptions(ctx, dataset, dimension.Name)
 	if err != nil {
-		log.ErrorC("failed to retrieve a list of dimension options from the dataset API", err, logData)
+		log.ErrorCtx(ctx, errors.Wrap(err, "failed to retrieve a list of dimension options from the dataset API"), logData)
 		return err
 	}
 
@@ -325,11 +344,42 @@ func (api *FilterAPI) checkNewFilterDimension(ctx context.Context, name string, 
 
 	if incorrectDimensionOptions != nil {
 		err = fmt.Errorf("incorrect dimension options chosen: %v", incorrectDimensionOptions)
-		log.ErrorC("incorrect dimension options chosen", err, logData)
+		log.ErrorCtx(ctx, errors.Wrap(err, "incorrect dimension options chosen"), logData)
 		return err
 	}
 
 	return nil
+}
+
+// createPublicDimensions wraps createPublicDimension for converting arrays of dimensions
+func createPublicDimensions(inputDimensions []models.Dimension, host, filterID string) []*models.PublicDimension {
+
+	var outputDimensions []*models.PublicDimension
+	for _, inputDimension := range inputDimensions {
+
+		publicDimension := createPublicDimension(inputDimension, host, filterID)
+		outputDimensions = append(outputDimensions, publicDimension)
+	}
+
+	return outputDimensions
+}
+
+// createPublicDimension creates a PublicDimension struct from a Dimension struct
+func createPublicDimension(dimension models.Dimension, host, filterID string) *models.PublicDimension {
+
+	// split out filterID and URL from dimension.URL
+	filterURL := fmt.Sprintf("%s/filters/%s", host, filterID)
+	dimensionURL := fmt.Sprintf("%s/dimensions/%s", filterURL, dimension.Name)
+
+	publicDim := &models.PublicDimension{
+		Name: dimension.Name,
+		Links: &models.PublicDimensionLinkMap{
+			Self:    models.LinkObject{HRef: dimensionURL, ID: dimension.Name},
+			Filter:  models.LinkObject{HRef: filterURL, ID: filterID},
+			Options: models.LinkObject{HRef: dimensionURL + "/options"},
+		},
+	}
+	return publicDim
 }
 
 func removeDuplicateOptions(elements []string) []string {

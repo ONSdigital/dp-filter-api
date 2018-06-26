@@ -13,6 +13,7 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 
 	"github.com/ONSdigital/dp-filter-api/filters"
+	"github.com/ONSdigital/dp-filter-api/models"
 )
 
 func TestSuccessfulGetFilterBlueprintDimensions(t *testing.T) {
@@ -495,7 +496,7 @@ func TestSuccessfulGetFilterBlueprintDimension(t *testing.T) {
 		"dimension":           "1_age",
 	}
 
-	Convey("Successfully get a dimension for a filter blueprint, returns 204", t, func() {
+	Convey("Successfully get a dimension for a filter blueprint, returns 200", t, func() {
 		mockAuditor := getMockAuditor()
 		r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678/dimensions/1_age", nil)
 		So(err, ShouldBeNil)
@@ -503,21 +504,28 @@ func TestSuccessfulGetFilterBlueprintDimension(t *testing.T) {
 		w := httptest.NewRecorder()
 		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, mockAuditor)
 		api.router.ServeHTTP(w, r)
-		So(w.Code, ShouldEqual, http.StatusNoContent)
+		So(w.Code, ShouldEqual, http.StatusOK)
+
+		So(w.Body.String(), ShouldContainSubstring, `{"self":{"id":"1_age","href":"http://localhost:80/filters/12345678/dimensions/1_age"}`)
+		So(w.Body.String(), ShouldContainSubstring, `"options":{"href":"http://localhost:80/filters/12345678/dimensions/1_age/options"`)
 
 		Convey("Then the auditor is called for the attempt and outcome", func() {
 			assertAuditCalled(mockAuditor, getDimensionAction, actionSuccessful, expectedAuditParams)
 		})
 	})
 
-	Convey("Successfully get a dimension for an unpublished filter blueprint, returns 204", t, func() {
+	Convey("Successfully get a dimension for an unpublished filter blueprint, returns 200", t, func() {
 		mockAuditor := getMockAuditor()
 		r := createAuthenticatedRequest("GET", "http://localhost:22100/filters/12345678/dimensions/1_age", nil)
 
 		w := httptest.NewRecorder()
 		api := routes(host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, mockAuditor)
 		api.router.ServeHTTP(w, r)
-		So(w.Code, ShouldEqual, http.StatusNoContent)
+		So(w.Code, ShouldEqual, http.StatusOK)
+
+		So(w.Body.String(), ShouldContainSubstring, `{"self":{"id":"1_age","href":"http://localhost:80/filters/12345678/dimensions/1_age"}`)
+		So(w.Body.String(), ShouldContainSubstring, `"options":{"href":"http://localhost:80/filters/12345678/dimensions/1_age/options"`)
+
 
 		Convey("Then the auditor is called for the attempt and outcome", func() {
 			assertAuditCalled(mockAuditor, getDimensionAction, actionSuccessful, expectedAuditParams)
@@ -901,5 +909,64 @@ func TestFailedToRemoveFilterBlueprintDimension_AuditFailure(t *testing.T) {
 				So(w.Code, ShouldEqual, http.StatusInternalServerError)
 			})
 		})
+	})
+}
+
+func TestCreatePublicDimensionSucceeds(t *testing.T) {
+	t.Parallel()
+
+	// Dimension test data
+	testDim := &models.Dimension{
+		URL:  "/filters/1234/dimensions/testDim1",
+		Name: "testDim1",
+	}
+
+	Convey("When a Dimension struct is provided a PublicDimension struct is returned", t, func() {
+
+		publicDim := createPublicDimension(*testDim, "", "1234")
+
+		So(publicDim.Name, ShouldEqual, "testDim1")
+		So(publicDim.Links.Self.ID, ShouldEqual, "testDim1")
+		So(publicDim.Links.Self.HRef, ShouldEqual, testDim.URL)
+		So(publicDim.Links.Filter.ID, ShouldEqual, "1234")
+		So(publicDim.Links.Filter.HRef, ShouldEqual, "/filters/1234")
+		So(publicDim.Links.Options.HRef, ShouldEqual, "/filters/1234/dimensions/testDim1/options")
+
+	})
+}
+
+func TestCreatePublicDimensionsSucceeds(t *testing.T) {
+	t.Parallel()
+
+	// Dimensions test data
+	testDims := []models.Dimension{
+		{
+			URL:  "/filters/5678/dimensions/testDim1",
+			Name: "testDim1",
+		},
+		{
+			URL:  "/filters/5678/dimensions/testDim2",
+			Name: "testDim2",
+		},
+	}
+
+	Convey("When an array of Dimension structs is provided an array of PublicDimension structs is returned", t, func() {
+
+		publicDims := createPublicDimensions(testDims, "", "5678")
+
+		So(len(publicDims), ShouldEqual, 2)
+
+		So(publicDims[0].Name, ShouldEqual, "testDim1")
+		So(publicDims[1].Name, ShouldEqual, "testDim2")
+		So(publicDims[0].Links.Self.ID, ShouldEqual, "testDim1")
+		So(publicDims[1].Links.Self.ID, ShouldEqual, "testDim2")
+		So(publicDims[0].Links.Self.HRef, ShouldEqual, testDims[0].URL)
+		So(publicDims[1].Links.Self.HRef, ShouldEqual, testDims[1].URL)
+		So(publicDims[0].Links.Filter.ID, ShouldEqual, "5678")
+		So(publicDims[1].Links.Filter.ID, ShouldEqual, "5678")
+		So(publicDims[0].Links.Filter.HRef, ShouldEqual, "/filters/5678")
+		So(publicDims[1].Links.Filter.HRef, ShouldEqual, "/filters/5678")
+		So(publicDims[0].Links.Options.HRef, ShouldEqual, "/filters/5678/dimensions/testDim1/options")
+		So(publicDims[1].Links.Options.HRef, ShouldEqual, "/filters/5678/dimensions/testDim2/options")
 	})
 }
