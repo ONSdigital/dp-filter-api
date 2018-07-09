@@ -15,6 +15,7 @@ import (
 	"github.com/ONSdigital/dp-filter-api/filters"
 	"github.com/ONSdigital/dp-filter-api/preview"
 	"github.com/ONSdigital/go-ns/common"
+	"github.com/ONSdigital/go-ns/request"
 	"github.com/pkg/errors"
 	"io/ioutil"
 	"time"
@@ -87,6 +88,9 @@ func (api *FilterAPI) getFilterOutputHandler(w http.ResponseWriter, r *http.Requ
 }
 
 func (api *FilterAPI) updateFilterOutputHandler(w http.ResponseWriter, r *http.Request) {
+
+	defer request.DrainBody(r)
+
 	vars := mux.Vars(r)
 	filterOutputID := vars["filter_output_id"]
 
@@ -423,13 +427,14 @@ func buildDownloadsObject(previousFilterOutput, filterOutput *models.Filter, dow
 }
 
 func (api *FilterAPI) addEventHandler(w http.ResponseWriter, r *http.Request) {
+
+	defer request.DrainBody(r)
+
 	vars := mux.Vars(r)
 	filterOutputID := vars["filter_output_id"]
 
 	logData := log.Data{"filter_output_id": filterOutputID}
 	log.InfoCtx(r.Context(), "add event to filter output endpoint called", logData)
-
-	defer r.Body.Close()
 
 	bytes, err := ioutil.ReadAll(r.Body)
 	if err != nil {

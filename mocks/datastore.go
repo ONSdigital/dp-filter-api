@@ -100,28 +100,29 @@ func (ds *DataStore) GetFilter(filterID string) (*models.Filter, error) {
 
 	if ds.Unpublished {
 		if ds.DimensionNotFound {
-			return &models.Filter{Dataset: &models.Dataset{ID: "123", Edition: "2017", Version: 1}, InstanceID: "12345678", Dimensions: []models.Dimension{{Name: "time", Options: []string{"2014", "2015"}}}}, nil
+			return &models.Filter{Dataset: &models.Dataset{ID: "123", Edition: "2017", Version: 1}, InstanceID: "12345678", Dimensions: []models.Dimension{{URL: "http://localhost:22100/filters/12345678/dimensions/time", Name: "time", Options: []string{"2014", "2015"}}}}, nil
 		}
-		return &models.Filter{Dataset: &models.Dataset{ID: "123", Edition: "2017", Version: 1}, InstanceID: "12345678", Dimensions: []models.Dimension{{Name: "time", Options: []string{"2014", "2015"}}, {Name: "1_age"}}}, nil
+		return &models.Filter{Dataset: &models.Dataset{ID: "123", Edition: "2017", Version: 1}, InstanceID: "12345678", Dimensions: []models.Dimension{{URL: "http://localhost:22100/filters/12345678/dimensions/time", Name: "time", Options: []string{"2014", "2015"}}, {URL: "http://localhost:22100/filters/12345678/dimensions/1_age", Name: "1_age", Options: []string{"2014", "2015"}}}}, nil
 	}
 
 	if ds.DimensionNotFound {
-		return &models.Filter{Dataset: &models.Dataset{ID: "123", Edition: "2017", Version: 1}, InstanceID: "12345678", Dimensions: []models.Dimension{{Name: "time", Options: []string{"2014", "2015"}}}}, nil
+		return &models.Filter{Dataset: &models.Dataset{ID: "123", Edition: "2017", Version: 1}, InstanceID: "12345678", Dimensions: []models.Dimension{{URL: "http://localhost:22100/filters/12345678/dimensions/time", Name: "time", Options: []string{"2014", "2015"}}}}, nil
 	}
-	return &models.Filter{Dataset: &models.Dataset{ID: "123", Edition: "2017", Version: 1}, InstanceID: "12345678", Published: &models.Published, Dimensions: []models.Dimension{{Name: "time", Options: []string{"2014", "2015"}}, {Name: "1_age"}}}, nil
+
+	return &models.Filter{Dataset: &models.Dataset{ID: "123", Edition: "2017", Version: 1}, InstanceID: "12345678", Published: &models.Published, Dimensions: []models.Dimension{{URL: "http://localhost:22100/filters/12345678/dimensions/time", Name: "time", Options: []string{"2014", "2015"}}, {URL: "http://localhost:22100/filters/12345678/dimensions/1_age", Name: "1_age", Options: []string{"2014", "2015"}}}}, nil
 }
 
 // GetFilterDimension represents the mocked version of getting a filter dimension from the datastore
-func (ds *DataStore) GetFilterDimension(filterID, name string) error {
+func (ds *DataStore) GetFilterDimension(filterID, name string) (*models.Dimension, error) {
 	if ds.DimensionNotFound {
-		return filters.ErrDimensionNotFound
+		return nil, filters.ErrDimensionNotFound
 	}
 
 	if ds.InternalError {
-		return errorInternalServer
+		return nil, errorInternalServer
 	}
 
-	return nil
+	return &models.Dimension{Name: "1_age"}, nil
 }
 
 // GetFilterOutput represents the mocked version of getting a filter output from the datastore

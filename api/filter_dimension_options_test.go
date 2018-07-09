@@ -720,7 +720,7 @@ func TestSuccessfulGetFilterBlueprintDimensionOption(t *testing.T) {
 		w := httptest.NewRecorder()
 		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, mockAuditor)
 		api.router.ServeHTTP(w, r)
-		So(w.Code, ShouldEqual, http.StatusNoContent)
+		So(w.Code, ShouldEqual, http.StatusOK)
 
 		Convey("Then the auditor is called for the attempt and outcome", func() {
 			assertAuditCalled(mockAuditor, getOptionAction, actionSuccessful, expectedAuditParams)
@@ -734,7 +734,7 @@ func TestSuccessfulGetFilterBlueprintDimensionOption(t *testing.T) {
 		w := httptest.NewRecorder()
 		api := routes(host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, mockAuditor)
 		api.router.ServeHTTP(w, r)
-		So(w.Code, ShouldEqual, http.StatusNoContent)
+		So(w.Code, ShouldEqual, http.StatusOK)
 
 		Convey("Then the auditor is called for the attempt and outcome", func() {
 			assertAuditCalled(mockAuditor, getOptionAction, actionSuccessful, expectedAuditParams)

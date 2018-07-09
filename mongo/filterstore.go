@@ -97,22 +97,22 @@ func (s *FilterStore) UpdateFilter(updatedFilter *models.Filter, timestamp bson.
 }
 
 // GetFilterDimension return a single dimension
-func (s *FilterStore) GetFilterDimension(filterID string, name string) error {
+func (s *FilterStore) GetFilterDimension(filterID string, name string) (*models.Dimension, error) {
 	session := s.Session.Copy()
 	defer session.Close()
 
 	queryDimension := bson.M{"filter_id": filterID, "dimensions": bson.M{"$elemMatch": bson.M{"name": name}}}
-	dimensionSelect := bson.M{"dimensions": 1}
+	dimensionSelect := bson.M{"dimensions.$": 1}
 	var result models.Filter
 
 	if err := session.DB(s.db).C(s.filtersCollection).Find(queryDimension).Select(dimensionSelect).One(&result); err != nil {
 		if err == mgo.ErrNotFound {
-			return filters.ErrDimensionNotFound
+			return nil, filters.ErrDimensionNotFound
 		}
-		return err
+		return nil, err
 	}
 
-	return nil
+	return &result.Dimensions[0], nil
 }
 
 // AddFilterDimension to a filter

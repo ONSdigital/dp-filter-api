@@ -48,7 +48,7 @@ var (
 //             GetFilterFunc: func(filterID string) (*models.Filter, error) {
 // 	               panic("TODO: mock out the GetFilter method")
 //             },
-//             GetFilterDimensionFunc: func(filterID string, name string) error {
+//             GetFilterDimensionFunc: func(filterID string, name string) (*models.Dimension, error) {
 // 	               panic("TODO: mock out the GetFilterDimension method")
 //             },
 //             GetFilterOutputFunc: func(filterOutputID string) (*models.Filter, error) {
@@ -92,7 +92,7 @@ type DataStoreMock struct {
 	GetFilterFunc func(filterID string) (*models.Filter, error)
 
 	// GetFilterDimensionFunc mocks the GetFilterDimension method.
-	GetFilterDimensionFunc func(filterID string, name string) error
+	GetFilterDimensionFunc func(filterID string, name string) (*models.Dimension, error)
 
 	// GetFilterOutputFunc mocks the GetFilterOutput method.
 	GetFilterOutputFunc func(filterOutputID string) (*models.Filter, error)
@@ -431,7 +431,7 @@ func (mock *DataStoreMock) GetFilterCalls() []struct {
 }
 
 // GetFilterDimension calls GetFilterDimensionFunc.
-func (mock *DataStoreMock) GetFilterDimension(filterID string, name string) error {
+func (mock *DataStoreMock) GetFilterDimension(filterID string, name string) (*models.Dimension, error) {
 	if mock.GetFilterDimensionFunc == nil {
 		panic("moq: DataStoreMock.GetFilterDimensionFunc is nil but DataStore.GetFilterDimension was just called")
 	}
