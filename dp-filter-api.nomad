@@ -11,6 +11,13 @@ job "dp-filter-api" {
       value     = "web"
     }
 
+    restart {
+      attempts = 3
+      delay    = "15s"
+      interval = "1m"
+      mode     = "delay"
+    }
+
     task "dp-filter-api-web" {
       driver = "exec"
 
@@ -67,6 +74,13 @@ job "dp-filter-api" {
     constraint {
       attribute = "${node.class}"
       value     = "publishing"
+    }
+
+    restart {
+      attempts = 3
+      delay    = "15s"
+      interval = "1m"
+      mode     = "delay"
     }
 
     task "dp-filter-api-publishing" {
