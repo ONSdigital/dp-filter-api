@@ -206,7 +206,8 @@ func TestSuccessfulAddFilterBlueprintDimension(t *testing.T) {
 		})
 
 		Convey("Then the request body has been drained", func() {
-			_, err = r.Body.Read(make([]byte, 1))
+			bytesRead, err := r.Body.Read(make([]byte, 1))
+			So(bytesRead, ShouldEqual, 0)
 			So(err, ShouldEqual, io.EOF)
 		})
 	})
@@ -227,7 +228,8 @@ func TestSuccessfulAddFilterBlueprintDimension(t *testing.T) {
 		})
 
 		Convey("Then the request body has been drained", func() {
-			_, err = r.Body.Read(make([]byte, 1))
+			bytesRead, err := r.Body.Read(make([]byte, 1))
+			So(bytesRead, ShouldEqual, 0)
 			So(err, ShouldEqual, io.EOF)
 		})
 	})
@@ -248,7 +250,8 @@ func TestSuccessfulAddFilterBlueprintDimension(t *testing.T) {
 		})
 
 		Convey("Then the request body has been drained", func() {
-			_, err = r.Body.Read(make([]byte, 1))
+			bytesRead, err := r.Body.Read(make([]byte, 1))
+			So(bytesRead, ShouldEqual, 0)
 			So(err, ShouldEqual, io.EOF)
 		})
 	})
@@ -268,7 +271,8 @@ func TestSuccessfulAddFilterBlueprintDimension(t *testing.T) {
 		})
 
 		Convey("Then the request body has been drained", func() {
-			_, err := r.Body.Read(make([]byte, 1))
+			bytesRead, err := r.Body.Read(make([]byte, 1))
+			So(bytesRead, ShouldEqual, 0)
 			So(err, ShouldEqual, io.EOF)
 		})
 	})
@@ -301,7 +305,8 @@ func TestFailedToAddFilterBlueprintDimension(t *testing.T) {
 		})
 
 		Convey("Then the request body has been drained", func() {
-			_, err = r.Body.Read(make([]byte, 1))
+			bytesRead, err := r.Body.Read(make([]byte, 1))
+			So(bytesRead, ShouldEqual, 0)
 			So(err, ShouldEqual, io.EOF)
 		})
 	})
@@ -325,7 +330,8 @@ func TestFailedToAddFilterBlueprintDimension(t *testing.T) {
 		})
 
 		Convey("Then the request body has been drained", func() {
-			_, err = r.Body.Read(make([]byte, 1))
+			bytesRead, err := r.Body.Read(make([]byte, 1))
+			So(bytesRead, ShouldEqual, 0)
 			So(err, ShouldEqual, io.EOF)
 		})
 	})
@@ -349,7 +355,8 @@ func TestFailedToAddFilterBlueprintDimension(t *testing.T) {
 		})
 
 		Convey("Then the request body has been drained", func() {
-			_, err = r.Body.Read(make([]byte, 1))
+			bytesRead, err := r.Body.Read(make([]byte, 1))
+			So(bytesRead, ShouldEqual, 0)
 			So(err, ShouldEqual, io.EOF)
 		})
 	})
@@ -373,7 +380,8 @@ func TestFailedToAddFilterBlueprintDimension(t *testing.T) {
 		})
 
 		Convey("Then the request body has been drained", func() {
-			_, err = r.Body.Read(make([]byte, 1))
+			bytesRead, err := r.Body.Read(make([]byte, 1))
+			So(bytesRead, ShouldEqual, 0)
 			So(err, ShouldEqual, io.EOF)
 		})
 	})
@@ -401,7 +409,8 @@ func TestFailedToAddFilterBlueprintDimension(t *testing.T) {
 		})
 
 		Convey("Then the request body has been drained", func() {
-			_, err = r.Body.Read(make([]byte, 1))
+			bytesRead, err := r.Body.Read(make([]byte, 1))
+			So(bytesRead, ShouldEqual, 0)
 			So(err, ShouldEqual, io.EOF)
 		})
 	})
@@ -425,7 +434,8 @@ func TestFailedToAddFilterBlueprintDimension(t *testing.T) {
 		})
 
 		Convey("Then the request body has been drained", func() {
-			_, err = r.Body.Read(make([]byte, 1))
+			bytesRead, err := r.Body.Read(make([]byte, 1))
+			So(bytesRead, ShouldEqual, 0)
 			So(err, ShouldEqual, io.EOF)
 		})
 	})
@@ -468,7 +478,8 @@ func TestFailedToAddFilterBlueprintDimension_AuditFailure(t *testing.T) {
 			})
 
 			Convey("Then the request body has been drained", func() {
-				_, err = r.Body.Read(make([]byte, 1))
+				bytesRead, err := r.Body.Read(make([]byte, 1))
+				So(bytesRead, ShouldEqual, 0)
 				So(err, ShouldEqual, io.EOF)
 			})
 		})
@@ -497,7 +508,8 @@ func TestFailedToAddFilterBlueprintDimension_AuditFailure(t *testing.T) {
 			})
 
 			Convey("Then the request body has been drained", func() {
-				_, err = r.Body.Read(make([]byte, 1))
+				bytesRead, err := r.Body.Read(make([]byte, 1))
+				So(bytesRead, ShouldEqual, 0)
 				So(err, ShouldEqual, io.EOF)
 			})
 		})
@@ -533,7 +545,8 @@ func TestFailedToAddFilterBlueprintDimension_AuditFailure(t *testing.T) {
 			})
 
 			Convey("Then the request body has been drained", func() {
-				_, err = r.Body.Read(make([]byte, 1))
+				bytesRead, err := r.Body.Read(make([]byte, 1))
+				So(bytesRead, ShouldEqual, 0)
 				So(err, ShouldEqual, io.EOF)
 			})
 		})
@@ -553,7 +566,8 @@ func TestFailedToAddFilterBlueprintDimension_AuditFailure(t *testing.T) {
 		So(response, ShouldResemble, filters.ErrFilterBlueprintConflict.Error()+"\n")
 
 		Convey("Then the request body has been drained", func() {
-			_, err = r.Body.Read(make([]byte, 1))
+			bytesRead, err := r.Body.Read(make([]byte, 1))
+			So(bytesRead, ShouldEqual, 0)
 			So(err, ShouldEqual, io.EOF)
 		})
 	})

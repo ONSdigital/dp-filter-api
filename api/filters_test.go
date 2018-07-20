@@ -61,7 +61,8 @@ func TestSuccessfulAddFilterBlueprint_PublishedDataset(t *testing.T) {
 			})
 
 			Convey("Then the request body has been drained", func() {
-				_, err := r.Body.Read(make([]byte, 1))
+				bytesRead, err := r.Body.Read(make([]byte, 1))
+				So(bytesRead, ShouldEqual, 0)
 				So(err, ShouldEqual, io.EOF)
 			})
 		})
@@ -86,7 +87,8 @@ func TestSuccessfulAddFilterBlueprint_PublishedDataset(t *testing.T) {
 			})
 
 			Convey("Then the request body has been drained", func() {
-				_, err := r.Body.Read(make([]byte, 1))
+				bytesRead, err := r.Body.Read(make([]byte, 1))
+				So(bytesRead, ShouldEqual, 0)
 				So(err, ShouldEqual, io.EOF)
 			})
 		})
@@ -117,7 +119,8 @@ func TestSuccessfulAddFilterBlueprint_PublishedDataset(t *testing.T) {
 			})
 
 			Convey("Then the request body has been drained", func() {
-				_, err := r.Body.Read(make([]byte, 1))
+				bytesRead, err := r.Body.Read(make([]byte, 1))
+				So(bytesRead, ShouldEqual, 0)
 				So(err, ShouldEqual, io.EOF)
 			})
 		})
@@ -147,7 +150,8 @@ func TestSuccessfulAddFilterBlueprint_UnpublishedDataset(t *testing.T) {
 			})
 
 			Convey("Then the request body has been drained", func() {
-				_, err := r.Body.Read(make([]byte, 1))
+				bytesRead, err := r.Body.Read(make([]byte, 1))
+				So(bytesRead, ShouldEqual, 0)
 				So(err, ShouldEqual, io.EOF)
 			})
 		})
@@ -185,7 +189,8 @@ func TestFailedToAddFilterBlueprint_AuditFailure(t *testing.T) {
 			})
 
 			Convey("Then the request body has been drained", func() {
-				_, err := r.Body.Read(make([]byte, 1))
+				bytesRead, err := r.Body.Read(make([]byte, 1))
+				So(bytesRead, ShouldEqual, 0)
 				So(err, ShouldEqual, io.EOF)
 			})
 		})
@@ -214,7 +219,8 @@ func TestFailedToAddFilterBlueprint_AuditFailure(t *testing.T) {
 			})
 
 			Convey("Then the request body has been drained", func() {
-				_, err := r.Body.Read(make([]byte, 1))
+				bytesRead, err := r.Body.Read(make([]byte, 1))
+				So(bytesRead, ShouldEqual, 0)
 				So(err, ShouldEqual, io.EOF)
 			})
 		})
@@ -243,7 +249,8 @@ func TestFailedToAddFilterBlueprint(t *testing.T) {
 		})
 
 		Convey("Then the request body has been drained", func() {
-			_, err := r.Body.Read(make([]byte, 1))
+			bytesRead, err := r.Body.Read(make([]byte, 1))
+			So(bytesRead, ShouldEqual, 0)
 			So(err, ShouldEqual, io.EOF)
 		})
 	})
@@ -267,7 +274,8 @@ func TestFailedToAddFilterBlueprint(t *testing.T) {
 		})
 
 		Convey("Then the request body has been drained", func() {
-			_, err := r.Body.Read(make([]byte, 1))
+			bytesRead, err := r.Body.Read(make([]byte, 1))
+			So(bytesRead, ShouldEqual, 0)
 			So(err, ShouldEqual, io.EOF)
 		})
 	})
@@ -291,7 +299,8 @@ func TestFailedToAddFilterBlueprint(t *testing.T) {
 		})
 
 		Convey("Then the request body has been drained", func() {
-			_, err := r.Body.Read(make([]byte, 1))
+			bytesRead, err := r.Body.Read(make([]byte, 1))
+			So(bytesRead, ShouldEqual, 0)
 			So(err, ShouldEqual, io.EOF)
 		})
 	})
@@ -315,7 +324,8 @@ func TestFailedToAddFilterBlueprint(t *testing.T) {
 		})
 
 		Convey("Then the request body has been drained", func() {
-			_, err := r.Body.Read(make([]byte, 1))
+			bytesRead, err := r.Body.Read(make([]byte, 1))
+			So(bytesRead, ShouldEqual, 0)
 			So(err, ShouldEqual, io.EOF)
 		})
 	})
@@ -343,7 +353,8 @@ func TestFailedToAddFilterBlueprint(t *testing.T) {
 		})
 
 		Convey("Then the request body has been drained", func() {
-			_, err := r.Body.Read(make([]byte, 1))
+			bytesRead, err := r.Body.Read(make([]byte, 1))
+			So(bytesRead, ShouldEqual, 0)
 			So(err, ShouldEqual, io.EOF)
 		})
 	})
@@ -367,7 +378,8 @@ func TestFailedToAddFilterBlueprint(t *testing.T) {
 		})
 
 		Convey("Then the request body has been drained", func() {
-			_, err := r.Body.Read(make([]byte, 1))
+			bytesRead, err := r.Body.Read(make([]byte, 1))
+			So(bytesRead, ShouldEqual, 0)
 			So(err, ShouldEqual, io.EOF)
 		})
 	})
@@ -402,7 +414,8 @@ func TestFailedToAddFilterBlueprint_BadJSON(t *testing.T) {
 			})
 
 			Convey("Then the request body has been drained", func() {
-				_, err := r.Body.Read(make([]byte, 1))
+				bytesRead, err := r.Body.Read(make([]byte, 1))
+				So(bytesRead, ShouldEqual, 0)
 				So(err, ShouldEqual, io.EOF)
 			})
 		})
@@ -428,7 +441,8 @@ func TestFailedToAddFilterBlueprint_BadJSON(t *testing.T) {
 			})
 
 			Convey("Then the request body has been drained", func() {
-				_, err := r.Body.Read(make([]byte, 1))
+				bytesRead, err := r.Body.Read(make([]byte, 1))
+				So(bytesRead, ShouldEqual, 0)
 				So(err, ShouldEqual, io.EOF)
 			})
 		})
@@ -454,7 +468,8 @@ func TestFailedToAddFilterBlueprint_BadJSON(t *testing.T) {
 			})
 
 			Convey("Then the request body has been drained", func() {
-				_, err := r.Body.Read(make([]byte, 1))
+				bytesRead, err := r.Body.Read(make([]byte, 1))
+				So(bytesRead, ShouldEqual, 0)
 				So(err, ShouldEqual, io.EOF)
 			})
 		})
@@ -480,7 +495,8 @@ func TestFailedToAddFilterBlueprint_BadJSON(t *testing.T) {
 			})
 
 			Convey("Then the request body has been drained", func() {
-				_, err := r.Body.Read(make([]byte, 1))
+				bytesRead, err := r.Body.Read(make([]byte, 1))
+				So(bytesRead, ShouldEqual, 0)
 				So(err, ShouldEqual, io.EOF)
 			})
 		})
@@ -506,7 +522,8 @@ func TestFailedToAddFilterBlueprint_BadJSON(t *testing.T) {
 			})
 
 			Convey("Then the request body has been drained", func() {
-				_, err := r.Body.Read(make([]byte, 1))
+				bytesRead, err := r.Body.Read(make([]byte, 1))
+				So(bytesRead, ShouldEqual, 0)
 				So(err, ShouldEqual, io.EOF)
 			})
 		})
@@ -737,7 +754,8 @@ func TestSuccessfulUpdateFilterBlueprint_PublishedDataset(t *testing.T) {
 			})
 
 			Convey("Then the request body has been drained", func() {
-				_, err := r.Body.Read(make([]byte, 1))
+				bytesRead, err := r.Body.Read(make([]byte, 1))
+				So(bytesRead, ShouldEqual, 0)
 				So(err, ShouldEqual, io.EOF)
 			})
 		})
@@ -765,7 +783,8 @@ func TestSuccessfulUpdateFilterBlueprint_PublishedDataset(t *testing.T) {
 			})
 
 			Convey("Then the request body has been drained", func() {
-				_, err := r.Body.Read(make([]byte, 1))
+				bytesRead, err := r.Body.Read(make([]byte, 1))
+				So(bytesRead, ShouldEqual, 0)
 				So(err, ShouldEqual, io.EOF)
 			})
 		})
@@ -797,7 +816,8 @@ func TestSuccessfulUpdateFilterBlueprint_PublishedDataset(t *testing.T) {
 			})
 
 			Convey("Then the request body has been drained", func() {
-				_, err := r.Body.Read(make([]byte, 1))
+				bytesRead, err := r.Body.Read(make([]byte, 1))
+				So(bytesRead, ShouldEqual, 0)
 				So(err, ShouldEqual, io.EOF)
 			})
 		})
@@ -838,7 +858,8 @@ func TestFailedToUpdateFilterBlueprint_AuditFailure(t *testing.T) {
 			})
 
 			Convey("Then the request body has been drained", func() {
-				_, err := r.Body.Read(make([]byte, 1))
+				bytesRead, err := r.Body.Read(make([]byte, 1))
+				So(bytesRead, ShouldEqual, 0)
 				So(err, ShouldEqual, io.EOF)
 			})
 		})
@@ -867,7 +888,8 @@ func TestFailedToUpdateFilterBlueprint_AuditFailure(t *testing.T) {
 			})
 
 			Convey("Then the request body has been drained", func() {
-				_, err := r.Body.Read(make([]byte, 1))
+				bytesRead, err := r.Body.Read(make([]byte, 1))
+				So(bytesRead, ShouldEqual, 0)
 				So(err, ShouldEqual, io.EOF)
 			})
 		})
@@ -896,7 +918,8 @@ func TestFailedToUpdateFilterBlueprint_AuditFailure(t *testing.T) {
 			})
 
 			Convey("Then the request body has been drained", func() {
-				_, err := r.Body.Read(make([]byte, 1))
+				bytesRead, err := r.Body.Read(make([]byte, 1))
+				So(bytesRead, ShouldEqual, 0)
 				So(err, ShouldEqual, io.EOF)
 			})
 		})
@@ -923,7 +946,8 @@ func TestSuccessfulUpdateFilterBlueprint_UnpublishedDataset(t *testing.T) {
 		})
 
 		Convey("Then the request body has been drained", func() {
-			_, err := r.Body.Read(make([]byte, 1))
+			bytesRead, err := r.Body.Read(make([]byte, 1))
+			So(bytesRead, ShouldEqual, 0)
 			So(err, ShouldEqual, io.EOF)
 		})
 	})
@@ -953,7 +977,8 @@ func TestFailedToUpdateFilterBlueprint(t *testing.T) {
 		})
 
 		Convey("Then the request body has been drained", func() {
-			_, err := r.Body.Read(make([]byte, 1))
+			bytesRead, err := r.Body.Read(make([]byte, 1))
+			So(bytesRead, ShouldEqual, 0)
 			So(err, ShouldEqual, io.EOF)
 		})
 	})
@@ -977,7 +1002,8 @@ func TestFailedToUpdateFilterBlueprint(t *testing.T) {
 		})
 
 		Convey("Then the request body has been drained", func() {
-			_, err := r.Body.Read(make([]byte, 1))
+			bytesRead, err := r.Body.Read(make([]byte, 1))
+			So(bytesRead, ShouldEqual, 0)
 			So(err, ShouldEqual, io.EOF)
 		})
 	})
@@ -1001,7 +1027,8 @@ func TestFailedToUpdateFilterBlueprint(t *testing.T) {
 		})
 
 		Convey("Then the request body has been drained", func() {
-			_, err := r.Body.Read(make([]byte, 1))
+			bytesRead, err := r.Body.Read(make([]byte, 1))
+			So(bytesRead, ShouldEqual, 0)
 			So(err, ShouldEqual, io.EOF)
 		})
 	})
@@ -1026,7 +1053,8 @@ func TestFailedToUpdateFilterBlueprint(t *testing.T) {
 		})
 
 		Convey("Then the request body has been drained", func() {
-			_, err := r.Body.Read(make([]byte, 1))
+			bytesRead, err := r.Body.Read(make([]byte, 1))
+			So(bytesRead, ShouldEqual, 0)
 			So(err, ShouldEqual, io.EOF)
 		})
 	})
@@ -1050,7 +1078,8 @@ func TestFailedToUpdateFilterBlueprint(t *testing.T) {
 		})
 
 		Convey("Then the request body has been drained", func() {
-			_, err := r.Body.Read(make([]byte, 1))
+			bytesRead, err := r.Body.Read(make([]byte, 1))
+			So(bytesRead, ShouldEqual, 0)
 			So(err, ShouldEqual, io.EOF)
 		})
 	})
@@ -1074,7 +1103,8 @@ func TestFailedToUpdateFilterBlueprint(t *testing.T) {
 		})
 
 		Convey("Then the request body has been drained", func() {
-			_, err := r.Body.Read(make([]byte, 1))
+			bytesRead, err := r.Body.Read(make([]byte, 1))
+			So(bytesRead, ShouldEqual, 0)
 			So(err, ShouldEqual, io.EOF)
 		})
 	})
@@ -1098,7 +1128,8 @@ func TestFailedToUpdateFilterBlueprint(t *testing.T) {
 		})
 
 		Convey("Then the request body has been drained", func() {
-			_, err := r.Body.Read(make([]byte, 1))
+			bytesRead, err := r.Body.Read(make([]byte, 1))
+			So(bytesRead, ShouldEqual, 0)
 			So(err, ShouldEqual, io.EOF)
 		})
 	})
