@@ -14,6 +14,7 @@ import (
 
 	"github.com/ONSdigital/dp-filter-api/filters"
 	"github.com/ONSdigital/dp-filter-api/models"
+	"io"
 )
 
 func TestSuccessfulGetFilterBlueprintDimensions(t *testing.T) {
@@ -203,6 +204,12 @@ func TestSuccessfulAddFilterBlueprintDimension(t *testing.T) {
 		Convey("Then the auditor is called for the attempt and outcome", func() {
 			assertAuditCalled(mockAuditor, addDimensionAction, actionSuccessful, expectedAuditParams)
 		})
+
+		Convey("Then the request body has been drained", func() {
+			bytesRead, err := r.Body.Read(make([]byte, 1))
+			So(bytesRead, ShouldEqual, 0)
+			So(err, ShouldEqual, io.EOF)
+		})
 	})
 
 	Convey("Successfully create a dimension with a request body but no options", t, func() {
@@ -218,6 +225,12 @@ func TestSuccessfulAddFilterBlueprintDimension(t *testing.T) {
 
 		Convey("Then the auditor is called for the attempt and outcome", func() {
 			assertAuditCalled(mockAuditor, addDimensionAction, actionSuccessful, expectedAuditParams)
+		})
+
+		Convey("Then the request body has been drained", func() {
+			bytesRead, err := r.Body.Read(make([]byte, 1))
+			So(bytesRead, ShouldEqual, 0)
+			So(err, ShouldEqual, io.EOF)
 		})
 	})
 
@@ -235,6 +248,12 @@ func TestSuccessfulAddFilterBlueprintDimension(t *testing.T) {
 		Convey("Then the auditor is called for the attempt and outcome", func() {
 			assertAuditCalled(mockAuditor, addDimensionAction, actionSuccessful, expectedAuditParams)
 		})
+
+		Convey("Then the request body has been drained", func() {
+			bytesRead, err := r.Body.Read(make([]byte, 1))
+			So(bytesRead, ShouldEqual, 0)
+			So(err, ShouldEqual, io.EOF)
+		})
 	})
 
 	Convey("Successfully create a dimension with options for an unpublished filter", t, func() {
@@ -249,6 +268,12 @@ func TestSuccessfulAddFilterBlueprintDimension(t *testing.T) {
 
 		Convey("Then the auditor is called for the attempt and outcome", func() {
 			assertAuditCalled(mockAuditor, addDimensionAction, actionSuccessful, expectedAuditParams)
+		})
+
+		Convey("Then the request body has been drained", func() {
+			bytesRead, err := r.Body.Read(make([]byte, 1))
+			So(bytesRead, ShouldEqual, 0)
+			So(err, ShouldEqual, io.EOF)
 		})
 	})
 }
@@ -278,6 +303,12 @@ func TestFailedToAddFilterBlueprintDimension(t *testing.T) {
 		Convey("Then the auditor is called for the attempt and outcome", func() {
 			assertAuditCalled(mockAuditor, addDimensionAction, actionUnsuccessful, expectedAuditParams)
 		})
+
+		Convey("Then the request body has been drained", func() {
+			bytesRead, err := r.Body.Read(make([]byte, 1))
+			So(bytesRead, ShouldEqual, 0)
+			So(err, ShouldEqual, io.EOF)
+		})
 	})
 
 	Convey("When an invalid json message is sent, a bad request is returned", t, func() {
@@ -296,6 +327,12 @@ func TestFailedToAddFilterBlueprintDimension(t *testing.T) {
 
 		Convey("Then the auditor is called for the attempt and outcome", func() {
 			assertAuditCalled(mockAuditor, addDimensionAction, actionUnsuccessful, expectedAuditParams)
+		})
+
+		Convey("Then the request body has been drained", func() {
+			bytesRead, err := r.Body.Read(make([]byte, 1))
+			So(bytesRead, ShouldEqual, 0)
+			So(err, ShouldEqual, io.EOF)
 		})
 	})
 
@@ -316,6 +353,12 @@ func TestFailedToAddFilterBlueprintDimension(t *testing.T) {
 		Convey("Then the auditor is called for the attempt and outcome", func() {
 			assertAuditCalled(mockAuditor, addDimensionAction, actionUnsuccessful, expectedAuditParams)
 		})
+
+		Convey("Then the request body has been drained", func() {
+			bytesRead, err := r.Body.Read(make([]byte, 1))
+			So(bytesRead, ShouldEqual, 0)
+			So(err, ShouldEqual, io.EOF)
+		})
 	})
 
 	Convey("When an unpublished filter blueprint does not exist, and the request is not authenticated, a not found is returned", t, func() {
@@ -334,6 +377,12 @@ func TestFailedToAddFilterBlueprintDimension(t *testing.T) {
 
 		Convey("Then the auditor is called for the attempt and outcome", func() {
 			assertAuditCalled(mockAuditor, addDimensionAction, actionUnsuccessful, expectedAuditParams)
+		})
+
+		Convey("Then the request body has been drained", func() {
+			bytesRead, err := r.Body.Read(make([]byte, 1))
+			So(bytesRead, ShouldEqual, 0)
+			So(err, ShouldEqual, io.EOF)
 		})
 	})
 
@@ -358,6 +407,12 @@ func TestFailedToAddFilterBlueprintDimension(t *testing.T) {
 		Convey("Then the auditor is called for the attempt and outcome", func() {
 			assertAuditCalled(mockAuditor, addDimensionAction, actionUnsuccessful, expectedAuditParams)
 		})
+
+		Convey("Then the request body has been drained", func() {
+			bytesRead, err := r.Body.Read(make([]byte, 1))
+			So(bytesRead, ShouldEqual, 0)
+			So(err, ShouldEqual, io.EOF)
+		})
 	})
 
 	Convey("When a json body contains a dimension option that does not exist for a valid dimension, a bad request is returned", t, func() {
@@ -376,6 +431,12 @@ func TestFailedToAddFilterBlueprintDimension(t *testing.T) {
 
 		Convey("Then the auditor is called for the attempt and outcome", func() {
 			assertAuditCalled(mockAuditor, addDimensionAction, actionUnsuccessful, expectedAuditParams)
+		})
+
+		Convey("Then the request body has been drained", func() {
+			bytesRead, err := r.Body.Read(make([]byte, 1))
+			So(bytesRead, ShouldEqual, 0)
+			So(err, ShouldEqual, io.EOF)
 		})
 	})
 }
@@ -415,6 +476,12 @@ func TestFailedToAddFilterBlueprintDimension_AuditFailure(t *testing.T) {
 			Convey("Then the response is 500 internal server error", func() {
 				So(w.Code, ShouldEqual, http.StatusInternalServerError)
 			})
+
+			Convey("Then the request body has been drained", func() {
+				bytesRead, err := r.Body.Read(make([]byte, 1))
+				So(bytesRead, ShouldEqual, 0)
+				So(err, ShouldEqual, io.EOF)
+			})
 		})
 
 		Convey("When a POST request is made to the filter dimension endpoint and the outcome audit fails", func() {
@@ -438,6 +505,12 @@ func TestFailedToAddFilterBlueprintDimension_AuditFailure(t *testing.T) {
 
 			Convey("Then the response is 201 created", func() {
 				So(w.Code, ShouldEqual, http.StatusCreated)
+			})
+
+			Convey("Then the request body has been drained", func() {
+				bytesRead, err := r.Body.Read(make([]byte, 1))
+				So(bytesRead, ShouldEqual, 0)
+				So(err, ShouldEqual, io.EOF)
 			})
 		})
 	})
@@ -470,6 +543,12 @@ func TestFailedToAddFilterBlueprintDimension_AuditFailure(t *testing.T) {
 			Convey("Then the response is 500 internal server error", func() {
 				So(w.Code, ShouldEqual, http.StatusInternalServerError)
 			})
+
+			Convey("Then the request body has been drained", func() {
+				bytesRead, err := r.Body.Read(make([]byte, 1))
+				So(bytesRead, ShouldEqual, 0)
+				So(err, ShouldEqual, io.EOF)
+			})
 		})
 	})
 
@@ -485,6 +564,12 @@ func TestFailedToAddFilterBlueprintDimension_AuditFailure(t *testing.T) {
 
 		response := w.Body.String()
 		So(response, ShouldResemble, filters.ErrFilterBlueprintConflict.Error()+"\n")
+
+		Convey("Then the request body has been drained", func() {
+			bytesRead, err := r.Body.Read(make([]byte, 1))
+			So(bytesRead, ShouldEqual, 0)
+			So(err, ShouldEqual, io.EOF)
+		})
 	})
 }
 
@@ -525,7 +610,6 @@ func TestSuccessfulGetFilterBlueprintDimension(t *testing.T) {
 
 		So(w.Body.String(), ShouldContainSubstring, `{"self":{"id":"1_age","href":"http://localhost:80/filters/12345678/dimensions/1_age"}`)
 		So(w.Body.String(), ShouldContainSubstring, `"options":{"href":"http://localhost:80/filters/12345678/dimensions/1_age/options"`)
-
 
 		Convey("Then the auditor is called for the attempt and outcome", func() {
 			assertAuditCalled(mockAuditor, getDimensionAction, actionSuccessful, expectedAuditParams)

@@ -11,6 +11,7 @@ import (
 	"github.com/gedge/mgo/bson"
 	"github.com/gorilla/mux"
 	. "github.com/smartystreets/goconvey/convey"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -58,6 +59,12 @@ func TestSuccessfulAddFilterBlueprint_PublishedDataset(t *testing.T) {
 			Convey("Then the response is 201 created", func() {
 				So(w.Code, ShouldEqual, http.StatusCreated)
 			})
+
+			Convey("Then the request body has been drained", func() {
+				bytesRead, err := r.Body.Read(make([]byte, 1))
+				So(bytesRead, ShouldEqual, 0)
+				So(err, ShouldEqual, io.EOF)
+			})
 		})
 
 		Convey("When a POST request is made to the filters endpoint with valid dimensions", func() {
@@ -77,6 +84,12 @@ func TestSuccessfulAddFilterBlueprint_PublishedDataset(t *testing.T) {
 
 			Convey("Then the response is 201 created", func() {
 				So(w.Code, ShouldEqual, http.StatusCreated)
+			})
+
+			Convey("Then the request body has been drained", func() {
+				bytesRead, err := r.Body.Read(make([]byte, 1))
+				So(bytesRead, ShouldEqual, 0)
+				So(err, ShouldEqual, io.EOF)
 			})
 		})
 
@@ -104,6 +117,12 @@ func TestSuccessfulAddFilterBlueprint_PublishedDataset(t *testing.T) {
 			Convey("Then the response is 201 created", func() {
 				So(w.Code, ShouldEqual, http.StatusCreated)
 			})
+
+			Convey("Then the request body has been drained", func() {
+				bytesRead, err := r.Body.Read(make([]byte, 1))
+				So(bytesRead, ShouldEqual, 0)
+				So(err, ShouldEqual, io.EOF)
+			})
 		})
 	})
 }
@@ -128,6 +147,12 @@ func TestSuccessfulAddFilterBlueprint_UnpublishedDataset(t *testing.T) {
 
 			Convey("Then the response is 201 created", func() {
 				So(w.Code, ShouldEqual, http.StatusCreated)
+			})
+
+			Convey("Then the request body has been drained", func() {
+				bytesRead, err := r.Body.Read(make([]byte, 1))
+				So(bytesRead, ShouldEqual, 0)
+				So(err, ShouldEqual, io.EOF)
 			})
 		})
 	})
@@ -162,6 +187,12 @@ func TestFailedToAddFilterBlueprint_AuditFailure(t *testing.T) {
 			Convey("Then the response is 500 internal server error", func() {
 				So(w.Code, ShouldEqual, http.StatusInternalServerError)
 			})
+
+			Convey("Then the request body has been drained", func() {
+				bytesRead, err := r.Body.Read(make([]byte, 1))
+				So(bytesRead, ShouldEqual, 0)
+				So(err, ShouldEqual, io.EOF)
+			})
 		})
 
 		Convey("When a POST request is made to the filters endpoint and the outcome audit fails", func() {
@@ -185,6 +216,12 @@ func TestFailedToAddFilterBlueprint_AuditFailure(t *testing.T) {
 
 			Convey("Then the response is 201 created", func() {
 				So(w.Code, ShouldEqual, http.StatusCreated)
+			})
+
+			Convey("Then the request body has been drained", func() {
+				bytesRead, err := r.Body.Read(make([]byte, 1))
+				So(bytesRead, ShouldEqual, 0)
+				So(err, ShouldEqual, io.EOF)
 			})
 		})
 	})
@@ -210,6 +247,12 @@ func TestFailedToAddFilterBlueprint(t *testing.T) {
 		Convey("Then the auditor is called for the attempt and outcome", func() {
 			assertAuditCalled(mockAuditor, createFilterBlueprintAction, actionUnsuccessful, nil)
 		})
+
+		Convey("Then the request body has been drained", func() {
+			bytesRead, err := r.Body.Read(make([]byte, 1))
+			So(bytesRead, ShouldEqual, 0)
+			So(err, ShouldEqual, io.EOF)
+		})
 	})
 
 	Convey("When no data store is available, an internal error is returned", t, func() {
@@ -228,6 +271,12 @@ func TestFailedToAddFilterBlueprint(t *testing.T) {
 
 		Convey("Then the auditor is called for the attempt and outcome", func() {
 			assertAuditCalled(mockAuditor, createFilterBlueprintAction, actionUnsuccessful, nil)
+		})
+
+		Convey("Then the request body has been drained", func() {
+			bytesRead, err := r.Body.Read(make([]byte, 1))
+			So(bytesRead, ShouldEqual, 0)
+			So(err, ShouldEqual, io.EOF)
 		})
 	})
 
@@ -248,6 +297,12 @@ func TestFailedToAddFilterBlueprint(t *testing.T) {
 		Convey("Then the auditor is called for the attempt and outcome", func() {
 			assertAuditCalled(mockAuditor, createFilterBlueprintAction, actionUnsuccessful, nil)
 		})
+
+		Convey("Then the request body has been drained", func() {
+			bytesRead, err := r.Body.Read(make([]byte, 1))
+			So(bytesRead, ShouldEqual, 0)
+			So(err, ShouldEqual, io.EOF)
+		})
 	})
 
 	Convey("When version does not exist, a not found error is returned", t, func() {
@@ -266,6 +321,12 @@ func TestFailedToAddFilterBlueprint(t *testing.T) {
 
 		Convey("Then the auditor is called for the attempt and outcome", func() {
 			assertAuditCalled(mockAuditor, createFilterBlueprintAction, actionUnsuccessful, nil)
+		})
+
+		Convey("Then the request body has been drained", func() {
+			bytesRead, err := r.Body.Read(make([]byte, 1))
+			So(bytesRead, ShouldEqual, 0)
+			So(err, ShouldEqual, io.EOF)
 		})
 	})
 
@@ -290,6 +351,12 @@ func TestFailedToAddFilterBlueprint(t *testing.T) {
 		Convey("Then the auditor is called for the attempt and outcome", func() {
 			assertAuditCalled(mockAuditor, createFilterBlueprintAction, actionUnsuccessful, nil)
 		})
+
+		Convey("Then the request body has been drained", func() {
+			bytesRead, err := r.Body.Read(make([]byte, 1))
+			So(bytesRead, ShouldEqual, 0)
+			So(err, ShouldEqual, io.EOF)
+		})
 	})
 
 	Convey("When version is unpublished and the request is not authenticated, a not found error is returned", t, func() {
@@ -308,6 +375,12 @@ func TestFailedToAddFilterBlueprint(t *testing.T) {
 
 		Convey("Then the auditor is called for the attempt and outcome", func() {
 			assertAuditCalled(mockAuditor, createFilterBlueprintAction, actionUnsuccessful, nil)
+		})
+
+		Convey("Then the request body has been drained", func() {
+			bytesRead, err := r.Body.Read(make([]byte, 1))
+			So(bytesRead, ShouldEqual, 0)
+			So(err, ShouldEqual, io.EOF)
 		})
 	})
 }
@@ -339,6 +412,12 @@ func TestFailedToAddFilterBlueprint_BadJSON(t *testing.T) {
 			Convey("Then the response body contains the expected content", func() {
 				So(w.Body.String(), ShouldResemble, badRequestResponse)
 			})
+
+			Convey("Then the request body has been drained", func() {
+				bytesRead, err := r.Body.Read(make([]byte, 1))
+				So(bytesRead, ShouldEqual, 0)
+				So(err, ShouldEqual, io.EOF)
+			})
 		})
 
 		Convey("When a POST request is made to the filters endpoint which has an empty JSON message", func() {
@@ -359,6 +438,12 @@ func TestFailedToAddFilterBlueprint_BadJSON(t *testing.T) {
 
 			Convey("Then the response body contains the expected content", func() {
 				So(w.Body.String(), ShouldResemble, badRequestResponse)
+			})
+
+			Convey("Then the request body has been drained", func() {
+				bytesRead, err := r.Body.Read(make([]byte, 1))
+				So(bytesRead, ShouldEqual, 0)
+				So(err, ShouldEqual, io.EOF)
 			})
 		})
 
@@ -381,6 +466,12 @@ func TestFailedToAddFilterBlueprint_BadJSON(t *testing.T) {
 			Convey("Then the response body contains the expected content", func() {
 				So(w.Body.String(), ShouldResemble, badRequestResponse)
 			})
+
+			Convey("Then the request body has been drained", func() {
+				bytesRead, err := r.Body.Read(make([]byte, 1))
+				So(bytesRead, ShouldEqual, 0)
+				So(err, ShouldEqual, io.EOF)
+			})
 		})
 
 		Convey("When a POST request is made to the filters endpoint with a dimension that does not exist", func() {
@@ -402,6 +493,12 @@ func TestFailedToAddFilterBlueprint_BadJSON(t *testing.T) {
 			Convey("Then the response body contains the expected content", func() {
 				So(w.Body.String(), ShouldResemble, "incorrect dimensions chosen: [weight]\n")
 			})
+
+			Convey("Then the request body has been drained", func() {
+				bytesRead, err := r.Body.Read(make([]byte, 1))
+				So(bytesRead, ShouldEqual, 0)
+				So(err, ShouldEqual, io.EOF)
+			})
 		})
 
 		Convey("When a POST request is made to the filters endpoint with a dimension option that does not exist", func() {
@@ -422,6 +519,12 @@ func TestFailedToAddFilterBlueprint_BadJSON(t *testing.T) {
 
 			Convey("Then the response body contains the expected content", func() {
 				So(w.Body.String(), ShouldResemble, "incorrect dimension options chosen: [29]\n")
+			})
+
+			Convey("Then the request body has been drained", func() {
+				bytesRead, err := r.Body.Read(make([]byte, 1))
+				So(bytesRead, ShouldEqual, 0)
+				So(err, ShouldEqual, io.EOF)
 			})
 		})
 	})
@@ -649,6 +752,12 @@ func TestSuccessfulUpdateFilterBlueprint_PublishedDataset(t *testing.T) {
 			Convey("Then the response is 200 OK", func() {
 				So(w.Code, ShouldEqual, http.StatusOK)
 			})
+
+			Convey("Then the request body has been drained", func() {
+				bytesRead, err := r.Body.Read(make([]byte, 1))
+				So(bytesRead, ShouldEqual, 0)
+				So(err, ShouldEqual, io.EOF)
+			})
 		})
 
 		Convey("When a PUT request is made to the filters endpoint with events and dataset version update", func() {
@@ -671,6 +780,12 @@ func TestSuccessfulUpdateFilterBlueprint_PublishedDataset(t *testing.T) {
 
 			Convey("Then the response is 200 OK", func() {
 				So(w.Code, ShouldEqual, http.StatusOK)
+			})
+
+			Convey("Then the request body has been drained", func() {
+				bytesRead, err := r.Body.Read(make([]byte, 1))
+				So(bytesRead, ShouldEqual, 0)
+				So(err, ShouldEqual, io.EOF)
 			})
 		})
 
@@ -698,6 +813,12 @@ func TestSuccessfulUpdateFilterBlueprint_PublishedDataset(t *testing.T) {
 
 			Convey("Then the response is 200 OK", func() {
 				So(w.Code, ShouldEqual, http.StatusOK)
+			})
+
+			Convey("Then the request body has been drained", func() {
+				bytesRead, err := r.Body.Read(make([]byte, 1))
+				So(bytesRead, ShouldEqual, 0)
+				So(err, ShouldEqual, io.EOF)
 			})
 		})
 	})
@@ -735,6 +856,12 @@ func TestFailedToUpdateFilterBlueprint_AuditFailure(t *testing.T) {
 			Convey("Then the response is 500 internal server error", func() {
 				So(w.Code, ShouldEqual, http.StatusInternalServerError)
 			})
+
+			Convey("Then the request body has been drained", func() {
+				bytesRead, err := r.Body.Read(make([]byte, 1))
+				So(bytesRead, ShouldEqual, 0)
+				So(err, ShouldEqual, io.EOF)
+			})
 		})
 
 		Convey("When a PUT request is made to the filters endpoint and the outcome audit fails", func() {
@@ -758,6 +885,12 @@ func TestFailedToUpdateFilterBlueprint_AuditFailure(t *testing.T) {
 
 			Convey("Then the response is 200 OK", func() {
 				So(w.Code, ShouldEqual, http.StatusOK)
+			})
+
+			Convey("Then the request body has been drained", func() {
+				bytesRead, err := r.Body.Read(make([]byte, 1))
+				So(bytesRead, ShouldEqual, 0)
+				So(err, ShouldEqual, io.EOF)
 			})
 		})
 
@@ -783,6 +916,12 @@ func TestFailedToUpdateFilterBlueprint_AuditFailure(t *testing.T) {
 			Convey("Then the response is 500 internal server error", func() {
 				So(w.Code, ShouldEqual, http.StatusInternalServerError)
 			})
+
+			Convey("Then the request body has been drained", func() {
+				bytesRead, err := r.Body.Read(make([]byte, 1))
+				So(bytesRead, ShouldEqual, 0)
+				So(err, ShouldEqual, io.EOF)
+			})
 		})
 	})
 }
@@ -804,6 +943,12 @@ func TestSuccessfulUpdateFilterBlueprint_UnpublishedDataset(t *testing.T) {
 
 		Convey("Then the auditor is called for the attempt and outcome", func() {
 			assertAuditCalled(mockAuditor, updateFilterBlueprintAction, actionSuccessful, expectedAuditParams)
+		})
+
+		Convey("Then the request body has been drained", func() {
+			bytesRead, err := r.Body.Read(make([]byte, 1))
+			So(bytesRead, ShouldEqual, 0)
+			So(err, ShouldEqual, io.EOF)
 		})
 	})
 }
@@ -830,6 +975,12 @@ func TestFailedToUpdateFilterBlueprint(t *testing.T) {
 		Convey("Then the auditor is called for the attempt and outcome", func() {
 			assertAuditCalled(mockAuditor, updateFilterBlueprintAction, actionUnsuccessful, expectedAuditParams)
 		})
+
+		Convey("Then the request body has been drained", func() {
+			bytesRead, err := r.Body.Read(make([]byte, 1))
+			So(bytesRead, ShouldEqual, 0)
+			So(err, ShouldEqual, io.EOF)
+		})
 	})
 
 	Convey("When an empty json message is sent, a bad request is returned", t, func() {
@@ -849,6 +1000,12 @@ func TestFailedToUpdateFilterBlueprint(t *testing.T) {
 		Convey("Then the auditor is called for the attempt and outcome", func() {
 			assertAuditCalled(mockAuditor, updateFilterBlueprintAction, actionUnsuccessful, expectedAuditParams)
 		})
+
+		Convey("Then the request body has been drained", func() {
+			bytesRead, err := r.Body.Read(make([]byte, 1))
+			So(bytesRead, ShouldEqual, 0)
+			So(err, ShouldEqual, io.EOF)
+		})
 	})
 
 	Convey("When a json message is sent to update filter blueprint that doesn't exist, a status of not found is returned", t, func() {
@@ -867,6 +1024,12 @@ func TestFailedToUpdateFilterBlueprint(t *testing.T) {
 
 		Convey("Then the auditor is called for the attempt and outcome", func() {
 			assertAuditCalled(mockAuditor, updateFilterBlueprintAction, actionUnsuccessful, expectedAuditParams)
+		})
+
+		Convey("Then the request body has been drained", func() {
+			bytesRead, err := r.Body.Read(make([]byte, 1))
+			So(bytesRead, ShouldEqual, 0)
+			So(err, ShouldEqual, io.EOF)
 		})
 	})
 
@@ -888,6 +1051,12 @@ func TestFailedToUpdateFilterBlueprint(t *testing.T) {
 		Convey("Then the auditor is called for the attempt and outcome", func() {
 			assertAuditCalled(mockAuditor, updateFilterBlueprintAction, actionUnsuccessful, expectedAuditParams)
 		})
+
+		Convey("Then the request body has been drained", func() {
+			bytesRead, err := r.Body.Read(make([]byte, 1))
+			So(bytesRead, ShouldEqual, 0)
+			So(err, ShouldEqual, io.EOF)
+		})
 	})
 
 	Convey("When a json message is sent to change the dataset version of a filter blueprint and the version does not exist, a status of bad request is returned", t, func() {
@@ -906,6 +1075,12 @@ func TestFailedToUpdateFilterBlueprint(t *testing.T) {
 
 		Convey("Then the auditor is called for the attempt and outcome", func() {
 			assertAuditCalled(mockAuditor, updateFilterBlueprintAction, actionUnsuccessful, expectedAuditParams)
+		})
+
+		Convey("Then the request body has been drained", func() {
+			bytesRead, err := r.Body.Read(make([]byte, 1))
+			So(bytesRead, ShouldEqual, 0)
+			So(err, ShouldEqual, io.EOF)
 		})
 	})
 
@@ -926,6 +1101,12 @@ func TestFailedToUpdateFilterBlueprint(t *testing.T) {
 		Convey("Then the auditor is called for the attempt and outcome", func() {
 			assertAuditCalled(mockAuditor, updateFilterBlueprintAction, actionUnsuccessful, expectedAuditParams)
 		})
+
+		Convey("Then the request body has been drained", func() {
+			bytesRead, err := r.Body.Read(make([]byte, 1))
+			So(bytesRead, ShouldEqual, 0)
+			So(err, ShouldEqual, io.EOF)
+		})
 	})
 
 	Convey("When a json message is sent to change the dataset version of a filter blueprint and the current dimension options do not match, a status of bad request is returned", t, func() {
@@ -944,6 +1125,12 @@ func TestFailedToUpdateFilterBlueprint(t *testing.T) {
 
 		Convey("Then the auditor is called for the attempt and outcome", func() {
 			assertAuditCalled(mockAuditor, updateFilterBlueprintAction, actionUnsuccessful, expectedAuditParams)
+		})
+
+		Convey("Then the request body has been drained", func() {
+			bytesRead, err := r.Body.Read(make([]byte, 1))
+			So(bytesRead, ShouldEqual, 0)
+			So(err, ShouldEqual, io.EOF)
 		})
 	})
 }
