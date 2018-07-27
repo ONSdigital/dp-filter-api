@@ -93,10 +93,10 @@
 			"revisionTime": "2018-06-12T16:36:09Z"
 		},
 		{
-			"checksumSHA1": "Q0yXst+MpStLo6iPp3FJkZWdWqQ=",
+			"checksumSHA1": "L4B1AA6AKWscHCZc02qk2SQU65k=",
 			"path": "github.com/ONSdigital/go-ns/rchttp",
-			"revision": "d2edf917adf7de35c20355ad41cc9d902e62e066",
-			"revisionTime": "2018-06-12T16:36:09Z"
+			"revision": "8665ee6a440913a11a140e64dcf2699e9924cfb6",
+			"revisionTime": "2018-07-27T09:54:42Z"
 		},
 		{
 			"checksumSHA1": "fRvn/yfzF56k6mIJxg6kAvA+PE0=",
