@@ -164,17 +164,6 @@ func (filter *NewFilter) ValidateNewFilter() error {
 	return nil
 }
 
-// DatasetDimensionResults represents a structure for a list of dimensions
-type DatasetDimensionResults struct {
-	Items []DatasetDimension `json:"items"`
-}
-
-// DatasetDimension represents an overview for a single dimension. This includes a link to the code list API
-// which provides metadata about the dimension and all possible values.
-type DatasetDimension struct {
-	Name string `bson:"name,omitempty"          json:"dimension,omitempty"`
-}
-
 // ValidateFilterDimensions checks the selected filter dimension
 // are valid for a version of a dataset
 func ValidateFilterDimensions(filterDimensions []Dimension, dimensions *dataset.Dimensions) error {
