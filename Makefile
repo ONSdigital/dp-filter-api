@@ -13,8 +13,10 @@ build:
 	go build -o $(BUILD_ARCH)/$(BIN_DIR)/dp-filter-api cmd/$(MAIN)/main.go
 debug:
 	HUMAN_LOG=1 go run -race cmd/$(MAIN)/main.go
-acceptance:
-	 MONGODB_FILTERS_DATABASE=test HUMAN_LOG=1 go run -race cmd/$(MAIN)/main.go
+acceptance-publishing:
+	MONGODB_FILTERS_DATABASE=test HUMAN_LOG=1 go run -race cmd/$(MAIN)/main.go
+acceptance-web:
+	ENABLE_PRIVATE_ENDPOINTS=false MONGODB_FILTERS_DATABASE=test HUMAN_LOG=1 go run -race cmd/$(MAIN)/main.go
 test:
 	go test -cover $(shell go list ./... | grep -v /vendor/)
 .PHONY: build debug acceptance test
