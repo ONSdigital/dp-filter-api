@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
+
 	"github.com/ONSdigital/dp-filter-api/filters"
 	"github.com/ONSdigital/dp-filter-api/models"
 	"github.com/ONSdigital/go-ns/common"
@@ -11,7 +13,6 @@ import (
 	"github.com/ONSdigital/go-ns/request"
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
-	"net/http"
 )
 
 const (
@@ -276,12 +277,41 @@ func (api *FilterAPI) addFilterBlueprintDimensionHandler(w http.ResponseWriter, 
 		return
 	}
 
+	dimension, err := api.dataStore.GetFilterDimension(filterBlueprintID, dimensionName)
+	if err != nil {
+		log.ErrorCtx(r.Context(), err, logData)
+		if auditErr := api.auditor.Record(r.Context(), getDimensionAction, actionUnsuccessful, auditParams); auditErr != nil {
+			handleAuditingFailure(r.Context(), getDimensionAction, actionUnsuccessful, w, auditErr, logData)
+			return
+		}
+		setErrorCode(w, err)
+		return
+	}
+	publicDimension := createPublicDimension(*dimension, api.host, filterBlueprintID)
+	b, err := json.Marshal(publicDimension)
+	if err != nil {
+
+		log.ErrorCtx(r.Context(), errors.Wrap(err, "failed to marshal filter blueprint dimensions into bytes"), logData)
+		if auditErr := api.auditor.Record(r.Context(), getDimensionsAction, actionUnsuccessful, auditParams); auditErr != nil {
+			handleAuditingFailure(r.Context(), getDimensionsAction, actionUnsuccessful, w, auditErr, logData)
+			return
+		}
+		http.Error(w, internalError, http.StatusInternalServerError)
+		return
+	}
+
 	if auditErr := api.auditor.Record(r.Context(), addDimensionAction, actionSuccessful, auditParams); auditErr != nil {
 		logAuditFailure(r.Context(), addDimensionAction, actionSuccessful, auditErr, logData)
 	}
 
 	setJSONContentType(w)
 	w.WriteHeader(http.StatusCreated)
+	_, err = w.Write(b)
+	if err != nil {
+		log.ErrorCtx(r.Context(), errors.Wrap(err, "failed to write bytes for http response"), logData)
+		setErrorCode(w, err)
+		return
+	}
 
 	log.InfoCtx(r.Context(), "created new dimension for filter blueprint", logData)
 }

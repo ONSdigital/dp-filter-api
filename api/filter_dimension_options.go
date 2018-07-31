@@ -10,6 +10,7 @@ import (
 
 	"context"
 	"fmt"
+
 	"github.com/ONSdigital/dp-filter-api/filters"
 	"github.com/ONSdigital/go-ns/common"
 	"github.com/pkg/errors"
@@ -229,6 +230,8 @@ func (api *FilterAPI) getFilterBlueprintDimensionOption(ctx context.Context, fil
 		}
 	}
 
+	log.Debug("temp for test", log.Data{"dimension_found": dimensionFound, "option_found": optionFound})
+
 	if !dimensionFound {
 		return nil, filters.ErrDimensionNotFound
 	}
@@ -277,12 +280,45 @@ func (api *FilterAPI) addFilterBlueprintDimensionOptionHandler(w http.ResponseWr
 		return
 	}
 
+	dimensionOption, err := api.getFilterBlueprintDimensionOption(r.Context(), filterBlueprintID, dimensionName, option)
+	if err != nil {
+		log.ErrorCtx(r.Context(), errors.Wrap(err, "unable to get dimension option for filter blueprint"), logData)
+		if auditErr := api.auditor.Record(r.Context(), getOptionAction, actionUnsuccessful, auditParams); auditErr != nil {
+			handleAuditingFailure(r.Context(), getOptionAction, actionUnsuccessful, w, auditErr, logData)
+			return
+		}
+		switch err {
+		case filters.ErrFilterBlueprintNotFound:
+			setErrorCode(w, err, statusBadRequest)
+		default:
+			setErrorCode(w, err)
+		}
+		return
+	}
+
+	b, err := json.Marshal(dimensionOption)
+	if err != nil {
+		log.ErrorCtx(r.Context(), errors.Wrap(err, "failed to marshal filter blueprint dimension option into bytes"), logData)
+		if auditErr := api.auditor.Record(r.Context(), getOptionAction, actionUnsuccessful, auditParams); auditErr != nil {
+			handleAuditingFailure(r.Context(), getOptionAction, actionUnsuccessful, w, auditErr, logData)
+			return
+		}
+		http.Error(w, internalError, http.StatusInternalServerError)
+		return
+	}
+
 	if auditErr := api.auditor.Record(r.Context(), addOptionAction, actionSuccessful, auditParams); auditErr != nil {
 		logAuditFailure(r.Context(), addOptionAction, actionSuccessful, auditErr, logData)
 	}
 
 	setJSONContentType(w)
 	w.WriteHeader(http.StatusCreated)
+	_, err = w.Write(b)
+	if err != nil {
+		log.ErrorCtx(r.Context(), errors.Wrap(err, "failed to write bytes for http response"), logData)
+		setErrorCode(w, err)
+		return
+	}
 
 	log.InfoCtx(r.Context(), "created new dimension option for filter blueprint", logData)
 }
