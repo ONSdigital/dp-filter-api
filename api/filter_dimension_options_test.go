@@ -2,13 +2,14 @@ package api
 
 import (
 	"context"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+
 	"github.com/ONSdigital/dp-filter-api/mocks"
 	"github.com/ONSdigital/go-ns/common"
 	"github.com/gorilla/mux"
 	. "github.com/smartystreets/goconvey/convey"
-	"net/http"
-	"net/http/httptest"
-	"testing"
 
 	"github.com/ONSdigital/dp-filter-api/filters"
 )

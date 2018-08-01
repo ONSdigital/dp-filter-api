@@ -77,8 +77,6 @@ func buildResults(csvReader *csv.Reader) (*FilterPreview, error) {
 	}
 	headers := row
 	results.Headers = headers
-	// Replace the V4 header withe values
-	results.Headers[0] = "Values"
 	results.NumberOfColumns = len(headers)
 	for {
 		row, err = csvReader.Read()

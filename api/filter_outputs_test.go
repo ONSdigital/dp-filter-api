@@ -18,6 +18,7 @@ import (
 	"github.com/ONSdigital/dp-filter-api/mocks"
 	"github.com/ONSdigital/go-ns/common"
 	"github.com/gedge/mgo/bson"
+	"io"
 	"net/http"
 )
 
@@ -550,6 +551,12 @@ func TestSuccessfulUpdateFilterOutput(t *testing.T) {
 		Convey("Then the auditor is called for the attempt and outcome", func() {
 			assertAuditCalled(mockAuditor, updateFilterOutputAction, actionSuccessful, expectedAuditParams)
 		})
+
+		Convey("Then the request body has been drained", func() {
+			bytesRead, err := r.Body.Read(make([]byte, 1))
+			So(bytesRead, ShouldEqual, 0)
+			So(err, ShouldEqual, io.EOF)
+		})
 	})
 
 	Convey("Successfully update filter output when public xls download link is missing", t, func() {
@@ -565,6 +572,12 @@ func TestSuccessfulUpdateFilterOutput(t *testing.T) {
 
 		Convey("Then the auditor is called for the attempt and outcome", func() {
 			assertAuditCalled(mockAuditor, updateFilterOutputAction, actionSuccessful, expectedAuditParams)
+		})
+
+		Convey("Then the request body has been drained", func() {
+			bytesRead, err := r.Body.Read(make([]byte, 1))
+			So(bytesRead, ShouldEqual, 0)
+			So(err, ShouldEqual, io.EOF)
 		})
 	})
 }
@@ -619,6 +632,12 @@ func TestSuccessfulUpdateFilterOutput_StatusComplete(t *testing.T) {
 			Convey("Then the response code should be 200 OK", func() {
 				So(w.Code, ShouldEqual, http.StatusOK)
 			})
+
+			Convey("Then the request body has been drained", func() {
+				bytesRead, err := r.Body.Read(make([]byte, 1))
+				So(bytesRead, ShouldEqual, 0)
+				So(err, ShouldEqual, io.EOF)
+			})
 		})
 	})
 }
@@ -641,6 +660,12 @@ func TestSuccessfulUpdateFilterOutputUnpublished(t *testing.T) {
 		Convey("Then the auditor is called for the attempt and outcome", func() {
 			assertAuditCalled(mockAuditor, updateFilterOutputAction, actionSuccessful, expectedAuditParams)
 		})
+
+		Convey("Then the request body has been drained", func() {
+			bytesRead, err := r.Body.Read(make([]byte, 1))
+			So(bytesRead, ShouldEqual, 0)
+			So(err, ShouldEqual, io.EOF)
+		})
 	})
 
 	Convey("Successfully update filter output with private xls download link when version is unpublished", t, func() {
@@ -655,6 +680,12 @@ func TestSuccessfulUpdateFilterOutputUnpublished(t *testing.T) {
 
 		Convey("Then the auditor is called for the attempt and outcome", func() {
 			assertAuditCalled(mockAuditor, updateFilterOutputAction, actionSuccessful, expectedAuditParams)
+		})
+
+		Convey("Then the request body has been drained", func() {
+			bytesRead, err := r.Body.Read(make([]byte, 1))
+			So(bytesRead, ShouldEqual, 0)
+			So(err, ShouldEqual, io.EOF)
 		})
 	})
 }
@@ -680,6 +711,12 @@ func TestFailedToUpdateFilterOutput(t *testing.T) {
 		Convey("Then the auditor is called for the attempt and outcome", func() {
 			assertAuditCalled(mockAuditor, updateFilterOutputAction, actionUnsuccessful, expectedAuditParams)
 		})
+
+		Convey("Then the request body has been drained", func() {
+			bytesRead, err := r.Body.Read(make([]byte, 1))
+			So(bytesRead, ShouldEqual, 0)
+			So(err, ShouldEqual, io.EOF)
+		})
 	})
 
 	Convey("When an update to a filter output resource that does not exist, a not found is returned", t, func() {
@@ -694,6 +731,12 @@ func TestFailedToUpdateFilterOutput(t *testing.T) {
 
 		Convey("Then the auditor is called for the attempt and outcome", func() {
 			assertAuditCalled(mockAuditor, updateFilterOutputAction, actionUnsuccessful, expectedAuditParams)
+		})
+
+		Convey("Then the request body has been drained", func() {
+			bytesRead, err := r.Body.Read(make([]byte, 1))
+			So(bytesRead, ShouldEqual, 0)
+			So(err, ShouldEqual, io.EOF)
 		})
 	})
 
@@ -713,6 +756,12 @@ func TestFailedToUpdateFilterOutput(t *testing.T) {
 		Convey("Then the auditor is called for the attempt and outcome", func() {
 			assertAuditCalled(mockAuditor, updateFilterOutputAction, actionUnsuccessful, expectedAuditParams)
 		})
+
+		Convey("Then the request body has been drained", func() {
+			bytesRead, err := r.Body.Read(make([]byte, 1))
+			So(bytesRead, ShouldEqual, 0)
+			So(err, ShouldEqual, io.EOF)
+		})
 	})
 
 	Convey("When a json message contains private xls link but current filter output has private xls download links already and version is published, than a forbidden status is returned", t, func() {
@@ -730,6 +779,12 @@ func TestFailedToUpdateFilterOutput(t *testing.T) {
 
 		Convey("Then the auditor is called for the attempt and outcome", func() {
 			assertAuditCalled(mockAuditor, updateFilterOutputAction, actionUnsuccessful, expectedAuditParams)
+		})
+
+		Convey("Then the request body has been drained", func() {
+			bytesRead, err := r.Body.Read(make([]byte, 1))
+			So(bytesRead, ShouldEqual, 0)
+			So(err, ShouldEqual, io.EOF)
 		})
 	})
 }
@@ -763,6 +818,12 @@ func TestFailedToUpdateFilterOutput_BadRequest(t *testing.T) {
 			Convey("Then the auditor is called for the attempt and outcome", func() {
 				assertAuditCalled(mockAuditor, updateFilterOutputAction, actionUnsuccessful, expectedAuditParams)
 			})
+
+			Convey("Then the request body has been drained", func() {
+				bytesRead, err := r.Body.Read(make([]byte, 1))
+				So(bytesRead, ShouldEqual, 0)
+				So(err, ShouldEqual, io.EOF)
+			})
 		})
 
 		Convey("When a PUT request is made to the filter output endpoint with empty JSON", func() {
@@ -783,6 +844,12 @@ func TestFailedToUpdateFilterOutput_BadRequest(t *testing.T) {
 			Convey("Then the auditor is called for the attempt and outcome", func() {
 				assertAuditCalled(mockAuditor, updateFilterOutputAction, actionUnsuccessful, expectedAuditParams)
 			})
+
+			Convey("Then the request body has been drained", func() {
+				bytesRead, err := r.Body.Read(make([]byte, 1))
+				So(bytesRead, ShouldEqual, 0)
+				So(err, ShouldEqual, io.EOF)
+			})
 		})
 
 		Convey("When a PUT request is made to the filter output endpoint with fields that are not allowed to be updated", func() {
@@ -802,6 +869,12 @@ func TestFailedToUpdateFilterOutput_BadRequest(t *testing.T) {
 
 			Convey("Then the auditor is called for the attempt and outcome", func() {
 				assertAuditCalled(mockAuditor, updateFilterOutputAction, actionUnsuccessful, expectedAuditParams)
+			})
+
+			Convey("Then the request body has been drained", func() {
+				bytesRead, err := r.Body.Read(make([]byte, 1))
+				So(bytesRead, ShouldEqual, 0)
+				So(err, ShouldEqual, io.EOF)
 			})
 		})
 
@@ -824,6 +897,12 @@ func TestFailedToUpdateFilterOutput_BadRequest(t *testing.T) {
 			Convey("Then the auditor is called for the attempt and outcome", func() {
 				assertAuditCalled(mockAuditor, updateFilterOutputAction, actionUnsuccessful, expectedAuditParams)
 			})
+
+			Convey("Then the request body has been drained", func() {
+				bytesRead, err := r.Body.Read(make([]byte, 1))
+				So(bytesRead, ShouldEqual, 0)
+				So(err, ShouldEqual, io.EOF)
+			})
 		})
 
 		Convey("When a PUT request is made to the filter output endpoint with contains a CSV download", func() {
@@ -844,6 +923,12 @@ func TestFailedToUpdateFilterOutput_BadRequest(t *testing.T) {
 			Convey("Then the auditor is called for the attempt and outcome", func() {
 				assertAuditCalled(mockAuditor, updateFilterOutputAction, actionUnsuccessful, expectedAuditParams)
 			})
+
+			Convey("Then the request body has been drained", func() {
+				bytesRead, err := r.Body.Read(make([]byte, 1))
+				So(bytesRead, ShouldEqual, 0)
+				So(err, ShouldEqual, io.EOF)
+			})
 		})
 
 		Convey("When a PUT request is made to the filter output endpoint with contains an XLS download", func() {
@@ -863,6 +948,12 @@ func TestFailedToUpdateFilterOutput_BadRequest(t *testing.T) {
 
 			Convey("Then the auditor is called for the attempt and outcome", func() {
 				assertAuditCalled(mockAuditor, updateFilterOutputAction, actionUnsuccessful, expectedAuditParams)
+			})
+
+			Convey("Then the request body has been drained", func() {
+				bytesRead, err := r.Body.Read(make([]byte, 1))
+				So(bytesRead, ShouldEqual, 0)
+				So(err, ShouldEqual, io.EOF)
 			})
 		})
 	})
@@ -912,6 +1003,12 @@ func TestFailedToUpdateFilterOutput_AuditFailure(t *testing.T) {
 			Convey("Then the response is 500 internal server error", func() {
 				So(w.Code, ShouldEqual, http.StatusInternalServerError)
 			})
+
+			Convey("Then the request body has been drained", func() {
+				bytesRead, err := r.Body.Read(make([]byte, 1))
+				So(bytesRead, ShouldEqual, 0)
+				So(err, ShouldEqual, io.EOF)
+			})
 		})
 
 		Convey("When a PUT request is made to the filter output endpoint and the outcome audit fails", func() {
@@ -935,6 +1032,12 @@ func TestFailedToUpdateFilterOutput_AuditFailure(t *testing.T) {
 			Convey("Then the response is 200 OK", func() {
 				So(w.Code, ShouldEqual, http.StatusOK)
 			})
+
+			Convey("Then the request body has been drained", func() {
+				bytesRead, err := r.Body.Read(make([]byte, 1))
+				So(bytesRead, ShouldEqual, 0)
+				So(err, ShouldEqual, io.EOF)
+			})
 		})
 
 		Convey("When a PUT request is made to the filter output endpoint with invalid json and the outcome audit fails", func() {
@@ -957,6 +1060,12 @@ func TestFailedToUpdateFilterOutput_AuditFailure(t *testing.T) {
 
 			Convey("Then the response is 500 internal server error", func() {
 				So(w.Code, ShouldEqual, http.StatusInternalServerError)
+			})
+
+			Convey("Then the request body has been drained", func() {
+				bytesRead, err := r.Body.Read(make([]byte, 1))
+				So(bytesRead, ShouldEqual, 0)
+				So(err, ShouldEqual, io.EOF)
 			})
 		})
 	})
@@ -1260,6 +1369,12 @@ func TestSuccessfulAddEventToFilterOutput(t *testing.T) {
 			Convey("Then the response is 201 OK", func() {
 				So(w.Code, ShouldEqual, http.StatusCreated)
 			})
+
+			Convey("Then the request body has been drained", func() {
+				bytesRead, err := r.Body.Read(make([]byte, 1))
+				So(bytesRead, ShouldEqual, 0)
+				So(err, ShouldEqual, io.EOF)
+			})
 		})
 	})
 }
@@ -1284,6 +1399,12 @@ func TestFailedAddEventToFilterOutput_InvalidJson(t *testing.T) {
 			Convey("Then the response is 400 bad request", func() {
 				So(w.Code, ShouldEqual, http.StatusBadRequest)
 			})
+
+			Convey("Then the request body has been drained", func() {
+				bytesRead, err := r.Body.Read(make([]byte, 1))
+				So(bytesRead, ShouldEqual, 0)
+				So(err, ShouldEqual, io.EOF)
+			})
 		})
 	})
 }
@@ -1307,6 +1428,12 @@ func TestFailedAddEventToFilterOutput_InvalidEvent(t *testing.T) {
 
 			Convey("Then the response is 400 bad request", func() {
 				So(w.Code, ShouldEqual, http.StatusBadRequest)
+			})
+
+			Convey("Then the request body has been drained", func() {
+				bytesRead, err := r.Body.Read(make([]byte, 1))
+				So(bytesRead, ShouldEqual, 0)
+				So(err, ShouldEqual, io.EOF)
 			})
 		})
 	})
@@ -1344,6 +1471,12 @@ func TestFailedAddEventToFilterOutput_DatastoreError(t *testing.T) {
 
 			Convey("Then the response is 500 internal server error", func() {
 				So(w.Code, ShouldEqual, http.StatusInternalServerError)
+			})
+
+			Convey("Then the request body has been drained", func() {
+				bytesRead, err := r.Body.Read(make([]byte, 1))
+				So(bytesRead, ShouldEqual, 0)
+				So(err, ShouldEqual, io.EOF)
 			})
 		})
 	})
