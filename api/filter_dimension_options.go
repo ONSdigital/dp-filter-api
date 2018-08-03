@@ -230,8 +230,6 @@ func (api *FilterAPI) getFilterBlueprintDimensionOption(ctx context.Context, fil
 		}
 	}
 
-	log.Debug("temp for test", log.Data{"dimension_found": dimensionFound, "option_found": optionFound})
-
 	if !dimensionFound {
 		return nil, filters.ErrDimensionNotFound
 	}
@@ -404,7 +402,7 @@ func (api *FilterAPI) removeFilterBlueprintDimensionOptionHandler(w http.Respons
 	}
 
 	setJSONContentType(w)
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(http.StatusNoContent)
 
 	log.InfoCtx(r.Context(), "delete dimension option on filter blueprint", logData)
 }

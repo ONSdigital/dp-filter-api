@@ -197,7 +197,7 @@ func (api *FilterAPI) removeFilterBlueprintDimensionHandler(w http.ResponseWrite
 	}
 
 	setJSONContentType(w)
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(http.StatusNoContent)
 
 	log.InfoCtx(r.Context(), "delete dimension from filter blueprint", logData)
 }

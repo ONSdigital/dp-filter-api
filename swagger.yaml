@@ -225,7 +225,7 @@ paths:
       summary: "Remove a dimension from a filter"
       description: "Remove a dimension and any options set within the dimension"
       responses:
-        200:
+        204:
           description: "The dimension was removed"
         400:
           description: "Filter was not found"
@@ -298,7 +298,7 @@ paths:
       summary: "Remove an option from a filtered dimension"
       description: "Remove a single option from a dimension"
       responses:
-        200:
+        204:
           description: "Option was removed"
         400:
           description: |
