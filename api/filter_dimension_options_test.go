@@ -277,7 +277,7 @@ func TestSuccessfulRemoveFilterBlueprintDimensionOption(t *testing.T) {
 		"option":              "2015",
 	}
 
-	Convey("Successfully remove a option for a filter blueprint, returns 200", t, func() {
+	Convey("Successfully remove a option for a filter blueprint, returns 204", t, func() {
 		mockAuditor := getMockAuditor()
 		r, err := http.NewRequest("DELETE", "http://localhost:22100/filters/12345678/dimensions/time/options/2015", nil)
 		So(err, ShouldBeNil)
@@ -285,21 +285,21 @@ func TestSuccessfulRemoveFilterBlueprintDimensionOption(t *testing.T) {
 		w := httptest.NewRecorder()
 		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, mockAuditor)
 		api.router.ServeHTTP(w, r)
-		So(w.Code, ShouldEqual, http.StatusOK)
+		So(w.Code, ShouldEqual, http.StatusNoContent)
 
 		Convey("Then the auditor is called for the attempt and outcome", func() {
 			assertAuditCalled(mockAuditor, removeOptionAction, actionSuccessful, expectedAuditParams)
 		})
 	})
 
-	Convey("Successfully remove a option for an unpublished filter blueprint, returns 200", t, func() {
+	Convey("Successfully remove a option for an unpublished filter blueprint, returns 204", t, func() {
 		mockAuditor := getMockAuditor()
 		r := createAuthenticatedRequest("DELETE", "http://localhost:22100/filters/12345678/dimensions/time/options/2015", nil)
 
 		w := httptest.NewRecorder()
 		api := routes(host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, mockAuditor)
 		api.router.ServeHTTP(w, r)
-		So(w.Code, ShouldEqual, http.StatusOK)
+		So(w.Code, ShouldEqual, http.StatusNoContent)
 
 		Convey("Then the auditor is called for the attempt and outcome", func() {
 			assertAuditCalled(mockAuditor, removeOptionAction, actionSuccessful, expectedAuditParams)
@@ -444,8 +444,8 @@ func TestFailedToRemoveFilterBlueprintDimensionOption_AuditFailure(t *testing.T)
 				assertAuditCalled(mockAuditor, removeOptionAction, actionSuccessful, expectedAuditParams)
 			})
 
-			Convey("Then the response is 200 OK", func() {
-				So(w.Code, ShouldEqual, http.StatusOK)
+			Convey("Then the response is 204 NO CONTENT", func() {
+				So(w.Code, ShouldEqual, http.StatusNoContent)
 			})
 		})
 	})
