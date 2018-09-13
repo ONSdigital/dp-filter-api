@@ -109,6 +109,7 @@ type Downloads struct {
 
 // DownloadItem represents an object containing information for the download item
 type DownloadItem struct {
+	Skipped bool   `bson:"skipped,omitempty json:skipped,omitempty"`
 	HRef    string `bson:"href,omitempty"    json:"href,omitempty"`
 	Private string `bson:"private,omitempty" json:"private,omitempty"`
 	Public  string `bson:"public,omitempty"  json:"public,omitempty"`

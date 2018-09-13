@@ -12,13 +12,14 @@ import (
 
 	"context"
 
+	"io/ioutil"
+	"time"
+
 	"github.com/ONSdigital/dp-filter-api/filters"
 	"github.com/ONSdigital/dp-filter-api/preview"
 	"github.com/ONSdigital/go-ns/common"
 	"github.com/ONSdigital/go-ns/request"
 	"github.com/pkg/errors"
-	"io/ioutil"
-	"time"
 )
 
 var (
@@ -207,9 +208,11 @@ func downloadsAreGenerated(filterOutput *models.Filter) bool {
 		// if all downloads are complete then set the filter state to complete
 		if filterOutput.Downloads != nil &&
 			filterOutput.Downloads.CSV != nil &&
-			filterOutput.Downloads.CSV.HRef != "" &&
+			(filterOutput.Downloads.CSV.HRef != "" ||
+				filterOutput.Downloads.CSV.Skipped) &&
 			filterOutput.Downloads.XLS != nil &&
-			filterOutput.Downloads.XLS.HRef != "" {
+			(filterOutput.Downloads.XLS.HRef != "" ||
+				filterOutput.Downloads.XLS.Skipped) {
 			return true
 		}
 	}
@@ -381,7 +384,7 @@ func buildDownloadsObject(previousFilterOutput, filterOutput *models.Filter, dow
 		return
 	}
 
-	if filterOutput.Downloads.CSV != nil {
+	if filterOutput.Downloads.CSV != nil && !filterOutput.Downloads.CSV.Skipped {
 
 		filterOutput.Downloads.CSV.HRef = downloadServiceURL + "/downloads/filter-outputs/" + previousFilterOutput.FilterID + ".csv"
 
@@ -403,7 +406,7 @@ func buildDownloadsObject(previousFilterOutput, filterOutput *models.Filter, dow
 		}
 	}
 
-	if filterOutput.Downloads.XLS != nil {
+	if filterOutput.Downloads.XLS != nil && !filterOutput.Downloads.XLS.Skipped {
 
 		filterOutput.Downloads.XLS.HRef = downloadServiceURL + "/downloads/filter-outputs/" + previousFilterOutput.FilterID + ".xlsx"
 
