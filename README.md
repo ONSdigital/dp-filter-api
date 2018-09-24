@@ -12,6 +12,8 @@ dp-filter-api
 * Download kafka version 0.10.2.1
 * Run `./kafka-server-start.sh ../config/server.properties`
 
+Scripts for updating and debugging Kafka can be found [here](https://github.com/ONSdigital/dp-data-tools)(dp-data-tools)
+
 ### Configuration
 * Run `brew install neo4j`
 * Disable authentication
