@@ -94,7 +94,7 @@ var testOptions = []struct {
 	{
 		inputPreviousFilterOutput: &models.Filter{FilterID: filterID1, Downloads: &models.Downloads{CSV: &csvScenario[0].csv}},
 		inputFilterOutput:         &models.Filter{Downloads: &models.Downloads{XLS: &xlsScenario[4].xls}},
-		expectedOutput:            &models.Filter{Downloads: &models.Downloads{CSV: &csvScenario[0].csv, XLS: nil}},
+		expectedOutput:            &models.Filter{Downloads: &models.Downloads{CSV: &csvScenario[0].csv, XLS: &expectedDownloadItems[6].xls}},
 		title:                     "existing csv download, skipped xls generation",
 	},
 }
@@ -297,6 +297,11 @@ var expectedDownloadItems = []struct {
 			Private: "xls-private-downloads-link",
 			Public:  "xls-public-downloads-link-4",
 			Size:    "24mb",
+		},
+	},
+	{
+		xls: models.DownloadItem{
+			Skipped: true,
 		},
 	},
 }

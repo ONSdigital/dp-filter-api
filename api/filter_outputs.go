@@ -384,49 +384,48 @@ func buildDownloadsObject(previousFilterOutput, filterOutput *models.Filter, dow
 		return
 	}
 
+	if previousFilterOutput.Downloads != nil && previousFilterOutput.Downloads.CSV != nil {
+		filterOutput.Downloads.CSV = buildDownloadItem(filterOutput.Downloads.CSV, previousFilterOutput.Downloads.CSV)
+
+	}
+
+	if previousFilterOutput.Downloads != nil && previousFilterOutput.Downloads.XLS != nil {
+		filterOutput.Downloads.XLS = buildDownloadItem(filterOutput.Downloads.XLS, previousFilterOutput.Downloads.XLS)
+
+	}
+
+	baseHref := downloadServiceURL + "/downloads/filter-outputs/" + previousFilterOutput.FilterID
 	if filterOutput.Downloads.CSV != nil && !filterOutput.Downloads.CSV.Skipped {
+		filterOutput.Downloads.CSV.HRef = baseHref + ".csv"
 
-		filterOutput.Downloads.CSV.HRef = downloadServiceURL + "/downloads/filter-outputs/" + previousFilterOutput.FilterID + ".csv"
-
-		if previousFilterOutput.Downloads != nil && previousFilterOutput.Downloads.CSV != nil {
-
-			if filterOutput.Downloads.CSV.Size == "" {
-				filterOutput.Downloads.CSV.Size = previousFilterOutput.Downloads.CSV.Size
-			}
-			if filterOutput.Downloads.CSV.Private == "" {
-				filterOutput.Downloads.CSV.Private = previousFilterOutput.Downloads.CSV.Private
-			}
-			if filterOutput.Downloads.CSV.Public == "" {
-				filterOutput.Downloads.CSV.Public = previousFilterOutput.Downloads.CSV.Public
-			}
-		}
-	} else {
-		if previousFilterOutput.Downloads != nil {
-			filterOutput.Downloads.CSV = previousFilterOutput.Downloads.CSV
-		}
 	}
-
 	if filterOutput.Downloads.XLS != nil && !filterOutput.Downloads.XLS.Skipped {
+		filterOutput.Downloads.XLS.HRef = baseHref + ".xlsx"
+	}
+}
 
-		filterOutput.Downloads.XLS.HRef = downloadServiceURL + "/downloads/filter-outputs/" + previousFilterOutput.FilterID + ".xlsx"
+func buildDownloadItem(new, old *models.DownloadItem) *models.DownloadItem {
+	if new == nil {
+		return old
+	}
 
-		if previousFilterOutput.Downloads != nil && previousFilterOutput.Downloads.XLS != nil {
-
-			if filterOutput.Downloads.XLS.Size == "" {
-				filterOutput.Downloads.XLS.Size = previousFilterOutput.Downloads.XLS.Size
-			}
-			if filterOutput.Downloads.XLS.Private == "" {
-				filterOutput.Downloads.XLS.Private = previousFilterOutput.Downloads.XLS.Private
-			}
-			if filterOutput.Downloads.XLS.Public == "" {
-				filterOutput.Downloads.XLS.Public = previousFilterOutput.Downloads.XLS.Public
-			}
-		}
-	} else {
-		if previousFilterOutput.Downloads != nil {
-			filterOutput.Downloads.XLS = previousFilterOutput.Downloads.XLS
+	if new.Skipped {
+		return &models.DownloadItem{
+			Skipped: true,
 		}
 	}
+
+	if new.Size == "" {
+		new.Size = old.Size
+	}
+	if new.Private == "" {
+		new.Private = old.Private
+	}
+	if new.Public == "" {
+		new.Public = old.Public
+	}
+
+	return new
 }
 
 func (api *FilterAPI) addEventHandler(w http.ResponseWriter, r *http.Request) {
