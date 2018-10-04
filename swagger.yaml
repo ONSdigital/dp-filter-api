@@ -608,6 +608,9 @@ definitions:
       private:
         type: string
         description: "The URL to a non public-accessible download"
+      skipped:
+        type: boolean
+        description: "A flag to indicate the file will not be generated due to size"
   FilterLinks:
     description: "A list of links related to this resource"
     readOnly: true
