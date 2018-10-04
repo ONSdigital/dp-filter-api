@@ -204,7 +204,7 @@ func (api *FilterAPI) updateFilterOutput(ctx context.Context, filterOutputID str
 
 func downloadsAreGenerated(filterOutput *models.Filter) bool {
 	if filterOutput.State == models.CompletedState {
-		return true
+		return false
 	}
 
 	// if all downloads are complete then set the filter state to complete
