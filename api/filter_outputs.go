@@ -96,7 +96,7 @@ func (api *FilterAPI) updateFilterOutputHandler(w http.ResponseWriter, r *http.R
 	filterOutputID := vars["filter_output_id"]
 
 	logData := log.Data{"filter_output_id": filterOutputID}
-	log.InfoCtx(r.Context(), "updating filter output", logData)
+	log.InfoCtx(r.Context(), "handling update filter output request", logData)
 
 	auditParams := common.Params{"filter_output_id": filterOutputID}
 	if auditErr := api.auditor.Record(r.Context(), updateFilterOutputAction, actionAttempted, auditParams); auditErr != nil {
@@ -203,18 +203,19 @@ func (api *FilterAPI) updateFilterOutput(ctx context.Context, filterOutputID str
 }
 
 func downloadsAreGenerated(filterOutput *models.Filter) bool {
-	if filterOutput.State != models.CompletedState {
+	if filterOutput.State == models.CompletedState {
+		return true
+	}
 
-		// if all downloads are complete then set the filter state to complete
-		if filterOutput.Downloads != nil &&
-			filterOutput.Downloads.CSV != nil &&
-			(filterOutput.Downloads.CSV.HRef != "" ||
-				filterOutput.Downloads.CSV.Skipped) &&
-			filterOutput.Downloads.XLS != nil &&
-			(filterOutput.Downloads.XLS.HRef != "" ||
-				filterOutput.Downloads.XLS.Skipped) {
-			return true
-		}
+	// if all downloads are complete then set the filter state to complete
+	if filterOutput.Downloads != nil &&
+		filterOutput.Downloads.CSV != nil &&
+		(filterOutput.Downloads.CSV.HRef != "" ||
+			filterOutput.Downloads.CSV.Skipped) &&
+		filterOutput.Downloads.XLS != nil &&
+		(filterOutput.Downloads.XLS.HRef != "" ||
+			filterOutput.Downloads.XLS.Skipped) {
+		return true
 	}
 
 	return false
