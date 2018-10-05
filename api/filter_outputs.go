@@ -396,11 +396,11 @@ func buildDownloadsObject(previousFilterOutput, filterOutput *models.Filter, dow
 	}
 
 	baseHref := downloadServiceURL + "/downloads/filter-outputs/" + previousFilterOutput.FilterID
-	if filterOutput.Downloads.CSV != nil && !filterOutput.Downloads.CSV.Skipped {
+	if filterOutput.Downloads.CSV != nil && !filterOutput.Downloads.CSV.Skipped && len(filterOutput.Downloads.CSV.Size) > 0 {
 		filterOutput.Downloads.CSV.HRef = baseHref + ".csv"
 
 	}
-	if filterOutput.Downloads.XLS != nil && !filterOutput.Downloads.XLS.Skipped {
+	if filterOutput.Downloads.XLS != nil && !filterOutput.Downloads.XLS.Skipped && len(filterOutput.Downloads.XLS.Size) > 0 {
 		filterOutput.Downloads.XLS.HRef = baseHref + ".xlsx"
 	}
 }
