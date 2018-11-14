@@ -318,13 +318,13 @@ func createUpdateFilterOutput(filter *models.Filter) bson.M {
 	var update bson.M
 	if filter.Downloads != nil {
 		if filter.Downloads.XLS != nil {
-			if filter.Downloads.XLS.HRef != "" {
+			if filter.Downloads.XLS.HRef != "" || filter.Downloads.XLS.Skipped {
 				downloads.XLS = filter.Downloads.XLS
 			}
 		}
 
 		if filter.Downloads.CSV != nil {
-			if filter.Downloads.CSV.HRef != "" {
+			if filter.Downloads.CSV.HRef != "" || filter.Downloads.CSV.Skipped {
 				downloads.CSV = filter.Downloads.CSV
 			}
 		}
