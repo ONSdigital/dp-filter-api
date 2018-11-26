@@ -352,7 +352,7 @@ func (api *FilterAPI) getOutput(ctx context.Context, filterID string, hideS3Link
 	}
 
 	//only return the filter if it is for published data or via authenticated request
-	if output.Published != nil && *output.Published == models.Published || common.IsCallerPresent(ctx) {
+	if output.Published != nil && *output.Published == models.Published || common.IsUserPresent(ctx) {
 		return output, nil
 	}
 
