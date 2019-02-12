@@ -98,7 +98,7 @@ func createOptionList(name string, opts []string) string {
 	var q []string
 
 	for _, o := range opts {
-		q = append(q, fmt.Sprintf("%s.value='%s'", name, o))
+		q = append(q, fmt.Sprintf("`%s`.value='%s'", name, o))
 	}
 
 	return fmt.Sprintf("(%s)", strings.Join(q, " OR "))
