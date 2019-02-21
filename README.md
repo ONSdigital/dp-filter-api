@@ -47,7 +47,7 @@ Currently checked each `$HEALTHCHECK_INTERVAL` and reported on endpoint `/health
 
 * Neo4j
 * MongoDB
-* DatasetAPI
+* Dataset API
 
 ### Acceptance tests
 
