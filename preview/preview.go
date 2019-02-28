@@ -2,18 +2,19 @@ package preview
 
 import (
 	"bytes"
+	"context"
 	"encoding/csv"
 	"io"
 
 	"github.com/ONSdigital/dp-filter-api/models"
-	"github.com/ONSdigital/dp-filter/observation"
+	"github.com/ONSdigital/dp-graph/observation"
 )
 
 //go:generate moq -out previewtest/observationstore.go -pkg observationstoretest . ObservationStore
 
-// ObservationStore used to get observations in a CSV format
+// ObservationStore provides filtered observation data in CSV rows.
 type ObservationStore interface {
-	GetCSVRows(*observation.Filter, *int) (observation.CSVRowReader, error)
+	StreamCSVRows(ctx context.Context, filter *observation.Filter, limit *int) (observation.StreamRowReader, error)
 }
 
 // DatasetStore used to query observations for previews
@@ -30,15 +31,17 @@ type FilterPreview struct {
 }
 
 // GetPreview generates a preview using the data stored in the graph database
-func (preview *DatasetStore) GetPreview(bluePrint *models.Filter, limit int) (*FilterPreview, error) {
+func (preview *DatasetStore) GetPreview(ctx context.Context, bluePrint *models.Filter, limit int) (*FilterPreview, error) {
 	var filter = observation.Filter{}
 	filter.InstanceID = bluePrint.InstanceID
+
 	for _, dimension := range bluePrint.Dimensions {
 		d := observation.DimensionFilter{Name: dimension.Name, Options: dimension.Options}
 		filter.DimensionFilters = append(filter.DimensionFilters, &d)
 	}
+
 	previewLimit := limit
-	rows, err := preview.Store.GetCSVRows(&filter, &previewLimit)
+	rows, err := preview.Store.StreamCSVRows(ctx, &filter, &previewLimit)
 	if err != nil {
 		return nil, err
 	}
@@ -49,11 +52,11 @@ func (preview *DatasetStore) GetPreview(bluePrint *models.Filter, limit int) (*F
 	}
 
 	results, err := buildResults(csvReader)
-	rows.Close()
+	rows.Close(ctx)
 	return results, err
 }
 
-func convertRowReaderToCSVReader(rows observation.CSVRowReader) (*csv.Reader, error) {
+func convertRowReaderToCSVReader(rows observation.StreamRowReader) (*csv.Reader, error) {
 	var buffer bytes.Buffer
 	for {
 		row, err := rows.Read()

@@ -4,22 +4,24 @@ import (
 	"testing"
 
 	"encoding/json"
+	"net/http/httptest"
+	"strings"
+
 	"github.com/ONSdigital/dp-filter-api/api/datastoretest"
 	"github.com/ONSdigital/dp-filter-api/filters"
 	"github.com/ONSdigital/dp-filter-api/models"
 	"github.com/ONSdigital/dp-filter-api/preview"
 	"github.com/gorilla/mux"
 	. "github.com/smartystreets/goconvey/convey"
-	"net/http/httptest"
-	"strings"
 
 	"context"
 	"errors"
+	"io"
+	"net/http"
+
 	"github.com/ONSdigital/dp-filter-api/mocks"
 	"github.com/ONSdigital/go-ns/common"
 	"github.com/gedge/mgo/bson"
-	"io"
-	"net/http"
 )
 
 const (
@@ -868,7 +870,7 @@ func TestSuccessfulGetPreview(t *testing.T) {
 
 		w := httptest.NewRecorder()
 		previewMockForLimit := &datastoretest.PreviewDatasetMock{
-			GetPreviewFunc: func(filter *models.Filter, limit int) (*preview.FilterPreview, error) {
+			GetPreviewFunc: func(ctx context.Context, filter *models.Filter, limit int) (*preview.FilterPreview, error) {
 				return &preview.FilterPreview{}, nil
 			},
 		}
@@ -927,7 +929,7 @@ func TestFailedGetPreview(t *testing.T) {
 	Convey("Requesting a preview with no neo4j database connection", t, func() {
 		mockAuditor := getMockAuditor()
 		previewMockInternalError := &datastoretest.PreviewDatasetMock{
-			GetPreviewFunc: func(filter *models.Filter, limit int) (*preview.FilterPreview, error) {
+			GetPreviewFunc: func(ctx context.Context, filter *models.Filter, limit int) (*preview.FilterPreview, error) {
 				return nil, errors.New("internal error")
 			},
 		}
