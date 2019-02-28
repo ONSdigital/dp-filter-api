@@ -54,7 +54,7 @@ func main() {
 
 	observationStore, err := graph.New(context.Background(), graph.Subsets{Observation: true})
 	if err != nil {
-		log.ErrorC("could not connect to neo4j", err, nil)
+		log.ErrorC("could not connect to graph", err, nil)
 		os.Exit(1)
 	}
 
