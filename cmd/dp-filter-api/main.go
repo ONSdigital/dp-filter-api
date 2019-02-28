@@ -13,15 +13,13 @@ import (
 	"github.com/ONSdigital/dp-filter-api/filterOutputQueue"
 	"github.com/ONSdigital/dp-filter-api/mongo"
 	"github.com/ONSdigital/dp-filter-api/preview"
-	"github.com/ONSdigital/dp-filter/observation"
+	"github.com/ONSdigital/dp-graph/graph"
 	"github.com/ONSdigital/go-ns/audit"
 	"github.com/ONSdigital/go-ns/clients/dataset"
 	"github.com/ONSdigital/go-ns/healthcheck"
 	"github.com/ONSdigital/go-ns/kafka"
 	"github.com/ONSdigital/go-ns/log"
 	mongolib "github.com/ONSdigital/go-ns/mongo"
-	neo4jhealth "github.com/ONSdigital/go-ns/neo4j"
-	bolt "github.com/johnnadratowski/golang-neo4j-bolt-driver"
 )
 
 func main() {
@@ -54,15 +52,11 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Driver pool will never return an error as a bolt connection is never created. So we test it by creating
-	// a connection.
-	pool, _ := bolt.NewClosableDriverPool(cfg.Neo4jURL, cfg.Neo4jPoolSize)
-	conn, err := pool.OpenPool()
+	observationStore, err := graph.New(context.Background(), graph.Subsets{Observation: true})
 	if err != nil {
-		log.ErrorC("could not connect to neo4j", err, nil)
+		log.ErrorC("could not connect to graph", err, nil)
 		os.Exit(1)
 	}
-	conn.Close()
 
 	producer, err := kafka.NewProducer(cfg.Brokers, cfg.FilterOutputSubmittedTopic, int(envMax))
 	if err != nil {
@@ -91,13 +85,12 @@ func main() {
 	// todo: remove config.DatasetAPIAuthToken when the DatasetAPI supports identity based auth.
 	datasetAPI := dataset.NewAPIClient(cfg.DatasetAPIURL, cfg.ServiceAuthToken, "")
 
-	observationStore := observation.NewStore(pool)
 	previewDatasets := preview.DatasetStore{Store: observationStore}
 	outputQueue := filterOutputQueue.CreateOutputQueue(producer.Output())
 
 	healthTicker := healthcheck.NewTicker(
 		cfg.HealthCheckInterval,
-		neo4jhealth.NewHealthCheckClient(pool),
+		//	observationStore.Healthcheck(),
 		mongolib.NewHealthCheckClient(dataStore.Session),
 		datasetAPI,
 	)
@@ -134,7 +127,7 @@ func main() {
 			log.Error(err, nil)
 		}
 
-		if err = pool.Close(); err != nil {
+		if err = observationStore.Close(ctx); err != nil {
 			log.Error(err, nil)
 		}
 

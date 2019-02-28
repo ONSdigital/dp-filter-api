@@ -31,8 +31,6 @@ Scripts for updating and debugging Kafka can be found [here](https://github.com/
 | SHUTDOWN_TIMEOUT           | 5s                                        | The graceful shutdown timeout (`time.Duration` format)
 | DATASET_API_URL            | http://localhost:22000                    | The URL of the Dataset API
 | DATASET_API_AUTH_TOKEN     | FD0108EA-825D-411C-9B1D-41EF7727F465      | The token used to access the Dataset API
-| NEO4J_BIND_ADDR            | bolt://localhost:7687                     | URL to a neo4j services
-| NEO4J_POOL_SIZE            | 30                                        | Number of connections in the pool
 | HEALTHCHECK_INTERVAL       | 30s                                       | Time between self-healthchecks (`time.Duration` format)
 | SERVICE_AUTH_TOKEN         | FD0108EA-825D-411C-9B1D-41EF7727F465      | The token used to identify this service when authenticating
 | ZEBEDEE_URL                | "http://localhost:8082"                   | Zebedee URL
