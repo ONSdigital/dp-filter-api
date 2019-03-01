@@ -90,7 +90,7 @@ func main() {
 
 	healthTicker := healthcheck.NewTicker(
 		cfg.HealthCheckInterval,
-		//	observationStore.Healthcheck(),
+		observationStore,
 		mongolib.NewHealthCheckClient(dataStore.Session),
 		datasetAPI,
 	)
