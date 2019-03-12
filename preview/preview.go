@@ -8,6 +8,7 @@ import (
 
 	"github.com/ONSdigital/dp-filter-api/models"
 	"github.com/ONSdigital/dp-graph/observation"
+	"github.com/ONSdigital/go-ns/log"
 )
 
 //go:generate moq -out previewtest/observationstore.go -pkg observationstoretest . ObservationStore
@@ -46,6 +47,7 @@ func (preview *DatasetStore) GetPreview(ctx context.Context, bluePrint *models.F
 		return nil, err
 	}
 
+	log.InfoCtx(ctx, "reading rows into csv reader", nil)
 	csvReader, err := convertRowReaderToCSVReader(rows)
 	if err != nil {
 		return nil, err
@@ -81,6 +83,9 @@ func buildResults(csvReader *csv.Reader) (*FilterPreview, error) {
 	headers := row
 	results.Headers = headers
 	results.NumberOfColumns = len(headers)
+
+	log.Info("building preview results", log.Data{"headers": headers, "number_of_columns": results.NumberOfColumns})
+
 	for {
 		row, err = csvReader.Read()
 		if err != nil {
@@ -92,5 +97,8 @@ func buildResults(csvReader *csv.Reader) (*FilterPreview, error) {
 		results.Rows = append(results.Rows, row)
 		results.NumberOfRows++
 	}
+
+	log.Info("built preview results", log.Data{"number_of_rows": results.NumberOfRows})
+
 	return &results, nil
 }
