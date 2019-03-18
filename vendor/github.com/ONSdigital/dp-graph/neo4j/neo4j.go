@@ -58,21 +58,12 @@ func (e ErrAttemptsExceededLimit) Error() string {
 	return fmt.Sprintf("number of attempts to execute statement exceeded: %s", e.WrappedErr.Error())
 }
 
-// ErrNonRetriable is returned when the wrapped error type is not retriable
-type ErrNonRetriable struct {
-	WrappedErr error
-}
-
-func (e ErrNonRetriable) Error() string {
-	return fmt.Sprintf("received a non retriable error from neo4j: %s", e.WrappedErr.Error())
-}
-
 func (n *Neo4j) checkAttempts(err error, instanceID string, attempt int) error {
 	if !isTransientError(err) {
 		log.Info("received an error from neo4j that cannot be retried",
 			log.Data{"instance_id": instanceID, "error": err})
 
-		return ErrNonRetriable{err}
+		return err
 	}
 
 	time.Sleep(getSleepTime(attempt, 20*time.Millisecond))

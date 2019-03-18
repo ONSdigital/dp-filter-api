@@ -20,7 +20,7 @@ func TestPreviewDatasetStore_GetPreview(t *testing.T) {
 	Convey("Successfully returns 3 results", t, func() {
 		rowCount := 0
 
-		mockRowReader := &observationtest.StreamRowReaderMock{
+		mockRowReader := &observationtest.CSVRowReaderMock{
 			ReadFunc: func() (string, error) {
 				if rowCount == 4 {
 					return "", io.EOF
@@ -51,7 +51,7 @@ func TestPreviewDatasetStore_GetPreview(t *testing.T) {
 
 	Convey("Successfully returns 0 results due to data sparsity", t, func() {
 		rowCount := 0
-		mockRowReader := &observationtest.StreamRowReaderMock{
+		mockRowReader := &observationtest.CSVRowReaderMock{
 			ReadFunc: func() (string, error) {
 				if rowCount == 1 {
 					return "", io.EOF
@@ -95,7 +95,7 @@ func TestPreviewDatasetStore_GetPreview_ErrorStates(t *testing.T) {
 
 	Convey("When a reader stream breaks", t, func() {
 		expectedError := errors.New("broken stream")
-		mockRowReader := &observationtest.StreamRowReaderMock{
+		mockRowReader := &observationtest.CSVRowReaderMock{
 			ReadFunc: func() (string, error) {
 
 				return "", expectedError
