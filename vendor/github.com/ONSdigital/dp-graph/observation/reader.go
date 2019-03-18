@@ -6,7 +6,7 @@ import (
 	"io"
 )
 
-//go:generate moq -out observationtest/row_reader.go -pkg observationtest . StreamRowReader
+//go:generate moq -out observationtest/row_reader.go -pkg observationtest . CSVRowReader
 
 // Check that the reader conforms to the io.reader interface.
 var _ io.Reader = (*Reader)(nil)
