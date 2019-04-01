@@ -311,7 +311,7 @@ func (api *FilterAPI) getFilterOutputPreview(ctx context.Context, filterOutputID
 		return nil, errMissingDimensions
 	}
 
-	filterOutputPreview, err := api.preview.GetPreview(filterOutput, limit)
+	filterOutputPreview, err := api.preview.GetPreview(ctx, filterOutput, limit)
 	if err != nil {
 		log.ErrorC("failed to query the graph database", err, logData)
 		return nil, filters.ErrInternalError
