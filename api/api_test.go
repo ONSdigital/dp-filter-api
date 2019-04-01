@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"context"
+
 	"github.com/ONSdigital/dp-filter-api/api/datastoretest"
 	"github.com/ONSdigital/dp-filter-api/filters"
 	"github.com/ONSdigital/dp-filter-api/models"
@@ -31,7 +32,7 @@ var (
 )
 
 var previewMock = &datastoretest.PreviewDatasetMock{
-	GetPreviewFunc: func(filter *models.Filter, limit int) (*preview.FilterPreview, error) {
+	GetPreviewFunc: func(ctx context.Context, filter *models.Filter, limit int) (*preview.FilterPreview, error) {
 		return &preview.FilterPreview{}, nil
 	},
 }
