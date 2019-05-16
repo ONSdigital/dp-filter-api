@@ -7,6 +7,7 @@ import (
 	"github.com/ONSdigital/dp-filter-api/preview"
 	"github.com/ONSdigital/go-ns/audit"
 	"github.com/ONSdigital/go-ns/clients/dataset"
+	"github.com/ONSdigital/go-ns/handlers/collectionID"
 	"github.com/ONSdigital/go-ns/healthcheck"
 	"github.com/ONSdigital/go-ns/identity"
 	"github.com/ONSdigital/go-ns/log"
@@ -65,6 +66,8 @@ func CreateFilterAPI(host, bindAddr, zebedeeURL string,
 
 	healthcheckHandler := healthcheck.NewMiddleware(healthcheck.Do)
 	middlewareChain := alice.New(healthcheckHandler)
+
+	middlewareChain.Append(collectionID.Handler)
 
 	if enablePrivateEndpoints {
 
