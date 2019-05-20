@@ -67,7 +67,7 @@ func CreateFilterAPI(host, bindAddr, zebedeeURL string,
 	healthcheckHandler := healthcheck.NewMiddleware(healthcheck.Do)
 	middlewareChain := alice.New(healthcheckHandler)
 
-	middlewareChain.Append(collectionID.Handler)
+	middlewareChain.Append(collectionID.CheckHeader)
 
 	if enablePrivateEndpoints {
 
