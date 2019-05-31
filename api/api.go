@@ -13,6 +13,7 @@ import (
 	"github.com/ONSdigital/go-ns/server"
 	"github.com/gorilla/mux"
 	"github.com/justinas/alice"
+	"github.com/ONSdigital/go-ns/handlers/collectionID"
 )
 
 //go:generate moq -out datastoretest/preview.go -pkg datastoretest . PreviewDataset
@@ -65,6 +66,8 @@ func CreateFilterAPI(host, bindAddr, zebedeeURL string,
 
 	healthcheckHandler := healthcheck.NewMiddleware(healthcheck.Do)
 	middlewareChain := alice.New(healthcheckHandler)
+
+	middlewareChain.Append(collectionID.CheckHeader)
 
 	if enablePrivateEndpoints {
 
