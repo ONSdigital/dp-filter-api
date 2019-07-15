@@ -8,13 +8,13 @@ BIN_DIR?=.
 export GOOS?=$(shell go env GOOS)
 export GOARCH?=$(shell go env GOARCH)
 
-DATABASE_ADDRESS?=bolt://localhost:7687
+DATABASE_ADDRESS?=ws://localhost:8182/gremlin
 
 build:
 	@mkdir -p $(BUILD_ARCH)/$(BIN_DIR)
 	go build -o $(BUILD_ARCH)/$(BIN_DIR)/dp-filter-api cmd/$(MAIN)/main.go
 debug:
-	GRAPH_DRIVER_TYPE=neo4j GRAPH_ADDR="$(DATABASE_ADDRESS)" HUMAN_LOG=1 go run -race cmd/$(MAIN)/main.go
+	GRAPH_DRIVER_TYPE=neptune GRAPH_ADDR="$(DATABASE_ADDRESS)" HUMAN_LOG=1 go run -race cmd/$(MAIN)/main.go
 acceptance-publishing:
 	MONGODB_FILTERS_DATABASE=test GRAPH_DRIVER_TYPE=neo4j GRAPH_ADDR="$(DATABASE_ADDRESS)" HUMAN_LOG=1 go run -race cmd/$(MAIN)/main.go
 acceptance-web:
