@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/ONSdigital/dp-filter-api/models"
-	"github.com/ONSdigital/dp-filter-api/preview/previewtest"
+	observationstoretest "github.com/ONSdigital/dp-filter-api/preview/previewtest"
 	"github.com/ONSdigital/dp-graph/observation"
 	"github.com/ONSdigital/dp-graph/observation/observationtest"
 	. "github.com/smartystreets/goconvey/convey"
@@ -20,7 +20,7 @@ func TestPreviewDatasetStore_GetPreview(t *testing.T) {
 	Convey("Successfully returns 3 results", t, func() {
 		rowCount := 0
 
-		mockRowReader := &observationtest.CSVRowReaderMock{
+		mockRowReader := &observationtest.StreamRowReaderMock{
 			ReadFunc: func() (string, error) {
 				if rowCount == 4 {
 					return "", io.EOF
@@ -51,7 +51,7 @@ func TestPreviewDatasetStore_GetPreview(t *testing.T) {
 
 	Convey("Successfully returns 0 results due to data sparsity", t, func() {
 		rowCount := 0
-		mockRowReader := &observationtest.CSVRowReaderMock{
+		mockRowReader := &observationtest.StreamRowReaderMock{
 			ReadFunc: func() (string, error) {
 				if rowCount == 1 {
 					return "", io.EOF
@@ -95,7 +95,7 @@ func TestPreviewDatasetStore_GetPreview_ErrorStates(t *testing.T) {
 
 	Convey("When a reader stream breaks", t, func() {
 		expectedError := errors.New("broken stream")
-		mockRowReader := &observationtest.CSVRowReaderMock{
+		mockRowReader := &observationtest.StreamRowReaderMock{
 			ReadFunc: func() (string, error) {
 
 				return "", expectedError
