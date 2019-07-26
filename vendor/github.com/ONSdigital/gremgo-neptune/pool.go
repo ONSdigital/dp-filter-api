@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/gedge/graphson"
+	"github.com/ONSdigital/graphson"
 	"github.com/pkg/errors"
 )
 
@@ -382,7 +382,7 @@ func (p *Pool) AddVertexCtx(ctx context.Context, label string, i interface{}, bi
 }
 
 // Get
-func (p *Pool) Get(query string, bindings, rebindings map[string]string) (resp interface{}, err error) {
+func (p *Pool) Get(query string, bindings, rebindings map[string]string) (resp []graphson.Vertex, err error) {
 	var pc *conn
 	if pc, err = p.conn(); err != nil {
 		return resp, errors.Wrap(err, "Failed p.conn")
@@ -392,7 +392,7 @@ func (p *Pool) Get(query string, bindings, rebindings map[string]string) (resp i
 }
 
 // GetCtx
-func (p *Pool) GetCtx(ctx context.Context, query string, bindings, rebindings map[string]string) (resp interface{}, err error) {
+func (p *Pool) GetCtx(ctx context.Context, query string, bindings, rebindings map[string]string) (resp []graphson.Vertex, err error) {
 	var pc *conn
 	if pc, err = p.connCtx(ctx); err != nil {
 		return resp, errors.Wrap(err, "GetCtx: Failed p.connCtx")
@@ -402,7 +402,7 @@ func (p *Pool) GetCtx(ctx context.Context, query string, bindings, rebindings ma
 }
 
 // OpenCursorCtx initiates a query on the database, returning a cursor to iterate over the results
-func (p *Pool) OpenCursorCtx(ctx context.Context, query string, bindings, rebindings map[string]string) (cursor *Cursor, err error) {
+func (p *Pool) OpenCursorCtx(ctx context.Context, query string, bindings, rebindings map[string]string) (cursor Cursor, err error) {
 	var pc *conn
 	if pc, err = p.connCtx(ctx); err != nil {
 		err = errors.Wrap(err, "GetCursorCtx: Failed p.connCtx")
@@ -415,7 +415,7 @@ func (p *Pool) OpenCursorCtx(ctx context.Context, query string, bindings, rebind
 // ReadCursorCtx returns the next set of results for the cursor
 // - `res` returns vertices (and may be empty when results were read by a previous call - this is normal)
 // - `eof` will be true when no more results are available (`res` may still have results)
-func (p *Pool) ReadCursorCtx(ctx context.Context, cursor *Cursor) (res []graphson.Vertex, eof bool, err error) {
+func (p *Pool) ReadCursorCtx(ctx context.Context, cursor Cursor) (res []graphson.Vertex, eof bool, err error) {
 	var pc *conn
 	if pc, err = p.connCtx(ctx); err != nil {
 		err = errors.Wrap(err, "NextCtx: Failed p.connCtx")

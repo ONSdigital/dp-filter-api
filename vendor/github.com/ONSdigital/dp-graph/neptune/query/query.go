@@ -47,6 +47,8 @@ const (
 	CloneHierarchyNodes = "g.V().hasLabel('_generic_hierarchy_node_%s').as('old')" +
 		".addV('_hierarchy_node_%s_%s')" +
 		".property('code',select('old').values('code'))" +
+		".property('label',select('old').values('label'))" +
+		".property(single, 'hasData', false)" +
 		".property('code_list','%s').as('new')" +
 		".addE('clone_of').to('old').select('new')"
 	CountHierarchyNodes         = "g.V().hasLabel('_hierarchy_node_%s_%s').count()"
@@ -58,7 +60,7 @@ const (
 	SetNumberOfChildren = "g.V().hasLabel('_hierarchy_node_%s_%s').property(single,'numberOfChildren',__.in('hasParent').count())"
 	SetHasData          = "g.V().hasLabel('_hierarchy_node_%s_%s').as('v')" +
 		`.V().hasLabel('_%s_%s').as('c').where('v',eq('c')).by('code').by('value').` +
-		`select('v').property('hasData',true)`
+		`select('v').property(single, 'hasData',true)`
 	MarkNodesToRemain = "g.V().hasLabel('_hierarchy_node_%s_%s').has('hasData').property('remain',true)" +
 		".repeat(out('hasParent')).emit().property('remain',true)"
 	RemoveNodesNotMarkedToRemain = "g.V().hasLabel('_hierarchy_node_%s_%s').not(has('remain',true)).drop()"
@@ -66,10 +68,11 @@ const (
 
 	// hierarchy read
 	HierarchyExists     = "g.V().hasLabel('_hierarchy_node_%s_%s').limit(1)"
-	GetHierarchyRoot    = "g.V().hasLabel('_hierarchy_node_%s_%s').not(outE('hasParent')).limit(1)"
+	GetHierarchyRoot    = "g.V().hasLabel('_hierarchy_node_%s_%s').not(outE('hasParent'))"
 	GetHierarchyElement = "g.V().hasLabel('_hierarchy_node_%s_%s').has('code','%s')"
 	GetChildren         = "g.V().hasLabel('_hierarchy_node_%s_%s').has('code','%s').in('hasParent').order().by('label')"
-	GetAncestry         = "g.V().hasLabel('_hierarchy_node_%s_%s').has('code','%s').out('hasParent')"
+	// Note this query is recursive
+	GetAncestry = "g.V().hasLabel('_hierarchy_node_%s_%s').has('code', '%s').repeat(out('hasParent')).emit()"
 
 	// instance - import process
 	CreateInstance                   = "g.addV('_%s_Instance').property(single,'header','%s')"
@@ -84,13 +87,4 @@ const (
 
 	// dimension
 	CreateDimensionToInstanceRelationship = "g.addV('_%s_%s').property('value','%s').as('d').addE('HAS_DIMENSION').from(V().hasLabel('_%s_Instance')).select('d').by(id)"
-
-	// observation
-	GetInstanceHeader      = "g.V().hasLabel('_%s_Instance').as('instance')"
-	GetAllObservationsPart = ".V().hasLabel('_%s_observation').values('row')"
-
-	GetObservationsPart         = ".V().hasLabel('_%s_observation').match("
-	GetObservationDimensionPart = "__.as('row').out('isValueOf').hasLabel('_%s_%s').where(values('value').is(within(%s)))"
-	GetObservationSelectRowPart = ".select('instance', 'row').by('header').by('row').unfold().dedup().select(values)"
-	LimitPart                   = ".limit(%v)"
 )

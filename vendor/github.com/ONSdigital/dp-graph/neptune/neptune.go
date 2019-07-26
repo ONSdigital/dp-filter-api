@@ -11,7 +11,7 @@ import (
 
 	"github.com/ONSdigital/dp-graph/neptune/driver"
 	"github.com/ONSdigital/go-ns/log"
-	"github.com/gedge/graphson"
+	"github.com/ONSdigital/graphson"
 )
 
 type NeptuneDB struct {

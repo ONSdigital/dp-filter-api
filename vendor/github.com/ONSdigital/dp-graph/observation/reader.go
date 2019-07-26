@@ -13,7 +13,7 @@ var _ io.Reader = (*Reader)(nil)
 
 // StreamRowReader provides a reader of individual rows (lines) of a CSV.
 type StreamRowReader interface {
-	Read() (string, error) // TODO: this should take context
+	Read() (string, error)
 	Close(context.Context) error
 }
 
@@ -89,7 +89,7 @@ func (reader *Reader) TotalBytesRead() int64 {
 	return reader.totalBytesRead
 }
 
-// ObservationsCount returns the total number of rows read by this reader.
+// ObservationsCount returns the total number of bytes read by this reader.
 func (reader *Reader) ObservationsCount() int32 {
 	return reader.obsCount
 }

@@ -87,7 +87,7 @@ func (v Vertex) GetMultiPropertyInt32(key string) (vals []int32, err error) {
 	return
 }
 
-// getMultiPropertyAs returns the values for the given property `key` as type `wantType`
+// GetMultiPropertyAs returns the values for the given property `key` as type `wantType`
 // will return an error if the property is not a set of the given `wantType` (string, bool, int64)
 func (v Vertex) GetMultiPropertyAs(key, wantType string) (vals []interface{}, err error) {
 	var valInterface []VertexProperty
@@ -131,12 +131,20 @@ func (v Vertex) GetMultiPropertyAs(key, wantType string) (vals []interface{}, er
 			}
 			vals = append(vals, int32(val))
 		case "int64":
-			var val int64
-			if val, ok = prop.Value.Value.(int64); !ok {
-				err = ErrorUnexpectedPropertyType
-				return
+			typedPropValue := prop.Value.Value.(map[string]interface{})
+			typeAsString, ok := typedPropValue["@type"]
+			if !ok || (typeAsString != "g:Int64" && typeAsString != "g:Int32") {
+				return vals, ErrorUnexpectedPropertyType
 			}
-			vals = append(vals, val)
+			var valIf interface{}
+			if valIf, ok = prop.Value.Value.(map[string]interface{})["@value"]; !ok {
+				return vals, ErrorUnexpectedPropertyType
+			}
+			var val float64
+			if val, ok = valIf.(float64); !ok {
+				return vals, ErrorUnexpectedPropertyType
+			}
+			vals = append(vals, int64(val))
 		}
 	}
 	return
