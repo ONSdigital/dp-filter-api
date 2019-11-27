@@ -460,8 +460,8 @@ func (api *FilterAPI) checkFilterOptions(ctx context.Context, newFilter *models.
 			return err
 		}
 
+		localData["dimension_options_total"] = len(datasetDimensionOptions.Items)
 		if len(datasetDimensionOptions.Items) > 30 {
-			localData["dimension_options_total"] = len(datasetDimensionOptions.Items)
 			localData["dimension_options_first"] = datasetDimensionOptions.Items[0]
 		} else {
 			localData["dimension_options"] = datasetDimensionOptions
