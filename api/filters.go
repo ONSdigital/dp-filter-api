@@ -439,7 +439,13 @@ func (api *FilterAPI) checkFilterOptions(ctx context.Context, newFilter *models.
 		log.ErrorC("failed to retrieve a list of dimensions from the dataset API", err, logData)
 		return err
 	}
-	logData["dataset_dimensions"] = datasetDimensions
+
+	logData["dataset_dimensions_total"] = len(datasetDimensions.Items)
+	if len(datasetDimensions.Items) > 30 {
+		logData["dataset_dimensions_first"] = datasetDimensions.Items[0]
+	} else {
+		logData["dataset_dimensions"] = datasetDimensions
+	}
 
 	log.InfoCtx(ctx, "dimensions retrieved from dataset API", logData)
 
