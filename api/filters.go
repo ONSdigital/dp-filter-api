@@ -21,7 +21,7 @@ import (
 	datasetAPI "github.com/ONSdigital/go-ns/clients/dataset"
 	"github.com/ONSdigital/go-ns/common"
 	"github.com/ONSdigital/go-ns/request"
-	"github.com/satori/go.uuid"
+	uuid "github.com/satori/go.uuid"
 )
 
 var (
@@ -459,8 +459,12 @@ func (api *FilterAPI) checkFilterOptions(ctx context.Context, newFilter *models.
 			log.ErrorC("failed to retrieve a list of dimension options from dataset API", err, localData)
 			return err
 		}
-		localData["dimension_options"] = datasetDimensionOptions
 
+		if len(datasetDimensionOptions.Items) > 30 {
+			localData["dimension_options_count"] = len(datasetDimensionOptions.Items)
+		} else {
+			localData["dimension_options"] = datasetDimensionOptions
+		}
 		log.InfoCtx(ctx, "dimension options retrieved from dataset API", localData)
 
 		incorrectOptions := models.ValidateFilterDimensionOptions(filterDimension.Options, datasetDimensionOptions)
