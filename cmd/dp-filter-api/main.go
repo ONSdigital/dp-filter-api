@@ -104,12 +104,19 @@ func main() {
 		auditor,
 	)
 
+	go func() {
+		select {
+		case err := <-producer.Errors():
+			log.ErrorC("kafka producer error received", err, nil)
+		case err := <-auditProducer.Errors():
+			log.ErrorC("kafka audit producer error received", err, nil)
+		case err := <-apiErrors:
+			log.ErrorC("api error received", err, nil)
+		}
+	}()
+
 	// block until a fatal error occurs
 	select {
-	case err := <-producer.Errors():
-		log.ErrorC("kafka producer error received", err, nil)
-	case err := <-apiErrors:
-		log.ErrorC("api error received", err, nil)
 	case <-signals:
 		log.Info("os signal received", nil)
 	}
