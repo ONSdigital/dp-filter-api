@@ -50,7 +50,7 @@ func main() {
 	producer, err := serviceList.GetProducer(
 		cfg.Brokers,
 		cfg.FilterOutputSubmittedTopic,
-		initialise.FilterOutputSubmittedProducer,
+		initialise.FilterOutputSubmitted,
 		int(envMax),
 	)
 	logIfError(err, "error creating kafka filter output submitted producer")
@@ -64,7 +64,7 @@ func main() {
 		auditProducer, err = serviceList.GetProducer(
 			cfg.Brokers,
 			cfg.AuditEventsTopic,
-			initialise.AuditProducer,
+			initialise.Audit,
 			0,
 		)
 		logIfError(err, "error creating kafka audit producer")
