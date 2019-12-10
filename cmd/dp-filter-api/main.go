@@ -105,10 +105,24 @@ func main() {
 	)
 
 	go func() {
+		var producerErrors, auditProducerError chan (error)
+
+		if serviceList.FilterOutputSubmittedProducer {
+			producerErrors = producer.Errors()
+		} else {
+			producerErrors = make(chan error, 1)
+		}
+
+		if serviceList.AuditProducer {
+			auditProducerError = auditProducer.Errors()
+		} else {
+			auditProducerError = make(chan error, 1)
+		}
+
 		select {
-		case err := <-producer.Errors():
+		case err := <-producerErrors:
 			log.ErrorC("kafka producer error received", err, nil)
-		case err := <-auditProducer.Errors():
+		case err := <-auditProducerError:
 			log.ErrorC("kafka audit producer error received", err, nil)
 		case err := <-apiErrors:
 			log.ErrorC("api error received", err, nil)
