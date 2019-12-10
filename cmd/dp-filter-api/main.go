@@ -142,11 +142,13 @@ func main() {
 	go func() {
 		defer cancel()
 
+		// Close ticker first as it depends on other services/clients being available
+		// Helps to prevent race conditions between health ticker/checker and graceful shutdown
+		healthTicker.Close()
+
 		if err = api.Close(ctx); err != nil {
 			logIfError(err, "unable to close api server")
 		}
-
-		healthTicker.Close()
 
 		if serviceList.FilterStore {
 			log.Info("closing filter store", nil)
