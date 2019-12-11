@@ -104,7 +104,7 @@ func TestBuildDownloadsObject(t *testing.T) {
 	Convey("Successfully build download object", t, func() {
 
 		for _, option := range testOptions {
-			Convey(option.title, func() {
+			Convey(option.title, func(c C) {
 				buildDownloadsObject(option.inputPreviousFilterOutput, option.inputFilterOutput, downloadServiceURL)
 				So(option.inputFilterOutput, ShouldResemble, option.expectedOutput)
 			})

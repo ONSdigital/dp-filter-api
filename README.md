@@ -16,7 +16,7 @@ Scripts for updating and debugging Kafka can be found [here](https://github.com/
 
 ### Configuration
 * Run `brew install neo4j`
-* Disable authentication
+* Disable authentication in the config
 * Run `brew services start neo4j`
 
 | Environment variable       | Default                                   | Description
@@ -62,6 +62,6 @@ See [CONTRIBUTING](CONTRIBUTING.md) for details.
 
 ### License
 
-Copyright © 2016-2018, Office for National Statistics (https://www.ons.gov.uk)
+Copyright © 2016-2019, Office for National Statistics (https://www.ons.gov.uk)
 
 Released under MIT license, see [LICENSE](LICENSE.md) for details.

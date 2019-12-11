@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/ONSdigital/dp-filter-api/models"
-	"github.com/ONSdigital/dp-filter-api/preview/previewtest"
+	observationstoretest "github.com/ONSdigital/dp-filter-api/preview/previewtest"
 	"github.com/ONSdigital/dp-graph/observation"
 	"github.com/ONSdigital/dp-graph/observation/observationtest"
 	. "github.com/smartystreets/goconvey/convey"
@@ -93,7 +93,7 @@ func TestPreviewDatasetStore_GetPreview_ErrorStates(t *testing.T) {
 		So(err, ShouldEqual, expectedError)
 	})
 
-	Convey("When a reader stream breaks", t, func() {
+	Convey("When a reader stream breaks", t, func(c C) {
 		expectedError := errors.New("broken stream")
 		mockRowReader := &observationtest.CSVRowReaderMock{
 			ReadFunc: func() (string, error) {

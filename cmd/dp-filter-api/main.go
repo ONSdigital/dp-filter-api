@@ -11,9 +11,8 @@ import (
 	"github.com/ONSdigital/dp-filter-api/api"
 	"github.com/ONSdigital/dp-filter-api/config"
 	"github.com/ONSdigital/dp-filter-api/filterOutputQueue"
-	"github.com/ONSdigital/dp-filter-api/mongo"
+	"github.com/ONSdigital/dp-filter-api/initialise"
 	"github.com/ONSdigital/dp-filter-api/preview"
-	"github.com/ONSdigital/dp-graph/graph"
 	"github.com/ONSdigital/go-ns/audit"
 	"github.com/ONSdigital/go-ns/clients/dataset"
 	"github.com/ONSdigital/go-ns/healthcheck"
@@ -30,39 +29,31 @@ func main() {
 	signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM)
 
 	cfg, err := config.Get()
-	if err != nil {
-		log.Error(err, nil)
-		os.Exit(1)
-	}
+	exitIfError(err, "unable to retrieve configuration")
 
-	// sensitive fields are omitted from config.String().
+	// sensitive fields are omitted from config.String()
 	log.Info("loaded config", log.Data{
 		"config": cfg,
 	})
 
 	envMax, err := strconv.ParseInt(cfg.KafkaMaxBytes, 10, 32)
-	if err != nil {
-		log.ErrorC("encountered error parsing kafka max bytes", err, nil)
-		os.Exit(1)
-	}
+	exitIfError(err, "encountered error parsing kafka max bytes")
 
-	dataStore, err := mongo.CreateFilterStore(cfg.MongoConfig, cfg.Host)
-	if err != nil {
-		log.ErrorC("could not connect to mongodb", err, nil)
-		os.Exit(1)
-	}
+	var serviceList initialise.ExternalServiceList
 
-	observationStore, err := graph.New(context.Background(), graph.Subsets{Observation: true})
-	if err != nil {
-		log.ErrorC("could not connect to graph", err, nil)
-		os.Exit(1)
-	}
+	dataStore, err := serviceList.GetFilterStore(cfg)
+	logIfError(err, "could not connect to mongodb")
 
-	producer, err := kafka.NewProducer(cfg.Brokers, cfg.FilterOutputSubmittedTopic, int(envMax))
-	if err != nil {
-		log.ErrorC("Create kafka producer error", err, nil)
-		os.Exit(1)
-	}
+	observationStore, err := serviceList.GetObservationStore()
+	logIfError(err, "could not connect to graph")
+
+	producer, err := serviceList.GetProducer(
+		cfg.Brokers,
+		cfg.FilterOutputSubmittedTopic,
+		initialise.FilterOutputSubmitted,
+		int(envMax),
+	)
+	logIfError(err, "error creating kafka filter output submitted producer")
 
 	var auditor audit.AuditorService
 	var auditProducer kafka.Producer
@@ -70,11 +61,13 @@ func main() {
 	if cfg.EnablePrivateEndpoints {
 		log.Info("private endpoints enabled, enabling auditing", nil)
 
-		auditProducer, err = kafka.NewProducer(cfg.Brokers, cfg.AuditEventsTopic, 0)
-		if err != nil {
-			log.ErrorC("error creating kafka audit producer", err, nil)
-			os.Exit(1)
-		}
+		auditProducer, err = serviceList.GetProducer(
+			cfg.Brokers,
+			cfg.AuditEventsTopic,
+			initialise.Audit,
+			0,
+		)
+		logIfError(err, "error creating kafka audit producer")
 
 		auditor = audit.New(auditProducer, "dp-filter-api")
 	} else {
@@ -111,55 +104,92 @@ func main() {
 		auditor,
 	)
 
-	// Gracefully shutdown the application closing any open resources.
-	gracefulShutdown := func() {
-		log.Info(fmt.Sprintf("Shutdown with timeout: %s", cfg.ShutdownTimeout), nil)
-		ctx, cancel := context.WithTimeout(context.Background(), cfg.ShutdownTimeout)
+	go func() {
+		var producerErrors, auditProducerErrors chan (error)
 
-		if err = api.Close(ctx); err != nil {
-			log.Error(err, nil)
+		if serviceList.FilterOutputSubmittedProducer {
+			producerErrors = producer.Errors()
+		} else {
+			producerErrors = make(chan error, 1)
 		}
 
-		healthTicker.Close()
-
-		// mongo.Close() may use all remaining time in the context
-		if err = mongolib.Close(ctx, dataStore.Session); err != nil {
-			log.Error(err, nil)
+		if serviceList.AuditProducer {
+			auditProducerErrors = auditProducer.Errors()
+		} else {
+			auditProducerErrors = make(chan error, 1)
 		}
 
-		if err = observationStore.Close(ctx); err != nil {
-			log.Error(err, nil)
-		}
-
-		// Close producer after http server has closed so if a message
-		// needs to be sent to kafka off a request it can
-		if err := producer.Close(ctx); err != nil {
-			log.Error(err, nil)
-		}
-
-		if cfg.EnablePrivateEndpoints {
-			log.Debug("exiting audit producer", nil)
-			if err = auditProducer.Close(ctx); err != nil {
-				log.Error(err, nil)
-			}
-		}
-
-		cancel()
-		log.Info("Shutdown complete", nil)
-		os.Exit(1)
-	}
-
-	for {
 		select {
-		case err := <-producer.Errors():
+		case err := <-producerErrors:
 			log.ErrorC("kafka producer error received", err, nil)
-			gracefulShutdown()
+		case err := <-auditProducerErrors:
+			log.ErrorC("kafka audit producer error received", err, nil)
 		case err := <-apiErrors:
 			log.ErrorC("api error received", err, nil)
-			gracefulShutdown()
-		case <-signals:
-			log.Debug("os signal received", nil)
-			gracefulShutdown()
 		}
+	}()
+
+	// block until a fatal error occurs
+	select {
+	case <-signals:
+		log.Info("os signal received", nil)
+	}
+
+	log.Info(fmt.Sprintf("Shutdown with timeout: %s", cfg.ShutdownTimeout), nil)
+	ctx, cancel := context.WithTimeout(context.Background(), cfg.ShutdownTimeout)
+
+	// Gracefully shutdown the application closing any open resources.
+	go func() {
+		defer cancel()
+
+		// Close ticker first as it depends on other services/clients being available
+		// Helps to prevent race conditions between health ticker/checker and graceful shutdown
+		healthTicker.Close()
+
+		if err = api.Close(ctx); err != nil {
+			logIfError(err, "unable to close api server")
+		}
+
+		if serviceList.FilterStore {
+			log.Info("closing filter store", nil)
+			// mongo.Close() may use all remaining time in the context
+			logIfError(mongolib.Close(ctx, dataStore.Session), "unable to close filter store")
+		}
+
+		if serviceList.ObservationStore {
+			log.Info("closing observation store", nil)
+			logIfError(observationStore.Close(ctx), "unable to close observation store")
+		}
+
+		if serviceList.FilterOutputSubmittedProducer {
+			log.Info("closing filter output submitted producer", nil)
+			// Close producer after http server has closed so if a message
+			// needs to be sent to kafka off a request it can
+			logIfError(producer.Close(ctx), "unable to close filter output submitted producer")
+		}
+
+		if serviceList.AuditProducer {
+			log.Info("closing audit producer", nil)
+			logIfError(auditProducer.Close(ctx), "unable to close audit producer")
+		}
+	}()
+
+	// wait for shutdown success (via cancel) or failure (timeout)
+	<-ctx.Done()
+
+	log.Info("Shutdown complete", nil)
+	os.Exit(1)
+}
+
+func exitIfError(err error, message string) {
+	if err != nil {
+		log.ErrorC(message, err, nil)
+		os.Exit(1)
+	}
+}
+
+func logIfError(err error, message string) {
+	if err != nil {
+		log.ErrorC(message, err, nil)
 	}
 }
