@@ -580,6 +580,7 @@ func (api *FilterAPI) createFilterOutputResource(newFilter *models.Filter, filte
 		return models.Filter{}, err
 	}
 
+	log.Info("submitting filter job", log.Data{"filter_id": filterOutput.FilterID})
 	return filterOutput, api.outputQueue.Queue(&filterOutput)
 }
 
