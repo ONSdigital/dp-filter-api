@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/ONSdigital/dp-filter-api/models"
-	"github.com/ONSdigital/go-ns/log"
+	"github.com/ONSdigital/log.go/log"
 	"github.com/gorilla/mux"
 
 	"strconv"
@@ -39,20 +39,21 @@ func (api *FilterAPI) getFilterOutputHandler(w http.ResponseWriter, r *http.Requ
 	filterOutputID := vars["filter_output_id"]
 
 	logData := log.Data{"filter_output_id": filterOutputID}
-	log.InfoCtx(r.Context(), "getting filter output", logData)
+	ctx := r.Context()
+	log.Event(ctx, "getting filter output", log.INFO, logData)
 
 	auditParams := common.Params{"filter_output_id": filterOutputID}
-	if auditErr := api.auditor.Record(r.Context(), getFilterOutputAction, actionAttempted, auditParams); auditErr != nil {
-		handleAuditingFailure(r.Context(), getFilterOutputAction, actionAttempted, w, auditErr, logData)
+	if auditErr := api.auditor.Record(ctx, getFilterOutputAction, actionAttempted, auditParams); auditErr != nil {
+		handleAuditingFailure(ctx, getFilterOutputAction, actionAttempted, w, auditErr, logData)
 		return
 	}
 
 	hideS3Links := r.Header.Get(common.DownloadServiceHeaderKey) != api.downloadServiceToken
-	filterOutput, err := api.getOutput(r.Context(), filterOutputID, hideS3Links)
+	filterOutput, err := api.getOutput(ctx, filterOutputID, hideS3Links)
 	if err != nil {
-		log.ErrorCtx(r.Context(), errors.Wrap(err, "unable to get filter output"), logData)
-		if auditErr := api.auditor.Record(r.Context(), getFilterOutputAction, actionUnsuccessful, auditParams); auditErr != nil {
-			handleAuditingFailure(r.Context(), getFilterOutputAction, actionUnsuccessful, w, auditErr, logData)
+		log.Event(ctx, "unable to get filter output", log.ERROR, log.Error(err), logData)
+		if auditErr := api.auditor.Record(ctx, getFilterOutputAction, actionUnsuccessful, auditParams); auditErr != nil {
+			handleAuditingFailure(ctx, getFilterOutputAction, actionUnsuccessful, w, auditErr, logData)
 			return
 		}
 		setErrorCode(w, err)
@@ -62,17 +63,17 @@ func (api *FilterAPI) getFilterOutputHandler(w http.ResponseWriter, r *http.Requ
 
 	bytes, err := json.Marshal(filterOutput)
 	if err != nil {
-		log.ErrorCtx(r.Context(), errors.Wrap(err, "failed to marshal filter output into bytes"), logData)
-		if auditErr := api.auditor.Record(r.Context(), getFilterOutputAction, actionUnsuccessful, auditParams); auditErr != nil {
-			handleAuditingFailure(r.Context(), getFilterOutputAction, actionUnsuccessful, w, auditErr, logData)
+		log.Event(ctx, "failed to marshal filter output into bytes", log.ERROR, log.Error(err), logData)
+		if auditErr := api.auditor.Record(ctx, getFilterOutputAction, actionUnsuccessful, auditParams); auditErr != nil {
+			handleAuditingFailure(ctx, getFilterOutputAction, actionUnsuccessful, w, auditErr, logData)
 			return
 		}
 		http.Error(w, internalError, http.StatusInternalServerError)
 		return
 	}
 
-	if auditErr := api.auditor.Record(r.Context(), getFilterOutputAction, actionSuccessful, auditParams); auditErr != nil {
-		handleAuditingFailure(r.Context(), getFilterOutputAction, actionSuccessful, w, auditErr, logData)
+	if auditErr := api.auditor.Record(ctx, getFilterOutputAction, actionSuccessful, auditParams); auditErr != nil {
+		handleAuditingFailure(ctx, getFilterOutputAction, actionSuccessful, w, auditErr, logData)
 		return
 	}
 
@@ -80,12 +81,12 @@ func (api *FilterAPI) getFilterOutputHandler(w http.ResponseWriter, r *http.Requ
 	w.WriteHeader(http.StatusOK)
 	_, err = w.Write(bytes)
 	if err != nil {
-		log.ErrorCtx(r.Context(), errors.Wrap(err, "failed to write bytes for http response"), logData)
+		log.Event(ctx, "failed to write bytes for http response", log.ERROR, log.Error(err), logData)
 		setErrorCode(w, err)
 		return
 	}
 
-	log.InfoCtx(r.Context(), "got filter output", logData)
+	log.Event(ctx, "got filter output", log.INFO, logData)
 }
 
 func (api *FilterAPI) updateFilterOutputHandler(w http.ResponseWriter, r *http.Request) {
@@ -96,19 +97,20 @@ func (api *FilterAPI) updateFilterOutputHandler(w http.ResponseWriter, r *http.R
 	filterOutputID := vars["filter_output_id"]
 
 	logData := log.Data{"filter_output_id": filterOutputID}
-	log.InfoCtx(r.Context(), "handling update filter output request", logData)
+	ctx := r.Context()
+	log.Event(ctx, "handling update filter output request", log.INFO, logData)
 
 	auditParams := common.Params{"filter_output_id": filterOutputID}
-	if auditErr := api.auditor.Record(r.Context(), updateFilterOutputAction, actionAttempted, auditParams); auditErr != nil {
-		handleAuditingFailure(r.Context(), updateFilterOutputAction, actionAttempted, w, auditErr, logData)
+	if auditErr := api.auditor.Record(ctx, updateFilterOutputAction, actionAttempted, auditParams); auditErr != nil {
+		handleAuditingFailure(ctx, updateFilterOutputAction, actionAttempted, w, auditErr, logData)
 		return
 	}
 
 	filterOutput, err := models.CreateFilter(r.Body)
 	if err != nil {
-		log.ErrorCtx(r.Context(), errors.Wrap(err, "unable to unmarshal request body"), logData)
-		if auditErr := api.auditor.Record(r.Context(), updateFilterOutputAction, actionUnsuccessful, auditParams); auditErr != nil {
-			handleAuditingFailure(r.Context(), updateFilterOutputAction, actionUnsuccessful, w, auditErr, logData)
+		log.Event(ctx, "unable to unmarshal request body", log.ERROR, log.Error(err), logData)
+		if auditErr := api.auditor.Record(ctx, updateFilterOutputAction, actionUnsuccessful, auditParams); auditErr != nil {
+			handleAuditingFailure(ctx, updateFilterOutputAction, actionUnsuccessful, w, auditErr, logData)
 			return
 		}
 		http.Error(w, badRequest, http.StatusBadRequest)
@@ -116,19 +118,19 @@ func (api *FilterAPI) updateFilterOutputHandler(w http.ResponseWriter, r *http.R
 	}
 	logData["filter_output"] = filterOutput
 
-	err = api.updateFilterOutput(r.Context(), filterOutputID, filterOutput)
+	err = api.updateFilterOutput(ctx, filterOutputID, filterOutput)
 	if err != nil {
-		log.ErrorCtx(r.Context(), errors.Wrap(err, "failed to update filter output"), logData)
-		if auditErr := api.auditor.Record(r.Context(), updateFilterOutputAction, actionUnsuccessful, auditParams); auditErr != nil {
-			handleAuditingFailure(r.Context(), updateFilterOutputAction, actionUnsuccessful, w, auditErr, logData)
+		log.Event(ctx, "failed to update filter output", log.ERROR, log.Error(err), logData)
+		if auditErr := api.auditor.Record(ctx, updateFilterOutputAction, actionUnsuccessful, auditParams); auditErr != nil {
+			handleAuditingFailure(ctx, updateFilterOutputAction, actionUnsuccessful, w, auditErr, logData)
 			return
 		}
 		setErrorCode(w, err)
 		return
 	}
 
-	if auditErr := api.auditor.Record(r.Context(), updateFilterOutputAction, actionSuccessful, auditParams); auditErr != nil {
-		logAuditFailure(r.Context(), updateFilterOutputAction, actionSuccessful, auditErr, logData)
+	if auditErr := api.auditor.Record(ctx, updateFilterOutputAction, actionSuccessful, auditParams); auditErr != nil {
+		logAuditFailure(ctx, updateFilterOutputAction, actionSuccessful, auditErr, logData)
 	}
 
 	setJSONContentType(w)
@@ -138,17 +140,17 @@ func (api *FilterAPI) updateFilterOutputHandler(w http.ResponseWriter, r *http.R
 func (api *FilterAPI) updateFilterOutput(ctx context.Context, filterOutputID string, filterOutput *models.Filter) error {
 
 	logData := log.Data{"filter_output_id": filterOutputID}
-	log.InfoCtx(ctx, "updating filter output", logData)
+	log.Event(ctx, "updating filter output", logData)
 
 	if !common.IsCallerPresent(ctx) {
-		log.ErrorCtx(ctx, errors.Wrap(filters.ErrUnauthorised, "failed to update filter output"), logData)
+		log.Event(ctx, "failed to update filter output", log.ERROR, log.Error(filters.ErrUnauthorised), logData)
 		return filters.ErrUnauthorised
 	}
 
 	// check filter output resource for current downloads and published flag
 	previousFilterOutput, err := api.dataStore.GetFilterOutput(filterOutputID)
 	if err != nil {
-		log.ErrorCtx(ctx, errors.Wrap(err, "unable to get current filter output"), logData)
+		log.Event(ctx, "unable to get current filter output", log.ERROR, log.Error(err), logData)
 		return err
 	}
 
@@ -156,7 +158,7 @@ func (api *FilterAPI) updateFilterOutput(ctx context.Context, filterOutputID str
 	logData["current_filter_timestamp"] = timestamp
 
 	if err = filterOutput.ValidateFilterOutputUpdate(previousFilterOutput); err != nil {
-		log.ErrorCtx(ctx, errors.Wrap(err, "filter output failed validation"), logData)
+		log.Event(ctx, "filter output failed validation", log.ERROR, log.Error(err), logData)
 		return filters.NewForbiddenErr(err.Error())
 	}
 
@@ -174,19 +176,19 @@ func (api *FilterAPI) updateFilterOutput(ctx context.Context, filterOutputID str
 
 	isNowStatusCompleted := false
 	if downloadsAreGenerated(filterOutput) {
-		log.InfoCtx(ctx, "downloads have been generated, setting filter output status to completed", logData)
+		log.Event(ctx, "downloads have been generated, setting filter output status to completed", logData)
 		filterOutput.State = models.CompletedState
 		isNowStatusCompleted = true
 	}
 
 	if err = api.dataStore.UpdateFilterOutput(filterOutput, timestamp); err != nil {
-		log.ErrorCtx(ctx, errors.Wrap(err, "unable to update filter output"), logData)
+		log.Event(ctx, "unable to update filter output", log.ERROR, log.Error(err), logData)
 		return err
 	}
 
 	// save the completed event after saving the filter output if its now complete
 	if isNowStatusCompleted {
-		log.InfoCtx(ctx, "filter output status is now completed, creating completed event", logData)
+		log.Event(ctx, "filter output status is now completed, creating completed event", logData)
 
 		completedEvent := &models.Event{
 			Type: eventFilterOutputCompleted,
@@ -194,7 +196,7 @@ func (api *FilterAPI) updateFilterOutput(ctx context.Context, filterOutputID str
 		}
 
 		if err = api.dataStore.AddEventToFilterOutput(filterOutput.FilterID, completedEvent); err != nil {
-			log.ErrorCtx(ctx, errors.Wrap(err, "failed to add event to filter output"), logData)
+			log.Event(ctx, "failed to add event to filter output", log.ERROR, log.Error(err), logData)
 			return err
 		}
 	}
@@ -229,8 +231,9 @@ func (api *FilterAPI) getFilterOutputPreviewHandler(w http.ResponseWriter, r *ht
 	logData := log.Data{"filter_output_id": filterOutputID}
 
 	auditParams := common.Params{"filter_output_id": filterOutputID}
-	if auditErr := api.auditor.Record(r.Context(), getFilterPreviewAction, actionAttempted, auditParams); auditErr != nil {
-		handleAuditingFailure(r.Context(), getFilterPreviewAction, actionAttempted, w, auditErr, logData)
+	ctx := r.Context()
+	if auditErr := api.auditor.Record(ctx, getFilterPreviewAction, actionAttempted, auditParams); auditErr != nil {
+		handleAuditingFailure(ctx, getFilterPreviewAction, actionAttempted, w, auditErr, logData)
 		return
 	}
 
@@ -240,9 +243,9 @@ func (api *FilterAPI) getFilterOutputPreviewHandler(w http.ResponseWriter, r *ht
 		limit, err = strconv.Atoi(requestedLimit)
 		if err != nil {
 			logData["requested_limit"] = requestedLimit
-			log.ErrorCtx(r.Context(), errors.Wrap(err, "requested limit is not a number"), logData)
-			if auditErr := api.auditor.Record(r.Context(), getFilterPreviewAction, actionUnsuccessful, auditParams); auditErr != nil {
-				handleAuditingFailure(r.Context(), getFilterPreviewAction, actionUnsuccessful, w, auditErr, logData)
+			log.Event(ctx, "requested limit is not a number", log.ERROR, log.Error(err), logData)
+			if auditErr := api.auditor.Record(ctx, getFilterPreviewAction, actionUnsuccessful, auditParams); auditErr != nil {
+				handleAuditingFailure(ctx, getFilterPreviewAction, actionUnsuccessful, w, auditErr, logData)
 				return
 			}
 			http.Error(w, errRequestLimitNotNumber.Error(), http.StatusBadRequest)
@@ -250,11 +253,11 @@ func (api *FilterAPI) getFilterOutputPreviewHandler(w http.ResponseWriter, r *ht
 		}
 	}
 
-	preview, err := api.getFilterOutputPreview(r.Context(), filterOutputID, limit)
+	preview, err := api.getFilterOutputPreview(ctx, filterOutputID, limit)
 	if err != nil {
-		log.ErrorCtx(r.Context(), errors.Wrap(err, "failed to get filter output preview"), logData)
-		if auditErr := api.auditor.Record(r.Context(), getFilterPreviewAction, actionUnsuccessful, auditParams); auditErr != nil {
-			handleAuditingFailure(r.Context(), getFilterPreviewAction, actionUnsuccessful, w, auditErr, logData)
+		log.Event(ctx, "failed to get filter output preview", log.ERROR, log.Error(err), logData)
+		if auditErr := api.auditor.Record(ctx, getFilterPreviewAction, actionUnsuccessful, auditParams); auditErr != nil {
+			handleAuditingFailure(ctx, getFilterPreviewAction, actionUnsuccessful, w, auditErr, logData)
 			return
 		}
 		setErrorCode(w, err)
@@ -263,17 +266,17 @@ func (api *FilterAPI) getFilterOutputPreviewHandler(w http.ResponseWriter, r *ht
 
 	bytes, err := json.Marshal(preview)
 	if err != nil {
-		log.ErrorCtx(r.Context(), errors.Wrap(err, "failed to marshal preview of filter ouput into bytes"), logData)
-		if auditErr := api.auditor.Record(r.Context(), getFilterPreviewAction, actionUnsuccessful, auditParams); auditErr != nil {
-			handleAuditingFailure(r.Context(), getFilterPreviewAction, actionUnsuccessful, w, auditErr, logData)
+		log.Event(ctx, "failed to marshal preview of filter ouput into bytes", log.ERROR, log.Error(err), logData)
+		if auditErr := api.auditor.Record(ctx, getFilterPreviewAction, actionUnsuccessful, auditParams); auditErr != nil {
+			handleAuditingFailure(ctx, getFilterPreviewAction, actionUnsuccessful, w, auditErr, logData)
 			return
 		}
 		http.Error(w, internalError, http.StatusInternalServerError)
 		return
 	}
 
-	if auditErr := api.auditor.Record(r.Context(), getFilterPreviewAction, actionSuccessful, auditParams); auditErr != nil {
-		handleAuditingFailure(r.Context(), getFilterPreviewAction, actionSuccessful, w, auditErr, logData)
+	if auditErr := api.auditor.Record(ctx, getFilterPreviewAction, actionSuccessful, auditParams); auditErr != nil {
+		handleAuditingFailure(ctx, getFilterPreviewAction, actionSuccessful, w, auditErr, logData)
 		return
 	}
 
@@ -281,12 +284,12 @@ func (api *FilterAPI) getFilterOutputPreviewHandler(w http.ResponseWriter, r *ht
 	w.WriteHeader(http.StatusOK)
 	_, err = w.Write(bytes)
 	if err != nil {
-		log.ErrorCtx(r.Context(), errors.Wrap(err, "failed to write bytes for http response"), logData)
+		log.Event(ctx, "failed to write bytes for http response", log.ERROR, log.Error(err), logData)
 		setErrorCode(w, err)
 		return
 	}
 
-	log.InfoCtx(r.Context(), "preview filter output", logData)
+	log.Event(ctx, "preview filter output", log.INFO, logData)
 }
 
 func (api *FilterAPI) getFilterOutputPreview(ctx context.Context, filterOutputID string, limit int) (*preview.FilterPreview, error) {
@@ -295,25 +298,25 @@ func (api *FilterAPI) getFilterOutputPreview(ctx context.Context, filterOutputID
 		"filter_output_id": filterOutputID,
 		"limit":            limit,
 	}
-	log.InfoCtx(ctx, "get filter output preview", logData)
+	log.Event(ctx, "get filter output preview", logData)
 
 	hideS3Links := true // do not require s3 links for preview
 	filterOutput, err := api.getOutput(ctx, filterOutputID, hideS3Links)
 	if err != nil {
-		log.ErrorCtx(ctx, errors.Wrap(err, "failed to find filter output"), logData)
+		log.Event(ctx, "failed to find filter output", log.ERROR, log.Error(err), logData)
 		return nil, err
 	}
 
 	logData["filter_output_dimensions"] = filterOutput.Dimensions
 
 	if len(filterOutput.Dimensions) == 0 {
-		log.ErrorCtx(ctx, errMissingDimensions, logData)
+		log.Event(ctx, "no dimensions are present in the filter", log.ERROR, log.Error(errMissingDimensions), logData)
 		return nil, errMissingDimensions
 	}
 
 	filterOutputPreview, err := api.preview.GetPreview(ctx, filterOutput, limit)
 	if err != nil {
-		log.ErrorCtx(ctx, errors.Wrap(err, "failed to query the graph database"), logData)
+		log.Event(ctx, "failed to query the graph database", log.ERROR, log.Error(err), logData)
 		return nil, filters.ErrInternalError
 	}
 
@@ -326,7 +329,7 @@ func (api *FilterAPI) getOutput(ctx context.Context, filterID string, hideS3Link
 
 	output, err := api.dataStore.GetFilterOutput(filterID)
 	if err != nil {
-		log.ErrorCtx(ctx, err, logData)
+		log.Event(ctx, "error getting filter output", log.Error(err), logData)
 		return nil, err
 	}
 
@@ -335,7 +338,7 @@ func (api *FilterAPI) getOutput(ctx context.Context, filterID string, hideS3Link
 	// Hide private download links if request is not authenticated
 	if hideS3Links {
 
-		log.InfoCtx(ctx, "a valid download service token has not been provided. hiding links", logData)
+		log.Event(ctx, "a valid download service token has not been provided. hiding links", logData)
 
 		if output.Downloads != nil {
 			if output.Downloads.CSV != nil {
@@ -348,7 +351,7 @@ func (api *FilterAPI) getOutput(ctx context.Context, filterID string, hideS3Link
 			}
 		}
 	} else {
-		log.InfoCtx(ctx, "a valid download service token has been provided. not hiding private links", logData)
+		log.Event(ctx, "a valid download service token has been provided. not hiding private links", logData)
 	}
 
 	//only return the filter if it is for published data or via authenticated request
@@ -356,11 +359,11 @@ func (api *FilterAPI) getOutput(ctx context.Context, filterID string, hideS3Link
 		return output, nil
 	}
 
-	log.InfoCtx(ctx, "unauthenticated request to access unpublished filter output", logData)
+	log.Event(ctx, "unauthenticated request to access unpublished filter output", logData)
 
 	filter, err := api.getFilterBlueprint(ctx, output.Links.FilterBlueprint.ID)
 	if err != nil {
-		log.ErrorCtx(ctx, errors.New("failed to retrieve filter blueprint"), logData)
+		log.Event(ctx, "failed to retrieve filter blueprint", log.ERROR, log.Error(err), logData)
 		return nil, filters.ErrFilterOutputNotFound
 	}
 
@@ -368,7 +371,7 @@ func (api *FilterAPI) getOutput(ctx context.Context, filterID string, hideS3Link
 	if filter.Published != nil && *filter.Published == models.Published {
 		output.Published = &models.Published
 		if err := api.dataStore.UpdateFilterOutput(output, output.UniqueTimestamp); err != nil {
-			log.ErrorCtx(ctx, err, logData)
+			log.Event(ctx, "error updating filter output", log.Error(err), logData)
 			return nil, filters.ErrFilterOutputNotFound
 		}
 
@@ -437,11 +440,12 @@ func (api *FilterAPI) addEventHandler(w http.ResponseWriter, r *http.Request) {
 	filterOutputID := vars["filter_output_id"]
 
 	logData := log.Data{"filter_output_id": filterOutputID}
-	log.InfoCtx(r.Context(), "add event to filter output endpoint called", logData)
+	ctx := r.Context()
+	log.Event(ctx, "add event to filter output endpoint called", log.INFO, logData)
 
 	bytes, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		log.ErrorCtx(r.Context(), errors.Wrap(err, "failed to read request body"), nil)
+		log.Event(ctx, "failed to read request body", log.ERROR, log.Error(err))
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -449,23 +453,23 @@ func (api *FilterAPI) addEventHandler(w http.ResponseWriter, r *http.Request) {
 	event := &models.Event{}
 	err = json.Unmarshal([]byte(bytes), event)
 	if err != nil {
-		log.ErrorCtx(r.Context(), errors.Wrap(err, "failed to parse json body"), nil)
+		log.Event(ctx, "failed to parse json body", log.ERROR, log.Error(err))
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	logData["event"] = event
-	log.InfoCtx(r.Context(), "adding event to filter output", logData)
+	log.Event(ctx, "adding event to filter output", log.INFO, logData)
 
 	err = api.addEvent(filterOutputID, event)
 	if err != nil {
-		log.ErrorCtx(r.Context(), errors.Wrap(err, "failed to add event to filter output"), logData)
+		log.Event(ctx, "failed to add event to filter output", log.ERROR, log.Error(err), logData)
 		setErrorCode(w, err)
 		return
 	}
 
 	w.WriteHeader(http.StatusCreated)
-	log.InfoCtx(r.Context(), "added event to filter output", logData)
+	log.Event(ctx, "added event to filter output", log.INFO, logData)
 }
 
 func (api *FilterAPI) addEvent(filterOutputID string, event *models.Event) error {

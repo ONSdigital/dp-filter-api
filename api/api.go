@@ -2,18 +2,16 @@ package api
 
 import (
 	"context"
-
+	"github.com/ONSdigital/dp-api-clients-go/dataset"
 	"github.com/ONSdigital/dp-filter-api/models"
 	"github.com/ONSdigital/dp-filter-api/preview"
 	"github.com/ONSdigital/go-ns/audit"
-	"github.com/ONSdigital/go-ns/clients/dataset"
-	"github.com/ONSdigital/go-ns/healthcheck"
+	"github.com/ONSdigital/go-ns/handlers/collectionID"
 	"github.com/ONSdigital/go-ns/identity"
-	"github.com/ONSdigital/go-ns/log"
 	"github.com/ONSdigital/go-ns/server"
+	"github.com/ONSdigital/log.go/log"
 	"github.com/gorilla/mux"
 	"github.com/justinas/alice"
-	"github.com/ONSdigital/go-ns/handlers/collectionID"
 )
 
 //go:generate moq -out datastoretest/preview.go -pkg datastoretest . PreviewDataset
@@ -51,7 +49,8 @@ type FilterAPI struct {
 }
 
 // CreateFilterAPI manages all the routes configured to API
-func CreateFilterAPI(host, bindAddr, zebedeeURL string,
+func CreateFilterAPI(ctx context.Context,
+	host, bindAddr, zebedeeURL string,
 	datastore DataStore,
 	outputQueue OutputQueue,
 	errorChan chan error,
@@ -64,14 +63,11 @@ func CreateFilterAPI(host, bindAddr, zebedeeURL string,
 	router := mux.NewRouter()
 	routes(host, router, datastore, outputQueue, datasetAPI, preview, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, auditor)
 
-	healthcheckHandler := healthcheck.NewMiddleware(healthcheck.Do)
-	middlewareChain := alice.New(healthcheckHandler)
-
-	middlewareChain.Append(collectionID.CheckHeader)
+	middlewareChain := alice.New(collectionID.CheckHeader)
 
 	if enablePrivateEndpoints {
 
-		log.Debug("private endpoints are enabled. using identity middleware", nil)
+		log.Event(ctx, "private endpoints are enabled. using identity middleware", log.INFO)
 		identityHandler := identity.Handler(zebedeeURL)
 		middlewareChain = middlewareChain.Append(identityHandler)
 	}
@@ -83,9 +79,9 @@ func CreateFilterAPI(host, bindAddr, zebedeeURL string,
 	httpServer.HandleOSSignals = false
 
 	go func() {
-		log.Debug("Starting api...", nil)
+		log.Event(ctx, "Starting api...", log.INFO)
 		if err := httpServer.ListenAndServe(); err != nil {
-			log.ErrorC("api http server returned error", err, nil)
+			log.Event(ctx, "api http server returned error", log.ERROR, log.Error(err))
 			errorChan <- err
 		}
 	}()
@@ -142,6 +138,6 @@ func Close(ctx context.Context) error {
 		return err
 	}
 
-	log.InfoCtx(ctx, "graceful shutdown of http server complete", nil)
+	log.Event(ctx, "graceful shutdown of http server complete", log.INFO)
 	return nil
 }
