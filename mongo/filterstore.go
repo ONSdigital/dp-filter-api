@@ -10,6 +10,7 @@ import (
 	"github.com/ONSdigital/dp-filter-api/config"
 	"github.com/ONSdigital/dp-filter-api/filters"
 	"github.com/ONSdigital/dp-filter-api/models"
+	mongohealth "github.com/ONSdigital/dp-mongodb/health"
 )
 
 // FilterStore containing all filter jobs stored in mongodb
@@ -355,5 +356,14 @@ func validateFilter(filter *models.Filter) {
 
 	if filter.Events == nil {
 		filter.Events = []*models.Event{}
+	}
+}
+
+func (s *FilterStore) HealthCheckClient() *mongohealth.CheckMongoClient {
+	client := mongohealth.NewClient(s.Session)
+
+	return &mongohealth.CheckMongoClient{
+		Client:      *client,
+		Healthcheck: client.Healthcheck,
 	}
 }

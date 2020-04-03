@@ -3,7 +3,9 @@ package api
 import (
 	"context"
 	"github.com/ONSdigital/dp-api-clients-go/dataset"
+	"github.com/ONSdigital/dp-api-clients-go/middleware"
 	"github.com/ONSdigital/dp-filter-api/models"
+	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 	"github.com/ONSdigital/go-ns/audit"
 	"github.com/ONSdigital/go-ns/handlers/collectionID"
 	"github.com/ONSdigital/go-ns/identity"
@@ -57,16 +59,28 @@ func CreateFilterAPI(ctx context.Context,
 	datasetAPI DatasetAPI,
 	preview PreviewDataset,
 	enablePrivateEndpoints bool,
-	downloadServiceURL, downloadServiceToken string,
-	auditor audit.AuditorService) {
+	downloadServiceURL,
+	downloadServiceToken string,
+	auditor audit.AuditorService,
+	hc *healthcheck.HealthCheck) {
 
 	router := mux.NewRouter()
-	routes(host, router, datastore, outputQueue, datasetAPI, preview, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, auditor)
+	routes(host,
+		router,
+		datastore,
+		outputQueue,
+		datasetAPI,
+		preview,
+		enablePrivateEndpoints,
+		downloadServiceURL,
+		downloadServiceToken,
+		auditor)
 
-	middlewareChain := alice.New(collectionID.CheckHeader)
+	middlewareChain := alice.New(
+		middleware.Whitelist(middleware.HealthcheckFilter(hc.Handler)),
+		collectionID.CheckHeader)
 
 	if enablePrivateEndpoints {
-
 		log.Event(ctx, "private endpoints are enabled. using identity middleware", log.INFO)
 		identityHandler := identity.Handler(zebedeeURL)
 		middlewareChain = middlewareChain.Append(identityHandler)
@@ -88,15 +102,7 @@ func CreateFilterAPI(ctx context.Context,
 }
 
 // routes contain all endpoints for API
-func routes(host string,
-	router *mux.Router,
-	dataStore DataStore,
-	outputQueue OutputQueue,
-	datasetAPI DatasetAPI,
-	preview PreviewDataset,
-	enablePrivateEndpoints bool,
-	downloadServiceURL, downloadServiceToken string,
-	auditor audit.AuditorService) *FilterAPI {
+func routes(host string, router *mux.Router, dataStore DataStore, outputQueue OutputQueue, datasetAPI DatasetAPI, preview PreviewDataset, enablePrivateEndpoints bool, downloadServiceURL, downloadServiceToken string, auditor audit.AuditorService) *FilterAPI {
 
 	api := FilterAPI{host: host,
 		dataStore:            dataStore,

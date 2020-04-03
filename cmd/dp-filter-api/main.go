@@ -3,7 +3,10 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/ONSdigital/dp-api-clients-go/health"
+	"github.com/ONSdigital/dp-api-clients-go/zebedee"
 	"github.com/ONSdigital/dp-filter-api/kafkaadapter"
+	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 	mongolib "github.com/ONSdigital/dp-mongodb"
 	"os"
 	"os/signal"
@@ -19,6 +22,15 @@ import (
 	kafka "github.com/ONSdigital/dp-kafka"
 	"github.com/ONSdigital/go-ns/audit"
 	"github.com/ONSdigital/log.go/log"
+)
+
+var (
+	// BuildTime represents the time in which the service was built
+	BuildTime string
+	// GitCommit represents the commit (SHA-1) hash of the service that is running
+	GitCommit string
+	// Version represents the version of the service that is running
+	Version string
 )
 
 func main() {
@@ -85,12 +97,60 @@ func main() {
 	previewDatasets := preview.DatasetStore{Store: observationStore}
 	outputQueue := filterOutputQueue.CreateOutputQueue(producer.Channels().Output)
 
-	//healthTicker := healthcheck.NewTicker(
-	//	cfg.HealthCheckInterval,
-	//	observationStore,
-	//	mongolib.NewHealthCheckClient(dataStore.Session),
-	//	datasetAPI,
-	//)
+	hasErrors := false
+
+	versionInfo, err := healthcheck.NewVersionInfo(BuildTime, GitCommit, Version)
+	if err != nil {
+		log.Event(ctx, "error creating version info", log.FATAL, log.Error(err))
+		hasErrors = true
+	}
+
+	hc := healthcheck.New(versionInfo, cfg.HealthCheckCriticalTimeout, cfg.HealthCheckInterval)
+
+	if err = hc.AddCheck("Dataset API", datasetAPI.Checker); err != nil {
+		log.Event(ctx, "error creating dataset API health check", log.Error(err))
+		hasErrors = true
+	}
+
+	if err = hc.AddCheck("Kafka Producer", producer.Checker); err != nil {
+		log.Event(ctx, "error adding check for kafka producer", log.ERROR, log.Error(err))
+		hasErrors = true
+	}
+
+	if err = hc.AddCheck("GraphDB", observationStore.Checker); err != nil {
+		hasErrors = true
+		log.Event(ctx, "error creating graph db connection", log.ERROR, log.Error(err))
+	}
+
+	checkMongoClient := dataStore.HealthCheckClient()
+	if err = hc.AddCheck("MongoDB", checkMongoClient.Checker); err != nil {
+		log.Event(ctx, "error creating mongodb health check", log.ERROR, log.Error(err))
+		hasErrors = true
+	}
+
+	downloadServiceHealthCheckClient := health.NewClient("Download Service", cfg.DownloadServiceURL)
+	if err = hc.AddCheck("Download Service", downloadServiceHealthCheckClient.Checker); err != nil {
+		log.Event(ctx, "error creating download service health check", log.Error(err))
+		hasErrors = true
+	}
+
+	if cfg.EnablePrivateEndpoints {
+		if err = hc.AddCheck("Kafka Audit Producer", auditProducer.Checker); err != nil {
+			log.Event(ctx, "error adding check for kafka audit producer", log.ERROR, log.Error(err))
+			hasErrors = true
+		}
+
+		// zebedee is used only for identity checking
+		zebedeeClient := zebedee.New(cfg.ZebedeeURL)
+		if err = hc.AddCheck("Zebedee", zebedeeClient.Checker); err != nil {
+			log.Event(ctx, "error creating zebedee health check", log.ERROR, log.Error(err))
+			hasErrors = true
+		}
+	}
+
+	if hasErrors {
+		os.Exit(1)
+	}
 
 	apiErrors := make(chan error, 1)
 
@@ -106,6 +166,7 @@ func main() {
 		cfg.DownloadServiceURL,
 		cfg.DownloadServiceSecretKey,
 		auditor,
+		&hc,
 	)
 
 	// block until a fatal error occurs
@@ -125,7 +186,7 @@ func main() {
 			logIfError(ctx, err, "unable to close api server")
 		}
 
-		//healthTicker.Close()
+		hc.Stop()
 
 		if serviceList.FilterStore {
 			log.Event(ctx, "closing filter store")
