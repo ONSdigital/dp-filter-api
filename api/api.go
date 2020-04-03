@@ -4,7 +4,6 @@ import (
 	"context"
 	"github.com/ONSdigital/dp-api-clients-go/dataset"
 	"github.com/ONSdigital/dp-filter-api/models"
-	"github.com/ONSdigital/dp-filter-api/preview"
 	"github.com/ONSdigital/go-ns/audit"
 	"github.com/ONSdigital/go-ns/handlers/collectionID"
 	"github.com/ONSdigital/go-ns/identity"
@@ -20,9 +19,9 @@ var httpServer *server.Server
 
 // DatasetAPI - An interface used to access the DatasetAPI
 type DatasetAPI interface {
-	GetVersion(ctx context.Context, id, edition, version string) (m dataset.Version, err error)
-	GetDimensions(ctx context.Context, id, edition, version string) (m dataset.Dimensions, err error)
-	GetOptions(ctx context.Context, id, edition, version, dimension string) (m dataset.Options, err error)
+	GetVersion(ctx context.Context, userAuthToken, serviceAuthToken, downloadServiceAuthToken, collectionID, datasetID, edition, version string) (m dataset.Version, err error)
+	GetVersionDimensions(ctx context.Context, userAuthToken, serviceAuthToken, collectionID, id, edition, version string) (m dataset.VersionDimensions, err error)
+	GetOptions(ctx context.Context, userAuthToken, serviceAuthToken, collectionID, id, edition, version, dimension string) (m dataset.Options, err error)
 }
 
 // OutputQueue - An interface used to queue filter outputs
@@ -32,7 +31,7 @@ type OutputQueue interface {
 
 // PreviewDataset An interface used to generate previews
 type PreviewDataset interface {
-	GetPreview(ctx context.Context, filter *models.Filter, limit int) (*preview.FilterPreview, error)
+	GetPreview(ctx context.Context, filter *models.Filter, limit int) (*models.FilterPreview, error)
 }
 
 // FilterAPI manages importing filters against a dataset
@@ -46,6 +45,7 @@ type FilterAPI struct {
 	downloadServiceURL   string
 	downloadServiceToken string
 	auditor              audit.AuditorService
+	serviceAuthToken     string
 }
 
 // CreateFilterAPI manages all the routes configured to API

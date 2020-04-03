@@ -16,7 +16,6 @@ import (
 	"time"
 
 	"github.com/ONSdigital/dp-filter-api/filters"
-	"github.com/ONSdigital/dp-filter-api/preview"
 	"github.com/ONSdigital/go-ns/common"
 	"github.com/ONSdigital/go-ns/request"
 	"github.com/pkg/errors"
@@ -292,7 +291,7 @@ func (api *FilterAPI) getFilterOutputPreviewHandler(w http.ResponseWriter, r *ht
 	log.Event(ctx, "preview filter output", log.INFO, logData)
 }
 
-func (api *FilterAPI) getFilterOutputPreview(ctx context.Context, filterOutputID string, limit int) (*preview.FilterPreview, error) {
+func (api *FilterAPI) getFilterOutputPreview(ctx context.Context, filterOutputID string, limit int) (*models.FilterPreview, error) {
 
 	logData := log.Data{
 		"filter_output_id": filterOutputID,

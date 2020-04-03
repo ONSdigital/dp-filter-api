@@ -2,14 +2,14 @@ package mongo
 
 import (
 	"fmt"
+	mongolib "github.com/ONSdigital/dp-mongodb"
+	"github.com/globalsign/mgo"
+	"github.com/globalsign/mgo/bson"
 	"time"
 
 	"github.com/ONSdigital/dp-filter-api/config"
 	"github.com/ONSdigital/dp-filter-api/filters"
 	"github.com/ONSdigital/dp-filter-api/models"
-	mongolib "github.com/ONSdigital/go-ns/mongo"
-	"github.com/gedge/mgo"
-	"github.com/gedge/mgo/bson"
 )
 
 // FilterStore containing all filter jobs stored in mongodb
@@ -37,7 +37,7 @@ func CreateFilterStore(cfg config.MongoConfig, host string) (*FilterStore, error
 }
 
 // AddFilter to the data store
-func (s *FilterStore) AddFilter(host string, filter *models.Filter) (*models.Filter, error) {
+func (s *FilterStore) AddFilter(filter *models.Filter) (*models.Filter, error) {
 	session := s.Session.Copy()
 	defer session.Close()
 

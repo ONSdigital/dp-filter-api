@@ -13,19 +13,19 @@ var (
 	lockObservationStoreMockStreamCSVRows sync.RWMutex
 )
 
-// ObservationStoreMock is a mock implementation of ObservationStore.
+// ObservationStoreMock is a mock implementation of preview.ObservationStore.
 //
 //     func TestSomethingThatUsesObservationStore(t *testing.T) {
 //
-//         // make and configure a mocked ObservationStore
+//         // make and configure a mocked preview.ObservationStore
 //         mockedObservationStore := &ObservationStoreMock{
 //             StreamCSVRowsFunc: func(ctx context.Context, filter *observation.Filter, limit *int) (observation.StreamRowReader, error) {
-// 	               panic("TODO: mock out the StreamCSVRows method")
+// 	               panic("mock out the StreamCSVRows method")
 //             },
 //         }
 //
-//         // TODO: use mockedObservationStore in code that requires ObservationStore
-//         //       and then make assertions.
+//         // use mockedObservationStore in code that requires preview.ObservationStore
+//         // and then make assertions.
 //
 //     }
 type ObservationStoreMock struct {

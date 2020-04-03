@@ -2,8 +2,8 @@ package mocks
 
 import (
 	"context"
+	"github.com/ONSdigital/dp-api-clients-go/dataset"
 	"github.com/ONSdigital/dp-filter-api/filters"
-	"github.com/ONSdigital/go-ns/clients/dataset"
 )
 
 // DatasetAPI represents a list of error flags to set error in mocked dataset API
@@ -14,7 +14,7 @@ type DatasetAPI struct {
 }
 
 // GetVersion represents the mocked version of getting an version document from dataset API
-func (ds *DatasetAPI) GetVersion(ctx context.Context, id, edition, version string) (m dataset.Version, err error) {
+func (ds *DatasetAPI) GetVersion(ctx context.Context, userAuthToken, serviceAuthToken, downloadServiceAuthToken, collectionID, datasetID, edition, version string) (m dataset.Version, err error) {
 	if ds.InternalServerError {
 		return m, errorInternalServer
 	}
@@ -56,22 +56,22 @@ func (ds *DatasetAPI) GetVersion(ctx context.Context, id, edition, version strin
 }
 
 // GetVersionDimensions represents the mocked version of getting a list of dimensions from the dataset API
-func (ds *DatasetAPI) GetDimensions(ctx context.Context, id, edition, version string) (m dataset.Dimensions, err error) {
+func (ds *DatasetAPI) GetVersionDimensions(ctx context.Context, userAuthToken, serviceAuthToken, collectionID, id, edition, version string) (m dataset.VersionDimensions, err error) {
 	if ds.InternalServerError {
 		return m, errorInternalServer
 	}
 
-	dimension := dataset.Dimension{
-		Name: "age",
+	dimension := dataset.VersionDimension{
+		Label: "age",
 	}
 
-	return dataset.Dimensions{
-		Items: []dataset.Dimension{dimension},
+	return dataset.VersionDimensions{
+		Items: []dataset.VersionDimension{dimension},
 	}, nil
 }
 
 // GetVersionDimensionOptions represents the mocked version of getting a list of dimension options from the dataset API
-func (ds *DatasetAPI) GetOptions(ctx context.Context, id, edition, version, dimension string) (m dataset.Options, err error) {
+func (ds *DatasetAPI) GetOptions(ctx context.Context, userAuthToken, serviceAuthToken, collectionID, id, edition, version, dimension string) (m dataset.Options, err error) {
 	if ds.InternalServerError {
 		return m, errorInternalServer
 	}

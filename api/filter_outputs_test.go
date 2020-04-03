@@ -1,6 +1,7 @@
 package api
 
 import (
+	"github.com/globalsign/mgo/bson"
 	"testing"
 
 	"encoding/json"
@@ -10,7 +11,6 @@ import (
 	"github.com/ONSdigital/dp-filter-api/api/datastoretest"
 	"github.com/ONSdigital/dp-filter-api/filters"
 	"github.com/ONSdigital/dp-filter-api/models"
-	"github.com/ONSdigital/dp-filter-api/preview"
 	"github.com/gorilla/mux"
 	. "github.com/smartystreets/goconvey/convey"
 
@@ -21,7 +21,6 @@ import (
 
 	"github.com/ONSdigital/dp-filter-api/mocks"
 	"github.com/ONSdigital/go-ns/common"
-	"github.com/gedge/mgo/bson"
 )
 
 const (
@@ -870,8 +869,8 @@ func TestSuccessfulGetPreview(t *testing.T) {
 
 		w := httptest.NewRecorder()
 		previewMockForLimit := &datastoretest.PreviewDatasetMock{
-			GetPreviewFunc: func(ctx context.Context, filter *models.Filter, limit int) (*preview.FilterPreview, error) {
-				return &preview.FilterPreview{}, nil
+			GetPreviewFunc: func(ctx context.Context, filter *models.Filter, limit int) (*models.FilterPreview, error) {
+				return &models.FilterPreview{}, nil
 			},
 		}
 		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMockForLimit, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, mockAuditor)
@@ -929,7 +928,7 @@ func TestFailedGetPreview(t *testing.T) {
 	Convey("Requesting a preview with no neo4j database connection", t, func() {
 		mockAuditor := getMockAuditor()
 		previewMockInternalError := &datastoretest.PreviewDatasetMock{
-			GetPreviewFunc: func(ctx context.Context, filter *models.Filter, limit int) (*preview.FilterPreview, error) {
+			GetPreviewFunc: func(ctx context.Context, filter *models.Filter, limit int) (*models.FilterPreview, error) {
 				return nil, errors.New("internal error")
 			},
 		}

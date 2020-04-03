@@ -2,7 +2,7 @@ package mongo
 
 import (
 	"github.com/ONSdigital/dp-filter-api/models"
-	"github.com/gedge/mgo/bson"
+	"github.com/globalsign/mgo/bson"
 	. "github.com/smartystreets/goconvey/convey"
 	"testing"
 )

@@ -169,7 +169,7 @@ func (api *FilterAPI) createFilterBlueprint(ctx context.Context, filter *models.
 		return nil, filters.NewBadRequestErr(err.Error())
 	}
 
-	if _, err = api.dataStore.AddFilter(api.host, newFilter); err != nil {
+	if _, err = api.dataStore.AddFilter(newFilter); err != nil {
 		log.Event(ctx, "failed to create new filter blueprint", log.ERROR, log.Error(err), logData)
 		return nil, err
 	}
@@ -493,7 +493,15 @@ func (api *FilterAPI) checkFilterOptions(ctx context.Context, newFilter *models.
 
 func (api *FilterAPI) getVersion(ctx context.Context, dataset *models.Dataset) (*datasetAPI.Version, error) {
 
-	dimensions, err := api.datasetAPI.GetVersion(ctx, dataset.ID, dataset.Edition, strconv.Itoa(dataset.Version))
+	dimensions, err := api.datasetAPI.GetVersion(ctx,
+		getUserAuthToken(ctx),
+		api.serviceAuthToken,
+		"",
+		getCollectionID(ctx),
+		dataset.ID,
+		dataset.Edition,
+		strconv.Itoa(dataset.Version))
+
 	if err != nil {
 		if apiErr, ok := err.(*datasetAPI.ErrInvalidDatasetAPIResponse); ok {
 			switch apiErr.Code() {
@@ -508,9 +516,36 @@ func (api *FilterAPI) getVersion(ctx context.Context, dataset *models.Dataset) (
 	return &dimensions, nil
 }
 
-func (api *FilterAPI) getDimensions(ctx context.Context, dataset *models.Dataset) (*datasetAPI.Dimensions, error) {
+func getUserAuthToken(ctx context.Context) string {
 
-	dimensions, err := api.datasetAPI.GetDimensions(ctx, dataset.ID, dataset.Edition, strconv.Itoa(dataset.Version))
+	if common.IsFlorenceIdentityPresent(ctx) {
+		return ctx.Value(common.FlorenceIdentityKey).(string)
+	}
+
+	return ""
+}
+
+func getCollectionID(ctx context.Context) string {
+
+	rawKeyValue := ctx.Value(common.CollectionIDHeaderKey)
+
+	if rawKeyValue != nil {
+		collectionID := rawKeyValue.(string)
+		return collectionID
+	}
+
+	return ""
+}
+
+func (api *FilterAPI) getDimensions(ctx context.Context, dataset *models.Dataset) (*datasetAPI.VersionDimensions, error) {
+
+	dimensions, err := api.datasetAPI.GetVersionDimensions(ctx,
+		getUserAuthToken(ctx),
+		api.serviceAuthToken,
+		getCollectionID(ctx),
+		dataset.ID,
+		dataset.Edition,
+		strconv.Itoa(dataset.Version))
 	if err != nil {
 		if apiErr, ok := err.(*datasetAPI.ErrInvalidDatasetAPIResponse); ok {
 			switch apiErr.Code() {
@@ -527,7 +562,15 @@ func (api *FilterAPI) getDimensions(ctx context.Context, dataset *models.Dataset
 
 func (api *FilterAPI) getDimensionOptions(ctx context.Context, dataset *models.Dataset, dimensionName string) (*datasetAPI.Options, error) {
 
-	options, err := api.datasetAPI.GetOptions(ctx, dataset.ID, dataset.Edition, strconv.Itoa(dataset.Version), dimensionName)
+	options, err := api.datasetAPI.GetOptions(ctx,
+		getUserAuthToken(ctx),
+		api.serviceAuthToken,
+		getCollectionID(ctx),
+		dataset.ID,
+		dataset.Edition,
+		strconv.Itoa(dataset.Version),
+		dimensionName)
+
 	if err != nil {
 		if apiErr, ok := err.(*datasetAPI.ErrInvalidDatasetAPIResponse); ok {
 			switch apiErr.Code() {

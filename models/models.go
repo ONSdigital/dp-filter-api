@@ -4,13 +4,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/ONSdigital/dp-api-clients-go/dataset"
+	"github.com/globalsign/mgo/bson"
 	"io"
 	"io/ioutil"
 	"time"
-
-	"github.com/ONSdigital/go-ns/clients/dataset"
-
-	"github.com/gedge/mgo/bson"
 )
 
 // A list of states
@@ -121,6 +119,14 @@ type Event struct {
 	Time time.Time `bson:"time,omitempty" json:"time"`
 }
 
+// FilterPreview contains the results of a requested preview
+type FilterPreview struct {
+	Headers         []string   `json:"headers"`
+	NumberOfRows    int        `json:"number_of_rows"`
+	NumberOfColumns int        `json:"number_of_columns"`
+	Rows            [][]string `json:"rows"`
+}
+
 // A list of errors returned from package
 var (
 	ErrorReadingBody = errors.New("Failed to read message body")
@@ -167,10 +173,10 @@ func (filter *NewFilter) ValidateNewFilter() error {
 
 // ValidateFilterDimensions checks the selected filter dimension
 // are valid for a version of a dataset
-func ValidateFilterDimensions(filterDimensions []Dimension, dimensions *dataset.Dimensions) error {
+func ValidateFilterDimensions(filterDimensions []Dimension, dimensions *dataset.VersionDimensions) error {
 	dimensionNames := make(map[string]int)
 	for _, dimension := range dimensions.Items {
-		dimensionNames[dimension.Name] = 1
+		dimensionNames[dimension.Label] = 1
 	}
 
 	var incorrectDimensions []string

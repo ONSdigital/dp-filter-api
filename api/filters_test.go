@@ -8,7 +8,7 @@ import (
 	"github.com/ONSdigital/dp-filter-api/models"
 	"github.com/ONSdigital/go-ns/audit"
 	"github.com/ONSdigital/go-ns/common"
-	"github.com/gedge/mgo/bson"
+	"github.com/globalsign/mgo/bson"
 	"github.com/gorilla/mux"
 	. "github.com/smartystreets/goconvey/convey"
 	"io"
@@ -31,7 +31,7 @@ func TestSuccessfulAddFilterBlueprint_PublishedDataset(t *testing.T) {
 		w := httptest.NewRecorder()
 
 		mockDatastore := &datastoretest.DataStoreMock{
-			AddFilterFunc: func(host string, filter *models.Filter) (*models.Filter, error) {
+			AddFilterFunc: func(filter *models.Filter) (*models.Filter, error) {
 				return filter, nil
 			},
 			CreateFilterOutputFunc: func(filter *models.Filter) error {
