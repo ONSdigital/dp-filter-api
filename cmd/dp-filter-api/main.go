@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/ONSdigital/dp-api-clients-go/health"
 	"github.com/ONSdigital/dp-api-clients-go/zebedee"
 	"github.com/ONSdigital/dp-filter-api/kafkaadapter"
 	"github.com/ONSdigital/dp-filter-api/mongo"
@@ -199,12 +198,6 @@ func startHealthCheck(ctx context.Context, cfg *config.Config, datasetAPI *datas
 	checkMongoClient := dataStore.HealthCheckClient()
 	if err = hc.AddCheck("MongoDB", checkMongoClient.Checker); err != nil {
 		log.Event(ctx, "error creating mongodb health check", log.ERROR, log.Error(err))
-		hasErrors = true
-	}
-
-	downloadServiceHealthCheckClient := health.NewClient("Download Service", cfg.DownloadServiceURL)
-	if err = hc.AddCheck("Download Service", downloadServiceHealthCheckClient.Checker); err != nil {
-		log.Event(ctx, "error creating download service health check", log.Error(err))
 		hasErrors = true
 	}
 
