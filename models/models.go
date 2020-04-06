@@ -176,7 +176,7 @@ func (filter *NewFilter) ValidateNewFilter() error {
 func ValidateFilterDimensions(filterDimensions []Dimension, dimensions *dataset.VersionDimensions) error {
 	dimensionNames := make(map[string]int)
 	for _, dimension := range dimensions.Items {
-		dimensionNames[dimension.Label] = 1
+		dimensionNames[dimension.Name] = 1
 	}
 
 	var incorrectDimensions []string

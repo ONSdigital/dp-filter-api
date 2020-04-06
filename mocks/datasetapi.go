@@ -62,7 +62,7 @@ func (ds *DatasetAPI) GetVersionDimensions(ctx context.Context, userAuthToken, s
 	}
 
 	dimension := dataset.VersionDimension{
-		Label: "age",
+		Name: "age",
 	}
 
 	return dataset.VersionDimensions{
