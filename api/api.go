@@ -59,8 +59,7 @@ func CreateFilterAPI(ctx context.Context,
 	datasetAPI DatasetAPI,
 	preview PreviewDataset,
 	enablePrivateEndpoints bool,
-	downloadServiceURL,
-	downloadServiceToken string,
+	downloadServiceURL, downloadServiceToken, serviceAuthToken string,
 	auditor audit.AuditorService,
 	hc *healthcheck.HealthCheck) {
 
@@ -74,6 +73,7 @@ func CreateFilterAPI(ctx context.Context,
 		enablePrivateEndpoints,
 		downloadServiceURL,
 		downloadServiceToken,
+		serviceAuthToken,
 		auditor)
 
 	middlewareChain := alice.New(
@@ -102,7 +102,7 @@ func CreateFilterAPI(ctx context.Context,
 }
 
 // routes contain all endpoints for API
-func routes(host string, router *mux.Router, dataStore DataStore, outputQueue OutputQueue, datasetAPI DatasetAPI, preview PreviewDataset, enablePrivateEndpoints bool, downloadServiceURL, downloadServiceToken string, auditor audit.AuditorService) *FilterAPI {
+func routes(host string, router *mux.Router, dataStore DataStore, outputQueue OutputQueue, datasetAPI DatasetAPI, preview PreviewDataset, enablePrivateEndpoints bool, downloadServiceURL, downloadServiceToken, serviceAuthToken string, auditor audit.AuditorService) *FilterAPI {
 
 	api := FilterAPI{host: host,
 		dataStore:            dataStore,
@@ -113,6 +113,7 @@ func routes(host string, router *mux.Router, dataStore DataStore, outputQueue Ou
 		downloadServiceURL:   downloadServiceURL,
 		downloadServiceToken: downloadServiceToken,
 		auditor:              auditor,
+		serviceAuthToken:     serviceAuthToken,
 	}
 
 	api.router.HandleFunc("/filters", api.postFilterBlueprintHandler).Methods("POST")

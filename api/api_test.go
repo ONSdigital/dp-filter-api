@@ -18,7 +18,8 @@ const (
 	host                   = "http://localhost:80"
 	enablePrivateEndpoints = true
 	downloadServiceURL     = "http://localhost:23600"
-	downloadServiceToken   = "123wut"
+	downloadServiceToken   = "123123"
+	serviceAuthToken       = "321321"
 )
 
 var (

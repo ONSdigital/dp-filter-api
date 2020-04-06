@@ -494,10 +494,10 @@ func (api *FilterAPI) checkFilterOptions(ctx context.Context, newFilter *models.
 func (api *FilterAPI) getVersion(ctx context.Context, dataset *models.Dataset) (*datasetAPI.Version, error) {
 
 	dimensions, err := api.datasetAPI.GetVersion(ctx,
-		getUserAuthToken(ctx),
+		"",
 		api.serviceAuthToken,
 		"",
-		getCollectionID(ctx),
+		"",
 		dataset.ID,
 		dataset.Edition,
 		strconv.Itoa(dataset.Version))

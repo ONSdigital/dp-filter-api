@@ -6,6 +6,8 @@ import (
 	"github.com/ONSdigital/dp-api-clients-go/health"
 	"github.com/ONSdigital/dp-api-clients-go/zebedee"
 	"github.com/ONSdigital/dp-filter-api/kafkaadapter"
+	"github.com/ONSdigital/dp-filter-api/mongo"
+	"github.com/ONSdigital/dp-graph/graph"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 	mongolib "github.com/ONSdigital/dp-mongodb"
 	"os"
@@ -97,6 +99,78 @@ func main() {
 	previewDatasets := preview.DatasetStore{Store: observationStore}
 	outputQueue := filterOutputQueue.CreateOutputQueue(producer.Channels().Output)
 
+	hc := startHealthCheck(ctx, cfg, datasetAPI, producer, observationStore, dataStore, auditProducer)
+
+	apiErrors := make(chan error, 1)
+
+	api.CreateFilterAPI(ctx, cfg.Host,
+		cfg.BindAddr,
+		cfg.ZebedeeURL,
+		dataStore,
+		&outputQueue,
+		apiErrors,
+		datasetAPI,
+		&previewDatasets,
+		cfg.EnablePrivateEndpoints,
+		cfg.DownloadServiceURL,
+		cfg.DownloadServiceSecretKey,
+		cfg.ServiceAuthToken,
+		auditor,
+		&hc,
+	)
+
+	// block until a fatal error occurs
+	select {
+	case <-signals:
+		log.Event(ctx, "os signal received")
+	}
+
+	log.Event(ctx, fmt.Sprintf("Shutdown with timeout: %s", cfg.ShutdownTimeout), log.INFO)
+	ctx, cancel := context.WithTimeout(context.Background(), cfg.ShutdownTimeout)
+
+	// Gracefully shutdown the application closing any open resources.
+	go func() {
+		defer cancel()
+
+		if err = api.Close(ctx); err != nil {
+			logIfError(ctx, err, "unable to close api server")
+		}
+
+		hc.Stop()
+
+		if serviceList.FilterStore {
+			log.Event(ctx, "closing filter store")
+			// mongo.Close() may use all remaining time in the context
+			logIfError(ctx, mongolib.Close(ctx, dataStore.Session), "unable to close filter store")
+		}
+
+		if serviceList.ObservationStore {
+			log.Event(ctx, "closing observation store")
+			logIfError(ctx, observationStore.Close(ctx), "unable to close observation store")
+		}
+
+		if serviceList.FilterOutputSubmittedProducer {
+			log.Event(ctx, "closing filter output submitted producer")
+			// Close producer after http server has closed so if a message
+			// needs to be sent to kafka off a request it can
+			logIfError(ctx, producer.Close(ctx), "unable to close filter output submitted producer")
+		}
+
+		if serviceList.AuditProducer {
+			log.Event(ctx, "closing audit producer")
+			logIfError(ctx, auditProducer.Close(ctx), "unable to close audit producer")
+		}
+	}()
+
+	// wait for shutdown success (via cancel) or failure (timeout)
+	<-ctx.Done()
+
+	log.Event(ctx, "Shutdown complete")
+	os.Exit(1)
+}
+
+func startHealthCheck(ctx context.Context, cfg *config.Config, datasetAPI *dataset.Client, producer *kafka.Producer, observationStore *graph.DB, dataStore *mongo.FilterStore, auditProducer *kafka.Producer) healthcheck.HealthCheck {
+
 	hasErrors := false
 
 	versionInfo, err := healthcheck.NewVersionInfo(BuildTime, GitCommit, Version)
@@ -152,71 +226,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	apiErrors := make(chan error, 1)
-
-	api.CreateFilterAPI(ctx, cfg.Host,
-		cfg.BindAddr,
-		cfg.ZebedeeURL,
-		dataStore,
-		&outputQueue,
-		apiErrors,
-		datasetAPI,
-		&previewDatasets,
-		cfg.EnablePrivateEndpoints,
-		cfg.DownloadServiceURL,
-		cfg.DownloadServiceSecretKey,
-		auditor,
-		&hc,
-	)
-
-	// block until a fatal error occurs
-	select {
-	case <-signals:
-		log.Event(ctx, "os signal received")
-	}
-
-	log.Event(ctx, fmt.Sprintf("Shutdown with timeout: %s", cfg.ShutdownTimeout), log.INFO)
-	ctx, cancel := context.WithTimeout(context.Background(), cfg.ShutdownTimeout)
-
-	// Gracefully shutdown the application closing any open resources.
-	go func() {
-		defer cancel()
-
-		if err = api.Close(ctx); err != nil {
-			logIfError(ctx, err, "unable to close api server")
-		}
-
-		hc.Stop()
-
-		if serviceList.FilterStore {
-			log.Event(ctx, "closing filter store")
-			// mongo.Close() may use all remaining time in the context
-			logIfError(ctx, mongolib.Close(ctx, dataStore.Session), "unable to close filter store")
-		}
-
-		if serviceList.ObservationStore {
-			log.Event(ctx, "closing observation store")
-			logIfError(ctx, observationStore.Close(ctx), "unable to close observation store")
-		}
-
-		if serviceList.FilterOutputSubmittedProducer {
-			log.Event(ctx, "closing filter output submitted producer")
-			// Close producer after http server has closed so if a message
-			// needs to be sent to kafka off a request it can
-			logIfError(ctx, producer.Close(ctx), "unable to close filter output submitted producer")
-		}
-
-		if serviceList.AuditProducer {
-			log.Event(ctx, "closing audit producer")
-			logIfError(ctx, auditProducer.Close(ctx), "unable to close audit producer")
-		}
-	}()
-
-	// wait for shutdown success (via cancel) or failure (timeout)
-	<-ctx.Done()
-
-	log.Event(ctx, "Shutdown complete")
-	os.Exit(1)
+	hc.Start(ctx)
+	return hc
 }
 
 func exitIfError(ctx context.Context, err error, message string) {
