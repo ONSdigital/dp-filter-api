@@ -139,7 +139,7 @@ func (api *FilterAPI) updateFilterOutputHandler(w http.ResponseWriter, r *http.R
 func (api *FilterAPI) updateFilterOutput(ctx context.Context, filterOutputID string, filterOutput *models.Filter) error {
 
 	logData := log.Data{"filter_output_id": filterOutputID}
-	log.Event(ctx, "updating filter output", logData)
+	log.Event(ctx, "updating filter output", log.INFO, logData)
 
 	if !common.IsCallerPresent(ctx) {
 		log.Event(ctx, "failed to update filter output", log.ERROR, log.Error(filters.ErrUnauthorised), logData)
@@ -175,7 +175,7 @@ func (api *FilterAPI) updateFilterOutput(ctx context.Context, filterOutputID str
 
 	isNowStatusCompleted := false
 	if downloadsAreGenerated(filterOutput) {
-		log.Event(ctx, "downloads have been generated, setting filter output status to completed", logData)
+		log.Event(ctx, "downloads have been generated, setting filter output status to completed", log.INFO, logData)
 		filterOutput.State = models.CompletedState
 		isNowStatusCompleted = true
 	}
@@ -187,7 +187,7 @@ func (api *FilterAPI) updateFilterOutput(ctx context.Context, filterOutputID str
 
 	// save the completed event after saving the filter output if its now complete
 	if isNowStatusCompleted {
-		log.Event(ctx, "filter output status is now completed, creating completed event", logData)
+		log.Event(ctx, "filter output status is now completed, creating completed event", log.INFO, logData)
 
 		completedEvent := &models.Event{
 			Type: eventFilterOutputCompleted,
@@ -297,7 +297,7 @@ func (api *FilterAPI) getFilterOutputPreview(ctx context.Context, filterOutputID
 		"filter_output_id": filterOutputID,
 		"limit":            limit,
 	}
-	log.Event(ctx, "get filter output preview", logData)
+	log.Event(ctx, "get filter output preview", log.INFO, logData)
 
 	hideS3Links := true // do not require s3 links for preview
 	filterOutput, err := api.getOutput(ctx, filterOutputID, hideS3Links)
@@ -328,7 +328,7 @@ func (api *FilterAPI) getOutput(ctx context.Context, filterID string, hideS3Link
 
 	output, err := api.dataStore.GetFilterOutput(filterID)
 	if err != nil {
-		log.Event(ctx, "error getting filter output", log.Error(err), logData)
+		log.Event(ctx, "error getting filter output", log.ERROR, log.Error(err), logData)
 		return nil, err
 	}
 
@@ -337,7 +337,7 @@ func (api *FilterAPI) getOutput(ctx context.Context, filterID string, hideS3Link
 	// Hide private download links if request is not authenticated
 	if hideS3Links {
 
-		log.Event(ctx, "a valid download service token has not been provided. hiding links", logData)
+		log.Event(ctx, "a valid download service token has not been provided. hiding links", log.INFO, logData)
 
 		if output.Downloads != nil {
 			if output.Downloads.CSV != nil {
@@ -350,7 +350,7 @@ func (api *FilterAPI) getOutput(ctx context.Context, filterID string, hideS3Link
 			}
 		}
 	} else {
-		log.Event(ctx, "a valid download service token has been provided. not hiding private links", logData)
+		log.Event(ctx, "a valid download service token has been provided. not hiding private links", log.INFO, logData)
 	}
 
 	//only return the filter if it is for published data or via authenticated request
@@ -358,7 +358,7 @@ func (api *FilterAPI) getOutput(ctx context.Context, filterID string, hideS3Link
 		return output, nil
 	}
 
-	log.Event(ctx, "unauthenticated request to access unpublished filter output", logData)
+	log.Event(ctx, "unauthenticated request to access unpublished filter output", log.INFO, logData)
 
 	filter, err := api.getFilterBlueprint(ctx, output.Links.FilterBlueprint.ID)
 	if err != nil {
@@ -370,7 +370,7 @@ func (api *FilterAPI) getOutput(ctx context.Context, filterID string, hideS3Link
 	if filter.Published != nil && *filter.Published == models.Published {
 		output.Published = &models.Published
 		if err := api.dataStore.UpdateFilterOutput(output, output.UniqueTimestamp); err != nil {
-			log.Event(ctx, "error updating filter output", log.Error(err), logData)
+			log.Event(ctx, "error updating filter output", log.ERROR, log.Error(err), logData)
 			return nil, filters.ErrFilterOutputNotFound
 		}
 

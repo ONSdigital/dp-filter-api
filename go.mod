@@ -1,6 +1,6 @@
 module github.com/ONSdigital/dp-filter-api
 
-go 1.14
+go 1.13
 
 require (
 	github.com/ONSdigital/dp-api-clients-go v1.9.0

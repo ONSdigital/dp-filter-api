@@ -251,7 +251,7 @@ func (api *FilterAPI) addFilterBlueprintDimensionHandler(w http.ResponseWriter, 
 
 	options, err := models.CreateDimensionOptions(r.Body)
 	if err != nil {
-		log.Event(ctx, "unable to unmarshal request body", log.Error(err), logData)
+		log.Event(ctx, "unable to unmarshal request body", log.ERROR, log.Error(err), logData)
 		if auditErr := api.auditor.Record(ctx, addDimensionAction, actionUnsuccessful, auditParams); auditErr != nil {
 			handleAuditingFailure(ctx, addDimensionAction, actionUnsuccessful, w, auditErr, logData)
 			return
@@ -340,7 +340,7 @@ func (api *FilterAPI) addFilterBlueprintDimension(ctx context.Context, filterBlu
 func (api *FilterAPI) checkNewFilterDimension(ctx context.Context, name string, options []string, dataset *models.Dataset) error {
 
 	logData := log.Data{"dimension_name": name, "dimension_options": options, "dataset": dataset}
-	log.Event(ctx, "check filter dimensions and dimension options before calling api, see version number", logData)
+	log.Event(ctx, "check filter dimensions and dimension options before calling api, see version number", log.INFO, logData)
 
 	// FIXME - We should be calling dimension endpoint on dataset API to check if
 	// dimension exists but this endpoint doesn't exist yet so call dimension

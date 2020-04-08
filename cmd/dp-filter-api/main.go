@@ -73,7 +73,7 @@ func main() {
 	var auditProducer *kafka.Producer
 
 	if cfg.EnablePrivateEndpoints {
-		log.Event(ctx, "private endpoints enabled, enabling auditing")
+		log.Event(ctx, "private endpoints enabled, enabling auditing", log.INFO)
 
 		auditProducer, err = serviceList.GetProducer(
 			ctx,
@@ -88,7 +88,7 @@ func main() {
 		auditProducerAdapter := kafkaadapter.NewProducerAdapter(auditProducer)
 		auditor = audit.New(auditProducerAdapter, "dp-filter-api")
 	} else {
-		log.Event(ctx, "private endpoints disabled, auditing will not be enabled")
+		log.Event(ctx, "private endpoints disabled, auditing will not be enabled", log.INFO)
 		auditor = &audit.NopAuditor{}
 	}
 
@@ -121,7 +121,7 @@ func main() {
 	// block until a fatal error occurs
 	select {
 	case <-signals:
-		log.Event(ctx, "os signal received")
+		log.Event(ctx, "os signal received", log.INFO)
 	}
 
 	log.Event(ctx, fmt.Sprintf("Shutdown with timeout: %s", cfg.ShutdownTimeout), log.INFO)
@@ -138,25 +138,25 @@ func main() {
 		hc.Stop()
 
 		if serviceList.FilterStore {
-			log.Event(ctx, "closing filter store")
+			log.Event(ctx, "closing filter store", log.INFO)
 			// mongo.Close() may use all remaining time in the context
 			logIfError(ctx, mongolib.Close(ctx, dataStore.Session), "unable to close filter store")
 		}
 
 		if serviceList.ObservationStore {
-			log.Event(ctx, "closing observation store")
+			log.Event(ctx, "closing observation store", log.INFO)
 			logIfError(ctx, observationStore.Close(ctx), "unable to close observation store")
 		}
 
 		if serviceList.FilterOutputSubmittedProducer {
-			log.Event(ctx, "closing filter output submitted producer")
+			log.Event(ctx, "closing filter output submitted producer", log.INFO)
 			// Close producer after http server has closed so if a message
 			// needs to be sent to kafka off a request it can
 			logIfError(ctx, producer.Close(ctx), "unable to close filter output submitted producer")
 		}
 
 		if serviceList.AuditProducer {
-			log.Event(ctx, "closing audit producer")
+			log.Event(ctx, "closing audit producer", log.INFO)
 			logIfError(ctx, auditProducer.Close(ctx), "unable to close audit producer")
 		}
 	}()
@@ -164,8 +164,13 @@ func main() {
 	// wait for shutdown success (via cancel) or failure (timeout)
 	<-ctx.Done()
 
-	log.Event(ctx, "Shutdown complete")
-	os.Exit(1)
+	if ctx.Err() == context.DeadlineExceeded {
+		log.Event(ctx, "shutdown timeout", log.ERROR, log.Error(ctx.Err()))
+		os.Exit(1)
+	}
+
+	log.Event(ctx, "Shutdown complete", log.INFO)
+	os.Exit(0)
 }
 
 func startHealthCheck(ctx context.Context, cfg *config.Config, datasetAPI *dataset.Client, producer *kafka.Producer, observationStore *graph.DB, dataStore *mongo.FilterStore, auditProducer *kafka.Producer) healthcheck.HealthCheck {
@@ -181,7 +186,7 @@ func startHealthCheck(ctx context.Context, cfg *config.Config, datasetAPI *datas
 	hc := healthcheck.New(versionInfo, cfg.HealthCheckCriticalTimeout, cfg.HealthCheckInterval)
 
 	if err = hc.AddCheck("Dataset API", datasetAPI.Checker); err != nil {
-		log.Event(ctx, "error creating dataset API health check", log.Error(err))
+		log.Event(ctx, "error creating dataset API health check", log.ERROR, log.Error(err))
 		hasErrors = true
 	}
 
@@ -225,13 +230,13 @@ func startHealthCheck(ctx context.Context, cfg *config.Config, datasetAPI *datas
 
 func exitIfError(ctx context.Context, err error, message string) {
 	if err != nil {
-		log.Event(ctx, message, log.Error(err))
+		log.Event(ctx, message, log.Error(err), log.FATAL)
 		os.Exit(1)
 	}
 }
 
 func logIfError(ctx context.Context, err error, message string) {
 	if err != nil {
-		log.Event(ctx, message, log.Error(err))
+		log.Event(ctx, message, log.Error(err), log.ERROR)
 	}
 }
