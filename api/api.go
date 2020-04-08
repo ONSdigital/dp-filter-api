@@ -3,7 +3,6 @@ package api
 import (
 	"context"
 	"github.com/ONSdigital/dp-api-clients-go/dataset"
-	"github.com/ONSdigital/dp-api-clients-go/middleware"
 	"github.com/ONSdigital/dp-filter-api/models"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 	"github.com/ONSdigital/go-ns/audit"
@@ -13,6 +12,7 @@ import (
 	"github.com/ONSdigital/log.go/log"
 	"github.com/gorilla/mux"
 	"github.com/justinas/alice"
+	"net/http"
 )
 
 //go:generate moq -out datastoretest/preview.go -pkg datastoretest . PreviewDataset
@@ -76,8 +76,9 @@ func CreateFilterAPI(ctx context.Context,
 		serviceAuthToken,
 		auditor)
 
+	healthCheckHandler := newMiddleware(hc.Handler)
 	middlewareChain := alice.New(
-		middleware.Whitelist(middleware.HealthcheckFilter(hc.Handler)),
+		healthCheckHandler,
 		collectionID.CheckHeader)
 
 	if enablePrivateEndpoints {
@@ -99,6 +100,19 @@ func CreateFilterAPI(ctx context.Context,
 			errorChan <- err
 		}
 	}()
+}
+
+// newMiddleware creates a new http.Handler to intercept /health requests.
+func newMiddleware(healthcheckHandler func(http.ResponseWriter, *http.Request)) func(http.Handler) http.Handler {
+	return func(h http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			if req.Method == "GET" && req.URL.Path == "/health" {
+				healthcheckHandler(w, req)
+				return
+			}
+			h.ServeHTTP(w, req)
+		})
+	}
 }
 
 // routes contain all endpoints for API
