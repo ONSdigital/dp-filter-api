@@ -3,16 +3,17 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/ONSdigital/dp-api-clients-go/zebedee"
-	"github.com/ONSdigital/dp-filter-api/kafkaadapter"
-	"github.com/ONSdigital/dp-filter-api/mongo"
-	"github.com/ONSdigital/dp-graph/graph"
-	"github.com/ONSdigital/dp-healthcheck/healthcheck"
-	mongolib "github.com/ONSdigital/dp-mongodb"
 	"os"
 	"os/signal"
 	"strconv"
 	"syscall"
+
+	"github.com/ONSdigital/dp-api-clients-go/zebedee"
+	"github.com/ONSdigital/dp-filter-api/kafkaadapter"
+	"github.com/ONSdigital/dp-filter-api/mongo"
+	"github.com/ONSdigital/dp-graph/v2/graph"
+	"github.com/ONSdigital/dp-healthcheck/healthcheck"
+	mongolib "github.com/ONSdigital/dp-mongodb"
 
 	"github.com/ONSdigital/dp-api-clients-go/dataset"
 	"github.com/ONSdigital/dp-filter-api/api"

@@ -5,7 +5,7 @@ import (
 
 	"github.com/ONSdigital/dp-filter-api/config"
 	"github.com/ONSdigital/dp-filter-api/mongo"
-	"github.com/ONSdigital/dp-graph/graph"
+	"github.com/ONSdigital/dp-graph/v2/graph"
 	kafka "github.com/ONSdigital/dp-kafka"
 )
 
