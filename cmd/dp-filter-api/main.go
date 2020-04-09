@@ -123,6 +123,8 @@ func main() {
 	select {
 	case <-signals:
 		log.Event(ctx, "os signal received", log.INFO)
+	case err := <-apiErrors:
+		log.Event(ctx, "api http server returned error", log.ERROR, log.Error(err))
 	}
 
 	log.Event(ctx, fmt.Sprintf("Shutdown with timeout: %s", cfg.ShutdownTimeout), log.INFO)

@@ -96,7 +96,6 @@ func CreateFilterAPI(ctx context.Context,
 	go func() {
 		log.Event(ctx, "Starting api...", log.INFO)
 		if err := httpServer.ListenAndServe(); err != nil {
-			log.Event(ctx, "api http server returned error", log.ERROR, log.Error(err))
 			errorChan <- err
 		}
 	}()
