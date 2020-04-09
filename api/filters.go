@@ -57,7 +57,7 @@ func (api *FilterAPI) postFilterBlueprintHandler(w http.ResponseWriter, r *http.
 	defer request.DrainBody(r)
 
 	submitted := r.FormValue("submitted")
-	logData := log.Data{"submitted": submitted}
+	logData := log.Data{"submitted": submitted, "action": createFilterBlueprintAction}
 	ctx := r.Context()
 	log.Event(ctx, "create filter blueprint", log.INFO, logData)
 
@@ -198,7 +198,7 @@ func (api *FilterAPI) createFilterBlueprint(ctx context.Context, filter *models.
 func (api *FilterAPI) getFilterBlueprintHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	filterID := vars["filter_blueprint_id"]
-	logData := log.Data{"filter_blueprint_id": filterID}
+	logData := log.Data{"filter_blueprint_id": filterID, "action": getFilterBlueprintAction}
 	ctx := r.Context()
 	log.Event(ctx, "getting filter blueprint", log.INFO, logData)
 
@@ -257,7 +257,7 @@ func (api *FilterAPI) putFilterBlueprintHandler(w http.ResponseWriter, r *http.R
 	vars := mux.Vars(r)
 	filterID := vars["filter_blueprint_id"]
 	submitted := r.URL.Query().Get("submitted")
-	logData := log.Data{"filter_blueprint_id": filterID, "submitted": submitted}
+	logData := log.Data{"filter_blueprint_id": filterID, "submitted": submitted, "action": updateFilterBlueprintAction}
 	ctx := r.Context()
 	log.Event(ctx, "updating filter blueprint", log.INFO, logData)
 

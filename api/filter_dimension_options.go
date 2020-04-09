@@ -30,6 +30,7 @@ func (api *FilterAPI) getFilterBlueprintDimensionOptionsHandler(w http.ResponseW
 	logData := log.Data{
 		"filter_blueprint_id": filterBlueprintID,
 		"dimension":           dimensionName,
+		"action":              getOptionsAction,
 	}
 
 	ctx := r.Context()
@@ -134,6 +135,7 @@ func (api *FilterAPI) getFilterBlueprintDimensionOptionHandler(w http.ResponseWr
 		"filter_blueprint_id": filterBlueprintID,
 		"dimension":           dimensionName,
 		"option":              option,
+		"action":              getOptionAction,
 	}
 
 	ctx := r.Context()
@@ -249,7 +251,12 @@ func (api *FilterAPI) addFilterBlueprintDimensionOptionHandler(w http.ResponseWr
 	filterBlueprintID := vars["filter_blueprint_id"]
 	dimensionName := vars["name"]
 	option := vars["option"]
-	logData := log.Data{"filter_blueprint_id": filterBlueprintID, "dimension_name": dimensionName, "dimension_option": option}
+	logData := log.Data{
+		"filter_blueprint_id": filterBlueprintID,
+		"dimension_name":      dimensionName,
+		"dimension_option":    option,
+		"action":              addOptionAction,
+	}
 
 	auditParams := common.Params{
 		"filter_blueprint_id": filterBlueprintID,
@@ -370,6 +377,7 @@ func (api *FilterAPI) removeFilterBlueprintDimensionOptionHandler(w http.Respons
 		"filter_blueprint_id": filterBlueprintID,
 		"dimension":           dimensionName,
 		"option":              option,
+		"action":              removeOptionAction,
 	}
 	ctx := r.Context()
 	log.Event(ctx, "remove filter blueprint dimension option", log.INFO, logData)

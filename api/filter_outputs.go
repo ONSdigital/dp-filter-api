@@ -36,9 +36,9 @@ const (
 func (api *FilterAPI) getFilterOutputHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	filterOutputID := vars["filter_output_id"]
-
-	logData := log.Data{"filter_output_id": filterOutputID}
+	logData := log.Data{"filter_output_id": filterOutputID, "action": getFilterOutputAction}
 	ctx := r.Context()
+
 	log.Event(ctx, "getting filter output", log.INFO, logData)
 
 	auditParams := common.Params{"filter_output_id": filterOutputID}
@@ -95,7 +95,7 @@ func (api *FilterAPI) updateFilterOutputHandler(w http.ResponseWriter, r *http.R
 	vars := mux.Vars(r)
 	filterOutputID := vars["filter_output_id"]
 
-	logData := log.Data{"filter_output_id": filterOutputID}
+	logData := log.Data{"filter_output_id": filterOutputID, "action": updateFilterOutputAction}
 	ctx := r.Context()
 	log.Event(ctx, "handling update filter output request", log.INFO, logData)
 
@@ -227,7 +227,7 @@ func (api *FilterAPI) getFilterOutputPreviewHandler(w http.ResponseWriter, r *ht
 	filterOutputID := vars["filter_output_id"]
 	requestedLimit := r.URL.Query().Get("limit")
 
-	logData := log.Data{"filter_output_id": filterOutputID}
+	logData := log.Data{"filter_output_id": filterOutputID, "action": getFilterPreviewAction}
 
 	auditParams := common.Params{"filter_output_id": filterOutputID}
 	ctx := r.Context()
