@@ -64,7 +64,7 @@ func main() {
 		ctx,
 		cfg.Brokers,
 		cfg.FilterOutputSubmittedTopic,
-		initialise.FilterOutputSubmittedProducer,
+		initialise.FilterOutputSubmitted,
 		int(envMax),
 	)
 	logIfError(ctx, err, "error creating kafka filter output submitted producer")
@@ -80,7 +80,7 @@ func main() {
 			ctx,
 			cfg.Brokers,
 			cfg.AuditEventsTopic,
-			initialise.AuditProducer,
+			initialise.Audit,
 			0,
 		)
 		logIfError(ctx, err, "error creating kafka audit producer")
@@ -134,11 +134,13 @@ func main() {
 	go func() {
 		defer cancel()
 
+		// Close health check first as it depends on other services/clients being available
+		// Helps to prevent race conditions between health ticker/checker and graceful shutdown
+		hc.Stop()
+
 		if err = api.Close(ctx); err != nil {
 			logIfError(ctx, err, "unable to close api server")
 		}
-
-		hc.Stop()
 
 		if serviceList.FilterStore {
 			log.Event(ctx, "closing filter store", log.INFO)
