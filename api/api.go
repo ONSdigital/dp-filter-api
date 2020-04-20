@@ -2,18 +2,17 @@ package api
 
 import (
 	"context"
-
+	"github.com/ONSdigital/dp-api-clients-go/dataset"
 	"github.com/ONSdigital/dp-filter-api/models"
-	"github.com/ONSdigital/dp-filter-api/preview"
+	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 	"github.com/ONSdigital/go-ns/audit"
-	"github.com/ONSdigital/go-ns/clients/dataset"
-	"github.com/ONSdigital/go-ns/healthcheck"
+	"github.com/ONSdigital/go-ns/handlers/collectionID"
 	"github.com/ONSdigital/go-ns/identity"
-	"github.com/ONSdigital/go-ns/log"
 	"github.com/ONSdigital/go-ns/server"
+	"github.com/ONSdigital/log.go/log"
 	"github.com/gorilla/mux"
 	"github.com/justinas/alice"
-	"github.com/ONSdigital/go-ns/handlers/collectionID"
+	"net/http"
 )
 
 //go:generate moq -out datastoretest/preview.go -pkg datastoretest . PreviewDataset
@@ -22,9 +21,9 @@ var httpServer *server.Server
 
 // DatasetAPI - An interface used to access the DatasetAPI
 type DatasetAPI interface {
-	GetVersion(ctx context.Context, id, edition, version string) (m dataset.Version, err error)
-	GetDimensions(ctx context.Context, id, edition, version string) (m dataset.Dimensions, err error)
-	GetOptions(ctx context.Context, id, edition, version, dimension string) (m dataset.Options, err error)
+	GetVersion(ctx context.Context, userAuthToken, serviceAuthToken, downloadServiceAuthToken, collectionID, datasetID, edition, version string) (m dataset.Version, err error)
+	GetVersionDimensions(ctx context.Context, userAuthToken, serviceAuthToken, collectionID, id, edition, version string) (m dataset.VersionDimensions, err error)
+	GetOptions(ctx context.Context, userAuthToken, serviceAuthToken, collectionID, id, edition, version, dimension string) (m dataset.Options, err error)
 }
 
 // OutputQueue - An interface used to queue filter outputs
@@ -34,7 +33,7 @@ type OutputQueue interface {
 
 // PreviewDataset An interface used to generate previews
 type PreviewDataset interface {
-	GetPreview(ctx context.Context, filter *models.Filter, limit int) (*preview.FilterPreview, error)
+	GetPreview(ctx context.Context, filter *models.Filter, limit int) (*models.FilterPreview, error)
 }
 
 // FilterAPI manages importing filters against a dataset
@@ -48,30 +47,42 @@ type FilterAPI struct {
 	downloadServiceURL   string
 	downloadServiceToken string
 	auditor              audit.AuditorService
+	serviceAuthToken     string
 }
 
 // CreateFilterAPI manages all the routes configured to API
-func CreateFilterAPI(host, bindAddr, zebedeeURL string,
+func CreateFilterAPI(ctx context.Context,
+	host, bindAddr, zebedeeURL string,
 	datastore DataStore,
 	outputQueue OutputQueue,
 	errorChan chan error,
 	datasetAPI DatasetAPI,
 	preview PreviewDataset,
 	enablePrivateEndpoints bool,
-	downloadServiceURL, downloadServiceToken string,
-	auditor audit.AuditorService) {
+	downloadServiceURL, downloadServiceToken, serviceAuthToken string,
+	auditor audit.AuditorService,
+	hc *healthcheck.HealthCheck) {
 
 	router := mux.NewRouter()
-	routes(host, router, datastore, outputQueue, datasetAPI, preview, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, auditor)
+	routes(host,
+		router,
+		datastore,
+		outputQueue,
+		datasetAPI,
+		preview,
+		enablePrivateEndpoints,
+		downloadServiceURL,
+		downloadServiceToken,
+		serviceAuthToken,
+		auditor)
 
-	healthcheckHandler := healthcheck.NewMiddleware(healthcheck.Do)
-	middlewareChain := alice.New(healthcheckHandler)
-
-	middlewareChain.Append(collectionID.CheckHeader)
+	healthCheckHandler := newMiddleware(hc.Handler)
+	middlewareChain := alice.New(
+		healthCheckHandler,
+		collectionID.CheckHeader)
 
 	if enablePrivateEndpoints {
-
-		log.Debug("private endpoints are enabled. using identity middleware", nil)
+		log.Event(ctx, "private endpoints are enabled. using identity middleware", log.INFO)
 		identityHandler := identity.Handler(zebedeeURL)
 		middlewareChain = middlewareChain.Append(identityHandler)
 	}
@@ -83,24 +94,28 @@ func CreateFilterAPI(host, bindAddr, zebedeeURL string,
 	httpServer.HandleOSSignals = false
 
 	go func() {
-		log.Debug("Starting api...", nil)
+		log.Event(ctx, "Starting api...", log.INFO)
 		if err := httpServer.ListenAndServe(); err != nil {
-			log.ErrorC("api http server returned error", err, nil)
 			errorChan <- err
 		}
 	}()
 }
 
+// newMiddleware creates a new http.Handler to intercept /health requests.
+func newMiddleware(healthcheckHandler func(http.ResponseWriter, *http.Request)) func(http.Handler) http.Handler {
+	return func(h http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			if req.Method == "GET" && req.URL.Path == "/health" {
+				healthcheckHandler(w, req)
+				return
+			}
+			h.ServeHTTP(w, req)
+		})
+	}
+}
+
 // routes contain all endpoints for API
-func routes(host string,
-	router *mux.Router,
-	dataStore DataStore,
-	outputQueue OutputQueue,
-	datasetAPI DatasetAPI,
-	preview PreviewDataset,
-	enablePrivateEndpoints bool,
-	downloadServiceURL, downloadServiceToken string,
-	auditor audit.AuditorService) *FilterAPI {
+func routes(host string, router *mux.Router, dataStore DataStore, outputQueue OutputQueue, datasetAPI DatasetAPI, preview PreviewDataset, enablePrivateEndpoints bool, downloadServiceURL, downloadServiceToken, serviceAuthToken string, auditor audit.AuditorService) *FilterAPI {
 
 	api := FilterAPI{host: host,
 		dataStore:            dataStore,
@@ -111,6 +126,7 @@ func routes(host string,
 		downloadServiceURL:   downloadServiceURL,
 		downloadServiceToken: downloadServiceToken,
 		auditor:              auditor,
+		serviceAuthToken:     serviceAuthToken,
 	}
 
 	api.router.HandleFunc("/filters", api.postFilterBlueprintHandler).Methods("POST")
@@ -142,6 +158,6 @@ func Close(ctx context.Context) error {
 		return err
 	}
 
-	log.InfoCtx(ctx, "graceful shutdown of http server complete", nil)
+	log.Event(ctx, "graceful shutdown of http server complete", log.INFO)
 	return nil
 }
