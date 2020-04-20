@@ -10,8 +10,8 @@ import (
 
 	"github.com/ONSdigital/dp-filter-api/models"
 	observationstoretest "github.com/ONSdigital/dp-filter-api/preview/previewtest"
-	"github.com/ONSdigital/dp-graph/observation"
-	"github.com/ONSdigital/dp-graph/observation/observationtest"
+	"github.com/ONSdigital/dp-graph/v2/observation"
+	"github.com/ONSdigital/dp-graph/v2/observation/observationtest"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -20,7 +20,7 @@ func TestPreviewDatasetStore_GetPreview(t *testing.T) {
 	Convey("Successfully returns 3 results", t, func() {
 		rowCount := 0
 
-		mockRowReader := &observationtest.CSVRowReaderMock{
+		mockRowReader := &observationtest.StreamRowReaderMock{
 			ReadFunc: func() (string, error) {
 				if rowCount == 4 {
 					return "", io.EOF
@@ -34,7 +34,7 @@ func TestPreviewDatasetStore_GetPreview(t *testing.T) {
 		}
 
 		mockedObservationStore := &observationstoretest.ObservationStoreMock{
-			StreamCSVRowsFunc: func(ctx context.Context, in1 *observation.Filter, in2 *int) (observation.StreamRowReader, error) {
+			StreamCSVRowsFunc: func(ctx context.Context, instanceID string, filterID string, in1 *observation.DimensionFilters, in2 *int) (observation.StreamRowReader, error) {
 				return mockRowReader, nil
 			},
 		}
@@ -51,7 +51,7 @@ func TestPreviewDatasetStore_GetPreview(t *testing.T) {
 
 	Convey("Successfully returns 0 results due to data sparsity", t, func() {
 		rowCount := 0
-		mockRowReader := &observationtest.CSVRowReaderMock{
+		mockRowReader := &observationtest.StreamRowReaderMock{
 			ReadFunc: func() (string, error) {
 				if rowCount == 1 {
 					return "", io.EOF
@@ -65,7 +65,7 @@ func TestPreviewDatasetStore_GetPreview(t *testing.T) {
 		}
 
 		mockedObservationStore := &observationstoretest.ObservationStoreMock{
-			StreamCSVRowsFunc: func(ctx context.Context, in1 *observation.Filter, in2 *int) (observation.StreamRowReader, error) {
+			StreamCSVRowsFunc: func(ctx context.Context, instanceID string, filterID string, in1 *observation.DimensionFilters, in2 *int) (observation.StreamRowReader, error) {
 				return mockRowReader, nil
 			},
 		}
@@ -84,7 +84,7 @@ func TestPreviewDatasetStore_GetPreview_ErrorStates(t *testing.T) {
 	Convey("When a query error happens, return the error", t, func() {
 		expectedError := errors.New("query error")
 		mockedObservationStore := &observationstoretest.ObservationStoreMock{
-			StreamCSVRowsFunc: func(ctx context.Context, in1 *observation.Filter, in2 *int) (observation.StreamRowReader, error) {
+			StreamCSVRowsFunc: func(ctx context.Context, instanceID string, filterID string, in1 *observation.DimensionFilters, in2 *int) (observation.StreamRowReader, error) {
 				return nil, expectedError
 			},
 		}
@@ -95,7 +95,7 @@ func TestPreviewDatasetStore_GetPreview_ErrorStates(t *testing.T) {
 
 	Convey("When a reader stream breaks", t, func(c C) {
 		expectedError := errors.New("broken stream")
-		mockRowReader := &observationtest.CSVRowReaderMock{
+		mockRowReader := &observationtest.StreamRowReaderMock{
 			ReadFunc: func() (string, error) {
 
 				return "", expectedError
@@ -106,7 +106,7 @@ func TestPreviewDatasetStore_GetPreview_ErrorStates(t *testing.T) {
 		}
 
 		mockedObservationStore := &observationstoretest.ObservationStoreMock{
-			StreamCSVRowsFunc: func(ctx context.Context, in1 *observation.Filter, in2 *int) (observation.StreamRowReader, error) {
+			StreamCSVRowsFunc: func(ctx context.Context, instanceID string, filterID string, in1 *observation.DimensionFilters, in2 *int) (observation.StreamRowReader, error) {
 				return mockRowReader, nil
 			},
 		}
@@ -121,7 +121,8 @@ func TestPreviewDatasetStore_buildPreview(t *testing.T) {
 	Convey("When a building the preview results with as CSV cell containing a quoted commas", t, func() {
 		csvReader := csv.NewReader(strings.NewReader("\",\",2,3\n1,2,3"))
 
-		results, err := buildResults(csvReader)
+		ctx := context.Background()
+		results, err := buildResults(ctx, csvReader)
 		So(err, ShouldBeNil)
 		So(len(results.Headers), ShouldEqual, 3)
 		So(len(results.Rows[0]), ShouldEqual, 3)

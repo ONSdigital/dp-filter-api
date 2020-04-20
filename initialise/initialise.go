@@ -6,8 +6,8 @@ import (
 
 	"github.com/ONSdigital/dp-filter-api/config"
 	"github.com/ONSdigital/dp-filter-api/mongo"
-	"github.com/ONSdigital/dp-graph/graph"
-	"github.com/ONSdigital/go-ns/kafka"
+	"github.com/ONSdigital/dp-graph/v2/graph"
+	kafka "github.com/ONSdigital/dp-kafka"
 )
 
 // ExternalServiceList represents a list of services
@@ -57,17 +57,21 @@ func (e *ExternalServiceList) GetObservationStore() (observationStore *graph.DB,
 }
 
 // GetProducer returns a kafka producer
-func (e *ExternalServiceList) GetProducer(kafkaBrokers []string, topic string, name KafkaProducerName, envMax int) (kafkaProducer kafka.Producer, err error) {
-	kafkaProducer, err = kafka.NewProducer(kafkaBrokers, topic, envMax)
-	if err == nil {
-		switch {
-		case name == Audit:
-			e.AuditProducer = true
-		case name == FilterOutputSubmitted:
-			e.FilterOutputSubmittedProducer = true
-		default:
-			err = fmt.Errorf("Kafka producer name not recognised: '%s'. Valid names: %v", name.String(), kafkaProducerNames)
-		}
+func (e *ExternalServiceList) GetProducer(ctx context.Context, kafkaBrokers []string, topic string, name KafkaProducerName, envMax int) (kafkaProducer *kafka.Producer, err error) {
+
+	producerChannels := kafka.CreateProducerChannels()
+	kafkaProducer, err = kafka.NewProducer(ctx, kafkaBrokers, topic, envMax, producerChannels)
+	if err != nil {
+		return
+	}
+
+	switch {
+	case name == Audit:
+		e.AuditProducer = true
+	case name == FilterOutputSubmitted:
+		e.FilterOutputSubmittedProducer = true
+	default:
+		err = fmt.Errorf("Kafka producer name not recognised: '%s'. Valid names: %v", name.String(), kafkaProducerNames)
 	}
 
 	return

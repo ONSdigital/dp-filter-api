@@ -35,6 +35,8 @@ func TestSpec(t *testing.T) {
 				So(cfg.DownloadServiceURL, ShouldEqual, "http://localhost:23600")
 				So(cfg.DownloadServiceSecretKey, ShouldEqual, "QB0108EZ-825D-412C-9B1D-41EF7747F462")
 				So(cfg.AuditEventsTopic, ShouldEqual, "audit-events")
+				So(cfg.HealthCheckInterval, ShouldEqual, 30*time.Second)
+				So(cfg.HealthCheckCriticalTimeout, ShouldEqual, 90*time.Second)
 			})
 		})
 	})

@@ -2,10 +2,10 @@ package mocks
 
 import (
 	"errors"
+	"github.com/globalsign/mgo/bson"
 
 	"github.com/ONSdigital/dp-filter-api/filters"
 	"github.com/ONSdigital/dp-filter-api/models"
-	"github.com/gedge/mgo/bson"
 )
 
 // A list of errors that can be returned by mock package
@@ -30,7 +30,7 @@ type DataStore struct {
 }
 
 // AddFilter represents the mocked version of creating a filter blueprint to the datastore
-func (ds *DataStore) AddFilter(host string, filterJob *models.Filter) (*models.Filter, error) {
+func (ds *DataStore) AddFilter(filterJob *models.Filter) (*models.Filter, error) {
 	if ds.InternalError {
 		return nil, errorInternalServer
 	}

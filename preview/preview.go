@@ -7,15 +7,15 @@ import (
 	"io"
 
 	"github.com/ONSdigital/dp-filter-api/models"
-	"github.com/ONSdigital/dp-graph/observation"
-	"github.com/ONSdigital/go-ns/log"
+	"github.com/ONSdigital/dp-graph/v2/observation"
+	"github.com/ONSdigital/log.go/log"
 )
 
 //go:generate moq -out previewtest/observationstore.go -pkg observationstoretest . ObservationStore
 
 // ObservationStore provides filtered observation data in CSV rows.
 type ObservationStore interface {
-	StreamCSVRows(ctx context.Context, filter *observation.Filter, limit *int) (observation.StreamRowReader, error)
+	StreamCSVRows(ctx context.Context, instanceID, filterID string, filters *observation.DimensionFilters, limit *int) (observation.StreamRowReader, error)
 }
 
 // DatasetStore used to query observations for previews
@@ -23,37 +23,31 @@ type DatasetStore struct {
 	Store ObservationStore
 }
 
-// FilterPreview contains the results of a requested preview
-type FilterPreview struct {
-	Headers         []string   `json:"headers"`
-	NumberOfRows    int        `json:"number_of_rows"`
-	NumberOfColumns int        `json:"number_of_columns"`
-	Rows            [][]string `json:"rows"`
-}
-
 // GetPreview generates a preview using the data stored in the graph database
-func (preview *DatasetStore) GetPreview(ctx context.Context, bluePrint *models.Filter, limit int) (*FilterPreview, error) {
-	var filter = observation.Filter{}
-	filter.InstanceID = bluePrint.InstanceID
+func (preview *DatasetStore) GetPreview(ctx context.Context, bluePrint *models.Filter, limit int) (*models.FilterPreview, error) {
+	filters := observation.DimensionFilters{}
+	dimensions := []*observation.Dimension{}
 
 	for _, dimension := range bluePrint.Dimensions {
-		d := observation.DimensionFilter{Name: dimension.Name, Options: dimension.Options}
-		filter.DimensionFilters = append(filter.DimensionFilters, &d)
+		d := observation.Dimension{Name: dimension.Name, Options: dimension.Options}
+		dimensions = append(dimensions, &d)
 	}
 
+	filters.Dimensions = dimensions
+
 	previewLimit := limit
-	rows, err := preview.Store.StreamCSVRows(ctx, &filter, &previewLimit)
+	rows, err := preview.Store.StreamCSVRows(ctx, bluePrint.InstanceID, bluePrint.FilterID, &filters, &previewLimit)
 	if err != nil {
 		return nil, err
 	}
 
-	log.InfoCtx(ctx, "reading rows into csv reader", nil)
+	log.Event(ctx, "reading rows into csv reader", log.INFO)
 	csvReader, err := convertRowReaderToCSVReader(rows)
 	if err != nil {
 		return nil, err
 	}
 
-	results, err := buildResults(csvReader)
+	results, err := buildResults(ctx, csvReader)
 	rows.Close(ctx)
 	return results, err
 }
@@ -74,8 +68,8 @@ func convertRowReaderToCSVReader(rows observation.StreamRowReader) (*csv.Reader,
 	return csvReader, nil
 }
 
-func buildResults(csvReader *csv.Reader) (*FilterPreview, error) {
-	var results FilterPreview
+func buildResults(ctx context.Context, csvReader *csv.Reader) (*models.FilterPreview, error) {
+	var results models.FilterPreview
 	row, err := csvReader.Read()
 	if err != nil {
 		return nil, err
@@ -84,7 +78,7 @@ func buildResults(csvReader *csv.Reader) (*FilterPreview, error) {
 	results.Headers = headers
 	results.NumberOfColumns = len(headers)
 
-	log.Info("building preview results", log.Data{"headers": headers, "number_of_columns": results.NumberOfColumns})
+	log.Event(ctx, "building preview results", log.INFO, log.Data{"headers": headers, "number_of_columns": results.NumberOfColumns})
 
 	for {
 		row, err = csvReader.Read()
@@ -98,7 +92,7 @@ func buildResults(csvReader *csv.Reader) (*FilterPreview, error) {
 		results.NumberOfRows++
 	}
 
-	log.Info("built preview results", log.Data{"number_of_rows": results.NumberOfRows})
+	log.Event(ctx, "built preview results", log.INFO, log.Data{"number_of_rows": results.NumberOfRows})
 
 	return &results, nil
 }

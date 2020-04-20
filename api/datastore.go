@@ -2,14 +2,14 @@ package api
 
 import (
 	"github.com/ONSdigital/dp-filter-api/models"
-	"github.com/gedge/mgo/bson"
+	"github.com/globalsign/mgo/bson"
 )
 
 //go:generate moq -out datastoretest/datastore.go -pkg datastoretest . DataStore
 
 // DataStore - A interface used to store filters
 type DataStore interface {
-	AddFilter(host string, filter *models.Filter) (*models.Filter, error)
+	AddFilter(filter *models.Filter) (*models.Filter, error)
 	AddFilterDimension(filterID, name string, options []string, dimensions []models.Dimension, timestamp bson.MongoTimestamp) error
 	AddFilterDimensionOption(filterID, name, option string, timestamp bson.MongoTimestamp) error
 	CreateFilterOutput(filter *models.Filter) error
