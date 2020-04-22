@@ -6,7 +6,6 @@ package datastoretest
 import (
 	"context"
 	"github.com/ONSdigital/dp-filter-api/models"
-	"github.com/ONSdigital/dp-filter-api/preview"
 	"sync"
 )
 
@@ -14,24 +13,24 @@ var (
 	lockPreviewDatasetMockGetPreview sync.RWMutex
 )
 
-// PreviewDatasetMock is a mock implementation of PreviewDataset.
+// PreviewDatasetMock is a mock implementation of api.PreviewDataset.
 //
 //     func TestSomethingThatUsesPreviewDataset(t *testing.T) {
 //
-//         // make and configure a mocked PreviewDataset
+//         // make and configure a mocked api.PreviewDataset
 //         mockedPreviewDataset := &PreviewDatasetMock{
-//             GetPreviewFunc: func(ctx context.Context, filter *models.Filter, limit int) (*preview.FilterPreview, error) {
-// 	               panic("TODO: mock out the GetPreview method")
+//             GetPreviewFunc: func(ctx context.Context, filter *models.Filter, limit int) (*models.FilterPreview, error) {
+// 	               panic("mock out the GetPreview method")
 //             },
 //         }
 //
-//         // TODO: use mockedPreviewDataset in code that requires PreviewDataset
-//         //       and then make assertions.
+//         // use mockedPreviewDataset in code that requires api.PreviewDataset
+//         // and then make assertions.
 //
 //     }
 type PreviewDatasetMock struct {
 	// GetPreviewFunc mocks the GetPreview method.
-	GetPreviewFunc func(ctx context.Context, filter *models.Filter, limit int) (*preview.FilterPreview, error)
+	GetPreviewFunc func(ctx context.Context, filter *models.Filter, limit int) (*models.FilterPreview, error)
 
 	// calls tracks calls to the methods.
 	calls struct {
@@ -48,7 +47,7 @@ type PreviewDatasetMock struct {
 }
 
 // GetPreview calls GetPreviewFunc.
-func (mock *PreviewDatasetMock) GetPreview(ctx context.Context, filter *models.Filter, limit int) (*preview.FilterPreview, error) {
+func (mock *PreviewDatasetMock) GetPreview(ctx context.Context, filter *models.Filter, limit int) (*models.FilterPreview, error) {
 	if mock.GetPreviewFunc == nil {
 		panic("PreviewDatasetMock.GetPreviewFunc: method is nil but PreviewDataset.GetPreview was just called")
 	}

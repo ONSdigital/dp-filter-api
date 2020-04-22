@@ -5,32 +5,34 @@ package observationstoretest
 
 import (
 	"context"
-	"github.com/ONSdigital/dp-graph/observation"
+
 	"sync"
+
+	"github.com/ONSdigital/dp-graph/v2/observation"
 )
 
 var (
 	lockObservationStoreMockStreamCSVRows sync.RWMutex
 )
 
-// ObservationStoreMock is a mock implementation of ObservationStore.
+// ObservationStoreMock is a mock implementation of preview.ObservationStore.
 //
 //     func TestSomethingThatUsesObservationStore(t *testing.T) {
 //
-//         // make and configure a mocked ObservationStore
+//         // make and configure a mocked preview.ObservationStore
 //         mockedObservationStore := &ObservationStoreMock{
-//             StreamCSVRowsFunc: func(ctx context.Context, filter *observation.Filter, limit *int) (observation.StreamRowReader, error) {
-// 	               panic("TODO: mock out the StreamCSVRows method")
+//             StreamCSVRowsFunc: func(ctx context.Context, instanceID string, filterID string, filters *observation.DimensionFilters, limit *int) (observation.StreamRowReader, error) {
+// 	               panic("mock out the StreamCSVRows method")
 //             },
 //         }
 //
-//         // TODO: use mockedObservationStore in code that requires ObservationStore
-//         //       and then make assertions.
+//         // use mockedObservationStore in code that requires preview.ObservationStore
+//         // and then make assertions.
 //
 //     }
 type ObservationStoreMock struct {
 	// StreamCSVRowsFunc mocks the StreamCSVRows method.
-	StreamCSVRowsFunc func(ctx context.Context, filter *observation.Filter, limit *int) (observation.StreamRowReader, error)
+	StreamCSVRowsFunc func(ctx context.Context, instanceID string, filterID string, filters *observation.DimensionFilters, limit *int) (observation.StreamRowReader, error)
 
 	// calls tracks calls to the methods.
 	calls struct {
@@ -38,8 +40,12 @@ type ObservationStoreMock struct {
 		StreamCSVRows []struct {
 			// Ctx is the ctx argument value.
 			Ctx context.Context
-			// Filter is the filter argument value.
-			Filter *observation.Filter
+			// InstanceID is the instanceID argument value.
+			InstanceID string
+			// FilterID is the filterID argument value.
+			FilterID string
+			// Filters is the filters argument value.
+			Filters *observation.DimensionFilters
 			// Limit is the limit argument value.
 			Limit *int
 		}
@@ -47,37 +53,45 @@ type ObservationStoreMock struct {
 }
 
 // StreamCSVRows calls StreamCSVRowsFunc.
-func (mock *ObservationStoreMock) StreamCSVRows(ctx context.Context, filter *observation.Filter, limit *int) (observation.StreamRowReader, error) {
+func (mock *ObservationStoreMock) StreamCSVRows(ctx context.Context, instanceID string, filterID string, filters *observation.DimensionFilters, limit *int) (observation.StreamRowReader, error) {
 	if mock.StreamCSVRowsFunc == nil {
 		panic("ObservationStoreMock.StreamCSVRowsFunc: method is nil but ObservationStore.StreamCSVRows was just called")
 	}
 	callInfo := struct {
-		Ctx    context.Context
-		Filter *observation.Filter
-		Limit  *int
+		Ctx        context.Context
+		InstanceID string
+		FilterID   string
+		Filters    *observation.DimensionFilters
+		Limit      *int
 	}{
-		Ctx:    ctx,
-		Filter: filter,
-		Limit:  limit,
+		Ctx:        ctx,
+		InstanceID: instanceID,
+		FilterID:   filterID,
+		Filters:    filters,
+		Limit:      limit,
 	}
 	lockObservationStoreMockStreamCSVRows.Lock()
 	mock.calls.StreamCSVRows = append(mock.calls.StreamCSVRows, callInfo)
 	lockObservationStoreMockStreamCSVRows.Unlock()
-	return mock.StreamCSVRowsFunc(ctx, filter, limit)
+	return mock.StreamCSVRowsFunc(ctx, instanceID, filterID, filters, limit)
 }
 
 // StreamCSVRowsCalls gets all the calls that were made to StreamCSVRows.
 // Check the length with:
 //     len(mockedObservationStore.StreamCSVRowsCalls())
 func (mock *ObservationStoreMock) StreamCSVRowsCalls() []struct {
-	Ctx    context.Context
-	Filter *observation.Filter
-	Limit  *int
+	Ctx        context.Context
+	InstanceID string
+	FilterID   string
+	Filters    *observation.DimensionFilters
+	Limit      *int
 } {
 	var calls []struct {
-		Ctx    context.Context
-		Filter *observation.Filter
-		Limit  *int
+		Ctx        context.Context
+		InstanceID string
+		FilterID   string
+		Filters    *observation.DimensionFilters
+		Limit      *int
 	}
 	lockObservationStoreMockStreamCSVRows.RLock()
 	calls = mock.calls.StreamCSVRows

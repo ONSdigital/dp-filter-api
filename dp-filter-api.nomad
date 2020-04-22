@@ -30,7 +30,7 @@ job "dp-filter-api" {
       driver = "docker"
 
       artifact {
-        source = "s3::https://s3-eu-west-1.amazonaws.com/{{DEPLOYMENT_BUCKET}}/dp-filter-api/{{REVISION}}.tar.gz"
+        source = "s3::https://s3-eu-west-1.amazonaws.com/{{DEPLOYMENT_BUCKET}}/dp-filter-api/{{TARGET_ENVIRONMENT}}/{{RELEASE}}.tar.gz"
       }
 
       config {
@@ -51,7 +51,7 @@ job "dp-filter-api" {
         tags = ["web"]
         check {
           type     = "http"
-          path     = "/healthcheck"
+          path     = "/health"
           interval = "10s"
           timeout  = "2s"
         }
@@ -96,7 +96,7 @@ job "dp-filter-api" {
       driver = "docker"
 
       artifact {
-        source = "s3::https://s3-eu-west-1.amazonaws.com/{{DEPLOYMENT_BUCKET}}/dp-filter-api/{{REVISION}}.tar.gz"
+        source = "s3::https://s3-eu-west-1.amazonaws.com/{{DEPLOYMENT_BUCKET}}/dp-filter-api/{{TARGET_ENVIRONMENT}}/{{RELEASE}}.tar.gz"
       }
 
       config {
@@ -117,7 +117,7 @@ job "dp-filter-api" {
         tags = ["publishing"]
         check {
           type     = "http"
-          path     = "/healthcheck"
+          path     = "/health"
           interval = "10s"
           timeout  = "2s"
         }

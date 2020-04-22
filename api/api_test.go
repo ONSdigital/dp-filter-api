@@ -9,7 +9,6 @@ import (
 	"github.com/ONSdigital/dp-filter-api/api/datastoretest"
 	"github.com/ONSdigital/dp-filter-api/filters"
 	"github.com/ONSdigital/dp-filter-api/models"
-	"github.com/ONSdigital/dp-filter-api/preview"
 	"github.com/ONSdigital/go-ns/audit"
 	"github.com/ONSdigital/go-ns/common"
 	. "github.com/smartystreets/goconvey/convey"
@@ -19,7 +18,8 @@ const (
 	host                   = "http://localhost:80"
 	enablePrivateEndpoints = true
 	downloadServiceURL     = "http://localhost:23600"
-	downloadServiceToken   = "123wut"
+	downloadServiceToken   = "123123"
+	serviceAuthToken       = "321321"
 )
 
 var (
@@ -32,8 +32,8 @@ var (
 )
 
 var previewMock = &datastoretest.PreviewDatasetMock{
-	GetPreviewFunc: func(ctx context.Context, filter *models.Filter, limit int) (*preview.FilterPreview, error) {
-		return &preview.FilterPreview{}, nil
+	GetPreviewFunc: func(ctx context.Context, filter *models.Filter, limit int) (*models.FilterPreview, error) {
+		return &models.FilterPreview{}, nil
 	},
 }
 

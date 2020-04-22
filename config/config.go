@@ -15,15 +15,16 @@ type Config struct {
 	KafkaMaxBytes              string        `envconfig:"KAFKA_MAX_BYTES"`
 	ShutdownTimeout            time.Duration `envconfig:"SHUTDOWN_TIMEOUT"`
 	DatasetAPIURL              string        `envconfig:"DATASET_API_URL"`
-	DatasetAPIAuthToken        string        `envconfig:"DATASET_API_AUTH_TOKEN"      json:"-"`
+	DatasetAPIAuthToken        string        `envconfig:"DATASET_API_AUTH_TOKEN"           json:"-"`
 	HealthCheckInterval        time.Duration `envconfig:"HEALTHCHECK_INTERVAL"`
+	HealthCheckCriticalTimeout time.Duration `envconfig:"HEALTHCHECK_CRITICAL_TIMEOUT"`
+	ServiceAuthToken           string        `envconfig:"SERVICE_AUTH_TOKEN"               json:"-"`
+	ZebedeeURL                 string        `envconfig:"ZEBEDEE_URL"`
+	EnablePrivateEndpoints     bool          `envconfig:"ENABLE_PRIVATE_ENDPOINTS"`
+	DownloadServiceURL         string        `envconfig:"DOWNLOAD_SERVICE_URL"`
+	DownloadServiceSecretKey   string        `envconfig:"DOWNLOAD_SERVICE_SECRET_KEY"      json:"-"`
+	AuditEventsTopic           string        `envconfig:"AUDIT_EVENTS_TOPIC"`
 	MongoConfig                MongoConfig
-	ServiceAuthToken           string `envconfig:"SERVICE_AUTH_TOKEN"          json:"-"`
-	ZebedeeURL                 string `envconfig:"ZEBEDEE_URL"`
-	EnablePrivateEndpoints     bool   `envconfig:"ENABLE_PRIVATE_ENDPOINTS"`
-	DownloadServiceURL         string `envconfig:"DOWNLOAD_SERVICE_URL"`
-	DownloadServiceSecretKey   string `envconfig:"DOWNLOAD_SERVICE_SECRET_KEY"      json:"-"`
-	AuditEventsTopic           string `envconfig:"AUDIT_EVENTS_TOPIC"`
 }
 
 // MongoConfig contains the config required to connect to MongoDB.
@@ -52,6 +53,7 @@ func Get() (*Config, error) {
 		DatasetAPIURL:              "http://localhost:22000",
 		DatasetAPIAuthToken:        "FD0108EA-825D-411C-9B1D-41EF7727F465",
 		HealthCheckInterval:        30 * time.Second,
+		HealthCheckCriticalTimeout: 90 * time.Second,
 		MongoConfig: MongoConfig{
 			BindAddr:          "localhost:27017",
 			Database:          "filters",

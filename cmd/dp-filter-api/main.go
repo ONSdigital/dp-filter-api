@@ -8,96 +8,102 @@ import (
 	"strconv"
 	"syscall"
 
+	"github.com/ONSdigital/dp-api-clients-go/zebedee"
+	"github.com/ONSdigital/dp-filter-api/kafkaadapter"
+	"github.com/ONSdigital/dp-filter-api/mongo"
+	"github.com/ONSdigital/dp-graph/v2/graph"
+	"github.com/ONSdigital/dp-healthcheck/healthcheck"
+	mongolib "github.com/ONSdigital/dp-mongodb"
+
+	"github.com/ONSdigital/dp-api-clients-go/dataset"
 	"github.com/ONSdigital/dp-filter-api/api"
 	"github.com/ONSdigital/dp-filter-api/config"
 	"github.com/ONSdigital/dp-filter-api/filterOutputQueue"
-	"github.com/ONSdigital/dp-filter-api/mongo"
+	"github.com/ONSdigital/dp-filter-api/initialise"
 	"github.com/ONSdigital/dp-filter-api/preview"
-	"github.com/ONSdigital/dp-graph/graph"
+	kafka "github.com/ONSdigital/dp-kafka"
 	"github.com/ONSdigital/go-ns/audit"
-	"github.com/ONSdigital/go-ns/clients/dataset"
-	"github.com/ONSdigital/go-ns/healthcheck"
-	"github.com/ONSdigital/go-ns/kafka"
-	"github.com/ONSdigital/go-ns/log"
-	mongolib "github.com/ONSdigital/go-ns/mongo"
+	"github.com/ONSdigital/log.go/log"
+)
+
+var (
+	// BuildTime represents the time in which the service was built
+	BuildTime string
+	// GitCommit represents the commit (SHA-1) hash of the service that is running
+	GitCommit string
+	// Version represents the version of the service that is running
+	Version string
 )
 
 func main() {
 
 	log.Namespace = "dp-filter-api"
+	ctx := context.Background()
 
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM)
 
 	cfg, err := config.Get()
-	if err != nil {
-		log.Error(err, nil)
-		os.Exit(1)
-	}
+	exitIfError(ctx, err, "unable to retrieve configuration")
 
-	// sensitive fields are omitted from config.String().
-	log.Info("loaded config", log.Data{
-		"config": cfg,
-	})
+	// sensitive fields are omitted from config.String()
+	log.Event(ctx, "loaded config", log.INFO, log.Data{"config": cfg})
 
 	envMax, err := strconv.ParseInt(cfg.KafkaMaxBytes, 10, 32)
-	if err != nil {
-		log.ErrorC("encountered error parsing kafka max bytes", err, nil)
-		os.Exit(1)
-	}
+	exitIfError(ctx, err, "encountered error parsing kafka max bytes")
 
-	dataStore, err := mongo.CreateFilterStore(cfg.MongoConfig, cfg.Host)
-	if err != nil {
-		log.ErrorC("could not connect to mongodb", err, nil)
-		os.Exit(1)
-	}
+	var serviceList initialise.ExternalServiceList
 
-	observationStore, err := graph.New(context.Background(), graph.Subsets{Observation: true})
-	if err != nil {
-		log.ErrorC("could not connect to graph", err, nil)
-		os.Exit(1)
-	}
+	dataStore, err := serviceList.GetFilterStore(cfg)
+	logIfError(ctx, err, "could not connect to mongodb")
 
-	producer, err := kafka.NewProducer(cfg.Brokers, cfg.FilterOutputSubmittedTopic, int(envMax))
-	if err != nil {
-		log.ErrorC("Create kafka producer error", err, nil)
-		os.Exit(1)
-	}
+	observationStore, err := serviceList.GetObservationStore()
+	logIfError(ctx, err, "could not connect to graph")
+
+	producer, err := serviceList.GetProducer(
+		ctx,
+		cfg.Brokers,
+		cfg.FilterOutputSubmittedTopic,
+		initialise.FilterOutputSubmitted,
+		int(envMax),
+	)
+	logIfError(ctx, err, "error creating kafka filter output submitted producer")
+	producer.Channels().LogErrors(ctx, "error received from kafka producer, topic: "+cfg.FilterOutputSubmittedTopic)
 
 	var auditor audit.AuditorService
-	var auditProducer kafka.Producer
+	var auditProducer *kafka.Producer
 
 	if cfg.EnablePrivateEndpoints {
-		log.Info("private endpoints enabled, enabling auditing", nil)
+		log.Event(ctx, "private endpoints enabled, enabling auditing", log.INFO)
 
-		auditProducer, err = kafka.NewProducer(cfg.Brokers, cfg.AuditEventsTopic, 0)
-		if err != nil {
-			log.ErrorC("error creating kafka audit producer", err, nil)
-			os.Exit(1)
-		}
+		auditProducer, err = serviceList.GetProducer(
+			ctx,
+			cfg.Brokers,
+			cfg.AuditEventsTopic,
+			initialise.Audit,
+			0,
+		)
+		logIfError(ctx, err, "error creating kafka audit producer")
+		auditProducer.Channels().LogErrors(ctx, "error received from kafka producer, topic: "+cfg.AuditEventsTopic)
 
-		auditor = audit.New(auditProducer, "dp-filter-api")
+		auditProducerAdapter := kafkaadapter.NewProducerAdapter(auditProducer)
+		auditor = audit.New(auditProducerAdapter, "dp-filter-api")
 	} else {
-		log.Info("private endpoints disabled, auditing will not be enabled", nil)
+		log.Event(ctx, "private endpoints disabled, auditing will not be enabled", log.INFO)
 		auditor = &audit.NopAuditor{}
 	}
 
 	// todo: remove config.DatasetAPIAuthToken when the DatasetAPI supports identity based auth.
-	datasetAPI := dataset.NewAPIClient(cfg.DatasetAPIURL, cfg.ServiceAuthToken, "")
+	datasetAPI := dataset.NewAPIClient(cfg.DatasetAPIURL)
 
 	previewDatasets := preview.DatasetStore{Store: observationStore}
-	outputQueue := filterOutputQueue.CreateOutputQueue(producer.Output())
+	outputQueue := filterOutputQueue.CreateOutputQueue(producer.Channels().Output)
 
-	healthTicker := healthcheck.NewTicker(
-		cfg.HealthCheckInterval,
-		observationStore,
-		mongolib.NewHealthCheckClient(dataStore.Session),
-		datasetAPI,
-	)
+	hc := startHealthCheck(ctx, cfg, datasetAPI, producer, observationStore, dataStore, auditProducer)
 
 	apiErrors := make(chan error, 1)
 
-	api.CreateFilterAPI(cfg.Host,
+	api.CreateFilterAPI(ctx, cfg.Host,
 		cfg.BindAddr,
 		cfg.ZebedeeURL,
 		dataStore,
@@ -108,58 +114,134 @@ func main() {
 		cfg.EnablePrivateEndpoints,
 		cfg.DownloadServiceURL,
 		cfg.DownloadServiceSecretKey,
+		cfg.ServiceAuthToken,
 		auditor,
+		&hc,
 	)
 
+	// block until a fatal error occurs
+	select {
+	case <-signals:
+		log.Event(ctx, "os signal received", log.INFO)
+	case err := <-apiErrors:
+		log.Event(ctx, "api http server returned error", log.ERROR, log.Error(err))
+	}
+
+	log.Event(ctx, fmt.Sprintf("Shutdown with timeout: %s", cfg.ShutdownTimeout), log.INFO)
+	ctx, cancel := context.WithTimeout(context.Background(), cfg.ShutdownTimeout)
+
 	// Gracefully shutdown the application closing any open resources.
-	gracefulShutdown := func() {
-		log.Info(fmt.Sprintf("Shutdown with timeout: %s", cfg.ShutdownTimeout), nil)
-		ctx, cancel := context.WithTimeout(context.Background(), cfg.ShutdownTimeout)
+	go func() {
+		defer cancel()
+
+		// Close health check first as it depends on other services/clients being available
+		// Helps to prevent race conditions between health ticker/checker and graceful shutdown
+		hc.Stop()
 
 		if err = api.Close(ctx); err != nil {
-			log.Error(err, nil)
+			logIfError(ctx, err, "unable to close api server")
 		}
 
-		healthTicker.Close()
-
-		// mongo.Close() may use all remaining time in the context
-		if err = mongolib.Close(ctx, dataStore.Session); err != nil {
-			log.Error(err, nil)
+		if serviceList.FilterStore {
+			log.Event(ctx, "closing filter store", log.INFO)
+			// mongo.Close() may use all remaining time in the context
+			logIfError(ctx, mongolib.Close(ctx, dataStore.Session), "unable to close filter store")
 		}
 
-		if err = observationStore.Close(ctx); err != nil {
-			log.Error(err, nil)
+		if serviceList.ObservationStore {
+			log.Event(ctx, "closing observation store", log.INFO)
+			logIfError(ctx, observationStore.Close(ctx), "unable to close observation store")
 		}
 
-		// Close producer after http server has closed so if a message
-		// needs to be sent to kafka off a request it can
-		if err := producer.Close(ctx); err != nil {
-			log.Error(err, nil)
+		if serviceList.FilterOutputSubmittedProducer {
+			log.Event(ctx, "closing filter output submitted producer", log.INFO)
+			// Close producer after http server has closed so if a message
+			// needs to be sent to kafka off a request it can
+			logIfError(ctx, producer.Close(ctx), "unable to close filter output submitted producer")
 		}
 
-		if cfg.EnablePrivateEndpoints {
-			log.Debug("exiting audit producer", nil)
-			if err = auditProducer.Close(ctx); err != nil {
-				log.Error(err, nil)
-			}
+		if serviceList.AuditProducer {
+			log.Event(ctx, "closing audit producer", log.INFO)
+			logIfError(ctx, auditProducer.Close(ctx), "unable to close audit producer")
 		}
+	}()
 
-		cancel()
-		log.Info("Shutdown complete", nil)
+	// wait for shutdown success (via cancel) or failure (timeout)
+	<-ctx.Done()
+
+	if ctx.Err() == context.DeadlineExceeded {
+		log.Event(ctx, "shutdown timeout", log.ERROR, log.Error(ctx.Err()))
 		os.Exit(1)
 	}
 
-	for {
-		select {
-		case err := <-producer.Errors():
-			log.ErrorC("kafka producer error received", err, nil)
-			gracefulShutdown()
-		case err := <-apiErrors:
-			log.ErrorC("api error received", err, nil)
-			gracefulShutdown()
-		case <-signals:
-			log.Debug("os signal received", nil)
-			gracefulShutdown()
+	log.Event(ctx, "Shutdown complete", log.INFO)
+	os.Exit(0)
+}
+
+func startHealthCheck(ctx context.Context, cfg *config.Config, datasetAPI *dataset.Client, producer *kafka.Producer, observationStore *graph.DB, dataStore *mongo.FilterStore, auditProducer *kafka.Producer) healthcheck.HealthCheck {
+
+	hasErrors := false
+
+	versionInfo, err := healthcheck.NewVersionInfo(BuildTime, GitCommit, Version)
+	if err != nil {
+		log.Event(ctx, "error creating version info", log.FATAL, log.Error(err))
+		hasErrors = true
+	}
+
+	hc := healthcheck.New(versionInfo, cfg.HealthCheckCriticalTimeout, cfg.HealthCheckInterval)
+
+	if err = hc.AddCheck("Dataset API", datasetAPI.Checker); err != nil {
+		log.Event(ctx, "error creating dataset API health check", log.ERROR, log.Error(err))
+		hasErrors = true
+	}
+
+	if err = hc.AddCheck("Kafka Producer", producer.Checker); err != nil {
+		log.Event(ctx, "error adding check for kafka producer", log.ERROR, log.Error(err))
+		hasErrors = true
+	}
+
+	if err = hc.AddCheck("GraphDB", observationStore.Checker); err != nil {
+		hasErrors = true
+		log.Event(ctx, "error creating graph db connection", log.ERROR, log.Error(err))
+	}
+
+	checkMongoClient := dataStore.HealthCheckClient()
+	if err = hc.AddCheck("MongoDB", checkMongoClient.Checker); err != nil {
+		log.Event(ctx, "error creating mongodb health check", log.ERROR, log.Error(err))
+		hasErrors = true
+	}
+
+	if cfg.EnablePrivateEndpoints {
+		if err = hc.AddCheck("Kafka Audit Producer", auditProducer.Checker); err != nil {
+			log.Event(ctx, "error adding check for kafka audit producer", log.ERROR, log.Error(err))
+			hasErrors = true
 		}
+
+		// zebedee is used only for identity checking
+		zebedeeClient := zebedee.New(cfg.ZebedeeURL)
+		if err = hc.AddCheck("Zebedee", zebedeeClient.Checker); err != nil {
+			log.Event(ctx, "error creating zebedee health check", log.ERROR, log.Error(err))
+			hasErrors = true
+		}
+	}
+
+	if hasErrors {
+		os.Exit(1)
+	}
+
+	hc.Start(ctx)
+	return hc
+}
+
+func exitIfError(ctx context.Context, err error, message string) {
+	if err != nil {
+		log.Event(ctx, message, log.Error(err), log.FATAL)
+		os.Exit(1)
+	}
+}
+
+func logIfError(ctx context.Context, err error, message string) {
+	if err != nil {
+		log.Event(ctx, message, log.Error(err), log.ERROR)
 	}
 }
