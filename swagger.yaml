@@ -20,9 +20,9 @@ parameters:
   if_match:
     name: If-Match
     type: string
-    description: "The entity tag as a way to help prevent simultaneous updates of a resource from overwriting each other."
+    description: "The entity tag as a way to help prevent simultaneous updates of a resource from overwriting each other. If value is * the request does not need the pre-condition ETag check to occur."
     in: header
-    required: false
+    required: true
   filter_id:
     name: id
     type: string
