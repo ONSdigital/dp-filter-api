@@ -234,7 +234,7 @@ paths:
           $ref: '#/responses/InternalError'
     patch:
       tags:
-      - "Private"
+      - "Public"
       summary: "Update dimension options against a filter job"
       description: "Patch a list of dimension options for a filter"
       produces:
