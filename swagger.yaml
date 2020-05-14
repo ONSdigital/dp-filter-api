@@ -17,12 +17,6 @@ tags:
 schemes:
 - "http"
 parameters:
-  if_match:
-    name: If-Match
-    type: string
-    description: "The entity tag as a way to help prevent simultaneous updates of a resource from overwriting each other. If value is * the request does not need the pre-condition ETag check to occur."
-    in: header
-    required: true
   filter_id:
     name: id
     type: string
@@ -241,14 +235,9 @@ paths:
       - "application/json-patch+json"
       parameters:
       - $ref: '#/parameters/patch_options'
-      - $ref: '#/parameters/if_match'
       responses:
         200:
           description: "The dimension was patched"
-          headers:
-            ETag:
-              type: string
-              description: "The entity tag as a way to help prevent simultaneous updates of a resource from overwriting each other."
           schema:
             $ref: '#/definitions/Options'
         400:
@@ -257,8 +246,6 @@ paths:
           description: "Unauthorised, request lacks valid authentication credentials"
         404:
           description: "Filter job was not found"
-        412:
-          description: "ETag mismatch due to pre-condition header If-Match. If-Match value does not match ETag of resource to be updated."
         422:
           description: "Unprocessable entity - instance has been removed"
         500:
