@@ -60,6 +60,13 @@ parameters:
       $ref: '#/definitions/Options'
     description: "A list of options for a dimension to filter the dataset"
     in: body
+  patch_options:
+    required: true
+    name: patch
+    schema:
+      $ref: '#/definitions/PatchOptions'
+    description: "A list of options for a dimension to filter the dataset"
+    in: body
   new_filter:
     name: filter
     schema:
@@ -213,6 +220,30 @@ paths:
           description: "The dimension was created"
         400:
           description: "Invalid request body"
+        404:
+          description: "Filter job was not found"
+        422:
+          description: "Unprocessable entity - instance has been removed"
+        500:
+          $ref: '#/responses/InternalError'
+    patch:
+      tags:
+      - "Public"
+      summary: "Update dimension options against a filter job"
+      description: "Patch a list of dimension options for a filter"
+      produces:
+      - "application/json-patch+json"
+      parameters:
+      - $ref: '#/parameters/patch_options'
+      responses:
+        200:
+          description: "The dimension was patched"
+          schema:
+            $ref: '#/definitions/Options'
+        400:
+          description: "Invalid request body"
+        401:
+          description: "Unauthorised, request lacks valid authentication credentials"
         404:
           description: "Filter job was not found"
         422:
@@ -577,6 +608,32 @@ definitions:
         description: "A list of options for dimension to filter on a dataset"
         items:
           type: string
+  PatchOptions:
+    description: "A list of operations to patch dimension to filter on a dataset. Can only handle adding or removing values from options array, each element in array is processed in sequential order. Method Patch does not abide by any existing rfc standard, yet this was adapted from rfc6902 standard."
+    type: array
+    items:
+      type: object
+      description: "Item containing all necessary information to make a single operation on the resource."
+      properties:
+        op:
+          description: |
+            The operation to be made on path.
+            * add - Adding multiple values that are the same or already  in resource will not be appended to array.
+            * remove - Removing values that do not exist in array will not result in failure
+          type: string
+          enum: [
+            add,
+            remove
+          ]
+        path:
+          description: "Path to value that needs to be operated on. The special '-' key is the indicator of an array at a specific path"
+          type: string
+          example: "/options/-"
+        value:
+          description: "A list of values defined by the operation value. 'op' to define the update against array"
+          type: array
+          items:
+            type: string
   Events:
     type: array
     items:
