@@ -2,10 +2,11 @@ package mongo
 
 import (
 	"fmt"
+	"time"
+
 	mongolib "github.com/ONSdigital/dp-mongodb"
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
-	"time"
 
 	"github.com/ONSdigital/dp-filter-api/config"
 	"github.com/ONSdigital/dp-filter-api/filters"
@@ -187,6 +188,30 @@ func (s *FilterStore) AddFilterDimensionOption(filterID, name, option string, ti
 
 	queryOptions := bson.M{"filter_id": filterID, "unique_timestamp": timestamp, "dimensions": bson.M{"$elemMatch": bson.M{"name": name}}}
 	update, err := mongolib.WithUpdates(bson.M{"$addToSet": bson.M{"dimensions.$.options": option}})
+	if err != nil {
+		return err
+	}
+
+	if err := session.DB(s.db).C(s.filtersCollection).Update(queryOptions, update); err != nil {
+		if err == mgo.ErrNotFound {
+			return filters.ErrFilterBlueprintConflict
+		}
+		return err
+	}
+
+	return nil
+}
+
+func (s *FilterStore) UpdateDisclosureStatus(filterID, status, dimension string, blockedOptions []string, timestamp bson.MongoTimestamp) error {
+	session := s.Session.Copy()
+	defer session.Close()
+
+	queryOptions := bson.M{"filter_id": filterID, "unique_timestamp": timestamp}
+	update, err := mongolib.WithUpdates(bson.M{"$set": bson.M{
+		"disclosure_control.status":    status,
+		"disclosure_control.dimension": dimension,
+		"disclosure_control.options":   blockedOptions,
+	}})
 	if err != nil {
 		return err
 	}

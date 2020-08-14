@@ -4,6 +4,9 @@ MAIN=dp-filter-api
 BUILD=build
 BIN_DIR?=.
 
+export DATASET_API_URL=http://localhost:9090
+export ZEBEDEE_URL=http://localhost:9090
+
 BUILD_TIME=$(shell date +%s)
 GIT_COMMIT=$(shell git rev-parse HEAD)
 VERSION ?= $(shell git tag --points-at HEAD | grep ^v | head -n 1)
@@ -15,7 +18,7 @@ build:
 	@mkdir -p $(BUILD)/$(BIN_DIR)
 	go build $(LDFLAGS) -o $(BUILD)/$(BIN_DIR)/dp-filter-api cmd/$(MAIN)/main.go
 debug:
-	GRAPH_DRIVER_TYPE=neo4j GRAPH_ADDR="$(DATABASE_ADDRESS)" HUMAN_LOG=1 go run $(LDFLAGS) -race cmd/$(MAIN)/main.go
+	GRAPH_DRIVER_TYPE=neo4j GRAPH_ADDR="$(DATABASE_ADDRESS)" HUMAN_LOG=1 AUTH_PROXY_TOKEN="$(AUTH_PROXY_TOKEN)" go run $(LDFLAGS) -race cmd/$(MAIN)/main.go
 acceptance-publishing:
 	MONGODB_FILTERS_DATABASE=test GRAPH_DRIVER_TYPE=neo4j GRAPH_ADDR="$(DATABASE_ADDRESS)" HUMAN_LOG=1 go run $(LDFLAGS) -race cmd/$(MAIN)/main.go
 acceptance-web:

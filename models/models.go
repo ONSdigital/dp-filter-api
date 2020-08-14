@@ -4,11 +4,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/ONSdigital/dp-api-clients-go/dataset"
-	"github.com/globalsign/mgo/bson"
 	"io"
 	"io/ioutil"
 	"time"
+
+	"github.com/ONSdigital/dp-api-clients-go/dataset"
+	"github.com/globalsign/mgo/bson"
 )
 
 // A list of states
@@ -21,6 +22,12 @@ var (
 	Unpublished = false
 	Published   = true
 )
+
+type DisclosureControl struct {
+	Status         string   `bson:"status"          json:"status"`
+	Dimension      string   `bson:"dimension"       json:"dimension"`
+	BlockedOptions []string `bson:"options"         json:"options"`
+}
 
 // Dataset contains the uniique identifiers that make a dataset unique
 type Dataset struct {
@@ -40,15 +47,16 @@ type Filter struct {
 	UniqueTimestamp bson.MongoTimestamp `bson:"unique_timestamp,omitempty" json:"-"`
 	LastUpdated     time.Time           `bson:"last_updated"         json:"-"`
 
-	Dataset    *Dataset    `bson:"dataset"              json:"dataset"`
-	InstanceID string      `bson:"instance_id"          json:"instance_id"`
-	Dimensions []Dimension `bson:"dimensions,omitempty" json:"dimensions,omitempty"`
-	Downloads  *Downloads  `bson:"downloads,omitempty"  json:"downloads,omitempty"`
-	Events     []*Event    `bson:"events,omitempty"     json:"events,omitempty"`
-	FilterID   string      `bson:"filter_id"            json:"filter_id,omitempty"`
-	State      string      `bson:"state,omitempty"      json:"state,omitempty"`
-	Published  *bool       `bson:"published,omitempty"  json:"published,omitempty"`
-	Links      LinkMap     `bson:"links"                json:"links,omitempty"`
+	Dataset           *Dataset          `bson:"dataset"              json:"dataset"`
+	InstanceID        string            `bson:"instance_id"          json:"instance_id"`
+	Dimensions        []Dimension       `bson:"dimensions,omitempty" json:"dimensions,omitempty"`
+	Downloads         *Downloads        `bson:"downloads,omitempty"  json:"downloads,omitempty"`
+	Events            []*Event          `bson:"events,omitempty"     json:"events,omitempty"`
+	FilterID          string            `bson:"filter_id"            json:"filter_id,omitempty"`
+	State             string            `bson:"state,omitempty"      json:"state,omitempty"`
+	Published         *bool             `bson:"published,omitempty"  json:"published,omitempty"`
+	Links             LinkMap           `bson:"links"                json:"links,omitempty"`
+	DisclosureControl DisclosureControl `bson:"disclosure_control"   json:"disclosure_control,omitempty"`
 }
 
 // LinkMap contains a named LinkObject for each link to other resources

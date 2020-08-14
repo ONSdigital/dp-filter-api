@@ -7,6 +7,7 @@ import (
 	"os/signal"
 	"strconv"
 	"syscall"
+	"time"
 
 	"github.com/ONSdigital/dp-api-clients-go/zebedee"
 	"github.com/ONSdigital/dp-filter-api/kafkaadapter"
@@ -28,11 +29,11 @@ import (
 
 var (
 	// BuildTime represents the time in which the service was built
-	BuildTime string
+	BuildTime string = strconv.FormatInt(time.Now().Unix(), 10)
 	// GitCommit represents the commit (SHA-1) hash of the service that is running
 	GitCommit string
 	// Version represents the version of the service that is running
-	Version string
+	Version string = ""
 )
 
 func main() {

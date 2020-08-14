@@ -6,7 +6,9 @@ import (
 	"net/http"
 
 	"fmt"
+
 	"github.com/ONSdigital/dp-filter-api/models"
+	"github.com/ONSdigital/dp-ftb-client-go/ftb"
 	"github.com/ONSdigital/log.go/log"
 	"github.com/gorilla/mux"
 
@@ -116,7 +118,12 @@ func (api *FilterAPI) postFilterBlueprintHandler(w http.ResponseWriter, r *http.
 
 func (api *FilterAPI) createFilterBlueprint(ctx context.Context, filter *models.NewFilter, submitted string) (*models.Filter, error) {
 
-	newFilter := &models.Filter{}
+	newFilter := &models.Filter{DisclosureControl: models.DisclosureControl{
+		Status:         ftb.StatusOK,
+		Dimension:      "",
+		BlockedOptions: []string{},
+	}}
+
 	logData := log.Data{}
 
 	if err := filter.ValidateNewFilter(); err != nil {

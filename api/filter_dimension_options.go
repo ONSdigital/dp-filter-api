@@ -3,8 +3,11 @@ package api
 import (
 	"encoding/json"
 	"net/http"
+	"os"
 
 	"github.com/ONSdigital/dp-filter-api/models"
+	"github.com/ONSdigital/dp-ftb-client-go/ftb"
+	dphttp "github.com/ONSdigital/dp-net/http"
 	"github.com/ONSdigital/log.go/log"
 	"github.com/gorilla/mux"
 
@@ -289,6 +292,14 @@ func (api *FilterAPI) addFilterBlueprintDimensionOptionHandler(w http.ResponseWr
 		return
 	}
 
+	err = api.checkDisclosureStatus(ctx, filterBlueprintID)
+	if err != nil {
+		log.Event(ctx, "disclosure control update failure", log.Error(err), log.ERROR)
+		w.Write([]byte(err.Error()))
+		w.WriteHeader(500)
+		return
+	}
+
 	dimensionOption, err := api.getFilterBlueprintDimensionOption(ctx, filterBlueprintID, dimensionName, option)
 	if err != nil {
 		log.Event(ctx, "unable to get dimension option for filter blueprint", log.ERROR, log.Error(err), logData)
@@ -410,6 +421,14 @@ func (api *FilterAPI) removeFilterBlueprintDimensionOptionHandler(w http.Respons
 		return
 	}
 
+	err = api.checkDisclosureStatus(ctx, filterBlueprintID)
+	if err != nil {
+		log.Event(ctx, "disclosure control update failure", log.Error(err), log.ERROR)
+		w.Write([]byte(err.Error()))
+		w.WriteHeader(500)
+		return
+	}
+
 	if auditErr := api.auditor.Record(ctx, removeOptionAction, actionSuccessful, auditParams); auditErr != nil {
 		logAuditFailure(ctx, removeOptionAction, actionSuccessful, auditErr, logData)
 	}
@@ -458,4 +477,55 @@ func (api *FilterAPI) removeFilterBlueprintDimensionOption(ctx context.Context, 
 	}
 
 	return nil
+}
+
+func (api *FilterAPI) checkDisclosureStatus(ctx context.Context, filterBlueprintID string) error {
+	f, err := api.getFilterBlueprint(ctx, filterBlueprintID)
+	if err != nil {
+		return err
+	}
+
+	result, err := api.doFTBQuery(ctx, f)
+	if err != nil {
+		return err
+	}
+
+	err = api.updateFilterDisclosureStatus(f, result)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (api *FilterAPI) doFTBQuery(ctx context.Context, blueprint *models.Filter) (*ftb.QueryResult, error) {
+	cli := ftb.NewClient("http://localhost:10100", os.Getenv("AUTH_PROXY_TOKEN"), dphttp.DefaultClient)
+
+	dimensions := make([]ftb.DimensionOptions, 0)
+	for _, d := range blueprint.Dimensions {
+		dimensions = append(dimensions, ftb.DimensionOptions{
+			Name:    d.Name,
+			Options: d.Options,
+		})
+	}
+
+	query := ftb.Query{
+		RootDimension:     "OA",
+		DatasetName:       "People",
+		DimensionsOptions: dimensions,
+	}
+
+	return cli.Query(ctx, query)
+}
+
+func (api *FilterAPI) updateFilterDisclosureStatus(filter *models.Filter, result *ftb.QueryResult) error {
+	status := result.Status
+	dimension := ""
+	blockedOptions := make([]string, 0)
+
+	if result.IsBlockedByRules() {
+		dimension = result.DisclosureControlDetails.Dimension
+		blockedOptions = result.DisclosureControlDetails.BlockedOptions
+	}
+
+	return api.dataStore.UpdateDisclosureStatus(filter.FilterID, status, dimension, blockedOptions, filter.UniqueTimestamp)
 }

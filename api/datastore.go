@@ -21,4 +21,5 @@ type DataStore interface {
 	UpdateFilter(filter *models.Filter, timestamp bson.MongoTimestamp) error
 	UpdateFilterOutput(filterOutput *models.Filter, timestamp bson.MongoTimestamp) error
 	AddEventToFilterOutput(filterOutputID string, event *models.Event) error
+	UpdateDisclosureStatus(filterID, status, dimension string, blockedOptions []string, timestamp bson.MongoTimestamp) error
 }
