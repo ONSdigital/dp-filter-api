@@ -11,15 +11,31 @@ LDFLAGS=-ldflags "-w -s -X 'main.Version=${VERSION}' -X 'main.BuildTime=$(BUILD_
 
 DATABASE_ADDRESS?=bolt://localhost:7687
 
+PHONY: all
+all: audit test build
+
+PHONY: audit
+audit:
+	nancy go.sum
+
+PHONY: build
 build:
 	@mkdir -p $(BUILD)/$(BIN_DIR)
 	go build $(LDFLAGS) -o $(BUILD)/$(BIN_DIR)/dp-filter-api cmd/$(MAIN)/main.go
+
+PHONY: debug
 debug:
 	GRAPH_DRIVER_TYPE=neo4j GRAPH_ADDR="$(DATABASE_ADDRESS)" HUMAN_LOG=1 go run $(LDFLAGS) -race cmd/$(MAIN)/main.go
+
+PHONY: acceptance-publishing
 acceptance-publishing:
 	MONGODB_FILTERS_DATABASE=test GRAPH_DRIVER_TYPE=neo4j GRAPH_ADDR="$(DATABASE_ADDRESS)" HUMAN_LOG=1 go run $(LDFLAGS) -race cmd/$(MAIN)/main.go
+
+PHONY: acceptance-web
 acceptance-web:
 	ENABLE_PRIVATE_ENDPOINTS=false MONGODB_FILTERS_DATABASE=test GRAPH_DRIVER_TYPE=neo4j GRAPH_ADDR="$(DATABASE_ADDRESS)" HUMAN_LOG=1 go run $(LDFLAGS) -race cmd/$(MAIN)/main.go
+
+PHONY: test
 test:
 	go test -cover -race ./...
 .PHONY: build debug acceptance test
