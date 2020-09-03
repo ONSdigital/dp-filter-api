@@ -9,7 +9,6 @@ import (
 	"syscall"
 
 	"github.com/ONSdigital/dp-api-clients-go/zebedee"
-	"github.com/ONSdigital/dp-filter-api/kafkaadapter"
 	"github.com/ONSdigital/dp-filter-api/mongo"
 	"github.com/ONSdigital/dp-graph/v2/graph"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
@@ -22,7 +21,6 @@ import (
 	"github.com/ONSdigital/dp-filter-api/initialise"
 	"github.com/ONSdigital/dp-filter-api/preview"
 	kafka "github.com/ONSdigital/dp-kafka"
-	"github.com/ONSdigital/go-ns/audit"
 	"github.com/ONSdigital/log.go/log"
 )
 
@@ -64,34 +62,10 @@ func main() {
 		ctx,
 		cfg.Brokers,
 		cfg.FilterOutputSubmittedTopic,
-		initialise.FilterOutputSubmitted,
 		int(envMax),
 	)
 	logIfError(ctx, err, "error creating kafka filter output submitted producer")
 	producer.Channels().LogErrors(ctx, "error received from kafka producer, topic: "+cfg.FilterOutputSubmittedTopic)
-
-	var auditor audit.AuditorService
-	var auditProducer *kafka.Producer
-
-	if cfg.EnablePrivateEndpoints {
-		log.Event(ctx, "private endpoints enabled, enabling auditing", log.INFO)
-
-		auditProducer, err = serviceList.GetProducer(
-			ctx,
-			cfg.Brokers,
-			cfg.AuditEventsTopic,
-			initialise.Audit,
-			0,
-		)
-		logIfError(ctx, err, "error creating kafka audit producer")
-		auditProducer.Channels().LogErrors(ctx, "error received from kafka producer, topic: "+cfg.AuditEventsTopic)
-
-		auditProducerAdapter := kafkaadapter.NewProducerAdapter(auditProducer)
-		auditor = audit.New(auditProducerAdapter, "dp-filter-api")
-	} else {
-		log.Event(ctx, "private endpoints disabled, auditing will not be enabled", log.INFO)
-		auditor = &audit.NopAuditor{}
-	}
 
 	// todo: remove config.DatasetAPIAuthToken when the DatasetAPI supports identity based auth.
 	datasetAPI := dataset.NewAPIClient(cfg.DatasetAPIURL)
@@ -99,7 +73,7 @@ func main() {
 	previewDatasets := preview.DatasetStore{Store: observationStore}
 	outputQueue := filterOutputQueue.CreateOutputQueue(producer.Channels().Output)
 
-	hc := startHealthCheck(ctx, cfg, datasetAPI, producer, observationStore, dataStore, auditProducer)
+	hc := startHealthCheck(ctx, cfg, datasetAPI, producer, observationStore, dataStore)
 
 	apiErrors := make(chan error, 1)
 
@@ -115,7 +89,6 @@ func main() {
 		cfg.DownloadServiceURL,
 		cfg.DownloadServiceSecretKey,
 		cfg.ServiceAuthToken,
-		auditor,
 		&hc,
 	)
 
@@ -159,11 +132,6 @@ func main() {
 			// needs to be sent to kafka off a request it can
 			logIfError(ctx, producer.Close(ctx), "unable to close filter output submitted producer")
 		}
-
-		if serviceList.AuditProducer {
-			log.Event(ctx, "closing audit producer", log.INFO)
-			logIfError(ctx, auditProducer.Close(ctx), "unable to close audit producer")
-		}
 	}()
 
 	// wait for shutdown success (via cancel) or failure (timeout)
@@ -178,7 +146,7 @@ func main() {
 	os.Exit(0)
 }
 
-func startHealthCheck(ctx context.Context, cfg *config.Config, datasetAPI *dataset.Client, producer *kafka.Producer, observationStore *graph.DB, dataStore *mongo.FilterStore, auditProducer *kafka.Producer) healthcheck.HealthCheck {
+func startHealthCheck(ctx context.Context, cfg *config.Config, datasetAPI *dataset.Client, producer *kafka.Producer, observationStore *graph.DB, dataStore *mongo.FilterStore) healthcheck.HealthCheck {
 
 	hasErrors := false
 
@@ -212,10 +180,6 @@ func startHealthCheck(ctx context.Context, cfg *config.Config, datasetAPI *datas
 	}
 
 	if cfg.EnablePrivateEndpoints {
-		if err = hc.AddCheck("Kafka Audit Producer", auditProducer.Checker); err != nil {
-			log.Event(ctx, "error adding check for kafka audit producer", log.ERROR, log.Error(err))
-			hasErrors = true
-		}
 
 		// zebedee is used only for identity checking
 		zebedeeClient := zebedee.New(cfg.ZebedeeURL)

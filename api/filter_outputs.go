@@ -41,20 +41,10 @@ func (api *FilterAPI) getFilterOutputHandler(w http.ResponseWriter, r *http.Requ
 
 	log.Event(ctx, "getting filter output", log.INFO, logData)
 
-	auditParams := common.Params{"filter_output_id": filterOutputID}
-	if auditErr := api.auditor.Record(ctx, getFilterOutputAction, actionAttempted, auditParams); auditErr != nil {
-		handleAuditingFailure(ctx, getFilterOutputAction, actionAttempted, w, auditErr, logData)
-		return
-	}
-
 	hideS3Links := r.Header.Get(common.DownloadServiceHeaderKey) != api.downloadServiceToken
 	filterOutput, err := api.getOutput(ctx, filterOutputID, hideS3Links)
 	if err != nil {
 		log.Event(ctx, "unable to get filter output", log.ERROR, log.Error(err), logData)
-		if auditErr := api.auditor.Record(ctx, getFilterOutputAction, actionUnsuccessful, auditParams); auditErr != nil {
-			handleAuditingFailure(ctx, getFilterOutputAction, actionUnsuccessful, w, auditErr, logData)
-			return
-		}
 		setErrorCode(w, err)
 		return
 	}
@@ -63,16 +53,7 @@ func (api *FilterAPI) getFilterOutputHandler(w http.ResponseWriter, r *http.Requ
 	bytes, err := json.Marshal(filterOutput)
 	if err != nil {
 		log.Event(ctx, "failed to marshal filter output into bytes", log.ERROR, log.Error(err), logData)
-		if auditErr := api.auditor.Record(ctx, getFilterOutputAction, actionUnsuccessful, auditParams); auditErr != nil {
-			handleAuditingFailure(ctx, getFilterOutputAction, actionUnsuccessful, w, auditErr, logData)
-			return
-		}
 		http.Error(w, internalError, http.StatusInternalServerError)
-		return
-	}
-
-	if auditErr := api.auditor.Record(ctx, getFilterOutputAction, actionSuccessful, auditParams); auditErr != nil {
-		handleAuditingFailure(ctx, getFilterOutputAction, actionSuccessful, w, auditErr, logData)
 		return
 	}
 
@@ -99,19 +80,9 @@ func (api *FilterAPI) updateFilterOutputHandler(w http.ResponseWriter, r *http.R
 	ctx := r.Context()
 	log.Event(ctx, "handling update filter output request", log.INFO, logData)
 
-	auditParams := common.Params{"filter_output_id": filterOutputID}
-	if auditErr := api.auditor.Record(ctx, updateFilterOutputAction, actionAttempted, auditParams); auditErr != nil {
-		handleAuditingFailure(ctx, updateFilterOutputAction, actionAttempted, w, auditErr, logData)
-		return
-	}
-
 	filterOutput, err := models.CreateFilter(r.Body)
 	if err != nil {
 		log.Event(ctx, "unable to unmarshal request body", log.ERROR, log.Error(err), logData)
-		if auditErr := api.auditor.Record(ctx, updateFilterOutputAction, actionUnsuccessful, auditParams); auditErr != nil {
-			handleAuditingFailure(ctx, updateFilterOutputAction, actionUnsuccessful, w, auditErr, logData)
-			return
-		}
 		http.Error(w, badRequest, http.StatusBadRequest)
 		return
 	}
@@ -120,16 +91,8 @@ func (api *FilterAPI) updateFilterOutputHandler(w http.ResponseWriter, r *http.R
 	err = api.updateFilterOutput(ctx, filterOutputID, filterOutput)
 	if err != nil {
 		log.Event(ctx, "failed to update filter output", log.ERROR, log.Error(err), logData)
-		if auditErr := api.auditor.Record(ctx, updateFilterOutputAction, actionUnsuccessful, auditParams); auditErr != nil {
-			handleAuditingFailure(ctx, updateFilterOutputAction, actionUnsuccessful, w, auditErr, logData)
-			return
-		}
 		setErrorCode(w, err)
 		return
-	}
-
-	if auditErr := api.auditor.Record(ctx, updateFilterOutputAction, actionSuccessful, auditParams); auditErr != nil {
-		logAuditFailure(ctx, updateFilterOutputAction, actionSuccessful, auditErr, logData)
 	}
 
 	setJSONContentType(w)
@@ -226,15 +189,8 @@ func (api *FilterAPI) getFilterOutputPreviewHandler(w http.ResponseWriter, r *ht
 	vars := mux.Vars(r)
 	filterOutputID := vars["filter_output_id"]
 	requestedLimit := r.URL.Query().Get("limit")
-
 	logData := log.Data{"filter_output_id": filterOutputID, "action": getFilterPreviewAction}
-
-	auditParams := common.Params{"filter_output_id": filterOutputID}
 	ctx := r.Context()
-	if auditErr := api.auditor.Record(ctx, getFilterPreviewAction, actionAttempted, auditParams); auditErr != nil {
-		handleAuditingFailure(ctx, getFilterPreviewAction, actionAttempted, w, auditErr, logData)
-		return
-	}
 
 	var limit = 20 // default if no limit is given
 	var err error
@@ -243,10 +199,6 @@ func (api *FilterAPI) getFilterOutputPreviewHandler(w http.ResponseWriter, r *ht
 		if err != nil {
 			logData["requested_limit"] = requestedLimit
 			log.Event(ctx, "requested limit is not a number", log.ERROR, log.Error(err), logData)
-			if auditErr := api.auditor.Record(ctx, getFilterPreviewAction, actionUnsuccessful, auditParams); auditErr != nil {
-				handleAuditingFailure(ctx, getFilterPreviewAction, actionUnsuccessful, w, auditErr, logData)
-				return
-			}
 			http.Error(w, errRequestLimitNotNumber.Error(), http.StatusBadRequest)
 			return
 		}
@@ -255,10 +207,6 @@ func (api *FilterAPI) getFilterOutputPreviewHandler(w http.ResponseWriter, r *ht
 	preview, err := api.getFilterOutputPreview(ctx, filterOutputID, limit)
 	if err != nil {
 		log.Event(ctx, "failed to get filter output preview", log.ERROR, log.Error(err), logData)
-		if auditErr := api.auditor.Record(ctx, getFilterPreviewAction, actionUnsuccessful, auditParams); auditErr != nil {
-			handleAuditingFailure(ctx, getFilterPreviewAction, actionUnsuccessful, w, auditErr, logData)
-			return
-		}
 		setErrorCode(w, err)
 		return
 	}
@@ -266,16 +214,7 @@ func (api *FilterAPI) getFilterOutputPreviewHandler(w http.ResponseWriter, r *ht
 	bytes, err := json.Marshal(preview)
 	if err != nil {
 		log.Event(ctx, "failed to marshal preview of filter ouput into bytes", log.ERROR, log.Error(err), logData)
-		if auditErr := api.auditor.Record(ctx, getFilterPreviewAction, actionUnsuccessful, auditParams); auditErr != nil {
-			handleAuditingFailure(ctx, getFilterPreviewAction, actionUnsuccessful, w, auditErr, logData)
-			return
-		}
 		http.Error(w, internalError, http.StatusInternalServerError)
-		return
-	}
-
-	if auditErr := api.auditor.Record(ctx, getFilterPreviewAction, actionSuccessful, auditParams); auditErr != nil {
-		handleAuditingFailure(ctx, getFilterPreviewAction, actionSuccessful, w, auditErr, logData)
 		return
 	}
 

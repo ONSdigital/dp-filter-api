@@ -7,7 +7,6 @@ import (
 	"github.com/ONSdigital/dp-api-clients-go/dataset"
 	"github.com/ONSdigital/dp-filter-api/models"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
-	"github.com/ONSdigital/go-ns/audit"
 	"github.com/ONSdigital/go-ns/handlers/collectionID"
 	"github.com/ONSdigital/go-ns/identity"
 	"github.com/ONSdigital/go-ns/server"
@@ -47,7 +46,6 @@ type FilterAPI struct {
 	preview              PreviewDataset
 	downloadServiceURL   string
 	downloadServiceToken string
-	auditor              audit.AuditorService
 	serviceAuthToken     string
 }
 
@@ -61,7 +59,6 @@ func CreateFilterAPI(ctx context.Context,
 	preview PreviewDataset,
 	enablePrivateEndpoints bool,
 	downloadServiceURL, downloadServiceToken, serviceAuthToken string,
-	auditor audit.AuditorService,
 	hc *healthcheck.HealthCheck) {
 
 	router := mux.NewRouter()
@@ -74,8 +71,7 @@ func CreateFilterAPI(ctx context.Context,
 		enablePrivateEndpoints,
 		downloadServiceURL,
 		downloadServiceToken,
-		serviceAuthToken,
-		auditor)
+		serviceAuthToken)
 
 	healthCheckHandler := newMiddleware(hc.Handler, "/health")
 	oldHealthCheckHandler := newMiddleware(hc.Handler, "/healthcheck")
@@ -118,7 +114,7 @@ func newMiddleware(healthcheckHandler func(http.ResponseWriter, *http.Request), 
 }
 
 // routes contain all endpoints for API
-func routes(host string, router *mux.Router, dataStore DataStore, outputQueue OutputQueue, datasetAPI DatasetAPI, preview PreviewDataset, enablePrivateEndpoints bool, downloadServiceURL, downloadServiceToken, serviceAuthToken string, auditor audit.AuditorService) *FilterAPI {
+func routes(host string, router *mux.Router, dataStore DataStore, outputQueue OutputQueue, datasetAPI DatasetAPI, preview PreviewDataset, enablePrivateEndpoints bool, downloadServiceURL, downloadServiceToken, serviceAuthToken string) *FilterAPI {
 
 	api := FilterAPI{host: host,
 		dataStore:            dataStore,
@@ -128,7 +124,6 @@ func routes(host string, router *mux.Router, dataStore DataStore, outputQueue Ou
 		preview:              preview,
 		downloadServiceURL:   downloadServiceURL,
 		downloadServiceToken: downloadServiceToken,
-		auditor:              auditor,
 		serviceAuthToken:     serviceAuthToken,
 	}
 
