@@ -3,23 +3,19 @@ package api
 import (
 	"context"
 	"encoding/json"
-	"net/http"
-
 	"fmt"
-
-	"github.com/ONSdigital/dp-filter-api/models"
-	"github.com/ONSdigital/log.go/log"
-	"github.com/gorilla/mux"
-
-	"strconv"
-
+	"net/http"
 	"regexp"
+	"strconv"
 	"time"
 
 	datasetAPI "github.com/ONSdigital/dp-api-clients-go/dataset"
 	"github.com/ONSdigital/dp-filter-api/filters"
-	"github.com/ONSdigital/go-ns/common"
-	"github.com/ONSdigital/go-ns/request"
+	"github.com/ONSdigital/dp-filter-api/models"
+	dphttp "github.com/ONSdigital/dp-net/http"
+	dprequest "github.com/ONSdigital/dp-net/request"
+	"github.com/ONSdigital/log.go/log"
+	"github.com/gorilla/mux"
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -55,7 +51,7 @@ const (
 
 func (api *FilterAPI) postFilterBlueprintHandler(w http.ResponseWriter, r *http.Request) {
 
-	defer request.DrainBody(r)
+	defer dphttp.DrainBody(r)
 
 	submitted := r.FormValue("submitted")
 	logData := log.Data{"submitted": submitted, "action": createFilterBlueprintAction}
@@ -121,7 +117,7 @@ func (api *FilterAPI) createFilterBlueprint(ctx context.Context, filter *models.
 		return nil, err
 	}
 
-	if version.State != publishedState && !common.IsCallerPresent(ctx) {
+	if version.State != publishedState && !dprequest.IsCallerPresent(ctx) {
 		log.Event(ctx, "unauthenticated request to filter unpublished version", log.INFO, log.Data{"dataset": *filter.Dataset, "state": version.State})
 		return nil, filters.ErrVersionNotFound
 	}
@@ -216,7 +212,7 @@ func (api *FilterAPI) getFilterBlueprintHandler(w http.ResponseWriter, r *http.R
 
 func (api *FilterAPI) putFilterBlueprintHandler(w http.ResponseWriter, r *http.Request) {
 
-	defer request.DrainBody(r)
+	defer dphttp.DrainBody(r)
 
 	vars := mux.Vars(r)
 	filterID := vars["filter_blueprint_id"]
@@ -349,7 +345,7 @@ func (api *FilterAPI) getFilterBlueprint(ctx context.Context, filterID string) (
 	}
 
 	//only return the filter if it is for published data or via authenticated request
-	if filter.Published != nil && *filter.Published == models.Published || common.IsCallerPresent(ctx) {
+	if filter.Published != nil && *filter.Published == models.Published || dprequest.IsCallerPresent(ctx) {
 		return filter, nil
 	}
 
@@ -464,8 +460,8 @@ func (api *FilterAPI) getVersion(ctx context.Context, dataset *models.Dataset) (
 
 func getUserAuthToken(ctx context.Context) string {
 
-	if common.IsFlorenceIdentityPresent(ctx) {
-		return ctx.Value(common.FlorenceIdentityKey).(string)
+	if dprequest.IsFlorenceIdentityPresent(ctx) {
+		return ctx.Value(dprequest.FlorenceIdentityKey).(string)
 	}
 
 	return ""
@@ -473,7 +469,7 @@ func getUserAuthToken(ctx context.Context) string {
 
 func getCollectionID(ctx context.Context) string {
 
-	rawKeyValue := ctx.Value(common.CollectionIDHeaderKey)
+	rawKeyValue := ctx.Value(dprequest.CollectionIDHeaderKey)
 
 	if rawKeyValue != nil {
 		collectionID := rawKeyValue.(string)

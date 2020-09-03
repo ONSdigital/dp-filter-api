@@ -21,7 +21,7 @@ import (
 	"net/http"
 
 	"github.com/ONSdigital/dp-filter-api/mocks"
-	"github.com/ONSdigital/go-ns/common"
+	dprequest "github.com/ONSdigital/dp-net/request"
 )
 
 const (
@@ -57,7 +57,7 @@ func TestSuccessfulGetFilterOutput(t *testing.T) {
 
 	Convey("Successfully get a filter output from a request with an authorised download service token", t, func() {
 		r := createAuthenticatedRequest("GET", "http://localhost:22100/filter-outputs/12345678", nil)
-		r.Header.Add(common.DownloadServiceHeaderKey, downloadServiceToken)
+		r.Header.Add(dprequest.DownloadServiceHeaderKey, downloadServiceToken)
 
 		w := httptest.NewRecorder()
 		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, "")

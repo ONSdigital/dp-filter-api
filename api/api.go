@@ -7,9 +7,8 @@ import (
 	"github.com/ONSdigital/dp-api-clients-go/dataset"
 	"github.com/ONSdigital/dp-filter-api/models"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
-	"github.com/ONSdigital/go-ns/handlers/collectionID"
-	"github.com/ONSdigital/go-ns/identity"
-	"github.com/ONSdigital/go-ns/server"
+	dphandlers "github.com/ONSdigital/dp-net/handlers"
+	dphttp "github.com/ONSdigital/dp-net/http"
 	"github.com/ONSdigital/log.go/log"
 	"github.com/gorilla/mux"
 	"github.com/justinas/alice"
@@ -17,7 +16,7 @@ import (
 
 //go:generate moq -out datastoretest/preview.go -pkg datastoretest . PreviewDataset
 
-var httpServer *server.Server
+var httpServer *dphttp.Server
 
 // DatasetAPI - An interface used to access the DatasetAPI
 type DatasetAPI interface {
@@ -78,16 +77,16 @@ func CreateFilterAPI(ctx context.Context,
 	middlewareChain := alice.New(
 		healthCheckHandler,
 		oldHealthCheckHandler,
-		collectionID.CheckHeader)
+		dphandlers.CheckHeader(dphandlers.CollectionID))
 
 	if enablePrivateEndpoints {
 		log.Event(ctx, "private endpoints are enabled. using identity middleware", log.INFO)
-		identityHandler := identity.Handler(zebedeeURL)
+		identityHandler := dphandlers.Identity(zebedeeURL)
 		middlewareChain = middlewareChain.Append(identityHandler)
 	}
 
 	alice := middlewareChain.Then(router)
-	httpServer = server.New(bindAddr, alice)
+	httpServer = dphttp.NewServer(bindAddr, alice)
 
 	// Disable this here to allow main to manage graceful shutdown of the entire app.
 	httpServer.HandleOSSignals = false

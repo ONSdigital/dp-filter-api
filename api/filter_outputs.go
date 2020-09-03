@@ -1,23 +1,19 @@
 package api
 
 import (
-	"encoding/json"
-	"net/http"
-
-	"github.com/ONSdigital/dp-filter-api/models"
-	"github.com/ONSdigital/log.go/log"
-	"github.com/gorilla/mux"
-
-	"strconv"
-
 	"context"
-
+	"encoding/json"
 	"io/ioutil"
+	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/ONSdigital/dp-filter-api/filters"
-	"github.com/ONSdigital/go-ns/common"
-	"github.com/ONSdigital/go-ns/request"
+	"github.com/ONSdigital/dp-filter-api/models"
+	dphttp "github.com/ONSdigital/dp-net/http"
+	dprequest "github.com/ONSdigital/dp-net/request"
+	"github.com/ONSdigital/log.go/log"
+	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
 )
 
@@ -41,7 +37,7 @@ func (api *FilterAPI) getFilterOutputHandler(w http.ResponseWriter, r *http.Requ
 
 	log.Event(ctx, "getting filter output", log.INFO, logData)
 
-	hideS3Links := r.Header.Get(common.DownloadServiceHeaderKey) != api.downloadServiceToken
+	hideS3Links := r.Header.Get(dprequest.DownloadServiceHeaderKey) != api.downloadServiceToken
 	filterOutput, err := api.getOutput(ctx, filterOutputID, hideS3Links)
 	if err != nil {
 		log.Event(ctx, "unable to get filter output", log.ERROR, log.Error(err), logData)
@@ -71,7 +67,7 @@ func (api *FilterAPI) getFilterOutputHandler(w http.ResponseWriter, r *http.Requ
 
 func (api *FilterAPI) updateFilterOutputHandler(w http.ResponseWriter, r *http.Request) {
 
-	defer request.DrainBody(r)
+	defer dphttp.DrainBody(r)
 
 	vars := mux.Vars(r)
 	filterOutputID := vars["filter_output_id"]
@@ -104,7 +100,7 @@ func (api *FilterAPI) updateFilterOutput(ctx context.Context, filterOutputID str
 	logData := log.Data{"filter_output_id": filterOutputID}
 	log.Event(ctx, "updating filter output", log.INFO, logData)
 
-	if !common.IsCallerPresent(ctx) {
+	if !dprequest.IsCallerPresent(ctx) {
 		log.Event(ctx, "failed to update filter output", log.ERROR, log.Error(filters.ErrUnauthorised), logData)
 		return filters.ErrUnauthorised
 	}
@@ -293,7 +289,7 @@ func (api *FilterAPI) getOutput(ctx context.Context, filterID string, hideS3Link
 	}
 
 	//only return the filter if it is for published data or via authenticated request
-	if output.Published != nil && *output.Published == models.Published || common.IsCallerPresent(ctx) {
+	if output.Published != nil && *output.Published == models.Published || dprequest.IsCallerPresent(ctx) {
 		return output, nil
 	}
 
@@ -372,7 +368,7 @@ func buildDownloadItem(new, old *models.DownloadItem) *models.DownloadItem {
 
 func (api *FilterAPI) addEventHandler(w http.ResponseWriter, r *http.Request) {
 
-	defer request.DrainBody(r)
+	defer dphttp.DrainBody(r)
 
 	vars := mux.Vars(r)
 	filterOutputID := vars["filter_output_id"]

@@ -1,7 +1,6 @@
 package api
 
 import (
-	"context"
 	"errors"
 	"io"
 	"net/http"
@@ -12,7 +11,6 @@ import (
 	"github.com/ONSdigital/dp-filter-api/api/datastoretest"
 	"github.com/ONSdigital/dp-filter-api/mocks"
 	"github.com/ONSdigital/dp-filter-api/models"
-	"github.com/ONSdigital/go-ns/common"
 	"github.com/globalsign/mgo/bson"
 	"github.com/gorilla/mux"
 	. "github.com/smartystreets/goconvey/convey"
@@ -727,15 +725,4 @@ func TestRemoveDuplicates(t *testing.T) {
 			})
 		})
 	})
-}
-
-func verifyAuditRecordCalls(c struct {
-	Ctx    context.Context
-	Action string
-	Result string
-	Params common.Params
-}, expectedAction string, expectedResult string, expectedParams common.Params) {
-	So(c.Action, ShouldEqual, expectedAction)
-	So(c.Result, ShouldEqual, expectedResult)
-	So(c.Params, ShouldResemble, expectedParams)
 }
