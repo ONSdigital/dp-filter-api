@@ -49,10 +49,11 @@ func run(ctx context.Context) error {
 	log.Event(ctx, "loaded config", log.INFO, log.Data{"config": cfg})
 
 	// Run the service
-	svc := service.New(cfg)
-	if err := svc.Run(ctx, BuildTime, GitCommit, Version, svcErrors); err != nil {
+	svc := service.New()
+	if err := svc.Init(ctx, cfg, BuildTime, GitCommit, Version); err != nil {
 		return errors.Wrap(err, "running service failed")
 	}
+	svc.Start(ctx, svcErrors)
 
 	// Blocks until an os interrupt or a fatal error occurs
 	select {

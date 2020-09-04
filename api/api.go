@@ -5,14 +5,10 @@ import (
 
 	"github.com/ONSdigital/dp-api-clients-go/dataset"
 	"github.com/ONSdigital/dp-filter-api/models"
-	dphttp "github.com/ONSdigital/dp-net/http"
-	"github.com/ONSdigital/log.go/log"
 	"github.com/gorilla/mux"
 )
 
 //go:generate moq -out datastoretest/preview.go -pkg datastoretest . PreviewDataset
-
-var httpServer *dphttp.Server
 
 // DatasetAPI - An interface used to access the DatasetAPI
 type DatasetAPI interface {
@@ -87,10 +83,4 @@ func Setup(host string,
 	}
 
 	return api
-}
-
-// Close represents the graceful shutting down of the http server
-func (api *FilterAPI) Close(ctx context.Context) error {
-	log.Event(ctx, "graceful shutdown of http server complete", log.INFO)
-	return nil
 }

@@ -1,16 +1,18 @@
 package mongo
 
 import (
+	"context"
 	"fmt"
-	mongolib "github.com/ONSdigital/dp-mongodb"
-	"github.com/globalsign/mgo"
-	"github.com/globalsign/mgo/bson"
 	"time"
 
 	"github.com/ONSdigital/dp-filter-api/config"
 	"github.com/ONSdigital/dp-filter-api/filters"
 	"github.com/ONSdigital/dp-filter-api/models"
+	"github.com/ONSdigital/dp-healthcheck/healthcheck"
+	mongolib "github.com/ONSdigital/dp-mongodb"
 	mongohealth "github.com/ONSdigital/dp-mongodb/health"
+	"github.com/globalsign/mgo"
+	"github.com/globalsign/mgo/bson"
 )
 
 // FilterStore containing all filter jobs stored in mongodb
@@ -20,6 +22,7 @@ type FilterStore struct {
 	db                string
 	filtersCollection string
 	outputsCollection string
+	healthCheckClient *mongohealth.CheckMongoClient
 }
 
 // CreateFilterStore which can store, update and fetch filter jobs
@@ -28,13 +31,19 @@ func CreateFilterStore(cfg config.MongoConfig, host string) (*FilterStore, error
 	if err != nil {
 		return nil, err
 	}
-	return &FilterStore{
+	filterStore := &FilterStore{
 		Session:           session,
 		host:              host,
 		db:                cfg.Database,
 		filtersCollection: cfg.FiltersCollection,
 		outputsCollection: cfg.OutputsCollection,
-	}, nil
+	}
+	client := mongohealth.NewClient(session)
+	filterStore.healthCheckClient = &mongohealth.CheckMongoClient{
+		Client:      *client,
+		Healthcheck: client.Healthcheck,
+	}
+	return filterStore, nil
 }
 
 // AddFilter to the data store
@@ -359,11 +368,12 @@ func validateFilter(filter *models.Filter) {
 	}
 }
 
-func (s *FilterStore) HealthCheckClient() *mongohealth.CheckMongoClient {
-	client := mongohealth.NewClient(s.Session)
+// Checker calls the mongoDB healthcheck client Checker
+func (s *FilterStore) Checker(ctx context.Context, state *healthcheck.CheckState) error {
+	return s.healthCheckClient.Checker(ctx, state)
+}
 
-	return &mongohealth.CheckMongoClient{
-		Client:      *client,
-		Healthcheck: client.Healthcheck,
-	}
+// Close closes the mongoDB session
+func (s *FilterStore) Close(ctx context.Context) error {
+	return mongolib.Close(ctx, s.Session)
 }
