@@ -106,7 +106,12 @@ func (api *FilterAPI) createFilterBlueprint(ctx context.Context, filter *models.
 	}
 
 	// Create unique id
-	newFilter.FilterID = uuid.NewV4().String()
+	u, err := uuid.NewV4()
+	if err != nil {
+		log.Event(ctx, "failed to create a new UUID for filter blueprint", log.ERROR, log.Error(err), logData)
+		return nil, err
+	}
+	newFilter.FilterID = u.String()
 	newFilter.Dimensions = filter.Dimensions
 	logData["new_filter"] = newFilter
 
@@ -529,7 +534,12 @@ func (api *FilterAPI) getDimensionOptions(ctx context.Context, dataset *models.D
 
 func (api *FilterAPI) createFilterOutputResource(ctx context.Context, newFilter *models.Filter, filterBlueprintID string) (models.Filter, error) {
 	filterOutput := *newFilter
-	filterOutput.FilterID = uuid.NewV4().String()
+	u, err := uuid.NewV4()
+	if err != nil {
+		log.Event(ctx, "failed to create a new UUID for i", log.ERROR, log.Error(err))
+		return models.Filter{}, err
+	}
+	filterOutput.FilterID = u.String()
 	filterOutput.State = models.CreatedState
 	filterOutput.Links.Self.HRef = fmt.Sprintf("%s/filter-outputs/%s", api.host, filterOutput.FilterID)
 	filterOutput.Links.Dimensions.HRef = ""

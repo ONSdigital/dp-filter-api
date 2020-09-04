@@ -23,7 +23,7 @@ func TestSpec(t *testing.T) {
 				So(cfg.Host, ShouldEqual, "http://localhost:22100")
 				So(cfg.Brokers, ShouldResemble, []string{"localhost:9092"})
 				So(cfg.FilterOutputSubmittedTopic, ShouldEqual, "filter-job-submitted")
-				So(cfg.KafkaMaxBytes, ShouldEqual, "2000000")
+				So(cfg.KafkaMaxBytes, ShouldEqual, 2000000)
 				So(cfg.ShutdownTimeout, ShouldEqual, 5*time.Second)
 				So(cfg.MongoConfig.BindAddr, ShouldEqual, "localhost:27017")
 				So(cfg.MongoConfig.Database, ShouldEqual, "filters")

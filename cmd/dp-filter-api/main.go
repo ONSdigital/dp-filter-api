@@ -2,27 +2,17 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"os/signal"
-	"strconv"
 	"syscall"
 
-	"github.com/ONSdigital/dp-api-clients-go/zebedee"
-	"github.com/ONSdigital/dp-filter-api/mongo"
-	"github.com/ONSdigital/dp-graph/v2/graph"
-	"github.com/ONSdigital/dp-healthcheck/healthcheck"
-	mongolib "github.com/ONSdigital/dp-mongodb"
-
-	"github.com/ONSdigital/dp-api-clients-go/dataset"
-	"github.com/ONSdigital/dp-filter-api/api"
 	"github.com/ONSdigital/dp-filter-api/config"
-	"github.com/ONSdigital/dp-filter-api/filterOutputQueue"
-	"github.com/ONSdigital/dp-filter-api/initialise"
-	"github.com/ONSdigital/dp-filter-api/preview"
-	kafka "github.com/ONSdigital/dp-kafka"
+	"github.com/ONSdigital/dp-filter-api/service"
 	"github.com/ONSdigital/log.go/log"
+	"github.com/pkg/errors"
 )
+
+const serviceName = "dp-filter-api"
 
 var (
 	// BuildTime represents the time in which the service was built
@@ -34,174 +24,46 @@ var (
 )
 
 func main() {
-
-	log.Namespace = "dp-filter-api"
+	log.Namespace = serviceName
 	ctx := context.Background()
 
+	if err := run(ctx); err != nil {
+		log.Event(ctx, "application unexpectedly failed", log.ERROR, log.Error(err))
+		os.Exit(1)
+	}
+}
+
+func run(ctx context.Context) error {
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM)
+	svcErrors := make(chan error, 1)
 
+	// Read config
 	cfg, err := config.Get()
-	exitIfError(ctx, err, "unable to retrieve configuration")
+	if err != nil {
+		log.Event(ctx, "unable to retrieve configuration", log.FATAL, log.Error(err))
+		return err
+	}
 
 	// sensitive fields are omitted from config.String()
 	log.Event(ctx, "loaded config", log.INFO, log.Data{"config": cfg})
 
-	envMax, err := strconv.ParseInt(cfg.KafkaMaxBytes, 10, 32)
-	exitIfError(ctx, err, "encountered error parsing kafka max bytes")
+	// Run the service
+	svc := service.New(cfg)
+	if err := svc.Run(ctx, BuildTime, GitCommit, Version, svcErrors); err != nil {
+		return errors.Wrap(err, "running service failed")
+	}
 
-	var serviceList initialise.ExternalServiceList
-
-	dataStore, err := serviceList.GetFilterStore(cfg)
-	logIfError(ctx, err, "could not connect to mongodb")
-
-	observationStore, err := serviceList.GetObservationStore()
-	logIfError(ctx, err, "could not connect to graph")
-
-	producer, err := serviceList.GetProducer(
-		ctx,
-		cfg.Brokers,
-		cfg.FilterOutputSubmittedTopic,
-		int(envMax),
-	)
-	logIfError(ctx, err, "error creating kafka filter output submitted producer")
-	producer.Channels().LogErrors(ctx, "error received from kafka producer, topic: "+cfg.FilterOutputSubmittedTopic)
-
-	// todo: remove config.DatasetAPIAuthToken when the DatasetAPI supports identity based auth.
-	datasetAPI := dataset.NewAPIClient(cfg.DatasetAPIURL)
-
-	previewDatasets := preview.DatasetStore{Store: observationStore}
-	outputQueue := filterOutputQueue.CreateOutputQueue(producer.Channels().Output)
-
-	hc := startHealthCheck(ctx, cfg, datasetAPI, producer, observationStore, dataStore)
-
-	apiErrors := make(chan error, 1)
-
-	api.CreateFilterAPI(ctx, cfg.Host,
-		cfg.BindAddr,
-		cfg.ZebedeeURL,
-		dataStore,
-		&outputQueue,
-		apiErrors,
-		datasetAPI,
-		&previewDatasets,
-		cfg.EnablePrivateEndpoints,
-		cfg.DownloadServiceURL,
-		cfg.DownloadServiceSecretKey,
-		cfg.ServiceAuthToken,
-		&hc,
-	)
-
-	// block until a fatal error occurs
+	// Blocks until an os interrupt or a fatal error occurs
 	select {
-	case <-signals:
-		log.Event(ctx, "os signal received", log.INFO)
-	case err := <-apiErrors:
-		log.Event(ctx, "api http server returned error", log.ERROR, log.Error(err))
+	case err := <-svcErrors:
+		log.Event(ctx, "service error received", log.ERROR, log.Error(err))
+		svc.Close(ctx)
+		return err
+	case sig := <-signals:
+		log.Event(ctx, "os signal received", log.Data{"signal": sig}, log.INFO)
 	}
-
-	log.Event(ctx, fmt.Sprintf("Shutdown with timeout: %s", cfg.ShutdownTimeout), log.INFO)
-	ctx, cancel := context.WithTimeout(context.Background(), cfg.ShutdownTimeout)
-
-	// Gracefully shutdown the application closing any open resources.
-	go func() {
-		defer cancel()
-
-		// Close health check first as it depends on other services/clients being available
-		// Helps to prevent race conditions between health ticker/checker and graceful shutdown
-		hc.Stop()
-
-		if err = api.Close(ctx); err != nil {
-			logIfError(ctx, err, "unable to close api server")
-		}
-
-		if serviceList.FilterStore {
-			log.Event(ctx, "closing filter store", log.INFO)
-			// mongo.Close() may use all remaining time in the context
-			logIfError(ctx, mongolib.Close(ctx, dataStore.Session), "unable to close filter store")
-		}
-
-		if serviceList.ObservationStore {
-			log.Event(ctx, "closing observation store", log.INFO)
-			logIfError(ctx, observationStore.Close(ctx), "unable to close observation store")
-		}
-
-		if serviceList.FilterOutputSubmittedProducer {
-			log.Event(ctx, "closing filter output submitted producer", log.INFO)
-			// Close producer after http server has closed so if a message
-			// needs to be sent to kafka off a request it can
-			logIfError(ctx, producer.Close(ctx), "unable to close filter output submitted producer")
-		}
-	}()
-
-	// wait for shutdown success (via cancel) or failure (timeout)
-	<-ctx.Done()
-
-	if ctx.Err() == context.DeadlineExceeded {
-		log.Event(ctx, "shutdown timeout", log.ERROR, log.Error(ctx.Err()))
-		os.Exit(1)
-	}
-
-	log.Event(ctx, "Shutdown complete", log.INFO)
-	os.Exit(0)
-}
-
-func startHealthCheck(ctx context.Context, cfg *config.Config, datasetAPI *dataset.Client, producer *kafka.Producer, observationStore *graph.DB, dataStore *mongo.FilterStore) healthcheck.HealthCheck {
-
-	hasErrors := false
-
-	versionInfo, err := healthcheck.NewVersionInfo(BuildTime, GitCommit, Version)
-	if err != nil {
-		log.Event(ctx, "error creating version info", log.FATAL, log.Error(err))
-		hasErrors = true
-	}
-
-	hc := healthcheck.New(versionInfo, cfg.HealthCheckCriticalTimeout, cfg.HealthCheckInterval)
-
-	if err = hc.AddCheck("Dataset API", datasetAPI.Checker); err != nil {
-		log.Event(ctx, "error creating dataset API health check", log.ERROR, log.Error(err))
-		hasErrors = true
-	}
-
-	if err = hc.AddCheck("Kafka Producer", producer.Checker); err != nil {
-		log.Event(ctx, "error adding check for kafka producer", log.ERROR, log.Error(err))
-		hasErrors = true
-	}
-
-	if err = hc.AddCheck("GraphDB", observationStore.Checker); err != nil {
-		hasErrors = true
-		log.Event(ctx, "error creating graph db connection", log.ERROR, log.Error(err))
-	}
-
-	checkMongoClient := dataStore.HealthCheckClient()
-	if err = hc.AddCheck("MongoDB", checkMongoClient.Checker); err != nil {
-		log.Event(ctx, "error creating mongodb health check", log.ERROR, log.Error(err))
-		hasErrors = true
-	}
-
-	if cfg.EnablePrivateEndpoints {
-
-		// zebedee is used only for identity checking
-		zebedeeClient := zebedee.New(cfg.ZebedeeURL)
-		if err = hc.AddCheck("Zebedee", zebedeeClient.Checker); err != nil {
-			log.Event(ctx, "error creating zebedee health check", log.ERROR, log.Error(err))
-			hasErrors = true
-		}
-	}
-
-	if hasErrors {
-		os.Exit(1)
-	}
-
-	hc.Start(ctx)
-	return hc
-}
-
-func exitIfError(ctx context.Context, err error, message string) {
-	if err != nil {
-		log.Event(ctx, message, log.Error(err), log.FATAL)
-		os.Exit(1)
-	}
+	return svc.Close(ctx)
 }
 
 func logIfError(ctx context.Context, err error, message string) {

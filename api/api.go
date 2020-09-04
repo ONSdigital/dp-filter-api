@@ -2,16 +2,12 @@ package api
 
 import (
 	"context"
-	"net/http"
 
 	"github.com/ONSdigital/dp-api-clients-go/dataset"
 	"github.com/ONSdigital/dp-filter-api/models"
-	"github.com/ONSdigital/dp-healthcheck/healthcheck"
-	dphandlers "github.com/ONSdigital/dp-net/handlers"
 	dphttp "github.com/ONSdigital/dp-net/http"
 	"github.com/ONSdigital/log.go/log"
 	"github.com/gorilla/mux"
-	"github.com/justinas/alice"
 )
 
 //go:generate moq -out datastoretest/preview.go -pkg datastoretest . PreviewDataset
@@ -48,74 +44,18 @@ type FilterAPI struct {
 	serviceAuthToken     string
 }
 
-// CreateFilterAPI manages all the routes configured to API
-func CreateFilterAPI(ctx context.Context,
-	host, bindAddr, zebedeeURL string,
-	datastore DataStore,
+// Setup manages all the routes configured to API
+func Setup(host string,
+	router *mux.Router,
+	dataStore DataStore,
 	outputQueue OutputQueue,
-	errorChan chan error,
 	datasetAPI DatasetAPI,
 	preview PreviewDataset,
 	enablePrivateEndpoints bool,
-	downloadServiceURL, downloadServiceToken, serviceAuthToken string,
-	hc *healthcheck.HealthCheck) {
+	downloadServiceURL, downloadServiceToken, serviceAuthToken string) *FilterAPI {
 
-	router := mux.NewRouter()
-	routes(host,
-		router,
-		datastore,
-		outputQueue,
-		datasetAPI,
-		preview,
-		enablePrivateEndpoints,
-		downloadServiceURL,
-		downloadServiceToken,
-		serviceAuthToken)
-
-	healthCheckHandler := newMiddleware(hc.Handler, "/health")
-	oldHealthCheckHandler := newMiddleware(hc.Handler, "/healthcheck")
-	middlewareChain := alice.New(
-		healthCheckHandler,
-		oldHealthCheckHandler,
-		dphandlers.CheckHeader(dphandlers.CollectionID))
-
-	if enablePrivateEndpoints {
-		log.Event(ctx, "private endpoints are enabled. using identity middleware", log.INFO)
-		identityHandler := dphandlers.Identity(zebedeeURL)
-		middlewareChain = middlewareChain.Append(identityHandler)
-	}
-
-	alice := middlewareChain.Then(router)
-	httpServer = dphttp.NewServer(bindAddr, alice)
-
-	// Disable this here to allow main to manage graceful shutdown of the entire app.
-	httpServer.HandleOSSignals = false
-
-	go func() {
-		log.Event(ctx, "Starting api...", log.INFO)
-		if err := httpServer.ListenAndServe(); err != nil {
-			errorChan <- err
-		}
-	}()
-}
-
-// newMiddleware creates a new http.Handler to intercept /health requests.
-func newMiddleware(healthcheckHandler func(http.ResponseWriter, *http.Request), endpoint string) func(http.Handler) http.Handler {
-	return func(h http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-			if req.Method == "GET" && req.URL.Path == endpoint {
-				healthcheckHandler(w, req)
-				return
-			}
-			h.ServeHTTP(w, req)
-		})
-	}
-}
-
-// routes contain all endpoints for API
-func routes(host string, router *mux.Router, dataStore DataStore, outputQueue OutputQueue, datasetAPI DatasetAPI, preview PreviewDataset, enablePrivateEndpoints bool, downloadServiceURL, downloadServiceToken, serviceAuthToken string) *FilterAPI {
-
-	api := FilterAPI{host: host,
+	api := &FilterAPI{
+		host:                 host,
 		dataStore:            dataStore,
 		router:               router,
 		outputQueue:          outputQueue,
@@ -146,15 +86,11 @@ func routes(host string, router *mux.Router, dataStore DataStore, outputQueue Ou
 		api.router.HandleFunc("/filter-outputs/{filter_output_id}/events", api.addEventHandler).Methods("POST")
 	}
 
-	return &api
+	return api
 }
 
 // Close represents the graceful shutting down of the http server
-func Close(ctx context.Context) error {
-	if err := httpServer.Shutdown(ctx); err != nil {
-		return err
-	}
-
+func (api *FilterAPI) Close(ctx context.Context) error {
 	log.Event(ctx, "graceful shutdown of http server complete", log.INFO)
 	return nil
 }
