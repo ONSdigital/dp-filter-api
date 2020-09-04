@@ -14,14 +14,6 @@ import (
 	"github.com/ONSdigital/dp-filter-api/filters"
 )
 
-const (
-	// audit actions
-	getOptionsAction   = "getFilterBlueprintDimensionOptions"
-	getOptionAction    = "getFilterBlueprintDimensionOption"
-	removeOptionAction = "removeFilterBlueprintDimensionOption"
-	addOptionAction    = "addFilterBlueprintDimensionOption"
-)
-
 func (api *FilterAPI) getFilterBlueprintDimensionOptionsHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	filterBlueprintID := vars["filter_blueprint_id"]
@@ -29,7 +21,6 @@ func (api *FilterAPI) getFilterBlueprintDimensionOptionsHandler(w http.ResponseW
 	logData := log.Data{
 		"filter_blueprint_id": filterBlueprintID,
 		"dimension":           dimensionName,
-		"action":              getOptionsAction,
 	}
 
 	ctx := r.Context()
@@ -112,7 +103,6 @@ func (api *FilterAPI) getFilterBlueprintDimensionOptionHandler(w http.ResponseWr
 		"filter_blueprint_id": filterBlueprintID,
 		"dimension":           dimensionName,
 		"option":              option,
-		"action":              getOptionAction,
 	}
 
 	ctx := r.Context()
@@ -209,7 +199,6 @@ func (api *FilterAPI) addFilterBlueprintDimensionOptionHandler(w http.ResponseWr
 		"filter_blueprint_id": filterBlueprintID,
 		"dimension_name":      dimensionName,
 		"dimension_option":    option,
-		"action":              addOptionAction,
 	}
 	ctx := r.Context()
 
@@ -305,7 +294,6 @@ func (api *FilterAPI) removeFilterBlueprintDimensionOptionHandler(w http.Respons
 		"filter_blueprint_id": filterBlueprintID,
 		"dimension":           dimensionName,
 		"option":              option,
-		"action":              removeOptionAction,
 	}
 	ctx := r.Context()
 	log.Event(ctx, "remove filter blueprint dimension option", log.INFO, logData)

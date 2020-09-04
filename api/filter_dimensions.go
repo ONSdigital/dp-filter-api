@@ -13,18 +13,10 @@ import (
 	"github.com/gorilla/mux"
 )
 
-const (
-	// audit actions
-	getDimensionsAction   = "getFilterBlueprintDimensions"
-	getDimensionAction    = "getFilterBlueprintDimension"
-	removeDimensionAction = "removeFilterBlueprintDimension"
-	addDimensionAction    = "addFilterBlueprintDimension"
-)
-
 func (api *FilterAPI) getFilterBlueprintDimensionsHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	filterBlueprintID := vars["filter_blueprint_id"]
-	logData := log.Data{"filter_blueprint_id": filterBlueprintID, "action": getDimensionsAction}
+	logData := log.Data{"filter_blueprint_id": filterBlueprintID}
 	ctx := r.Context()
 	log.Event(ctx, "getting filter blueprint dimensions", log.INFO, logData)
 
@@ -69,7 +61,6 @@ func (api *FilterAPI) getFilterBlueprintDimensionHandler(w http.ResponseWriter, 
 	logData := log.Data{
 		"filter_blueprint_id": filterBlueprintID,
 		"dimension":           name,
-		"action":              getDimensionAction,
 	}
 	ctx := r.Context()
 	log.Event(ctx, "getting filter blueprint dimension", log.INFO, logData)
@@ -117,7 +108,6 @@ func (api *FilterAPI) removeFilterBlueprintDimensionHandler(w http.ResponseWrite
 	logData := log.Data{
 		"filter_blueprint_id": filterBlueprintID,
 		"dimension":           dimensionName,
-		"action":              removeDimensionAction,
 	}
 	log.Event(r.Context(), "removing filter blueprint dimension", log.INFO, logData)
 
@@ -170,7 +160,6 @@ func (api *FilterAPI) addFilterBlueprintDimensionHandler(w http.ResponseWriter, 
 	logData := log.Data{
 		"filter_blueprint_id": filterBlueprintID,
 		"dimension":           dimensionName,
-		"action":              addDimensionAction,
 	}
 	ctx := r.Context()
 	log.Event(ctx, "add filter blueprint dimension", log.INFO, logData)

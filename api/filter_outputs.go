@@ -22,17 +22,10 @@ var (
 	errMissingDimensions     = filters.NewBadRequestErr("no dimensions are present in the filter")
 )
 
-const (
-	// audit actions
-	getFilterOutputAction    = "getFilterOutput"
-	updateFilterOutputAction = "updateFilterOutput"
-	getFilterPreviewAction   = "getFilterPreview"
-)
-
 func (api *FilterAPI) getFilterOutputHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	filterOutputID := vars["filter_output_id"]
-	logData := log.Data{"filter_output_id": filterOutputID, "action": getFilterOutputAction}
+	logData := log.Data{"filter_output_id": filterOutputID}
 	ctx := r.Context()
 
 	log.Event(ctx, "getting filter output", log.INFO, logData)
@@ -72,7 +65,7 @@ func (api *FilterAPI) updateFilterOutputHandler(w http.ResponseWriter, r *http.R
 	vars := mux.Vars(r)
 	filterOutputID := vars["filter_output_id"]
 
-	logData := log.Data{"filter_output_id": filterOutputID, "action": updateFilterOutputAction}
+	logData := log.Data{"filter_output_id": filterOutputID}
 	ctx := r.Context()
 	log.Event(ctx, "handling update filter output request", log.INFO, logData)
 
@@ -185,7 +178,7 @@ func (api *FilterAPI) getFilterOutputPreviewHandler(w http.ResponseWriter, r *ht
 	vars := mux.Vars(r)
 	filterOutputID := vars["filter_output_id"]
 	requestedLimit := r.URL.Query().Get("limit")
-	logData := log.Data{"filter_output_id": filterOutputID, "action": getFilterPreviewAction}
+	logData := log.Data{"filter_output_id": filterOutputID}
 	ctx := r.Context()
 
 	var limit = 20 // default if no limit is given
