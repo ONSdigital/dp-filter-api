@@ -2,7 +2,9 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/ONSdigital/dp-api-clients-go/dataset"
@@ -79,7 +81,6 @@ func (svc *Service) Init(ctx context.Context, cfg *config.Config, buildTime, git
 	svc.filterStore, err = getFilterStore(svc.cfg)
 	if err != nil {
 		log.Event(ctx, "could not connect to mongodb", log.ERROR, log.Error(err))
-		return err
 	}
 
 	// Get observation store
@@ -263,32 +264,35 @@ func (svc *Service) Close(ctx context.Context) error {
 func (svc *Service) registerCheckers(ctx context.Context) (err error) {
 	hasErrors := false
 
-	if err = svc.healthCheck.AddCheck("Dataset API", svc.datasetAPI.Checker); err != nil {
-		log.Event(ctx, "error creating dataset API health check", log.ERROR, log.Error(err))
-		hasErrors = true
+	// generic interface that must be satisfied by all health-checkable dependencies
+	type Dependency interface {
+		Checker(context.Context, *healthcheck.CheckState) error
 	}
 
-	if err = svc.healthCheck.AddCheck("Kafka Producer", svc.filterOutputSubmittedProducer.Checker); err != nil {
-		log.Event(ctx, "error adding check for kafka producer", log.ERROR, log.Error(err))
-		hasErrors = true
+	// generic register checker method - if dependency is nil, a failing healthcheck will be created.
+	registerChecker := func(name string, dependency Dependency) {
+		if dependency != nil {
+			if err = svc.healthCheck.AddCheck(name, dependency.Checker); err != nil {
+				log.Event(ctx, fmt.Sprintf("error creating %s health check", strings.ToLower(name)), log.ERROR, log.Error(err))
+				hasErrors = true
+			}
+		} else {
+			svc.healthCheck.AddCheck(name, func(ctx context.Context, state *healthcheck.CheckState) error {
+				err := errors.New(fmt.Sprintf("%s not initialised", strings.ToLower(name)))
+				state.Update(healthcheck.StatusCritical, err.Error(), 0)
+				return err
+			})
+		}
 	}
 
-	if err = svc.healthCheck.AddCheck("Graph DB", svc.observationStore.Checker); err != nil {
-		hasErrors = true
-		log.Event(ctx, "error creating graph db connection", log.ERROR, log.Error(err))
-	}
-
-	if err = svc.healthCheck.AddCheck("Mongo DB", svc.filterStore.Checker); err != nil {
-		hasErrors = true
-		log.Event(ctx, "error creating mongoDB health check", log.ERROR, log.Error(err))
-	}
+	registerChecker("Dataset API", svc.datasetAPI)
+	registerChecker("Kafka Producer", svc.filterOutputSubmittedProducer)
+	registerChecker("Graph DB", svc.observationStore)
+	registerChecker("Mongo DB", svc.filterStore)
 
 	// zebedee is used only for identity checking if private endpoints are enabled
 	if svc.cfg.EnablePrivateEndpoints {
-		if err = svc.healthCheck.AddCheck("Zebedee", svc.identityClient.Checker); err != nil {
-			log.Event(ctx, "error creating zebedee health check", log.ERROR, log.Error(err))
-			hasErrors = true
-		}
+		registerChecker("Zebedee", svc.identityClient)
 	}
 
 	if hasErrors {

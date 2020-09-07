@@ -85,15 +85,24 @@ func TestInit(t *testing.T) {
 				return nil, errMongo
 			}
 
-			Convey("Then service Init fails with the same error and no further initialisations are attempted", func() {
+			Convey("Then service Init succeeds, MongoDB datastore dependency is not set and further initialisations are attempted", func() {
 				err := svc.Init(ctx, cfg, testBuildTime, testGitCommit, testVersion)
-				So(err, ShouldResemble, errMongo)
+				So(err, ShouldBeNil)
 				So(svc.cfg, ShouldResemble, cfg)
 				So(svc.filterStore, ShouldBeNil)
-				So(svc.observationStore, ShouldBeNil)
-				So(svc.filterOutputSubmittedProducer, ShouldBeNil)
-				So(svc.healthCheck, ShouldBeNil)
-				So(svc.server, ShouldBeNil)
+				So(svc.observationStore, ShouldResemble, graphMock)
+				So(svc.filterOutputSubmittedProducer, ShouldResemble, kafkaProducerMock)
+				So(svc.healthCheck, ShouldResemble, hcMock)
+				So(svc.server, ShouldResemble, serverMock)
+
+				Convey("And all checks try to register", func() {
+					So(len(hcMock.AddCheckCalls()), ShouldEqual, 5)
+					So(hcMock.AddCheckCalls()[0].Name, ShouldResemble, "Dataset API")
+					So(hcMock.AddCheckCalls()[1].Name, ShouldResemble, "Kafka Producer")
+					So(hcMock.AddCheckCalls()[2].Name, ShouldResemble, "Graph DB")
+					So(hcMock.AddCheckCalls()[3].Name, ShouldResemble, "Mongo DB")
+					So(hcMock.AddCheckCalls()[4].Name, ShouldResemble, "Zebedee")
+				})
 			})
 		})
 
