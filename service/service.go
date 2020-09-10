@@ -118,7 +118,7 @@ func (svc *Service) Init(ctx context.Context, cfg *config.Config, buildTime, git
 
 	// Get HTTP router and server with middleware
 	r := mux.NewRouter()
-	m := svc.createMiddleware(ctx, svc.cfg)
+	m := svc.createMiddleware(ctx)
 	svc.server = getHTTPServer(svc.cfg.BindAddr, m.Then(r))
 
 	// Create API, with previewDatasets and outputQueue
@@ -157,7 +157,7 @@ func (svc *Service) Start(ctx context.Context, svcErrors chan error) {
 }
 
 // CreateMiddleware creates an Alice middleware chain of handlers
-func (svc *Service) createMiddleware(ctx context.Context, cfg *config.Config) alice.Chain {
+func (svc *Service) createMiddleware(ctx context.Context) alice.Chain {
 	healthCheckHandler := newMiddleware(svc.healthCheck.Handler, "/health")
 	oldHealthCheckHandler := newMiddleware(svc.healthCheck.Handler, "/healthcheck")
 	middlewareChain := alice.New(
