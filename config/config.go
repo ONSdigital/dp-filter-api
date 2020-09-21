@@ -12,7 +12,7 @@ type Config struct {
 	Brokers                    []string      `envconfig:"KAFKA_ADDR"`
 	FilterOutputSubmittedTopic string        `envconfig:"FILTER_JOB_SUBMITTED_TOPIC"`
 	Host                       string        `envconfig:"HOST"`
-	KafkaMaxBytes              string        `envconfig:"KAFKA_MAX_BYTES"`
+	KafkaMaxBytes              int           `envconfig:"KAFKA_MAX_BYTES"`
 	ShutdownTimeout            time.Duration `envconfig:"SHUTDOWN_TIMEOUT"`
 	DatasetAPIURL              string        `envconfig:"DATASET_API_URL"`
 	DatasetAPIAuthToken        string        `envconfig:"DATASET_API_AUTH_TOKEN"           json:"-"`
@@ -23,7 +23,6 @@ type Config struct {
 	EnablePrivateEndpoints     bool          `envconfig:"ENABLE_PRIVATE_ENDPOINTS"`
 	DownloadServiceURL         string        `envconfig:"DOWNLOAD_SERVICE_URL"`
 	DownloadServiceSecretKey   string        `envconfig:"DOWNLOAD_SERVICE_SECRET_KEY"      json:"-"`
-	AuditEventsTopic           string        `envconfig:"AUDIT_EVENTS_TOPIC"`
 	MongoConfig                MongoConfig
 }
 
@@ -48,7 +47,7 @@ func Get() (*Config, error) {
 		BindAddr:                   ":22100",
 		Brokers:                    []string{"localhost:9092"},
 		FilterOutputSubmittedTopic: "filter-job-submitted",
-		KafkaMaxBytes:              "2000000",
+		KafkaMaxBytes:              2000000,
 		ShutdownTimeout:            5 * time.Second,
 		DatasetAPIURL:              "http://localhost:22000",
 		DatasetAPIAuthToken:        "FD0108EA-825D-411C-9B1D-41EF7727F465",
@@ -65,7 +64,6 @@ func Get() (*Config, error) {
 		EnablePrivateEndpoints:   true,
 		DownloadServiceURL:       "http://localhost:23600",
 		DownloadServiceSecretKey: "QB0108EZ-825D-412C-9B1D-41EF7747F462",
-		AuditEventsTopic:         "audit-events",
 	}
 
 	err := envconfig.Process("", cfg)
