@@ -151,7 +151,7 @@ func (api *FilterAPI) createFilterBlueprint(ctx context.Context, filter *models.
 
 	if submitted == filterSubmitted {
 		var filterOutput models.Filter
-		// Create filter output resource and use id to pass into kafka
+		// Create filter output resource and use filter id, dataset, edition and version to pass into kafka
 		filterOutput, err = api.createFilterOutputResource(ctx, newFilter, newFilter.FilterID)
 		if err != nil {
 			log.Event(ctx, "failed to create new filter output", log.ERROR, log.Error(err), logData)
