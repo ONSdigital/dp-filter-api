@@ -12,15 +12,6 @@ import (
 	"fmt"
 
 	"github.com/ONSdigital/dp-filter-api/filters"
-	"github.com/ONSdigital/go-ns/common"
-)
-
-const (
-	// audit actions
-	getOptionsAction   = "getFilterBlueprintDimensionOptions"
-	getOptionAction    = "getFilterBlueprintDimensionOption"
-	removeOptionAction = "removeFilterBlueprintDimensionOption"
-	addOptionAction    = "addFilterBlueprintDimensionOption"
 )
 
 func (api *FilterAPI) getFilterBlueprintDimensionOptionsHandler(w http.ResponseWriter, r *http.Request) {
@@ -30,28 +21,14 @@ func (api *FilterAPI) getFilterBlueprintDimensionOptionsHandler(w http.ResponseW
 	logData := log.Data{
 		"filter_blueprint_id": filterBlueprintID,
 		"dimension":           dimensionName,
-		"action":              getOptionsAction,
 	}
 
 	ctx := r.Context()
 	log.Event(ctx, "get filter blueprint dimension options", log.INFO, logData)
 
-	auditParams := common.Params{
-		"filter_blueprint_id": filterBlueprintID,
-		"dimension":           dimensionName,
-	}
-	if auditErr := api.auditor.Record(ctx, getOptionsAction, actionAttempted, auditParams); auditErr != nil {
-		handleAuditingFailure(ctx, getOptionsAction, actionAttempted, w, auditErr, logData)
-		return
-	}
-
 	options, err := api.getFilterBlueprintDimensionOptions(ctx, filterBlueprintID, dimensionName)
 	if err != nil {
 		log.Event(ctx, "failed to get dimension options for filter blueprint", log.ERROR, log.Error(err), logData)
-		if auditErr := api.auditor.Record(ctx, getOptionsAction, actionUnsuccessful, auditParams); auditErr != nil {
-			handleAuditingFailure(ctx, getOptionsAction, actionUnsuccessful, w, auditErr, logData)
-			return
-		}
 		setErrorCode(w, err)
 		return
 	}
@@ -61,16 +38,7 @@ func (api *FilterAPI) getFilterBlueprintDimensionOptionsHandler(w http.ResponseW
 	b, err := json.Marshal(options)
 	if err != nil {
 		log.Event(ctx, "failed to marshal filter blueprint dimension options into bytes", log.ERROR, log.Error(err), logData)
-		if auditErr := api.auditor.Record(ctx, getOptionsAction, actionUnsuccessful, auditParams); auditErr != nil {
-			handleAuditingFailure(ctx, getOptionsAction, actionUnsuccessful, w, auditErr, logData)
-			return
-		}
 		http.Error(w, internalError, http.StatusInternalServerError)
-		return
-	}
-
-	if auditErr := api.auditor.Record(ctx, getOptionsAction, actionSuccessful, auditParams); auditErr != nil {
-		handleAuditingFailure(ctx, getOptionsAction, actionSuccessful, w, auditErr, logData)
 		return
 	}
 
@@ -135,29 +103,14 @@ func (api *FilterAPI) getFilterBlueprintDimensionOptionHandler(w http.ResponseWr
 		"filter_blueprint_id": filterBlueprintID,
 		"dimension":           dimensionName,
 		"option":              option,
-		"action":              getOptionAction,
 	}
 
 	ctx := r.Context()
 	log.Event(ctx, "get filter blueprint dimension option", log.INFO, logData)
 
-	auditParams := common.Params{
-		"filter_blueprint_id": filterBlueprintID,
-		"dimension":           dimensionName,
-		"option":              option,
-	}
-	if auditErr := api.auditor.Record(ctx, getOptionAction, actionAttempted, auditParams); auditErr != nil {
-		handleAuditingFailure(ctx, getOptionAction, actionAttempted, w, auditErr, logData)
-		return
-	}
-
 	dimensionOption, err := api.getFilterBlueprintDimensionOption(ctx, filterBlueprintID, dimensionName, option)
 	if err != nil {
 		log.Event(ctx, "unable to get dimension option for filter blueprint", log.ERROR, log.Error(err), logData)
-		if auditErr := api.auditor.Record(ctx, getOptionAction, actionUnsuccessful, auditParams); auditErr != nil {
-			handleAuditingFailure(ctx, getOptionAction, actionUnsuccessful, w, auditErr, logData)
-			return
-		}
 		switch err {
 		case filters.ErrFilterBlueprintNotFound:
 			setErrorCode(w, err, statusBadRequest)
@@ -170,16 +123,7 @@ func (api *FilterAPI) getFilterBlueprintDimensionOptionHandler(w http.ResponseWr
 	b, err := json.Marshal(dimensionOption)
 	if err != nil {
 		log.Event(ctx, "failed to marshal filter blueprint dimension option into bytes", log.ERROR, log.Error(err), logData)
-		if auditErr := api.auditor.Record(ctx, getOptionAction, actionUnsuccessful, auditParams); auditErr != nil {
-			handleAuditingFailure(ctx, getOptionAction, actionUnsuccessful, w, auditErr, logData)
-			return
-		}
 		http.Error(w, internalError, http.StatusInternalServerError)
-		return
-	}
-
-	if auditErr := api.auditor.Record(ctx, getOptionAction, actionSuccessful, auditParams); auditErr != nil {
-		handleAuditingFailure(ctx, getOptionAction, actionSuccessful, w, auditErr, logData)
 		return
 	}
 
@@ -255,27 +199,12 @@ func (api *FilterAPI) addFilterBlueprintDimensionOptionHandler(w http.ResponseWr
 		"filter_blueprint_id": filterBlueprintID,
 		"dimension_name":      dimensionName,
 		"dimension_option":    option,
-		"action":              addOptionAction,
-	}
-
-	auditParams := common.Params{
-		"filter_blueprint_id": filterBlueprintID,
-		"dimension":           dimensionName,
-		"option":              option,
 	}
 	ctx := r.Context()
-	if auditErr := api.auditor.Record(ctx, addOptionAction, actionAttempted, auditParams); auditErr != nil {
-		handleAuditingFailure(ctx, addOptionAction, actionAttempted, w, auditErr, logData)
-		return
-	}
 
 	err := api.addFilterBlueprintDimensionOption(ctx, filterBlueprintID, dimensionName, option)
 	if err != nil {
 		log.Event(ctx, "error adding filter blueprint dimension option", log.ERROR, log.Error(err), logData)
-		if auditErr := api.auditor.Record(ctx, addOptionAction, actionUnsuccessful, auditParams); auditErr != nil {
-			handleAuditingFailure(ctx, addOptionAction, actionUnsuccessful, w, auditErr, logData)
-			return
-		}
 		switch err {
 		case filters.ErrFilterBlueprintNotFound:
 			setErrorCode(w, err, statusBadRequest)
@@ -292,10 +221,6 @@ func (api *FilterAPI) addFilterBlueprintDimensionOptionHandler(w http.ResponseWr
 	dimensionOption, err := api.getFilterBlueprintDimensionOption(ctx, filterBlueprintID, dimensionName, option)
 	if err != nil {
 		log.Event(ctx, "unable to get dimension option for filter blueprint", log.ERROR, log.Error(err), logData)
-		if auditErr := api.auditor.Record(ctx, getOptionAction, actionUnsuccessful, auditParams); auditErr != nil {
-			handleAuditingFailure(ctx, getOptionAction, actionUnsuccessful, w, auditErr, logData)
-			return
-		}
 		switch err {
 		case filters.ErrFilterBlueprintNotFound:
 			setErrorCode(w, err, statusBadRequest)
@@ -308,16 +233,8 @@ func (api *FilterAPI) addFilterBlueprintDimensionOptionHandler(w http.ResponseWr
 	b, err := json.Marshal(dimensionOption)
 	if err != nil {
 		log.Event(ctx, "failed to marshal filter blueprint dimension option into bytes", log.ERROR, log.Error(err), logData)
-		if auditErr := api.auditor.Record(ctx, getOptionAction, actionUnsuccessful, auditParams); auditErr != nil {
-			handleAuditingFailure(ctx, getOptionAction, actionUnsuccessful, w, auditErr, logData)
-			return
-		}
 		http.Error(w, internalError, http.StatusInternalServerError)
 		return
-	}
-
-	if auditErr := api.auditor.Record(ctx, addOptionAction, actionSuccessful, auditParams); auditErr != nil {
-		logAuditFailure(ctx, addOptionAction, actionSuccessful, auditErr, logData)
 	}
 
 	setJSONContentType(w)
@@ -377,28 +294,13 @@ func (api *FilterAPI) removeFilterBlueprintDimensionOptionHandler(w http.Respons
 		"filter_blueprint_id": filterBlueprintID,
 		"dimension":           dimensionName,
 		"option":              option,
-		"action":              removeOptionAction,
 	}
 	ctx := r.Context()
 	log.Event(ctx, "remove filter blueprint dimension option", log.INFO, logData)
 
-	auditParams := common.Params{
-		"filter_blueprint_id": filterBlueprintID,
-		"dimension":           dimensionName,
-		"option":              option,
-	}
-	if auditErr := api.auditor.Record(ctx, removeOptionAction, actionAttempted, auditParams); auditErr != nil {
-		handleAuditingFailure(ctx, removeOptionAction, actionAttempted, w, auditErr, logData)
-		return
-	}
-
 	err := api.removeFilterBlueprintDimensionOption(ctx, filterBlueprintID, dimensionName, option)
 	if err != nil {
 		log.Event(ctx, "error removing filter blueprint dimension option", log.ERROR, log.Error(err), logData)
-		if auditErr := api.auditor.Record(ctx, removeOptionAction, actionUnsuccessful, auditParams); auditErr != nil {
-			handleAuditingFailure(ctx, removeOptionAction, actionUnsuccessful, w, auditErr, logData)
-			return
-		}
 		switch err {
 		case filters.ErrFilterBlueprintNotFound:
 			setErrorCode(w, err, statusBadRequest)
@@ -408,10 +310,6 @@ func (api *FilterAPI) removeFilterBlueprintDimensionOptionHandler(w http.Respons
 			setErrorCode(w, err)
 		}
 		return
-	}
-
-	if auditErr := api.auditor.Record(ctx, removeOptionAction, actionSuccessful, auditParams); auditErr != nil {
-		logAuditFailure(ctx, removeOptionAction, actionSuccessful, auditErr, logData)
 	}
 
 	setJSONContentType(w)

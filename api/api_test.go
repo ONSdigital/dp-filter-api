@@ -9,8 +9,7 @@ import (
 	"github.com/ONSdigital/dp-filter-api/api/datastoretest"
 	"github.com/ONSdigital/dp-filter-api/filters"
 	"github.com/ONSdigital/dp-filter-api/models"
-	"github.com/ONSdigital/go-ns/audit"
-	"github.com/ONSdigital/go-ns/common"
+	dprequest "github.com/ONSdigital/dp-net/request"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -41,17 +40,9 @@ func createAuthenticatedRequest(method, url string, body io.Reader) *http.Reques
 
 	r, err := http.NewRequest(method, url, body)
 	ctx := r.Context()
-	ctx = common.SetCaller(ctx, "someone@ons.gov.uk")
+	ctx = dprequest.SetCaller(ctx, "someone@ons.gov.uk")
 	r = r.WithContext(ctx)
 
 	So(err, ShouldBeNil)
 	return r
-}
-
-func getMockAuditor() *audit.AuditorServiceMock {
-	return &audit.AuditorServiceMock{
-		RecordFunc: func(ctx context.Context, action string, result string, params common.Params) error {
-			return nil
-		},
-	}
 }

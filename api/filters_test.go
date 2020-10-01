@@ -1,21 +1,19 @@
 package api
 
 import (
-	"context"
 	"errors"
-	"github.com/ONSdigital/dp-filter-api/api/datastoretest"
-	"github.com/ONSdigital/dp-filter-api/mocks"
-	"github.com/ONSdigital/dp-filter-api/models"
-	"github.com/ONSdigital/go-ns/audit"
-	"github.com/ONSdigital/go-ns/common"
-	"github.com/globalsign/mgo/bson"
-	"github.com/gorilla/mux"
-	. "github.com/smartystreets/goconvey/convey"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/ONSdigital/dp-filter-api/api/datastoretest"
+	"github.com/ONSdigital/dp-filter-api/mocks"
+	"github.com/ONSdigital/dp-filter-api/models"
+	"github.com/globalsign/mgo/bson"
+	"github.com/gorilla/mux"
+	. "github.com/smartystreets/goconvey/convey"
 )
 
 var (
@@ -27,7 +25,6 @@ func TestSuccessfulAddFilterBlueprint_PublishedDataset(t *testing.T) {
 
 	Convey("Given a published dataset", t, func() {
 
-		mockAuditor := getMockAuditor()
 		w := httptest.NewRecorder()
 
 		mockDatastore := &datastoretest.DataStoreMock{
@@ -39,7 +36,7 @@ func TestSuccessfulAddFilterBlueprint_PublishedDataset(t *testing.T) {
 			},
 		}
 
-		api := routes(host, mux.NewRouter(), mockDatastore, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, "", mockAuditor)
+		api := Setup(host, mux.NewRouter(), mockDatastore, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, "")
 
 		Convey("When a POST request is made to the filters endpoint", func() {
 
@@ -47,10 +44,6 @@ func TestSuccessfulAddFilterBlueprint_PublishedDataset(t *testing.T) {
 			r, err := http.NewRequest("POST", "http://localhost:22100/filters", reader)
 			So(err, ShouldBeNil)
 			api.router.ServeHTTP(w, r)
-
-			Convey("Then the auditor is called for the attempt and outcome", func() {
-				assertAuditCalled(mockAuditor, createFilterBlueprintAction, actionSuccessful, nil)
-			})
 
 			Convey("Then the data store is not called to create a new filter output", func() {
 				So(len(mockDatastore.CreateFilterOutputCalls()), ShouldEqual, 0)
@@ -74,10 +67,6 @@ func TestSuccessfulAddFilterBlueprint_PublishedDataset(t *testing.T) {
 			So(err, ShouldBeNil)
 			api.router.ServeHTTP(w, r)
 
-			Convey("Then the auditor is called for the attempt and outcome", func() {
-				assertAuditCalled(mockAuditor, createFilterBlueprintAction, actionSuccessful, nil)
-			})
-
 			Convey("Then the data store is not called to create a new filter output", func() {
 				So(len(mockDatastore.CreateFilterOutputCalls()), ShouldEqual, 0)
 			})
@@ -99,10 +88,6 @@ func TestSuccessfulAddFilterBlueprint_PublishedDataset(t *testing.T) {
 			r, err := http.NewRequest("POST", "http://localhost:22100/filters?submitted=true", reader)
 			So(err, ShouldBeNil)
 			api.router.ServeHTTP(w, r)
-
-			Convey("Then the auditor is called for the attempt and outcome", func() {
-				assertAuditCalled(mockAuditor, createFilterBlueprintAction, actionSuccessful, nil)
-			})
 
 			Convey("Then the data store is called to create a new filter output", func() {
 
@@ -131,88 +116,14 @@ func TestSuccessfulAddFilterBlueprint_UnpublishedDataset(t *testing.T) {
 
 	Convey("Given an unpublished dataset", t, func() {
 
-		mockAuditor := getMockAuditor()
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, "", mockAuditor)
+		api := Setup(host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, "")
 
 		Convey("When a POST request is made to the filters endpoint", func() {
 
 			reader := strings.NewReader(`{"dataset":{"version":1, "edition":"1", "id":"1"}, "dimensions":[{"name": "age", "options": ["27","33"]}]}`)
 			r := createAuthenticatedRequest("POST", "http://localhost:22100/filters", reader)
 			api.router.ServeHTTP(w, r)
-
-			Convey("Then the auditor is called for the attempt and outcome", func() {
-				assertAuditCalled(mockAuditor, createFilterBlueprintAction, actionSuccessful, nil)
-			})
-
-			Convey("Then the response is 201 created", func() {
-				So(w.Code, ShouldEqual, http.StatusCreated)
-			})
-
-			Convey("Then the request body has been drained", func() {
-				bytesRead, err := r.Body.Read(make([]byte, 1))
-				So(bytesRead, ShouldEqual, 0)
-				So(err, ShouldEqual, io.EOF)
-			})
-		})
-	})
-}
-
-func TestFailedToAddFilterBlueprint_AuditFailure(t *testing.T) {
-
-	Convey("Given a published dataset", t, func() {
-
-		mockAuditor := getMockAuditor()
-		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, "", mockAuditor)
-
-		Convey("When a POST request is made to the filters endpoint and the attempt audit fails", func() {
-
-			reader := strings.NewReader(`{"dataset":{"version":1, "edition":"1", "id":"1"} }`)
-			r, err := http.NewRequest("POST", "http://localhost:22100/filters", reader)
-			So(err, ShouldBeNil)
-
-			mockAuditor.RecordFunc = func(ctx context.Context, action string, result string, params common.Params) error {
-				return errAudit
-			}
-
-			api.router.ServeHTTP(w, r)
-
-			Convey("Then the auditor is called for the action being attempted", func() {
-				recCalls := mockAuditor.RecordCalls()
-				So(len(recCalls), ShouldEqual, 1)
-				verifyAuditRecordCalls(recCalls[0], createFilterBlueprintAction, actionAttempted, nil)
-			})
-
-			Convey("Then the response is 500 internal server error", func() {
-				So(w.Code, ShouldEqual, http.StatusInternalServerError)
-			})
-
-			Convey("Then the request body has been drained", func() {
-				bytesRead, err := r.Body.Read(make([]byte, 1))
-				So(bytesRead, ShouldEqual, 0)
-				So(err, ShouldEqual, io.EOF)
-			})
-		})
-
-		Convey("When a POST request is made to the filters endpoint and the outcome audit fails", func() {
-
-			reader := strings.NewReader(`{"dataset":{"version":1, "edition":"1", "id":"1"} }`)
-			r, err := http.NewRequest("POST", "http://localhost:22100/filters", reader)
-			So(err, ShouldBeNil)
-
-			mockAuditor.RecordFunc = func(ctx context.Context, action string, result string, params common.Params) error {
-				if action == createFilterBlueprintAction && result == actionSuccessful {
-					return errAudit
-				}
-				return nil
-			}
-
-			api.router.ServeHTTP(w, r)
-
-			Convey("Then the auditor is called for the attempt and outcome", func() {
-				assertAuditCalled(mockAuditor, createFilterBlueprintAction, actionSuccessful, nil)
-			})
 
 			Convey("Then the response is 201 created", func() {
 				So(w.Code, ShouldEqual, http.StatusCreated)
@@ -235,18 +146,13 @@ func TestFailedToAddFilterBlueprint(t *testing.T) {
 		r, err := http.NewRequest("POST", "http://localhost:22100/filters", reader)
 		So(err, ShouldBeNil)
 
-		mockAuditor := getMockAuditor()
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, "", mockAuditor)
+		api := Setup(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, "")
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
 		response := w.Body.String()
 		So(response, ShouldContainSubstring, "Bad request - duplicate dimension found: time")
-
-		Convey("Then the auditor is called for the attempt and outcome", func() {
-			assertAuditCalled(mockAuditor, createFilterBlueprintAction, actionUnsuccessful, nil)
-		})
 
 		Convey("Then the request body has been drained", func() {
 			bytesRead, err := r.Body.Read(make([]byte, 1))
@@ -260,18 +166,13 @@ func TestFailedToAddFilterBlueprint(t *testing.T) {
 		r, err := http.NewRequest("POST", "http://localhost:22100/filters", reader)
 		So(err, ShouldBeNil)
 
-		mockAuditor := getMockAuditor()
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{InternalError: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, "", mockAuditor)
+		api := Setup(host, mux.NewRouter(), &mocks.DataStore{InternalError: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, "")
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusInternalServerError)
 
 		response := w.Body.String()
 		So(response, ShouldResemble, internalErrResponse)
-
-		Convey("Then the auditor is called for the attempt and outcome", func() {
-			assertAuditCalled(mockAuditor, createFilterBlueprintAction, actionUnsuccessful, nil)
-		})
 
 		Convey("Then the request body has been drained", func() {
 			bytesRead, err := r.Body.Read(make([]byte, 1))
@@ -285,18 +186,13 @@ func TestFailedToAddFilterBlueprint(t *testing.T) {
 		r, err := http.NewRequest("POST", "http://localhost:22100/filters", reader)
 		So(err, ShouldBeNil)
 
-		mockAuditor := getMockAuditor()
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{InternalServerError: true}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, "", mockAuditor)
+		api := Setup(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{InternalServerError: true}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, "")
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusInternalServerError)
 
 		response := w.Body.String()
 		So(response, ShouldResemble, internalErrResponse)
-
-		Convey("Then the auditor is called for the attempt and outcome", func() {
-			assertAuditCalled(mockAuditor, createFilterBlueprintAction, actionUnsuccessful, nil)
-		})
 
 		Convey("Then the request body has been drained", func() {
 			bytesRead, err := r.Body.Read(make([]byte, 1))
@@ -310,47 +206,13 @@ func TestFailedToAddFilterBlueprint(t *testing.T) {
 		r, err := http.NewRequest("POST", "http://localhost:22100/filters", reader)
 		So(err, ShouldBeNil)
 
-		mockAuditor := getMockAuditor()
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{VersionNotFound: true}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, "", mockAuditor)
+		api := Setup(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{VersionNotFound: true}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, "")
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
 		response := w.Body.String()
 		So(response, ShouldResemble, versionNotFoundResponse)
-
-		Convey("Then the auditor is called for the attempt and outcome", func() {
-			assertAuditCalled(mockAuditor, createFilterBlueprintAction, actionUnsuccessful, nil)
-		})
-
-		Convey("Then the request body has been drained", func() {
-			bytesRead, err := r.Body.Read(make([]byte, 1))
-			So(bytesRead, ShouldEqual, 0)
-			So(err, ShouldEqual, io.EOF)
-		})
-	})
-
-	Convey("When version does not exist, and auditing fails a 500 error is returned", t, func() {
-		reader := strings.NewReader(`{"dataset":{"version":1, "edition":"1", "id":"1"} }`)
-		r, err := http.NewRequest("POST", "http://localhost:22100/filters", reader)
-		So(err, ShouldBeNil)
-
-		mockAuditor := getMockAuditor()
-		mockAuditor.RecordFunc = func(ctx context.Context, action string, result string, params common.Params) error {
-			if action == createFilterBlueprintAction && result == actionUnsuccessful {
-				return errAudit
-			}
-			return nil
-		}
-
-		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{VersionNotFound: true}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, "", mockAuditor)
-		api.router.ServeHTTP(w, r)
-		So(w.Code, ShouldEqual, http.StatusInternalServerError)
-
-		Convey("Then the auditor is called for the attempt and outcome", func() {
-			assertAuditCalled(mockAuditor, createFilterBlueprintAction, actionUnsuccessful, nil)
-		})
 
 		Convey("Then the request body has been drained", func() {
 			bytesRead, err := r.Body.Read(make([]byte, 1))
@@ -364,18 +226,13 @@ func TestFailedToAddFilterBlueprint(t *testing.T) {
 		r, err := http.NewRequest("POST", "http://localhost:22100/filters", reader)
 		So(err, ShouldBeNil)
 
-		mockAuditor := getMockAuditor()
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, "", mockAuditor)
+		api := Setup(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, "")
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
 		response := w.Body.String()
 		So(response, ShouldResemble, versionNotFoundResponse)
-
-		Convey("Then the auditor is called for the attempt and outcome", func() {
-			assertAuditCalled(mockAuditor, createFilterBlueprintAction, actionUnsuccessful, nil)
-		})
 
 		Convey("Then the request body has been drained", func() {
 			bytesRead, err := r.Body.Read(make([]byte, 1))
@@ -389,9 +246,8 @@ func TestFailedToAddFilterBlueprint_BadJSON(t *testing.T) {
 
 	Convey("Given a published dataset", t, func() {
 
-		mockAuditor := getMockAuditor()
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, "", mockAuditor)
+		api := Setup(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, "")
 
 		Convey("When a POST request is made to the filters endpoint which has an invalid JSON message", func() {
 
@@ -400,10 +256,6 @@ func TestFailedToAddFilterBlueprint_BadJSON(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			api.router.ServeHTTP(w, r)
-
-			Convey("Then the auditor is called for the attempt and outcome", func() {
-				assertAuditCalled(mockAuditor, createFilterBlueprintAction, actionUnsuccessful, nil)
-			})
 
 			Convey("Then the response is 400 bad request", func() {
 				So(w.Code, ShouldEqual, http.StatusBadRequest)
@@ -428,10 +280,6 @@ func TestFailedToAddFilterBlueprint_BadJSON(t *testing.T) {
 
 			api.router.ServeHTTP(w, r)
 
-			Convey("Then the auditor is called for the attempt and outcome", func() {
-				assertAuditCalled(mockAuditor, createFilterBlueprintAction, actionUnsuccessful, nil)
-			})
-
 			Convey("Then the response is 400 bad request", func() {
 				So(w.Code, ShouldEqual, http.StatusBadRequest)
 			})
@@ -454,10 +302,6 @@ func TestFailedToAddFilterBlueprint_BadJSON(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			api.router.ServeHTTP(w, r)
-
-			Convey("Then the auditor is called for the attempt and outcome", func() {
-				assertAuditCalled(mockAuditor, createFilterBlueprintAction, actionUnsuccessful, nil)
-			})
 
 			Convey("Then the response is 400 bad request", func() {
 				So(w.Code, ShouldEqual, http.StatusBadRequest)
@@ -482,10 +326,6 @@ func TestFailedToAddFilterBlueprint_BadJSON(t *testing.T) {
 
 			api.router.ServeHTTP(w, r)
 
-			Convey("Then the auditor is called for the attempt and outcome", func() {
-				assertAuditCalled(mockAuditor, createFilterBlueprintAction, actionUnsuccessful, nil)
-			})
-
 			Convey("Then the response is 400 bad request", func() {
 				So(w.Code, ShouldEqual, http.StatusBadRequest)
 			})
@@ -509,10 +349,6 @@ func TestFailedToAddFilterBlueprint_BadJSON(t *testing.T) {
 
 			api.router.ServeHTTP(w, r)
 
-			Convey("Then the auditor is called for the attempt and outcome", func() {
-				assertAuditCalled(mockAuditor, createFilterBlueprintAction, actionUnsuccessful, nil)
-			})
-
 			Convey("Then the response is 400 bad request", func() {
 				So(w.Code, ShouldEqual, http.StatusBadRequest)
 			})
@@ -531,16 +367,12 @@ func TestFailedToAddFilterBlueprint_BadJSON(t *testing.T) {
 }
 
 func TestSuccessfulGetFilterBlueprint_PublishedDataset(t *testing.T) {
-
 	t.Parallel()
-
-	expectedAuditParams := common.Params{"filter_blueprint_id": "12345678"}
 
 	Convey("Given a published dataset", t, func() {
 
-		mockAuditor := getMockAuditor()
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, "", mockAuditor)
+		api := Setup(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, "")
 
 		Convey("When a GET request is made to the filters endpoint with no authentication", func() {
 
@@ -549,174 +381,76 @@ func TestSuccessfulGetFilterBlueprint_PublishedDataset(t *testing.T) {
 
 			api.router.ServeHTTP(w, r)
 
-			Convey("Then the auditor is called for the attempt and outcome", func() {
-				assertAuditCalled(mockAuditor, getFilterBlueprintAction, actionSuccessful, expectedAuditParams)
-			})
-
 			Convey("Then the response is 200 ok", func() {
 				So(w.Code, ShouldEqual, http.StatusOK)
-			})
-		})
-
-		Convey("When a GET request is made to the filters endpoint and the attempt audit fails", func() {
-
-			r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678", nil)
-			So(err, ShouldBeNil)
-
-			mockAuditor.RecordFunc = func(ctx context.Context, action string, result string, params common.Params) error {
-				return errAudit
-			}
-
-			api.router.ServeHTTP(w, r)
-
-			Convey("Then the auditor is called for the action being attempted", func() {
-				recCalls := mockAuditor.RecordCalls()
-				So(len(recCalls), ShouldEqual, 1)
-				verifyAuditRecordCalls(recCalls[0], getFilterBlueprintAction, actionAttempted, expectedAuditParams)
-			})
-
-			Convey("Then the response is 500 internal server error", func() {
-				So(w.Code, ShouldEqual, http.StatusInternalServerError)
-			})
-		})
-
-		Convey("When a GET request is made to the filters endpoint and the outcome audit fails", func() {
-
-			r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678", nil)
-			So(err, ShouldBeNil)
-
-			mockAuditor.RecordFunc = func(ctx context.Context, action string, result string, params common.Params) error {
-				if action == getFilterBlueprintAction && result == actionSuccessful {
-					return errAudit
-				}
-				return nil
-			}
-
-			api.router.ServeHTTP(w, r)
-
-			Convey("Then the auditor is called for the attempt and outcome", func() {
-				assertAuditCalled(mockAuditor, getFilterBlueprintAction, actionSuccessful, expectedAuditParams)
-			})
-
-			Convey("Then the response is 500 internal server error", func() {
-				So(w.Code, ShouldEqual, http.StatusInternalServerError)
 			})
 		})
 	})
 }
 
 func TestSuccessfulGetFilterBlueprint_UnpublishedDataset(t *testing.T) {
-
-	expectedAuditParams := common.Params{"filter_blueprint_id": "12345678"}
 	t.Parallel()
 
 	Convey("Successfully get an unpublished filter blueprint with authentication", t, func() {
 		r := createAuthenticatedRequest("GET", "http://localhost:22100/filters/12345678", nil)
 
-		mockAuditor := getMockAuditor()
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, "", mockAuditor)
+		api := Setup(host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, "")
 
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusOK)
-
-		Convey("Then the auditor is called for the attempt and outcome", func() {
-			assertAuditCalled(mockAuditor, getFilterBlueprintAction, actionSuccessful, expectedAuditParams)
-		})
 	})
 }
 
 func TestFailedToGetFilterBlueprint(t *testing.T) {
 	t.Parallel()
 
-	expectedAuditParams := common.Params{"filter_blueprint_id": "12345678"}
-
 	Convey("When no data store is available, an internal error is returned", t, func() {
 		r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678", nil)
 		So(err, ShouldBeNil)
 
-		mockAuditor := getMockAuditor()
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{InternalError: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, "", mockAuditor)
+		api := Setup(host, mux.NewRouter(), &mocks.DataStore{InternalError: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, "")
 
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusInternalServerError)
 
 		response := w.Body.String()
 		So(response, ShouldResemble, internalErrResponse)
-
-		Convey("Then the auditor is called for the attempt and outcome", func() {
-			assertAuditCalled(mockAuditor, getFilterBlueprintAction, actionUnsuccessful, expectedAuditParams)
-		})
 	})
 
 	Convey("When a filter blueprint does not exist, a not found is returned", t, func() {
 		r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678", nil)
 		So(err, ShouldBeNil)
 
-		mockAuditor := getMockAuditor()
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{NotFound: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, "", mockAuditor)
+		api := Setup(host, mux.NewRouter(), &mocks.DataStore{NotFound: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, "")
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
 		response := w.Body.String()
 		So(response, ShouldResemble, filterNotFoundResponse)
-
-		Convey("Then the auditor is called for the attempt and outcome", func() {
-			assertAuditCalled(mockAuditor, getFilterBlueprintAction, actionUnsuccessful, expectedAuditParams)
-		})
-	})
-
-	Convey("When a filter blueprint does not exist, and auditing fails a 500 error is returned", t, func() {
-		r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678", nil)
-		So(err, ShouldBeNil)
-
-		mockAuditor := getMockAuditor()
-		mockAuditor.RecordFunc = func(ctx context.Context, action string, result string, params common.Params) error {
-			if action == getFilterBlueprintAction && result == actionUnsuccessful {
-				return errAudit
-			}
-			return nil
-		}
-
-		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{NotFound: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, "", mockAuditor)
-		api.router.ServeHTTP(w, r)
-		So(w.Code, ShouldEqual, http.StatusInternalServerError)
-
-		Convey("Then the auditor is called for the attempt and outcome", func() {
-			assertAuditCalled(mockAuditor, getFilterBlueprintAction, actionUnsuccessful, expectedAuditParams)
-		})
 	})
 
 	Convey("When filter blueprint is unpublished, and the request is unauthenticated, a not found is returned", t, func() {
 		r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678", nil)
 		So(err, ShouldBeNil)
 
-		mockAuditor := getMockAuditor()
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, "", mockAuditor)
+		api := Setup(host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, "")
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
 		response := w.Body.String()
 		So(response, ShouldResemble, filterNotFoundResponse)
-
-		Convey("Then the auditor is called for the attempt and outcome", func() {
-			assertAuditCalled(mockAuditor, getFilterBlueprintAction, actionUnsuccessful, expectedAuditParams)
-		})
 	})
 }
 
 func TestSuccessfulUpdateFilterBlueprint_PublishedDataset(t *testing.T) {
 	t.Parallel()
 
-	expectedAuditParams := common.Params{"filter_blueprint_id": "21312"}
-
 	Convey("Given a published dataset", t, func() {
 
-		mockAuditor := getMockAuditor()
 		w := httptest.NewRecorder()
 
 		mockDatastore := &datastoretest.DataStoreMock{
@@ -731,7 +465,7 @@ func TestSuccessfulUpdateFilterBlueprint_PublishedDataset(t *testing.T) {
 			},
 		}
 
-		api := routes(host, mux.NewRouter(), mockDatastore, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, "", mockAuditor)
+		api := Setup(host, mux.NewRouter(), mockDatastore, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, "")
 
 		Convey("When a PUT request is made to the filters endpoint", func() {
 
@@ -740,10 +474,6 @@ func TestSuccessfulUpdateFilterBlueprint_PublishedDataset(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			api.router.ServeHTTP(w, r)
-
-			Convey("Then the auditor is called for the attempt and outcome", func() {
-				assertAuditCalled(mockAuditor, updateFilterBlueprintAction, actionSuccessful, expectedAuditParams)
-			})
 
 			Convey("Then the data store is not called to create a new filter output", func() {
 				So(len(mockDatastore.CreateFilterOutputCalls()), ShouldEqual, 0)
@@ -770,10 +500,6 @@ func TestSuccessfulUpdateFilterBlueprint_PublishedDataset(t *testing.T) {
 
 			api.router.ServeHTTP(w, r)
 
-			Convey("Then the auditor is called for the attempt and outcome", func() {
-				assertAuditCalled(mockAuditor, updateFilterBlueprintAction, actionSuccessful, expectedAuditParams)
-			})
-
 			Convey("Then the data store is not called to create a new filter output", func() {
 				So(len(mockDatastore.CreateFilterOutputCalls()), ShouldEqual, 0)
 			})
@@ -796,10 +522,6 @@ func TestSuccessfulUpdateFilterBlueprint_PublishedDataset(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			api.router.ServeHTTP(w, r)
-
-			Convey("Then the auditor is called for the attempt and outcome", func() {
-				assertAuditCalled(mockAuditor, updateFilterBlueprintAction, actionSuccessful, expectedAuditParams)
-			})
 
 			Convey("Then the data store is called to create a new filter output", func() {
 
@@ -824,126 +546,17 @@ func TestSuccessfulUpdateFilterBlueprint_PublishedDataset(t *testing.T) {
 	})
 }
 
-func TestFailedToUpdateFilterBlueprint_AuditFailure(t *testing.T) {
-	t.Parallel()
-
-	expectedAuditParams := common.Params{"filter_blueprint_id": "21312"}
-
-	Convey("Given a published dataset", t, func() {
-
-		mockAuditor := getMockAuditor()
-		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, "", mockAuditor)
-
-		Convey("When a PUT request is made to the filters endpoint and the attempt audit fails", func() {
-
-			reader := strings.NewReader(`{"dataset":{"version":1}}`)
-			r, err := http.NewRequest("PUT", "http://localhost:22100/filters/21312", reader)
-			So(err, ShouldBeNil)
-
-			mockAuditor.RecordFunc = func(ctx context.Context, action string, result string, params common.Params) error {
-				return errAudit
-			}
-
-			api.router.ServeHTTP(w, r)
-
-			Convey("Then the auditor is called for the action being attempted", func() {
-				recCalls := mockAuditor.RecordCalls()
-				So(len(recCalls), ShouldEqual, 1)
-				verifyAuditRecordCalls(recCalls[0], updateFilterBlueprintAction, actionAttempted, expectedAuditParams)
-			})
-
-			Convey("Then the response is 500 internal server error", func() {
-				So(w.Code, ShouldEqual, http.StatusInternalServerError)
-			})
-
-			Convey("Then the request body has been drained", func() {
-				bytesRead, err := r.Body.Read(make([]byte, 1))
-				So(bytesRead, ShouldEqual, 0)
-				So(err, ShouldEqual, io.EOF)
-			})
-		})
-
-		Convey("When a PUT request is made to the filters endpoint and the outcome audit fails", func() {
-
-			reader := strings.NewReader(`{"dataset":{"version":1}}`)
-			r, err := http.NewRequest("PUT", "http://localhost:22100/filters/21312", reader)
-			So(err, ShouldBeNil)
-
-			mockAuditor.RecordFunc = func(ctx context.Context, action string, result string, params common.Params) error {
-				if action == updateFilterBlueprintAction && result == actionSuccessful {
-					return errAudit
-				}
-				return nil
-			}
-
-			api.router.ServeHTTP(w, r)
-
-			Convey("Then the auditor is called for the attempt and outcome", func() {
-				assertAuditCalled(mockAuditor, updateFilterBlueprintAction, actionSuccessful, expectedAuditParams)
-			})
-
-			Convey("Then the response is 200 OK", func() {
-				So(w.Code, ShouldEqual, http.StatusOK)
-			})
-
-			Convey("Then the request body has been drained", func() {
-				bytesRead, err := r.Body.Read(make([]byte, 1))
-				So(bytesRead, ShouldEqual, 0)
-				So(err, ShouldEqual, io.EOF)
-			})
-		})
-
-		Convey("When a PUT request is made to the filters endpoint with invalid json and the outcome audit fails", func() {
-
-			reader := strings.NewReader("{")
-			r, err := http.NewRequest("PUT", "http://localhost:22100/filters/21312", reader)
-			So(err, ShouldBeNil)
-
-			mockAuditor.RecordFunc = func(ctx context.Context, action string, result string, params common.Params) error {
-				if action == updateFilterBlueprintAction && result == actionUnsuccessful {
-					return errAudit
-				}
-				return nil
-			}
-
-			api.router.ServeHTTP(w, r)
-
-			Convey("Then the auditor is called for the attempt and outcome", func() {
-				assertAuditCalled(mockAuditor, updateFilterBlueprintAction, actionUnsuccessful, expectedAuditParams)
-			})
-
-			Convey("Then the response is 500 internal server error", func() {
-				So(w.Code, ShouldEqual, http.StatusInternalServerError)
-			})
-
-			Convey("Then the request body has been drained", func() {
-				bytesRead, err := r.Body.Read(make([]byte, 1))
-				So(bytesRead, ShouldEqual, 0)
-				So(err, ShouldEqual, io.EOF)
-			})
-		})
-	})
-}
-
 func TestSuccessfulUpdateFilterBlueprint_UnpublishedDataset(t *testing.T) {
 	t.Parallel()
-
-	expectedAuditParams := common.Params{"filter_blueprint_id": "21312"}
 
 	Convey("Successfully send a request to submit an unpublished filter blueprint", t, func() {
 		reader := strings.NewReader("{}")
 		r := createAuthenticatedRequest("PUT", "http://localhost:22100/filters/21312?submitted=true", reader)
 
-		mockAuditor := getMockAuditor()
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, "", mockAuditor)
+		api := Setup(host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, "")
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusOK)
-
-		Convey("Then the auditor is called for the attempt and outcome", func() {
-			assertAuditCalled(mockAuditor, updateFilterBlueprintAction, actionSuccessful, expectedAuditParams)
-		})
 
 		Convey("Then the request body has been drained", func() {
 			bytesRead, err := r.Body.Read(make([]byte, 1))
@@ -956,25 +569,18 @@ func TestSuccessfulUpdateFilterBlueprint_UnpublishedDataset(t *testing.T) {
 func TestFailedToUpdateFilterBlueprint(t *testing.T) {
 	t.Parallel()
 
-	expectedAuditParams := common.Params{"filter_blueprint_id": "21312"}
-
 	Convey("When an invalid json message is sent, a bad request is returned", t, func() {
 		reader := strings.NewReader("{")
 		r, err := http.NewRequest("PUT", "http://localhost:22100/filters/21312", reader)
 		So(err, ShouldBeNil)
 
-		mockAuditor := getMockAuditor()
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, "", mockAuditor)
+		api := Setup(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, "")
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
 		response := w.Body.String()
 		So(response, ShouldResemble, badRequestResponse)
-
-		Convey("Then the auditor is called for the attempt and outcome", func() {
-			assertAuditCalled(mockAuditor, updateFilterBlueprintAction, actionUnsuccessful, expectedAuditParams)
-		})
 
 		Convey("Then the request body has been drained", func() {
 			bytesRead, err := r.Body.Read(make([]byte, 1))
@@ -988,18 +594,13 @@ func TestFailedToUpdateFilterBlueprint(t *testing.T) {
 		r, err := http.NewRequest("PUT", "http://localhost:22100/filters/21312", reader)
 		So(err, ShouldBeNil)
 
-		mockAuditor := getMockAuditor()
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, "", mockAuditor)
+		api := Setup(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, "")
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
 		response := w.Body.String()
 		So(response, ShouldResemble, badRequestResponse)
-
-		Convey("Then the auditor is called for the attempt and outcome", func() {
-			assertAuditCalled(mockAuditor, updateFilterBlueprintAction, actionUnsuccessful, expectedAuditParams)
-		})
 
 		Convey("Then the request body has been drained", func() {
 			bytesRead, err := r.Body.Read(make([]byte, 1))
@@ -1013,18 +614,13 @@ func TestFailedToUpdateFilterBlueprint(t *testing.T) {
 		r, err := http.NewRequest("PUT", "http://localhost:22100/filters/21312", reader)
 		So(err, ShouldBeNil)
 
-		mockAuditor := getMockAuditor()
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{NotFound: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, "", mockAuditor)
+		api := Setup(host, mux.NewRouter(), &mocks.DataStore{NotFound: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, "")
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
 		response := w.Body.String()
 		So(response, ShouldResemble, filterNotFoundResponse)
-
-		Convey("Then the auditor is called for the attempt and outcome", func() {
-			assertAuditCalled(mockAuditor, updateFilterBlueprintAction, actionUnsuccessful, expectedAuditParams)
-		})
 
 		Convey("Then the request body has been drained", func() {
 			bytesRead, err := r.Body.Read(make([]byte, 1))
@@ -1040,17 +636,12 @@ func TestFailedToUpdateFilterBlueprint(t *testing.T) {
 
 		w := httptest.NewRecorder()
 
-		mockAuditor := getMockAuditor()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, "", mockAuditor)
+		api := Setup(host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, "")
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
 		response := w.Body.String()
 		So(response, ShouldResemble, filterNotFoundResponse)
-
-		Convey("Then the auditor is called for the attempt and outcome", func() {
-			assertAuditCalled(mockAuditor, updateFilterBlueprintAction, actionUnsuccessful, expectedAuditParams)
-		})
 
 		Convey("Then the request body has been drained", func() {
 			bytesRead, err := r.Body.Read(make([]byte, 1))
@@ -1064,18 +655,13 @@ func TestFailedToUpdateFilterBlueprint(t *testing.T) {
 		r, err := http.NewRequest("PUT", "http://localhost:22100/filters/21312", reader)
 		So(err, ShouldBeNil)
 
-		mockAuditor := getMockAuditor()
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{VersionNotFound: true}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, "", mockAuditor)
+		api := Setup(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{VersionNotFound: true}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, "")
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
 		response := w.Body.String()
 		So(response, ShouldResemble, versionNotFoundResponse)
-
-		Convey("Then the auditor is called for the attempt and outcome", func() {
-			assertAuditCalled(mockAuditor, updateFilterBlueprintAction, actionUnsuccessful, expectedAuditParams)
-		})
 
 		Convey("Then the request body has been drained", func() {
 			bytesRead, err := r.Body.Read(make([]byte, 1))
@@ -1089,18 +675,13 @@ func TestFailedToUpdateFilterBlueprint(t *testing.T) {
 		r, err := http.NewRequest("PUT", "http://localhost:22100/filters/21312", reader)
 		So(err, ShouldBeNil)
 
-		mockAuditor := getMockAuditor()
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, "", mockAuditor)
+		api := Setup(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, "")
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
 		response := w.Body.String()
 		So(response, ShouldResemble, "incorrect dimensions chosen: [time 1_age]\n")
-
-		Convey("Then the auditor is called for the attempt and outcome", func() {
-			assertAuditCalled(mockAuditor, updateFilterBlueprintAction, actionUnsuccessful, expectedAuditParams)
-		})
 
 		Convey("Then the request body has been drained", func() {
 			bytesRead, err := r.Body.Read(make([]byte, 1))
@@ -1114,18 +695,13 @@ func TestFailedToUpdateFilterBlueprint(t *testing.T) {
 		r, err := http.NewRequest("PUT", "http://localhost:22100/filters/21312", reader)
 		So(err, ShouldBeNil)
 
-		mockAuditor := getMockAuditor()
 		w := httptest.NewRecorder()
-		api := routes(host, mux.NewRouter(), &mocks.DataStore{InvalidDimensionOption: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, "", mockAuditor)
+		api := Setup(host, mux.NewRouter(), &mocks.DataStore{InvalidDimensionOption: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, "")
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
 		response := w.Body.String()
 		So(response, ShouldResemble, "incorrect dimension options chosen: [28]\n")
-
-		Convey("Then the auditor is called for the attempt and outcome", func() {
-			assertAuditCalled(mockAuditor, updateFilterBlueprintAction, actionUnsuccessful, expectedAuditParams)
-		})
 
 		Convey("Then the request body has been drained", func() {
 			bytesRead, err := r.Body.Read(make([]byte, 1))
@@ -1149,22 +725,4 @@ func TestRemoveDuplicates(t *testing.T) {
 			})
 		})
 	})
-}
-
-func verifyAuditRecordCalls(c struct {
-	Ctx    context.Context
-	Action string
-	Result string
-	Params common.Params
-}, expectedAction string, expectedResult string, expectedParams common.Params) {
-	So(c.Action, ShouldEqual, expectedAction)
-	So(c.Result, ShouldEqual, expectedResult)
-	So(c.Params, ShouldResemble, expectedParams)
-}
-
-func assertAuditCalled(mockAuditor *audit.AuditorServiceMock, expectedAction, expectedOutcome string, expectedParams common.Params) {
-	recCalls := mockAuditor.RecordCalls()
-	So(len(recCalls), ShouldEqual, 2)
-	verifyAuditRecordCalls(recCalls[0], expectedAction, actionAttempted, expectedParams)
-	verifyAuditRecordCalls(recCalls[1], expectedAction, expectedOutcome, expectedParams)
 }
