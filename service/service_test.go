@@ -53,8 +53,11 @@ func TestInit(t *testing.T) {
 		}
 
 		graphMock := &graph.DB{Driver: &mock.GraphDriverMock{}}
-		getObservationStore = func() (observationStore *graph.DB, err error) {
-			return graphMock, nil
+		graphErrorConsumerMock := &mock.CloserMock{CloseFunc: func(ctx context.Context) error {
+			return nil
+		}}
+		getObservationStore = func(ctx context.Context) (observationStore *graph.DB, graphDBErrorConsumer Closer, err error) {
+			return graphMock, graphErrorConsumerMock, nil
 		}
 
 		kafkaProducerMock := &kafkatest.IProducerMock{
@@ -107,8 +110,8 @@ func TestInit(t *testing.T) {
 		})
 
 		Convey("Given that initialising GraphDB observation store returns an error", func() {
-			getObservationStore = func() (observationStore *graph.DB, err error) {
-				return nil, errGraph
+			getObservationStore = func(ctx context.Context) (observationStore *graph.DB, graphErrorConsumer Closer, err error) {
+				return nil, nil, errGraph
 			}
 
 			Convey("Then service Init fails with the same error and no further initialisations are attempted", func() {
@@ -336,6 +339,10 @@ func TestClose(t *testing.T) {
 			CloseFunc: funcClose,
 		}
 
+		graphErrorConsumerMock := &mock.CloserMock{
+			CloseFunc: funcClose,
+		}
+
 		// Kafka producer will fail if healthcheck or http server are not stopped
 		kafkaProducerMock := &kafkatest.IProducerMock{
 			ChannelsFunc: func() *kafka.ProducerChannels {
@@ -350,6 +357,7 @@ func TestClose(t *testing.T) {
 			server:                        serverMock,
 			filterStore:                   mongoMock,
 			observationStore:              &graph.DB{Driver: graphDriverMock},
+			graphDBErrorConsumer:          graphErrorConsumerMock,
 			filterOutputSubmittedProducer: kafkaProducerMock,
 		}
 
@@ -361,6 +369,7 @@ func TestClose(t *testing.T) {
 				So(len(serverMock.ShutdownCalls()), ShouldEqual, 1)
 				So(len(mongoMock.CloseCalls()), ShouldEqual, 1)
 				So(len(graphDriverMock.CloseCalls()), ShouldEqual, 1)
+				So(len(graphErrorConsumerMock.CloseCalls()), ShouldEqual, 1)
 				So(len(kafkaProducerMock.CloseCalls()), ShouldEqual, 1)
 			})
 		})
@@ -375,6 +384,9 @@ func TestClose(t *testing.T) {
 			graphDriverMock.CloseFunc = func(ctx context.Context) error {
 				return errGraph
 			}
+			graphErrorConsumerMock.CloseFunc = func(ctx context.Context) error {
+				return errGraph
+			}
 			kafkaProducerMock.CloseFunc = func(ctx context.Context) error {
 				return errKafka
 			}
@@ -387,6 +399,7 @@ func TestClose(t *testing.T) {
 				So(len(serverMock.ShutdownCalls()), ShouldEqual, 1)
 				So(len(mongoMock.CloseCalls()), ShouldEqual, 1)
 				So(len(graphDriverMock.CloseCalls()), ShouldEqual, 1)
+				So(len(graphErrorConsumerMock.CloseCalls()), ShouldEqual, 1)
 				So(len(kafkaProducerMock.CloseCalls()), ShouldEqual, 1)
 			})
 		})
@@ -405,6 +418,7 @@ func TestClose(t *testing.T) {
 				So(len(serverMock.ShutdownCalls()), ShouldEqual, 1)
 				So(len(mongoMock.CloseCalls()), ShouldEqual, 0)
 				So(len(graphDriverMock.CloseCalls()), ShouldEqual, 0)
+				So(len(graphErrorConsumerMock.CloseCalls()), ShouldEqual, 0)
 				So(len(kafkaProducerMock.CloseCalls()), ShouldEqual, 0)
 			})
 		})

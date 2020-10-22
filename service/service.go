@@ -30,6 +30,7 @@ type Service struct {
 	cfg                           *config.Config
 	filterStore                   MongoDB
 	observationStore              *graph.DB
+	graphDBErrorConsumer          Closer
 	filterOutputSubmittedProducer kafka.IProducer
 	identityClient                *identity.Client
 	datasetAPI                    *dataset.Client
@@ -44,8 +45,15 @@ var getFilterStore = func(cfg *config.Config) (datastore MongoDB, err error) {
 }
 
 // getObservationStore returns an initialised connection to observation store (graph database)
-var getObservationStore = func() (observationStore *graph.DB, err error) {
-	return graph.New(context.Background(), graph.Subsets{Observation: true})
+var getObservationStore = func(ctx context.Context) (observationStore *graph.DB, errorConsumer Closer, err error) {
+	observationStore, err = graph.New(context.Background(), graph.Subsets{Observation: true})
+	if err != nil {
+		return nil, nil, err
+	}
+
+	errorConsumer = graph.NewLoggingErrorConsumer(ctx, observationStore.ErrorChan())
+
+	return observationStore, errorConsumer, nil
 }
 
 // getProducer returns a kafka producer
@@ -84,7 +92,7 @@ func (svc *Service) Init(ctx context.Context, cfg *config.Config, buildTime, git
 	}
 
 	// Get observation store
-	svc.observationStore, err = getObservationStore()
+	svc.observationStore, svc.graphDBErrorConsumer, err = getObservationStore(ctx)
 	if err != nil {
 		log.Event(ctx, "could not connect to graph", log.ERROR, log.Error(err))
 		return err
@@ -223,9 +231,15 @@ func (svc *Service) Close(ctx context.Context) error {
 
 		// Close GraphDB (if it exists)
 		if svc.observationStore != nil {
-			log.Event(ctx, "closing graphDB observation store", log.INFO)
+			log.Event(ctx, "closing graph DB observation store", log.INFO)
 			if err := svc.observationStore.Close(ctx); err != nil {
-				log.Event(ctx, "unable to close graphDB observation store", log.ERROR)
+				log.Event(ctx, "unable to close graph DB observation store", log.ERROR)
+				hasShutdownError = true
+			}
+
+			log.Event(ctx, "closing graph DB error consumer", log.INFO)
+			if err := svc.graphDBErrorConsumer.Close(ctx); err != nil {
+				log.Event(ctx, "unable to close graph DB error consumer", log.ERROR)
 				hasShutdownError = true
 			}
 		}
