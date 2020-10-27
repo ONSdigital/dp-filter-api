@@ -86,11 +86,12 @@ func (svc *Service) Init(ctx context.Context, cfg *config.Config, buildTime, git
 	svc.cfg = cfg
 
 	// Get data store.
-	// We don't want to stop this service due to a failure in connecting with mongoDB.
-	// A failing healthcheck Checker will be created in this case.
 	svc.filterStore, err = getFilterStore(svc.cfg)
 	if err != nil {
 		log.Event(ctx, "could not connect to mongodb", log.ERROR, log.Error(err))
+		// We don't return 'err' here because we don't want to stop this service
+		// due to a failure in connecting with mongoDB.
+		// A failing healthcheck Checker will be created later in registerCheckers().
 	}
 
 	// Get observation store
@@ -287,14 +288,14 @@ func (svc *Service) registerCheckers(ctx context.Context) (err error) {
 
 	// generic register checker method - if dependency is nil, a failing healthcheck will be created.
 	registerChecker := func(name string, dependency Dependency) {
-		// if dependency exists, try to register the Checker
 		if dependency != nil {
+			// if dependency exists, try to register the Checker
 			if err = svc.healthCheck.AddCheck(name, dependency.Checker); err != nil {
 				log.Event(ctx, fmt.Sprintf("error creating %s health check", strings.ToLower(name)), log.ERROR, log.Error(err))
 				hasErrors = true
 			}
-			// otherwise, create a critical handler to report that the dependency is not initialised
 		} else {
+			// otherwise, create a critical handler to report that the dependency is not initialised
 			svc.healthCheck.AddCheck(name, func(ctx context.Context, state *healthcheck.CheckState) error {
 				err := errors.New(fmt.Sprintf("%s not initialised", strings.ToLower(name)))
 				state.Update(healthcheck.StatusCritical, err.Error(), 0)
