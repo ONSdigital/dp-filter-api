@@ -288,19 +288,21 @@ func (svc *Service) registerCheckers(ctx context.Context) (err error) {
 
 	// generic register checker method - if dependency is nil, a failing healthcheck will be created.
 	registerChecker := func(name string, dependency Dependency) {
-		if dependency != nil {
-			// if dependency exists, try to register the Checker
-			if err = svc.healthCheck.AddCheck(name, dependency.Checker); err != nil {
-				log.Event(ctx, fmt.Sprintf("error creating %s health check", strings.ToLower(name)), log.ERROR, log.Error(err))
-				hasErrors = true
-			}
-		} else {
-			// otherwise, create a critical handler to report that the dependency is not initialised
-			svc.healthCheck.AddCheck(name, func(ctx context.Context, state *healthcheck.CheckState) error {
-				err := errors.New(fmt.Sprintf("%s not initialised", strings.ToLower(name)))
-				state.Update(healthcheck.StatusCritical, err.Error(), 0)
-				return err
-			})
+		criticalHandler := func(ctx context.Context, state *healthcheck.CheckState) error {
+			err := errors.New(fmt.Sprintf("%s not initialised", strings.ToLower(name)))
+			state.Update(healthcheck.StatusCritical, err.Error(), 0)
+			return err
+		}
+
+		// set / register the normal Checker
+		handler := dependency.Checker
+		if dependency == nil {
+			// no dependency so instead register failing healthcheck
+			handler = criticalHandler
+		}
+		if err = svc.healthCheck.AddCheck(name, handler); err != nil {
+			log.Event(ctx, fmt.Sprintf("error creating %s health check", strings.ToLower(name)), log.ERROR, log.Error(err))
+			hasErrors = true
 		}
 	}
 
