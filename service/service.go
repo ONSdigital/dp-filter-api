@@ -294,11 +294,11 @@ func (svc *Service) registerCheckers(ctx context.Context) (err error) {
 			return err
 		}
 
-		// set / register the normal Checker
-		handler := dependency.Checker
-		if dependency == nil {
-			// no dependency so instead register failing healthcheck
-			handler = criticalHandler
+		// set / register the failing healthcheck
+		handler := criticalHandler
+		if dependency != nil {
+			// we have a dependency so instead register its Checker
+			handler = dependency.Checker
 		}
 		if err = svc.healthCheck.AddCheck(name, handler); err != nil {
 			log.Event(ctx, fmt.Sprintf("error creating %s health check", strings.ToLower(name)), log.ERROR, log.Error(err))
