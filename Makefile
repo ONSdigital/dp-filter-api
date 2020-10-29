@@ -9,7 +9,8 @@ GIT_COMMIT=$(shell git rev-parse HEAD)
 VERSION ?= $(shell git tag --points-at HEAD | grep ^v | head -n 1)
 LDFLAGS=-ldflags "-w -s -X 'main.Version=${VERSION}' -X 'main.BuildTime=$(BUILD_TIME)' -X 'main.GitCommit=$(GIT_COMMIT)'"
 
-DATABASE_ADDRESS?=bolt://localhost:7687
+export GRAPH_DRIVER_TYPE?=neo4j
+export GRAPH_ADDR?=bolt://localhost:7687
 
 .PHONY: all
 all: audit test build
@@ -25,15 +26,15 @@ build:
 
 .PHONY: debug
 debug:
-	GRAPH_DRIVER_TYPE=neo4j GRAPH_ADDR="$(DATABASE_ADDRESS)" HUMAN_LOG=1 go run $(LDFLAGS) -race cmd/$(MAIN)/main.go
+	HUMAN_LOG=1 go run $(LDFLAGS) -race cmd/$(MAIN)/main.go
 
 .PHONY: acceptance-publishing
 acceptance-publishing:
-	MONGODB_FILTERS_DATABASE=test GRAPH_DRIVER_TYPE=neo4j GRAPH_ADDR="$(DATABASE_ADDRESS)" HUMAN_LOG=1 go run $(LDFLAGS) -race cmd/$(MAIN)/main.go
+	MONGODB_FILTERS_DATABASE=test HUMAN_LOG=1 go run $(LDFLAGS) -race cmd/$(MAIN)/main.go
 
 .PHONY: acceptance-web
 acceptance-web:
-	ENABLE_PRIVATE_ENDPOINTS=false MONGODB_FILTERS_DATABASE=test GRAPH_DRIVER_TYPE=neo4j GRAPH_ADDR="$(DATABASE_ADDRESS)" HUMAN_LOG=1 go run $(LDFLAGS) -race cmd/$(MAIN)/main.go
+	ENABLE_PRIVATE_ENDPOINTS=false MONGODB_FILTERS_DATABASE=test HUMAN_LOG=1 go run $(LDFLAGS) -race cmd/$(MAIN)/main.go
 
 .PHONY: test
 test:

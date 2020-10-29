@@ -30,6 +30,7 @@ type Service struct {
 	cfg                           *config.Config
 	filterStore                   MongoDB
 	observationStore              *graph.DB
+	graphDBErrorConsumer          Closer
 	filterOutputSubmittedProducer kafka.IProducer
 	identityClient                *identity.Client
 	datasetAPI                    *dataset.Client
@@ -44,8 +45,15 @@ var getFilterStore = func(cfg *config.Config) (datastore MongoDB, err error) {
 }
 
 // getObservationStore returns an initialised connection to observation store (graph database)
-var getObservationStore = func() (observationStore *graph.DB, err error) {
-	return graph.New(context.Background(), graph.Subsets{Observation: true})
+var getObservationStore = func(ctx context.Context) (observationStore *graph.DB, errorConsumer Closer, err error) {
+	observationStore, err = graph.New(context.Background(), graph.Subsets{Observation: true})
+	if err != nil {
+		return nil, nil, err
+	}
+
+	errorConsumer = graph.NewLoggingErrorConsumer(ctx, observationStore.ErrorChan())
+
+	return observationStore, errorConsumer, nil
 }
 
 // getProducer returns a kafka producer
@@ -77,14 +85,17 @@ func (svc *Service) Init(ctx context.Context, cfg *config.Config, buildTime, git
 
 	svc.cfg = cfg
 
-	// Get data store
+	// Get data store.
 	svc.filterStore, err = getFilterStore(svc.cfg)
 	if err != nil {
 		log.Event(ctx, "could not connect to mongodb", log.ERROR, log.Error(err))
+		// We don't return 'err' here because we don't want to stop this service
+		// due to a failure in connecting with mongoDB.
+		// A failing healthcheck Checker will be created later in registerCheckers().
 	}
 
 	// Get observation store
-	svc.observationStore, err = getObservationStore()
+	svc.observationStore, svc.graphDBErrorConsumer, err = getObservationStore(ctx)
 	if err != nil {
 		log.Event(ctx, "could not connect to graph", log.ERROR, log.Error(err))
 		return err
@@ -223,9 +234,15 @@ func (svc *Service) Close(ctx context.Context) error {
 
 		// Close GraphDB (if it exists)
 		if svc.observationStore != nil {
-			log.Event(ctx, "closing graphDB observation store", log.INFO)
+			log.Event(ctx, "closing graph DB observation store", log.INFO)
 			if err := svc.observationStore.Close(ctx); err != nil {
-				log.Event(ctx, "unable to close graphDB observation store", log.ERROR)
+				log.Event(ctx, "unable to close graph DB observation store", log.ERROR)
+				hasShutdownError = true
+			}
+
+			log.Event(ctx, "closing graph DB error consumer", log.INFO)
+			if err := svc.graphDBErrorConsumer.Close(ctx); err != nil {
+				log.Event(ctx, "unable to close graph DB error consumer", log.ERROR)
 				hasShutdownError = true
 			}
 		}
@@ -260,7 +277,7 @@ func (svc *Service) Close(ctx context.Context) error {
 	return nil
 }
 
-// registerCheckers adds the checkers for the service clients to the health check object
+// registerCheckers adds the checkers for the service clients to the health check object.
 func (svc *Service) registerCheckers(ctx context.Context) (err error) {
 	hasErrors := false
 
@@ -271,17 +288,21 @@ func (svc *Service) registerCheckers(ctx context.Context) (err error) {
 
 	// generic register checker method - if dependency is nil, a failing healthcheck will be created.
 	registerChecker := func(name string, dependency Dependency) {
+		criticalHandler := func(ctx context.Context, state *healthcheck.CheckState) error {
+			err := errors.New(fmt.Sprintf("%s not initialised", strings.ToLower(name)))
+			state.Update(healthcheck.StatusCritical, err.Error(), 0)
+			return err
+		}
+
+		// set / register the failing healthcheck
+		handler := criticalHandler
 		if dependency != nil {
-			if err = svc.healthCheck.AddCheck(name, dependency.Checker); err != nil {
-				log.Event(ctx, fmt.Sprintf("error creating %s health check", strings.ToLower(name)), log.ERROR, log.Error(err))
-				hasErrors = true
-			}
-		} else {
-			svc.healthCheck.AddCheck(name, func(ctx context.Context, state *healthcheck.CheckState) error {
-				err := errors.New(fmt.Sprintf("%s not initialised", strings.ToLower(name)))
-				state.Update(healthcheck.StatusCritical, err.Error(), 0)
-				return err
-			})
+			// we have a dependency so instead register its Checker
+			handler = dependency.Checker
+		}
+		if err = svc.healthCheck.AddCheck(name, handler); err != nil {
+			log.Event(ctx, fmt.Sprintf("error creating %s health check", strings.ToLower(name)), log.ERROR, log.Error(err))
+			hasErrors = true
 		}
 	}
 

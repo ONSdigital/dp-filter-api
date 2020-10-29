@@ -13,6 +13,7 @@ import (
 //go:generate moq -out mock/healthcheck.go -pkg mock . HealthChecker
 //go:generate moq -out mock/graph_driver.go -pkg mock . GraphDriver
 //go:generate moq -out mock/mongo.go -pkg mock . MongoDB
+//go:generate moq -out mock/closer.go -pkg mock . Closer
 
 // GraphDriver in an alias to the graph Driver interface
 type GraphDriver interface {
@@ -37,5 +38,9 @@ type HealthChecker interface {
 type MongoDB interface {
 	api.DataStore
 	Checker(ctx context.Context, state *healthcheck.CheckState) error
+	Close(ctx context.Context) error
+}
+
+type Closer interface {
 	Close(ctx context.Context) error
 }
