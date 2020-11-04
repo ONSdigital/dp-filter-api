@@ -2,6 +2,7 @@ package mongo
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -210,6 +211,11 @@ func (s *FilterStore) AddFilterDimensionOption(filterID, name, option string, ti
 	return nil
 }
 
+// AddFilterDimensionOptions adds a list of options to a filter
+func (s *FilterStore) AddFilterDimensionOptions(filterID, name string, options []string, timestamp bson.MongoTimestamp) error {
+	return errors.New("Not implemented")
+}
+
 // RemoveFilterDimensionOption from a filter
 func (s *FilterStore) RemoveFilterDimensionOption(filterID string, name string, option string, timestamp bson.MongoTimestamp) error {
 	session := s.Session.Copy()
@@ -235,6 +241,11 @@ func (s *FilterStore) RemoveFilterDimensionOption(filterID string, name string, 
 	}
 
 	return nil
+}
+
+// RemoveFilterDimensionOptions removes a list of options from a filter
+func (s *FilterStore) RemoveFilterDimensionOptions(filterID string, name string, options []string, timestamp bson.MongoTimestamp) error {
+	return errors.New("Not implemented")
 }
 
 // CreateFilterOutput creates a filter ouput resource

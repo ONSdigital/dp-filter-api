@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/ONSdigital/dp-filter-api/models"
+	dprequest "github.com/ONSdigital/dp-net/request"
 	"github.com/ONSdigital/log.go/log"
 	"github.com/gorilla/mux"
 
@@ -328,20 +329,7 @@ func (api *FilterAPI) removeFilterBlueprintDimensionOption(ctx context.Context, 
 	timestamp := filterBlueprint.UniqueTimestamp
 
 	// Check if dimension and option exists
-	var hasDimension bool
-	var hasOption bool
-	for _, dimension := range filterBlueprint.Dimensions {
-		if dimension.Name == dimensionName {
-			hasDimension = true
-			for _, dimOption := range dimension.Options {
-				if dimOption == option {
-					hasOption = true
-					break
-				}
-			}
-			break
-		}
-	}
+	hasDimension, hasOption := findDimensionAndOption(filterBlueprint, dimensionName, option)
 
 	if !hasDimension {
 		return filters.ErrDimensionNotFound
@@ -356,4 +344,105 @@ func (api *FilterAPI) removeFilterBlueprintDimensionOption(ctx context.Context, 
 	}
 
 	return nil
+}
+
+func (api *FilterAPI) patchFilterBlueprintDimensionHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	filterBlueprintID := vars["filter_blueprint_id"]
+	dimensionName := vars["name"]
+
+	logData := log.Data{
+		"filter_blueprint_id": filterBlueprintID,
+		"dimension":           dimensionName,
+	}
+	ctx := r.Context()
+	log.Event(ctx, "patch filter blueprint dimension", log.INFO, logData)
+
+	// unmarshal and validate the patch array
+	patches, err := models.CreatePatches(r.Body)
+	if err != nil {
+		log.Event(ctx, "error obtaining patch from request body", log.ERROR, log.Error(err), logData)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	logData["patch_list"] = patches
+
+	// check that the provided paths are acceptable
+	for _, patch := range patches {
+		if patch.Path != "/options/-" {
+			err = fmt.Errorf("provided path '%s' not supported. Supported paths: '/options/-'", patch.Path)
+			log.Event(ctx, "error handling patch op, no change has been applied", log.ERROR, log.Error(err), logData)
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+	}
+
+	successfulPatches, err := api.patchFilterBlueprintDimension(ctx, filterBlueprintID, dimensionName, patches)
+	logData["successful_patches"] = successfulPatches
+	if err != nil {
+		log.Event(ctx, "error patching filter blueprint dimension options", log.ERROR, log.Error(err), logData)
+		switch err {
+		case filters.ErrFilterBlueprintNotFound:
+			setErrorCode(w, err, statusBadRequest)
+		case filters.ErrVersionNotFound:
+			setErrorCode(w, err, statusUnprocessableEntity)
+		default:
+			setErrorCode(w, err)
+		}
+		return
+	}
+
+	setJSONContentType(w)
+	log.Event(ctx, "successfully patched filter dimension options on filter blueprint", log.INFO, logData)
+}
+
+func (api *FilterAPI) patchFilterBlueprintDimension(ctx context.Context, filterBlueprintID, dimensionName string, patches []dprequest.Patch) (successful []dprequest.Patch, err error) {
+
+	successful = []dprequest.Patch{}
+
+	filterBlueprint, err := api.getFilterBlueprint(ctx, filterBlueprintID)
+	if err != nil {
+		return successful, err
+	}
+
+	timestamp := filterBlueprint.UniqueTimestamp
+
+	// Check if dimension exists
+	hasDimension, _ := findDimensionAndOption(filterBlueprint, dimensionName, "")
+
+	if !hasDimension {
+		return successful, filters.ErrDimensionNotFound
+	}
+
+	// apply patch operations sequentially, stop processing if one patch fails
+	for _, patch := range patches {
+		options := removeDuplicateOptions(patch.Value)
+		if patch.Op == dprequest.OpAdd.String() {
+			if err := api.dataStore.AddFilterDimensionOptions(filterBlueprintID, dimensionName, options, timestamp); err != nil {
+				return successful, err
+			}
+		} else {
+			if err = api.dataStore.RemoveFilterDimensionOptions(filterBlueprintID, dimensionName, options, timestamp); err != nil {
+				return successful, err
+			}
+		}
+		successful = append(successful, patch)
+	}
+	return successful, nil
+}
+
+// findDimensionAndOption finds the provided dimensionName and option in the filterBlueprint
+func findDimensionAndOption(filterBlueprint *models.Filter, dimensionName, option string) (hasDimension bool, hasOption bool) {
+	for _, dimension := range filterBlueprint.Dimensions {
+		if dimension.Name == dimensionName {
+			for _, dimOption := range dimension.Options {
+				if dimOption == option {
+					hasOption = true
+					break
+				}
+			}
+			return true, hasOption
+		}
+	}
+	return false, false
 }
