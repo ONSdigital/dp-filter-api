@@ -101,7 +101,7 @@ func TestFailedToAddFilterBlueprintDimensionOption(t *testing.T) {
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
 		response := w.Body.String()
-		So(response, ShouldResemble, "incorrect dimensions chosen: [notage]\n")
+		So(response, ShouldResemble, "dimension not found\n")
 	})
 
 	Convey("When the filter document has been modified by an external source, a conflict request status is returned", t, func() {
@@ -183,14 +183,14 @@ func TestFailedToRemoveFilterBlueprintDimensionOption(t *testing.T) {
 		So(response, ShouldResemble, filterNotFoundResponse)
 	})
 
-	Convey("When dimension does not exist against filter blueprint, a not found is returned", t, func() {
+	Convey("When dimension does not exist against filter blueprint, a bad request is returned", t, func() {
 		r, err := http.NewRequest("DELETE", "http://localhost:22100/filters/12345678/dimensions/1_age/options/26", nil)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
 		api := Setup(host, mux.NewRouter(), &mocks.DataStore{DimensionNotFound: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, serviceAuthToken)
 		api.router.ServeHTTP(w, r)
-		So(w.Code, ShouldEqual, http.StatusNotFound)
+		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
 		response := w.Body.String()
 		So(response, ShouldResemble, dimensionNotFoundResponse)
@@ -512,7 +512,7 @@ func TestFailedPatchBlueprintDimension(t *testing.T) {
 		So(response, ShouldResemble, filterNotFoundResponse)
 	})
 
-	Convey("When dimension does not exist against filter blueprint, a NotFound response is returned", t, func() {
+	Convey("When dimension does not exist against filter blueprint, a bar request response is returned", t, func() {
 		reader := strings.NewReader(`[{"op":"add", "path": "/options/-", "value": ["27", "33"]}]`)
 		r, err := http.NewRequest("PATCH", "http://localhost:22100/filters/12345678/dimensions/1_age", reader)
 		So(err, ShouldBeNil)
@@ -520,7 +520,7 @@ func TestFailedPatchBlueprintDimension(t *testing.T) {
 		w := httptest.NewRecorder()
 		api := Setup(host, mux.NewRouter(), &mocks.DataStore{DimensionNotFound: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, serviceAuthToken)
 		api.router.ServeHTTP(w, r)
-		So(w.Code, ShouldEqual, http.StatusNotFound)
+		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
 		response := w.Body.String()
 		So(response, ShouldResemble, dimensionNotFoundResponse)
