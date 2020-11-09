@@ -143,6 +143,16 @@ func (api *FilterAPI) getFilterBlueprintDimensionOptionHandler(w http.ResponseWr
 	log.Event(ctx, "got dimension option for filter blueprint", log.INFO, logData)
 }
 
+// obtain the dimension from the provided filter model with name == dimensionName
+func (api *FilterAPI) getDimension(ctx context.Context, filter *models.Filter, dimensionName string) (*models.Dimension, error) {
+	for _, d := range filter.Dimensions {
+		if d.Name == dimensionName {
+			return &d, nil
+		}
+	}
+	return nil, filters.ErrDimensionNotFound
+}
+
 func (api *FilterAPI) getFilterBlueprintDimensionOption(ctx context.Context, filter *models.Filter, dimensionName, option string) (*models.PublicDimensionOption, error) {
 
 	optionFound := false
@@ -206,7 +216,7 @@ func (api *FilterAPI) addFilterBlueprintDimensionOptionHandler(w http.ResponseWr
 	filterBlueprint, err := api.getFilterBlueprint(ctx, filterBlueprintID)
 	if err != nil {
 		log.Event(ctx, "error getting filter blueprint dimension option", log.ERROR, log.Error(err), logData)
-		setErrorCodeFromError(w, err)
+		setErrorCodeFromErrorExpectDimension(w, err)
 		return
 	}
 
@@ -215,7 +225,7 @@ func (api *FilterAPI) addFilterBlueprintDimensionOptionHandler(w http.ResponseWr
 	logData["new_dimensions_added"] = n
 	if err != nil {
 		log.Event(ctx, "error adding filter blueprint dimension option", log.ERROR, log.Error(err), logData)
-		setErrorCodeFromError(w, err)
+		setErrorCodeFromErrorExpectDimension(w, err)
 		return
 	}
 
@@ -224,7 +234,7 @@ func (api *FilterAPI) addFilterBlueprintDimensionOptionHandler(w http.ResponseWr
 		filterBlueprint, err = api.getFilterBlueprint(ctx, filterBlueprintID)
 		if err != nil {
 			log.Event(ctx, "error getting filter blueprint dimension option after the dimension option has been successfully added", log.ERROR, log.Error(err), logData)
-			setErrorCodeFromError(w, err)
+			setErrorCodeFromErrorExpectDimension(w, err)
 			return
 		}
 	} else {
@@ -235,7 +245,7 @@ func (api *FilterAPI) addFilterBlueprintDimensionOptionHandler(w http.ResponseWr
 	dimensionOption, err := api.getFilterBlueprintDimensionOption(ctx, filterBlueprint, dimensionName, option)
 	if err != nil {
 		log.Event(ctx, "unable to get dimension option for filter blueprint", log.ERROR, log.Error(err), logData)
-		setErrorCodeFromError(w, err)
+		setErrorCodeFromErrorExpectDimension(w, err)
 		return
 	}
 
@@ -268,7 +278,7 @@ func (api *FilterAPI) addFilterBlueprintDimensionOptions(ctx context.Context, fi
 		return 0, filters.ErrDimensionNotFound
 	}
 
-	// validate that the provided options are acceptable for the dimension
+	// validate that the provided existing dimension is still valid and the options are acceptable for the dimension
 	if err := api.checkNewFilterDimension(ctx, dimensionName, options, filterBlueprint.Dataset); err != nil {
 		if err == filters.ErrVersionNotFound || err == filters.ErrDimensionsNotFound {
 			return 0, err
@@ -422,7 +432,39 @@ func (api *FilterAPI) patchFilterBlueprintDimensionHandler(w http.ResponseWriter
 		return
 	}
 
-	setJSONContentType(w)
+	if len(successfulPatches) > 0 {
+		filterBlueprint, err = api.getFilterBlueprint(ctx, filterBlueprintID)
+		if err != nil {
+			log.Event(ctx, "error getting filter blueprint after the dimension has been successfully patched", log.ERROR, log.Error(err), logData)
+			setErrorCodeFromError(w, err)
+			return
+		}
+	}
+
+	// response contains only dimension name and options (which is where the patch operations are applied)
+	dimension, err := api.getDimension(ctx, filterBlueprint, dimensionName)
+	dimension.URL = ""
+	if err != nil {
+		log.Event(ctx, "error getting dimension from blueprint after the dimension has been successfully patched", log.ERROR, log.Error(err), logData)
+		setErrorCodeFromError(w, err)
+		return
+	}
+
+	b, err := json.Marshal(dimension)
+	if err != nil {
+		log.Event(ctx, "failed to marshal filter blueprint dimension option into bytes", log.ERROR, log.Error(err), logData)
+		http.Error(w, internalError, http.StatusInternalServerError)
+		return
+	}
+
+	setJSONPatchContentType(w)
+	_, err = w.Write(b)
+	if err != nil {
+		log.Event(ctx, "failed to write bytes for http response", log.ERROR, log.Error(err), logData)
+		setErrorCode(w, err)
+		return
+	}
+
 	log.Event(ctx, "successfully patched filter dimension options on filter blueprint", log.INFO, logData)
 }
 
@@ -499,8 +541,22 @@ func createMap(a ...[]string) (m map[string]struct{}) {
 	return m
 }
 
-// setErrorCodeFromError sets the HTTP Status Code according to the provided error
+// setErrorCodeFromError sets the HTTP Status Code according to the provided error.
 func setErrorCodeFromError(w http.ResponseWriter, err error) {
+	switch err {
+	case filters.ErrFilterBlueprintNotFound:
+		setErrorCode(w, err, statusBadRequest)
+	case filters.ErrDimensionsNotFound:
+		fallthrough
+	case filters.ErrVersionNotFound:
+		setErrorCode(w, err, statusUnprocessableEntity)
+	default:
+		setErrorCode(w, err)
+	}
+}
+
+// setErrorCodeFromError sets the HTTP Status Code according to the provided error, expecting the dimension (ErrDimensionNotFound will be mapped to statusBadRequest)
+func setErrorCodeFromErrorExpectDimension(w http.ResponseWriter, err error) {
 	switch err {
 	case filters.ErrFilterBlueprintNotFound:
 		setErrorCode(w, err, statusBadRequest)

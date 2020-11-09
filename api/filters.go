@@ -574,6 +574,10 @@ func setJSONContentType(w http.ResponseWriter) {
 	w.Header().Set("Content-Type", "application/json")
 }
 
+func setJSONPatchContentType(w http.ResponseWriter) {
+	w.Header().Set("Content-Type", "application/json-patch+json")
+}
+
 func createNewFilter(filter *models.Filter, currentFilter *models.Filter) (newFilter *models.Filter, versionHasChanged bool) {
 	newFilter = currentFilter
 
