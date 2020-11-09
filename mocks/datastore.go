@@ -73,20 +73,20 @@ func (ds *DataStore) AddFilterDimensionOption(filterID, name, option string, tim
 }
 
 // AddFilterDimensionOptions represents the mocked version of adding a list of dimension options to the datastore
-func (ds *DataStore) AddFilterDimensionOptions(filterID, name string, options []string, timestamp bson.MongoTimestamp) error {
+func (ds *DataStore) AddFilterDimensionOptions(filterID, name string, options []string, timestamp bson.MongoTimestamp) (int, error) {
 	if ds.InternalError {
-		return errorInternalServer
+		return 0, errorInternalServer
 	}
 
 	if ds.NotFound {
-		return filters.ErrDimensionNotFound
+		return 0, filters.ErrDimensionNotFound
 	}
 
 	if ds.ConflictRequest {
-		return filters.ErrFilterBlueprintConflict
+		return 0, filters.ErrFilterBlueprintConflict
 	}
 
-	return nil
+	return len(options), nil
 }
 
 // CreateFilterOutput represents the mocked version of creating a filter output to the datastore
@@ -219,20 +219,20 @@ func (ds *DataStore) RemoveFilterDimensionOption(filterJobID, name, option strin
 }
 
 // RemoveFilterDimensionOptions represents the mocked version of removing a set of filter dimension options from the datastore
-func (ds *DataStore) RemoveFilterDimensionOptions(filterJobID, name string, options []string, timestamp bson.MongoTimestamp) error {
+func (ds *DataStore) RemoveFilterDimensionOptions(filterJobID, name string, options []string, timestamp bson.MongoTimestamp) (int, error) {
 	if ds.InternalError {
-		return errorInternalServer
+		return 0, errorInternalServer
 	}
 
 	if ds.NotFound {
-		return filters.ErrDimensionNotFound
+		return 0, filters.ErrDimensionNotFound
 	}
 
 	if ds.ConflictRequest {
-		return filters.ErrFilterBlueprintConflict
+		return 0, filters.ErrFilterBlueprintConflict
 	}
 
-	return nil
+	return len(options), nil
 }
 
 // UpdateFilter represents the mocked version of updating a filter blueprint from the datastore

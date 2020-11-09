@@ -2,7 +2,6 @@ package mongo
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"time"
 
@@ -211,9 +210,27 @@ func (s *FilterStore) AddFilterDimensionOption(filterID, name, option string, ti
 	return nil
 }
 
-// AddFilterDimensionOptions adds a list of options to a filter
-func (s *FilterStore) AddFilterDimensionOptions(filterID, name string, options []string, timestamp bson.MongoTimestamp) error {
-	return errors.New("Not implemented")
+// AddFilterDimensionOptions adds the provided options to a filter. The number of successfully added options is returned, along with an error.
+func (s *FilterStore) AddFilterDimensionOptions(filterID, name string, options []string, timestamp bson.MongoTimestamp) (int, error) {
+	session := s.Session.Copy()
+	defer session.Close()
+
+	for i, option := range options {
+		queryOptions := bson.M{"filter_id": filterID, "unique_timestamp": timestamp, "dimensions": bson.M{"$elemMatch": bson.M{"name": name}}}
+		update, err := mongolib.WithUpdates(bson.M{"$addToSet": bson.M{"dimensions.$.options": option}})
+		if err != nil {
+			return i, err
+		}
+
+		if err := session.DB(s.db).C(s.filtersCollection).Update(queryOptions, update); err != nil {
+			if err == mgo.ErrNotFound {
+				return i, filters.ErrFilterBlueprintConflict
+			}
+			return i, err
+		}
+	}
+
+	return len(options), nil
 }
 
 // RemoveFilterDimensionOption from a filter
@@ -243,9 +260,28 @@ func (s *FilterStore) RemoveFilterDimensionOption(filterID string, name string, 
 	return nil
 }
 
-// RemoveFilterDimensionOptions removes a list of options from a filter
-func (s *FilterStore) RemoveFilterDimensionOptions(filterID string, name string, options []string, timestamp bson.MongoTimestamp) error {
-	return errors.New("Not implemented")
+// RemoveFilterDimensionOptions removes the provided options from a filter. The number of successfully added options is returned, along with an error.
+func (s *FilterStore) RemoveFilterDimensionOptions(filterID string, name string, options []string, timestamp bson.MongoTimestamp) (int, error) {
+	session := s.Session.Copy()
+	defer session.Close()
+
+	for i, option := range options {
+
+		queryOptions := bson.M{"filter_id": filterID, "unique_timestamp": timestamp, "dimensions": bson.M{"$elemMatch": bson.M{"name": name}}}
+		update, err := mongolib.WithUpdates(bson.M{"$pull": bson.M{"dimensions.$.options": option}})
+		if err != nil {
+			return i, err
+		}
+
+		if err := session.DB(s.db).C(s.filtersCollection).Update(queryOptions, update); err != nil {
+			if err == mgo.ErrNotFound {
+				return i, filters.ErrFilterBlueprintConflict
+			}
+			return i, err
+		}
+	}
+
+	return len(options), nil
 }
 
 // CreateFilterOutput creates a filter ouput resource

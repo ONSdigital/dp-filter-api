@@ -514,7 +514,7 @@ func TestFailedPatchBlueprintDimension(t *testing.T) {
 
 	Convey("When dimension does not exist against filter blueprint, a NotFound response is returned", t, func() {
 		reader := strings.NewReader(`[{"op":"add", "path": "/options/-", "value": ["27", "33"]}]`)
-		r, err := http.NewRequest("PATCH", "http://localhost:22100/filters/12345678/dimensions/age", reader)
+		r, err := http.NewRequest("PATCH", "http://localhost:22100/filters/12345678/dimensions/1_age", reader)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()

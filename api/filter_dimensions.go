@@ -229,6 +229,8 @@ func (api *FilterAPI) addFilterBlueprintDimension(ctx context.Context, filterBlu
 	return api.dataStore.AddFilterDimension(filterBlueprintID, dimensionName, options, filterBlueprint.Dimensions, timestamp)
 }
 
+// checkNewFilterDimension validates that the dimension with the provided name is valid, by calling GetDimensions in Dataset API.
+// Once the dimension name is validated, it validates the provided options array.
 func (api *FilterAPI) checkNewFilterDimension(ctx context.Context, name string, options []string, dataset *models.Dataset) error {
 
 	logData := log.Data{"dimension_name": name, "dimension_options": options, "dataset": dataset}
@@ -253,6 +255,12 @@ func (api *FilterAPI) checkNewFilterDimension(ctx context.Context, name string, 
 		return err
 	}
 
+	return api.checkNewFilterDimensionOptions(ctx, dimension, dataset, logData)
+}
+
+// checkNewFilterDimensionOptions, assuming a valid dimension, this method checks that the options provided in the dimension struct are valid
+// by calling getDimensionOptions and verifying that the provided dataset contains all the provided dimension options.
+func (api *FilterAPI) checkNewFilterDimensionOptions(ctx context.Context, dimension models.Dimension, dataset *models.Dataset, logData log.Data) error {
 	// Call dimension options endpoint
 	datasetDimensionOptions, err := api.getDimensionOptions(ctx, dataset, dimension.Name)
 	if err != nil {
