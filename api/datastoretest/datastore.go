@@ -44,7 +44,7 @@ var (
 //             AddFilterDimensionOptionFunc: func(filterID string, name string, option string, timestamp bson.MongoTimestamp) error {
 // 	               panic("mock out the AddFilterDimensionOption method")
 //             },
-//             AddFilterDimensionOptionsFunc: func(filterID string, name string, options []string, timestamp bson.MongoTimestamp) (int, error) {
+//             AddFilterDimensionOptionsFunc: func(filterID string, name string, options []string, timestamp bson.MongoTimestamp) error {
 // 	               panic("mock out the AddFilterDimensionOptions method")
 //             },
 //             CreateFilterOutputFunc: func(filter *models.Filter) error {
@@ -65,7 +65,7 @@ var (
 //             RemoveFilterDimensionOptionFunc: func(filterID string, name string, option string, timestamp bson.MongoTimestamp) error {
 // 	               panic("mock out the RemoveFilterDimensionOption method")
 //             },
-//             RemoveFilterDimensionOptionsFunc: func(filterID string, name string, options []string, timestamp bson.MongoTimestamp) (int, error) {
+//             RemoveFilterDimensionOptionsFunc: func(filterID string, name string, options []string, timestamp bson.MongoTimestamp) error {
 // 	               panic("mock out the RemoveFilterDimensionOptions method")
 //             },
 //             UpdateFilterFunc: func(filter *models.Filter, timestamp bson.MongoTimestamp) error {
@@ -94,7 +94,7 @@ type DataStoreMock struct {
 	AddFilterDimensionOptionFunc func(filterID string, name string, option string, timestamp bson.MongoTimestamp) error
 
 	// AddFilterDimensionOptionsFunc mocks the AddFilterDimensionOptions method.
-	AddFilterDimensionOptionsFunc func(filterID string, name string, options []string, timestamp bson.MongoTimestamp) (int, error)
+	AddFilterDimensionOptionsFunc func(filterID string, name string, options []string, timestamp bson.MongoTimestamp) error
 
 	// CreateFilterOutputFunc mocks the CreateFilterOutput method.
 	CreateFilterOutputFunc func(filter *models.Filter) error
@@ -115,7 +115,7 @@ type DataStoreMock struct {
 	RemoveFilterDimensionOptionFunc func(filterID string, name string, option string, timestamp bson.MongoTimestamp) error
 
 	// RemoveFilterDimensionOptionsFunc mocks the RemoveFilterDimensionOptions method.
-	RemoveFilterDimensionOptionsFunc func(filterID string, name string, options []string, timestamp bson.MongoTimestamp) (int, error)
+	RemoveFilterDimensionOptionsFunc func(filterID string, name string, options []string, timestamp bson.MongoTimestamp) error
 
 	// UpdateFilterFunc mocks the UpdateFilter method.
 	UpdateFilterFunc func(filter *models.Filter, timestamp bson.MongoTimestamp) error
@@ -399,7 +399,7 @@ func (mock *DataStoreMock) AddFilterDimensionOptionCalls() []struct {
 }
 
 // AddFilterDimensionOptions calls AddFilterDimensionOptionsFunc.
-func (mock *DataStoreMock) AddFilterDimensionOptions(filterID string, name string, options []string, timestamp bson.MongoTimestamp) (int, error) {
+func (mock *DataStoreMock) AddFilterDimensionOptions(filterID string, name string, options []string, timestamp bson.MongoTimestamp) error {
 	if mock.AddFilterDimensionOptionsFunc == nil {
 		panic("DataStoreMock.AddFilterDimensionOptionsFunc: method is nil but DataStore.AddFilterDimensionOptions was just called")
 	}
@@ -652,7 +652,7 @@ func (mock *DataStoreMock) RemoveFilterDimensionOptionCalls() []struct {
 }
 
 // RemoveFilterDimensionOptions calls RemoveFilterDimensionOptionsFunc.
-func (mock *DataStoreMock) RemoveFilterDimensionOptions(filterID string, name string, options []string, timestamp bson.MongoTimestamp) (int, error) {
+func (mock *DataStoreMock) RemoveFilterDimensionOptions(filterID string, name string, options []string, timestamp bson.MongoTimestamp) error {
 	if mock.RemoveFilterDimensionOptionsFunc == nil {
 		panic("DataStoreMock.RemoveFilterDimensionOptionsFunc: method is nil but DataStore.RemoveFilterDimensionOptions was just called")
 	}
