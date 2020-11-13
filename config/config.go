@@ -12,6 +12,7 @@ type Config struct {
 	Brokers                    []string      `envconfig:"KAFKA_ADDR"`
 	FilterOutputSubmittedTopic string        `envconfig:"FILTER_JOB_SUBMITTED_TOPIC"`
 	Host                       string        `envconfig:"HOST"`
+	MaxRequestOptions          int           `envconfig:"MAX_REQUEST_OPTIONS"`
 	KafkaMaxBytes              int           `envconfig:"KAFKA_MAX_BYTES"`
 	ShutdownTimeout            time.Duration `envconfig:"SHUTDOWN_TIMEOUT"`
 	DatasetAPIURL              string        `envconfig:"DATASET_API_URL"`
@@ -44,6 +45,7 @@ func Get() (*Config, error) {
 
 	cfg = &Config{
 		Host:                       "http://localhost:22100",
+		MaxRequestOptions:          1000,
 		BindAddr:                   ":22100",
 		Brokers:                    []string{"localhost:9092"},
 		FilterOutputSubmittedTopic: "filter-job-submitted",

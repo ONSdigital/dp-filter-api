@@ -136,6 +136,7 @@ func (svc *Service) Init(ctx context.Context, cfg *config.Config, buildTime, git
 	previewDatasets := preview.DatasetStore{Store: svc.observationStore}
 	outputQueue := filterOutputQueue.CreateOutputQueue(svc.filterOutputSubmittedProducer.Channels().Output)
 	svc.api = api.Setup(svc.cfg.Host,
+		svc.cfg.MaxRequestOptions,
 		r,
 		svc.filterStore,
 		&outputQueue,

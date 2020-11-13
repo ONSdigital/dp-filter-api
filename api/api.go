@@ -30,6 +30,7 @@ type PreviewDataset interface {
 // FilterAPI manages importing filters against a dataset
 type FilterAPI struct {
 	host                 string
+	maxRequestOptions    int
 	dataStore            DataStore
 	outputQueue          OutputQueue
 	router               *mux.Router
@@ -42,6 +43,7 @@ type FilterAPI struct {
 
 // Setup manages all the routes configured to API
 func Setup(host string,
+	maxRequestOptions int,
 	router *mux.Router,
 	dataStore DataStore,
 	outputQueue OutputQueue,
@@ -52,6 +54,7 @@ func Setup(host string,
 
 	api := &FilterAPI{
 		host:                 host,
+		maxRequestOptions:    maxRequestOptions,
 		dataStore:            dataStore,
 		router:               router,
 		outputQueue:          outputQueue,

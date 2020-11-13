@@ -21,6 +21,7 @@ func TestSpec(t *testing.T) {
 			Convey("The values should be set to the expected defaults", func() {
 				So(cfg.BindAddr, ShouldEqual, ":22100")
 				So(cfg.Host, ShouldEqual, "http://localhost:22100")
+				So(cfg.MaxRequestOptions, ShouldEqual, 1000)
 				So(cfg.Brokers, ShouldResemble, []string{"localhost:9092"})
 				So(cfg.FilterOutputSubmittedTopic, ShouldEqual, "filter-job-submitted")
 				So(cfg.KafkaMaxBytes, ShouldEqual, 2000000)
