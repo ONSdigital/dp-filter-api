@@ -40,11 +40,9 @@ func CreateFilterStore(cfg config.MongoConfig, host string) (*FilterStore, error
 	}
 
 	databaseCollectionBuilder := make(map[mongohealth.Database][]mongohealth.Collection)
-	databaseCollectionBuilder[(mongohealth.Database)(cfg.Database)] = []mongohealth.Collection{(mongohealth.Collection)(cfg.FiltersCollection)}
-	databaseCollectionBuilder[(mongohealth.Database)(cfg.Database)] = []mongohealth.Collection{(mongohealth.Collection)(cfg.OutputsCollection)}
+	databaseCollectionBuilder[(mongohealth.Database)(cfg.Database)] = []mongohealth.Collection{(mongohealth.Collection)(cfg.FiltersCollection), (mongohealth.Collection)(cfg.OutputsCollection)}
 
 	client := mongohealth.NewClientWithCollections(session, databaseCollectionBuilder)
-	//client := mongohealth.NewClient(session)
 	filterStore.healthCheckClient = &mongohealth.CheckMongoClient{
 		Client:      *client,
 		Healthcheck: client.Healthcheck,
