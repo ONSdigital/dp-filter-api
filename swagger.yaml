@@ -241,7 +241,7 @@ paths:
           schema:
             $ref: '#/definitions/Options'
         400:
-          description: "Invalid request body or Filter job does not exist"
+          description: "Invalid request body, filter job does not exist or too many values have been provided in the patch operations"
         401:
           description: "Unauthorised, request lacks valid authentication credentials"
         404:
