@@ -3,6 +3,7 @@ package api
 import (
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/ONSdigital/dp-filter-api/mocks"
@@ -100,7 +101,7 @@ func TestFailedToAddFilterBlueprintDimensionOption(t *testing.T) {
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
 		response := w.Body.String()
-		So(response, ShouldResemble, "incorrect dimensions chosen: [notage]\n")
+		So(response, ShouldResemble, "dimension not found\n")
 	})
 
 	Convey("When the filter document has been modified by an external source, a conflict request status is returned", t, func() {
@@ -169,7 +170,7 @@ func TestFailedToRemoveFilterBlueprintDimensionOption(t *testing.T) {
 		So(response, ShouldResemble, filterNotFoundResponse)
 	})
 
-	Convey("When filter blueprint is unpublished, and request is not authenticated, a bad request is returned", t, func() {
+	Convey("When filter blueprint is unpublished and request is not authenticated, a bad request is returned", t, func() {
 		r, err := http.NewRequest("DELETE", "http://localhost:22100/filters/12345678/dimensions/1_age/options/26", nil)
 		So(err, ShouldBeNil)
 
@@ -340,7 +341,7 @@ func TestFailedToGetFilterBlueprintDimensionOption(t *testing.T) {
 		So(response, ShouldResemble, filterNotFoundResponse)
 	})
 
-	Convey("When filter blueprint is unpublished, a bad request is returned", t, func() {
+	Convey("When filter blueprint is unpublished and request is unauthenticated, a bad request is returned", t, func() {
 		r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678/dimensions/1_age/options/26", nil)
 		So(err, ShouldBeNil)
 
@@ -364,5 +365,164 @@ func TestFailedToGetFilterBlueprintDimensionOption(t *testing.T) {
 
 		response := w.Body.String()
 		So(response, ShouldResemble, optionNotFoundResponse)
+	})
+}
+
+func TestSuccessfulPatchFilterBlueprintDimension(t *testing.T) {
+	t.Parallel()
+
+	Convey("Successfully patch dimension options, with a single valid 'add' patch operation, returns 200", t, func() {
+		reader := strings.NewReader(`[
+			{"op":"add", "path": "/options/-", "value": ["27","33"]}
+		]`)
+		r, err := http.NewRequest("PATCH", "http://localhost:22100/filters/12345678/dimensions/age", reader)
+		So(err, ShouldBeNil)
+
+		w := httptest.NewRecorder()
+		api := Setup(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, serviceAuthToken)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusOK)
+	})
+
+	Convey("Successfully patch dimension options, with a single valid 'remove' patch operation, returns 200", t, func() {
+		reader := strings.NewReader(`[
+			{"op":"remove", "path": "/options/-", "value": ["33"]}
+		]`)
+		r, err := http.NewRequest("PATCH", "http://localhost:22100/filters/12345678/dimensions/age", reader)
+		So(err, ShouldBeNil)
+
+		w := httptest.NewRecorder()
+		api := Setup(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, serviceAuthToken)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusOK)
+	})
+
+	Convey("Successfully patch dimension options, with a combination of valid patch operations, returns 200", t, func() {
+		reader := strings.NewReader(`[
+			{"op":"add", "path": "/options/-", "value": ["27"]},
+			{"op":"remove", "path": "/options/-", "value": ["33"]}
+		]`)
+		r, err := http.NewRequest("PATCH", "http://localhost:22100/filters/12345678/dimensions/age", reader)
+		So(err, ShouldBeNil)
+
+		w := httptest.NewRecorder()
+		api := Setup(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, serviceAuthToken)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusOK)
+	})
+
+	Convey("Successfully patch dimension options for an unpublished filter blueprint", t, func() {
+		reader := strings.NewReader(`[
+			{"op":"add", "path": "/options/-", "value": ["27"]},
+			{"op":"remove", "path": "/options/-", "value": ["33"]}
+		]`)
+		r := createAuthenticatedRequest("PATCH", "http://localhost:22100/filters/12345678/dimensions/age", reader)
+
+		w := httptest.NewRecorder()
+		api := Setup(host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, serviceAuthToken)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusOK)
+	})
+}
+
+func TestFailedPatchBlueprintDimension(t *testing.T) {
+	t.Parallel()
+
+	Convey("When a malformed patch is provided, a 400 BadRequest is returned", t, func() {
+		reader := strings.NewReader(`ASF$%£$^£@%$`)
+		r, err := http.NewRequest("PATCH", "http://localhost:22100/filters/12345678/dimensions/age", reader)
+		So(err, ShouldBeNil)
+
+		w := httptest.NewRecorder()
+		api := Setup(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, serviceAuthToken)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusBadRequest)
+
+		response := w.Body.String()
+		So(response, ShouldResemble, "Failed to parse json body\n")
+	})
+
+	Convey("When a valid patch with an operation that is not supported is provided, a 400 BadRequest is returned", t, func() {
+		reader := strings.NewReader(`[{"op":"test", "path": "/options/-", "value": ["27"]}]`)
+		r, err := http.NewRequest("PATCH", "http://localhost:22100/filters/12345678/dimensions/age", reader)
+		So(err, ShouldBeNil)
+
+		w := httptest.NewRecorder()
+		api := Setup(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, serviceAuthToken)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusBadRequest)
+
+		response := w.Body.String()
+		So(response, ShouldResemble, "op 'test' not supported. Supported op(s): [add remove]\n")
+	})
+
+	Convey("When a valid patch with an incorrect path is provided, a 400 BadRequest is returned", t, func() {
+		reader := strings.NewReader(`[{"op":"add", "path": "/wrong/path", "value": ["27"]}]`)
+		r, err := http.NewRequest("PATCH", "http://localhost:22100/filters/12345678/dimensions/age", reader)
+		So(err, ShouldBeNil)
+
+		w := httptest.NewRecorder()
+		api := Setup(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, serviceAuthToken)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusBadRequest)
+
+		response := w.Body.String()
+		So(response, ShouldResemble, "provided path '/wrong/path' not supported. Supported paths: '/options/-'\n")
+	})
+
+	Convey("When no data store is available, an internal error is returned", t, func() {
+		reader := strings.NewReader(`[{"op":"add", "path": "/options/-", "value": ["27", "33"]}]`)
+		r, err := http.NewRequest("PATCH", "http://localhost:22100/filters/12345678/dimensions/age", reader)
+		So(err, ShouldBeNil)
+
+		w := httptest.NewRecorder()
+		api := Setup(host, mux.NewRouter(), &mocks.DataStore{InternalError: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, serviceAuthToken)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusInternalServerError)
+
+		response := w.Body.String()
+		So(response, ShouldResemble, internalErrResponse)
+	})
+
+	Convey("When filter blueprint does not exist, a bad request response is returned", t, func() {
+		reader := strings.NewReader(`[{"op":"add", "path": "/options/-", "value": ["27", "33"]}]`)
+		r, err := http.NewRequest("PATCH", "http://localhost:22100/filters/12345678/dimensions/age", reader)
+		So(err, ShouldBeNil)
+
+		w := httptest.NewRecorder()
+		api := Setup(host, mux.NewRouter(), &mocks.DataStore{NotFound: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, serviceAuthToken)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusBadRequest)
+
+		response := w.Body.String()
+		So(response, ShouldResemble, filterNotFoundResponse)
+	})
+
+	Convey("When filter blueprint is unpublished and request is unauthenticated, a bad request is returned", t, func() {
+		reader := strings.NewReader(`[{"op":"add", "path": "/options/-", "value": ["27", "33"]}]`)
+		r, err := http.NewRequest("PATCH", "http://localhost:22100/filters/12345678/dimensions/age", reader)
+		So(err, ShouldBeNil)
+
+		w := httptest.NewRecorder()
+		api := Setup(host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, serviceAuthToken)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusBadRequest)
+
+		response := w.Body.String()
+		So(response, ShouldResemble, filterNotFoundResponse)
+	})
+
+	Convey("When dimension does not exist against filter blueprint, a not found response is returned", t, func() {
+		reader := strings.NewReader(`[{"op":"add", "path": "/options/-", "value": ["27", "33"]}]`)
+		r, err := http.NewRequest("PATCH", "http://localhost:22100/filters/12345678/dimensions/1_age", reader)
+		So(err, ShouldBeNil)
+
+		w := httptest.NewRecorder()
+		api := Setup(host, mux.NewRouter(), &mocks.DataStore{DimensionNotFound: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, serviceAuthToken)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusNotFound)
+
+		response := w.Body.String()
+		So(response, ShouldResemble, dimensionNotFoundResponse)
 	})
 }

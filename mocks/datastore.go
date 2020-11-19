@@ -2,6 +2,7 @@ package mocks
 
 import (
 	"errors"
+
 	"github.com/globalsign/mgo/bson"
 
 	"github.com/ONSdigital/dp-filter-api/filters"
@@ -69,6 +70,23 @@ func (ds *DataStore) AddFilterDimensionOption(filterID, name, option string, tim
 	}
 
 	return nil
+}
+
+// AddFilterDimensionOptions represents the mocked version of adding a list of dimension options to the datastore
+func (ds *DataStore) AddFilterDimensionOptions(filterID, name string, options []string, timestamp bson.MongoTimestamp) (int, error) {
+	if ds.InternalError {
+		return 0, errorInternalServer
+	}
+
+	if ds.NotFound {
+		return 0, filters.ErrDimensionNotFound
+	}
+
+	if ds.ConflictRequest {
+		return 0, filters.ErrFilterBlueprintConflict
+	}
+
+	return len(options), nil
 }
 
 // CreateFilterOutput represents the mocked version of creating a filter output to the datastore
@@ -198,6 +216,23 @@ func (ds *DataStore) RemoveFilterDimensionOption(filterJobID, name, option strin
 	}
 
 	return nil
+}
+
+// RemoveFilterDimensionOptions represents the mocked version of removing a set of filter dimension options from the datastore
+func (ds *DataStore) RemoveFilterDimensionOptions(filterJobID, name string, options []string, timestamp bson.MongoTimestamp) (int, error) {
+	if ds.InternalError {
+		return 0, errorInternalServer
+	}
+
+	if ds.NotFound {
+		return 0, filters.ErrDimensionNotFound
+	}
+
+	if ds.ConflictRequest {
+		return 0, filters.ErrFilterBlueprintConflict
+	}
+
+	return len(options), nil
 }
 
 // UpdateFilter represents the mocked version of updating a filter blueprint from the datastore

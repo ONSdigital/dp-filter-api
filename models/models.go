@@ -4,11 +4,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/ONSdigital/dp-api-clients-go/dataset"
-	"github.com/globalsign/mgo/bson"
 	"io"
 	"io/ioutil"
 	"time"
+
+	"github.com/ONSdigital/dp-api-clients-go/dataset"
+	dprequest "github.com/ONSdigital/dp-net/request"
+	"github.com/globalsign/mgo/bson"
 )
 
 // A list of states
@@ -356,6 +358,28 @@ func CreateDimensionOptions(reader io.Reader) ([]string, error) {
 	}
 
 	return dimension.Options, nil
+}
+
+// CreatePatches manages the creation of an array of patch structs from the provided reader, and validates them
+func CreatePatches(reader io.Reader) ([]dprequest.Patch, error) {
+	patches := []dprequest.Patch{}
+
+	bytes, err := ioutil.ReadAll(reader)
+	if err != nil {
+		return []dprequest.Patch{}, ErrorReadingBody
+	}
+
+	err = json.Unmarshal(bytes, &patches)
+	if err != nil {
+		return []dprequest.Patch{}, ErrorParsingBody
+	}
+
+	for _, patch := range patches {
+		if err := patch.Validate(dprequest.OpAdd, dprequest.OpRemove); err != nil {
+			return []dprequest.Patch{}, err
+		}
+	}
+	return patches, nil
 }
 
 // CreateNewFilter manages the creation of a filter blueprint being updated (new filter)
