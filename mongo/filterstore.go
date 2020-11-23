@@ -38,7 +38,11 @@ func CreateFilterStore(cfg config.MongoConfig, host string) (*FilterStore, error
 		filtersCollection: cfg.FiltersCollection,
 		outputsCollection: cfg.OutputsCollection,
 	}
-	client := mongohealth.NewClient(session)
+
+	databaseCollectionBuilder := make(map[mongohealth.Database][]mongohealth.Collection)
+	databaseCollectionBuilder[(mongohealth.Database)(cfg.Database)] = []mongohealth.Collection{(mongohealth.Collection)(cfg.FiltersCollection), (mongohealth.Collection)(cfg.OutputsCollection)}
+
+	client := mongohealth.NewClientWithCollections(session, databaseCollectionBuilder)
 	filterStore.healthCheckClient = &mongohealth.CheckMongoClient{
 		Client:      *client,
 		Healthcheck: client.Healthcheck,
@@ -210,6 +214,29 @@ func (s *FilterStore) AddFilterDimensionOption(filterID, name, option string, ti
 	return nil
 }
 
+// AddFilterDimensionOptions adds the provided options to a filter. The number of successfully added options is returned, along with an error.
+func (s *FilterStore) AddFilterDimensionOptions(filterID, name string, options []string, timestamp bson.MongoTimestamp) (int, error) {
+	session := s.Session.Copy()
+	defer session.Close()
+
+	for i, option := range options {
+		queryOptions := bson.M{"filter_id": filterID, "unique_timestamp": timestamp, "dimensions": bson.M{"$elemMatch": bson.M{"name": name}}}
+		update, err := mongolib.WithUpdates(bson.M{"$addToSet": bson.M{"dimensions.$.options": option}})
+		if err != nil {
+			return i, err
+		}
+
+		if err := session.DB(s.db).C(s.filtersCollection).Update(queryOptions, update); err != nil {
+			if err == mgo.ErrNotFound {
+				return i, filters.ErrFilterBlueprintConflict
+			}
+			return i, err
+		}
+	}
+
+	return len(options), nil
+}
+
 // RemoveFilterDimensionOption from a filter
 func (s *FilterStore) RemoveFilterDimensionOption(filterID string, name string, option string, timestamp bson.MongoTimestamp) error {
 	session := s.Session.Copy()
@@ -235,6 +262,30 @@ func (s *FilterStore) RemoveFilterDimensionOption(filterID string, name string, 
 	}
 
 	return nil
+}
+
+// RemoveFilterDimensionOptions removes the provided options from a filter. The number of successfully added options is returned, along with an error.
+func (s *FilterStore) RemoveFilterDimensionOptions(filterID string, name string, options []string, timestamp bson.MongoTimestamp) (int, error) {
+	session := s.Session.Copy()
+	defer session.Close()
+
+	for i, option := range options {
+
+		queryOptions := bson.M{"filter_id": filterID, "unique_timestamp": timestamp, "dimensions": bson.M{"$elemMatch": bson.M{"name": name}}}
+		update, err := mongolib.WithUpdates(bson.M{"$pull": bson.M{"dimensions.$.options": option}})
+		if err != nil {
+			return i, err
+		}
+
+		if err := session.DB(s.db).C(s.filtersCollection).Update(queryOptions, update); err != nil {
+			if err == mgo.ErrNotFound {
+				return i, filters.ErrFilterBlueprintConflict
+			}
+			return i, err
+		}
+	}
+
+	return len(options), nil
 }
 
 // CreateFilterOutput creates a filter ouput resource
