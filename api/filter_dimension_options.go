@@ -433,39 +433,19 @@ func (api *FilterAPI) patchFilterBlueprintDimensionHandler(w http.ResponseWriter
 		logData["successful_patches"] = successfulPatches
 		log.Event(ctx, "error patching filter blueprint dimension options", log.ERROR, log.Error(err), logData)
 		setErrorCodeFromError(w, err)
-		return
-	}
-
-	if len(successfulPatches) > 0 {
-		filterBlueprint, err = api.getFilterBlueprint(ctx, filterBlueprintID)
-		if err != nil {
-			log.Event(ctx, "error getting filter blueprint after the dimension has been successfully patched", log.ERROR, log.Error(err), logData)
-			setErrorCodeFromError(w, err)
-			return
+		if len(successfulPatches) > 0 {
+			if err := WriteJSONBody(ctx, successfulPatches, w, logData); err != nil {
+				log.Event(ctx, "error writing JSON body during filter blueprint patch error handling", log.ERROR, log.Error(err), logData)
+			}
 		}
-	}
-
-	// response contains only dimension name and options (which is where the patch operations are applied)
-	dimension, err := api.getDimension(ctx, filterBlueprint, dimensionName)
-	dimension.URL = ""
-	if err != nil {
-		log.Event(ctx, "error getting dimension from blueprint after the dimension has been successfully patched", log.ERROR, log.Error(err), logData)
-		setErrorCodeFromError(w, err)
 		return
 	}
 
-	b, err := json.Marshal(dimension)
-	if err != nil {
-		log.Event(ctx, "failed to marshal filter blueprint dimension option into bytes", log.ERROR, log.Error(err), logData)
-		http.Error(w, internalError, http.StatusInternalServerError)
-		return
-	}
-
+	// set content type, marshal and write response
 	setJSONPatchContentType(w)
-	_, err = w.Write(b)
-	if err != nil {
-		log.Event(ctx, "failed to write bytes for http response", log.ERROR, log.Error(err), logData)
-		setErrorCode(w, err)
+	if err := WriteJSONBody(ctx, successfulPatches, w, logData); err != nil {
+		log.Event(ctx, "error writing JSON body after a successful filter blueprint patch", log.ERROR, log.Error(err), logData)
+		setErrorCodeFromError(w, err)
 		return
 	}
 
@@ -571,4 +551,20 @@ func setErrorCodeFromErrorExpectDimension(w http.ResponseWriter, err error) {
 	default:
 		setErrorCode(w, err)
 	}
+}
+
+// WriteJSONBody marshals the provided interface into json, and writes it to the response body.
+func WriteJSONBody(ctx context.Context, v interface{}, w http.ResponseWriter, data log.Data) error {
+
+	// Marshal provided model
+	payload, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	// Write payload to body
+	if _, err := w.Write(payload); err != nil {
+		return err
+	}
+	return nil
 }

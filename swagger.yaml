@@ -237,9 +237,9 @@ paths:
       - $ref: '#/parameters/patch_options'
       responses:
         200:
-          description: "The dimension was patched and the updated values are returned"
+          description: "The dimension was patched and the successfully applied patch operations are returned"
           schema:
-            $ref: '#/definitions/Options'
+            $ref: '#/definitions/PatchOptions'
         400:
           description: "Invalid request body, filter job does not exist or too many values have been provided in the patch operations"
         401:
