@@ -15,7 +15,7 @@ import (
 
 const (
 	host                   = "http://localhost:80"
-	maxRequestOptions      = 10
+	maxRequestOptions      = 1000
 	enablePrivateEndpoints = true
 	downloadServiceURL     = "http://localhost:23600"
 	downloadServiceToken   = "123123"

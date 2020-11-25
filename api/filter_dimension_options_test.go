@@ -471,6 +471,7 @@ func TestFailedPatchBlueprintDimension(t *testing.T) {
 	})
 
 	Convey("When a valid patch with an overall sum of values higher than the maximum allowed is provided, a 400 BadRequest is returned", t, func() {
+		maxRequestOptions := 10
 		reader := strings.NewReader(`[
 			{"op":"add", "path": "/options/-", "value": ["27", "33", "27", "33", "27", "33", "27", "33"]},
 			{"op":"add", "path": "/options/-", "value": ["27", "33", "27"]}]`)
