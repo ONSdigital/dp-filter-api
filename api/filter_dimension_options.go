@@ -405,7 +405,7 @@ func (api *FilterAPI) patchFilterBlueprintDimensionHandler(w http.ResponseWriter
 	for _, patch := range patches {
 		if patch.Path != "/options/-" {
 			err = fmt.Errorf("provided path '%s' not supported. Supported paths: '/options/-'", patch.Path)
-			log.Event(ctx, "error handling patch op, no change has been applied", log.ERROR, log.Error(err), logData)
+			log.Event(ctx, "error validating patch operation path, no change has been applied", log.ERROR, log.Error(err), logData)
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
@@ -413,7 +413,7 @@ func (api *FilterAPI) patchFilterBlueprintDimensionHandler(w http.ResponseWriter
 		if totalValues > api.maxRequestOptions {
 			logData["max_options"] = api.maxRequestOptions
 			err = fmt.Errorf("a maximum of %d overall option values can be provied in a set of patch operations, which has been exceeded", api.maxRequestOptions)
-			log.Event(ctx, "error handling patch op, no change has been applied")
+			log.Event(ctx, "error validating patch operation values size, no change has been applied", log.ERROR, log.Error(err), logData)
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
