@@ -352,9 +352,12 @@ func (api *FilterAPI) removeFilterBlueprintDimensionOption(ctx context.Context, 
 // removeFilterBlueprintDimensionOption removes all provided options, if any option did not exist, it will be ignored
 func (api *FilterAPI) removeFilterBlueprintDimensionOptions(ctx context.Context, filterBlueprint *models.Filter, dimensionName string, options []string, logData log.Data) error {
 
-	timestamp := filterBlueprint.UniqueTimestamp
+	// check if any option has been provided
+	if len(options) == 0 {
+		return nil
+	}
 
-	// Check if dimension and option exists
+	// Check if provided dimension and options exists
 	hasDimension, hasOptions, missingOptions := findDimensionAndOptions(filterBlueprint, dimensionName, options)
 
 	if !hasDimension {
@@ -365,6 +368,8 @@ func (api *FilterAPI) removeFilterBlueprintDimensionOptions(ctx context.Context,
 		log.Event(ctx, "options do not exist in the dimension, nothing to remove", log.INFO, log.Data{})
 		return nil
 	}
+
+	timestamp := filterBlueprint.UniqueTimestamp
 
 	// find options that need to be removed (i.e. are present in filer blueprint)
 	optionsToRemove := []string{}
