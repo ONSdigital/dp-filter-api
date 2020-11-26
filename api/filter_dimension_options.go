@@ -465,7 +465,7 @@ func (api *FilterAPI) patchFilterBlueprintDimension(ctx context.Context, filterB
 
 	// apply patch operations sequentially, stop processing if one patch fails, and return a list of successful patches operations
 	for _, patch := range patches {
-		options := removeDuplicateOptions(patch.Value)
+		options := removeDuplicateAndEmptyOptions(patch.Value)
 		if patch.Op == dprequest.OpAdd.String() {
 			if err := api.addFilterBlueprintDimensionOptions(ctx, filterBlueprint, dimensionName, options, logData); err != nil {
 				return successful, err

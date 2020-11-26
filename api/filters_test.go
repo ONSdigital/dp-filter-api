@@ -711,17 +711,30 @@ func TestFailedToUpdateFilterBlueprint(t *testing.T) {
 	})
 }
 
-func TestRemoveDuplicates(t *testing.T) {
+func TestRemoveDuplicatesAndEmptyOptions(t *testing.T) {
+
 	Convey("Given a string array with duplicate options", t, func() {
 		duplicates := []string{"1", "2", "2", "2", "abcde", "abd", "abcde"}
 
-		Convey("When I call remove duplicates function", func() {
-			withoutDuplicates := removeDuplicateOptions(duplicates)
+		Convey("When I call remove duplicate and empty function", func() {
+			withoutDuplicates := removeDuplicateAndEmptyOptions(duplicates)
 
 			Convey("Then the duplicates are removed", func() {
 				expected := []string{"1", "2", "abcde", "abd"}
 				So(withoutDuplicates, ShouldResemble, expected)
+			})
+		})
+	})
 
+	Convey("Given a string array with empty options", t, func() {
+		duplicates := []string{"", "1", "", "2", "", "3"}
+
+		Convey("When I call remove duplicate and empty option function", func() {
+			withoutEmpty := removeDuplicateAndEmptyOptions(duplicates)
+
+			Convey("Then the empty values are removed", func() {
+				expected := []string{"1", "2", "3"}
+				So(withoutEmpty, ShouldResemble, expected)
 			})
 		})
 	})

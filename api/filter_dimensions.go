@@ -171,7 +171,7 @@ func (api *FilterAPI) addFilterBlueprintDimensionHandler(w http.ResponseWriter, 
 		return
 	}
 
-	options = removeDuplicateOptions(options)
+	options = removeDuplicateAndEmptyOptions(options)
 
 	err = api.addFilterBlueprintDimension(ctx, filterBlueprintID, dimensionName, options)
 	if err != nil {
@@ -314,14 +314,16 @@ func createPublicDimension(dimension models.Dimension, host, filterID string) *m
 	return publicDim
 }
 
-func removeDuplicateOptions(elements []string) []string {
+func removeDuplicateAndEmptyOptions(elements []string) []string {
 	encountered := map[string]bool{}
 	result := []string{}
 
 	for v := range elements {
 		if !encountered[elements[v]] {
 			encountered[elements[v]] = true
-			result = append(result, elements[v])
+			if elements[v] != "" {
+				result = append(result, elements[v])
+			}
 		}
 	}
 
