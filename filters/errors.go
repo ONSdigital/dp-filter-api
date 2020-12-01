@@ -4,6 +4,7 @@ import "errors"
 
 var (
 	ErrVersionNotFound          = errors.New("version not found")
+	ErrInvalidQueryParameter    = errors.New("invalid query parameter")
 	ErrFilterBlueprintNotFound  = errors.New("filter blueprint not found")
 	ErrFilterBlueprintConflict  = errors.New("conflict while updating filter blueprint")
 	ErrDimensionNotFound        = errors.New("dimension not found")

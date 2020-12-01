@@ -88,10 +88,19 @@ type PublicDimensionLinkMap struct {
 	Options LinkObject `bson:"options"              json:"options, omitempty"`
 }
 
-// PublicDimensionOptions represents information about a single dimension option as served by /options and /options/<id>
+// PublicDimensionOption represents information about a single dimension option as served by /options and /options/<id>
 type PublicDimensionOption struct {
 	Links  *PublicDimensionOptionLinkMap `bson:"links"               json:"links"`
 	Option string                        `bson:"option"              json:"option"`
+}
+
+// PublicDimensionOptions represents information about a set of dimension options
+type PublicDimensionOptions struct {
+	Items      []*PublicDimensionOption `json:"items"`
+	Count      int                      `json:"count"`
+	Offset     int                      `json:"offset"`
+	Limit      int                      `json:"limit"`
+	TotalCount int                      `json:"total_count"`
 }
 
 // PublicDimensionOptionLinkMap is the links map for the PublicDimensionOption structure

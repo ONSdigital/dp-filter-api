@@ -135,18 +135,13 @@ func (svc *Service) Init(ctx context.Context, cfg *config.Config, buildTime, git
 	// Create API, with previewDatasets and outputQueue
 	previewDatasets := preview.DatasetStore{Store: svc.observationStore}
 	outputQueue := filterOutputQueue.CreateOutputQueue(svc.filterOutputSubmittedProducer.Channels().Output)
-	svc.api = api.Setup(svc.cfg.Host,
-		svc.cfg.MaxRequestOptions,
+	svc.api = api.Setup(
+		svc.cfg,
 		r,
 		svc.filterStore,
 		&outputQueue,
 		svc.datasetAPI,
-		&previewDatasets,
-		svc.cfg.EnablePrivateEndpoints,
-		svc.cfg.DownloadServiceURL,
-		svc.cfg.DownloadServiceSecretKey,
-		svc.cfg.ServiceAuthToken,
-	)
+		&previewDatasets)
 	return nil
 }
 

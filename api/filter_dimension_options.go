@@ -3,6 +3,8 @@ package api
 import (
 	"encoding/json"
 	"net/http"
+	"net/url"
+	"strconv"
 
 	"github.com/ONSdigital/dp-filter-api/models"
 	dprequest "github.com/ONSdigital/dp-net/request"
@@ -27,6 +29,22 @@ func (api *FilterAPI) getFilterBlueprintDimensionOptionsHandler(w http.ResponseW
 	ctx := r.Context()
 	log.Event(ctx, "get filter blueprint dimension options", log.INFO, logData)
 
+	// get limit from query parameters, or default value
+	limit, err := getPositiveIntQueryParameter(r.URL.Query(), "limit", api.defaultLimit)
+	if err != nil {
+		log.Event(ctx, "failed to obtain limit from request query paramters", log.ERROR, log.Error(err), logData)
+		setErrorCode(w, err)
+		return
+	}
+
+	// get offset from query parameters, or default value
+	offset, err := getPositiveIntQueryParameter(r.URL.Query(), "offset", api.defaultOffset)
+	if err != nil {
+		log.Event(ctx, "failed to obtain offset from request query paramters", log.ERROR, log.Error(err), logData)
+		setErrorCode(w, err)
+		return
+	}
+
 	filter, err := api.getFilterBlueprint(ctx, filterBlueprintID)
 	if err != nil {
 		log.Event(ctx, "failed to get dimension options for filter blueprint", log.ERROR, log.Error(err), logData)
@@ -34,7 +52,7 @@ func (api *FilterAPI) getFilterBlueprintDimensionOptionsHandler(w http.ResponseW
 		return
 	}
 
-	options, err := api.getFilterBlueprintDimensionOptions(ctx, filter, dimensionName)
+	options, err := api.getFilterBlueprintDimensionOptions(ctx, filter, dimensionName, limit, offset)
 	if err != nil {
 		log.Event(ctx, "failed to get dimension options for filter blueprint", log.ERROR, log.Error(err), logData)
 		setErrorCode(w, err)
@@ -61,14 +79,17 @@ func (api *FilterAPI) getFilterBlueprintDimensionOptionsHandler(w http.ResponseW
 	log.Event(ctx, "got dimension options for filter blueprint", log.INFO, logData)
 }
 
-func (api *FilterAPI) getFilterBlueprintDimensionOptions(ctx context.Context, filter *models.Filter, dimensionName string) ([]models.PublicDimensionOption, error) {
+func (api *FilterAPI) getFilterBlueprintDimensionOptions(ctx context.Context, filter *models.Filter, dimensionName string, limit, offset int) (options *models.PublicDimensionOptions, err error) {
 
-	var options []models.PublicDimensionOption
 	dimensionFound := false
 	for _, dimension := range filter.Dimensions {
 
 		if dimension.Name == dimensionName {
 			dimensionFound = true
+
+			options := &models.PublicDimensionOptions{
+				Items: []*models.PublicDimensionOption{},
+			}
 
 			dimLink := fmt.Sprintf("%s/filters/%s/dimensions/%s", api.host, filter.FilterID, dimension.Name)
 			filterObject := models.LinkObject{
@@ -85,8 +106,9 @@ func (api *FilterAPI) getFilterBlueprintDimensionOptions(ctx context.Context, fi
 					},
 					Option: option,
 				}
-				options = append(options, *dimensionOption)
+				options.Items = append(options.Items, dimensionOption)
 			}
+			break
 		}
 	}
 
@@ -545,9 +567,7 @@ func setErrorCodeFromError(w http.ResponseWriter, err error) {
 // setErrorCodeFromError sets the HTTP Status Code according to the provided error, expecting the dimension (ErrDimensionNotFound will be mapped to statusBadRequest)
 func setErrorCodeFromErrorExpectDimension(w http.ResponseWriter, err error) {
 	switch err {
-	case filters.ErrFilterBlueprintNotFound:
-		setErrorCode(w, err, statusBadRequest)
-	case filters.ErrDimensionNotFound:
+	case filters.ErrFilterBlueprintNotFound, filters.ErrInvalidQueryParameter, filters.ErrDimensionNotFound:
 		setErrorCode(w, err, statusBadRequest)
 	case filters.ErrDimensionsNotFound:
 		fallthrough
@@ -572,4 +592,20 @@ func WriteJSONBody(ctx context.Context, v interface{}, w http.ResponseWriter, da
 		return err
 	}
 	return nil
+}
+
+// getPositiveIntQueryParameter obtains the positive int value of query var defined by the provided varKey
+func getPositiveIntQueryParameter(queryVars url.Values, varKey string, defaultValue int) (val int, err error) {
+	strVal, found := queryVars[varKey]
+	if !found {
+		return defaultValue, nil
+	}
+	val, err = strconv.Atoi(strVal[0])
+	if err != nil {
+		return -1, filters.ErrInvalidQueryParameter
+	}
+	if val < 0 {
+		return 0, nil
+	}
+	return val, nil
 }

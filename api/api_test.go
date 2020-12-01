@@ -7,6 +7,7 @@ import (
 	"context"
 
 	"github.com/ONSdigital/dp-filter-api/api/datastoretest"
+	"github.com/ONSdigital/dp-filter-api/config"
 	"github.com/ONSdigital/dp-filter-api/filters"
 	"github.com/ONSdigital/dp-filter-api/models"
 	dprequest "github.com/ONSdigital/dp-net/request"
@@ -30,6 +31,22 @@ var (
 	badRequestResponse        = badRequest + "\n"
 	internalErrResponse       = internalError + "\n"
 )
+
+// cfg obtains a new config for testing. Each test will have its own config instance by using this func.
+func cfg() *config.Config {
+	return &config.Config{
+		Host:                     host,
+		MaxRequestOptions:        maxRequestOptions,
+		DownloadServiceURL:       downloadServiceURL,
+		DownloadServiceSecretKey: downloadServiceToken,
+		ServiceAuthToken:         serviceAuthToken,
+		EnablePrivateEndpoints:   enablePrivateEndpoints,
+		MongoConfig: config.MongoConfig{
+			Limit:  0,
+			Offset: 0,
+		},
+	}
+}
 
 var previewMock = &datastoretest.PreviewDatasetMock{
 	GetPreviewFunc: func(ctx context.Context, filter *models.Filter, limit int) (*models.FilterPreview, error) {

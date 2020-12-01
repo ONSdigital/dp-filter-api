@@ -33,6 +33,8 @@ type MongoConfig struct {
 	Database          string `envconfig:"MONGODB_FILTERS_DATABASE"`
 	FiltersCollection string `envconfig:"MONGODB_FILTERS_COLLECTION"`
 	OutputsCollection string `envconfig:"MONGODB_OUTPUT_COLLECTION"`
+	Limit             int    `envconfig:"MONGODB_LIMIT"`
+	Offset            int    `envconfig:"MONGODB_OFFSET"`
 }
 
 var cfg *Config
