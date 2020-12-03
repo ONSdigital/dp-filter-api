@@ -47,7 +47,7 @@ func Get() (*Config, error) {
 
 	cfg = &Config{
 		Host:                       "http://localhost:22100",
-		MaxRequestOptions:          1000,
+		MaxRequestOptions:          1000,  // Compromise between one option per call (inefficient) and an order of 100k options per call, for census data (memory and computationally expensive)
 		BindAddr:                   ":22100",
 		Brokers:                    []string{"localhost:9092"},
 		FilterOutputSubmittedTopic: "filter-job-submitted",

@@ -635,6 +635,9 @@ func setErrorCode(w http.ResponseWriter, err error, typ ...string) {
 	case filters.ErrUnauthorised:
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
+	case filters.ErrInvalidQueryParameter:
+		http.Error(w, filters.ErrInvalidQueryParameter.Error(), http.StatusBadRequest)
+		return
 	case filters.ErrBadRequest:
 		http.Error(w, badRequest, http.StatusBadRequest)
 		return

@@ -1,12 +1,14 @@
 package api
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
 	"github.com/ONSdigital/dp-filter-api/mocks"
+	"github.com/ONSdigital/dp-filter-api/models"
 	"github.com/gorilla/mux"
 	. "github.com/smartystreets/goconvey/convey"
 
@@ -213,28 +215,159 @@ func TestFailedToRemoveFilterBlueprintDimensionOption(t *testing.T) {
 func TestSuccessfulGetFilterBlueprintDimensionOptions(t *testing.T) {
 	t.Parallel()
 
-	Convey("Successfully get a list of dimension options for a filter blueprint", t, func() {
-		r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678/dimensions/time/options", nil)
-		So(err, ShouldBeNil)
+	Convey("Given a mock returning a set of option dimensions", t, func() {
 
-		w := httptest.NewRecorder()
-		api := Setup(cfg(), mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
-		api.router.ServeHTTP(w, r)
-		So(w.Code, ShouldEqual, http.StatusOK)
-	})
+		expectedBody := models.PublicDimensionOptions{
+			Items: []*models.PublicDimensionOption{
+				{
+					Links: &models.PublicDimensionOptionLinkMap{
+						Self:      models.LinkObject{ID: "2014", HRef: "http://localhost:80/filters//dimensions/time/options/2014"},
+						Filter:    models.LinkObject{ID: "", HRef: "http://localhost:80/filters/"},
+						Dimension: models.LinkObject{ID: "time", HRef: "http://localhost:80/filters//dimensions/time"},
+					},
+					Option: "2014",
+				},
+				{
+					Links: &models.PublicDimensionOptionLinkMap{
+						Self:      models.LinkObject{ID: "2015", HRef: "http://localhost:80/filters//dimensions/time/options/2015"},
+						Filter:    models.LinkObject{ID: "", HRef: "http://localhost:80/filters/"},
+						Dimension: models.LinkObject{ID: "time", HRef: "http://localhost:80/filters//dimensions/time"},
+					},
+					Option: "2015",
+				},
+			},
+			Count:      2,
+			Offset:     0,
+			Limit:      0,
+			TotalCount: 2,
+		}
 
-	Convey("Successfully get a list of dimension options for an unpublished filter blueprint", t, func() {
-		r := createAuthenticatedRequest("GET", "http://localhost:22100/filters/12345678/dimensions/time/options", nil)
+		// func to unmarshal and validate body
+		validateBody := func(bytes []byte, expected models.PublicDimensionOptions) {
+			var response models.PublicDimensionOptions
+			err := json.Unmarshal(bytes, &response)
+			So(err, ShouldBeNil)
+			So(response, ShouldResemble, expected)
+		}
 
-		w := httptest.NewRecorder()
-		api := Setup(cfg(), mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock)
-		api.router.ServeHTTP(w, r)
-		So(w.Code, ShouldEqual, http.StatusOK)
+		Convey("Successfully get a list of dimension options for a filter blueprint", func() {
+			r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678/dimensions/time/options", nil)
+			So(err, ShouldBeNil)
+
+			w := httptest.NewRecorder()
+			api := Setup(cfg(), mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
+			api.router.ServeHTTP(w, r)
+			So(w.Code, ShouldEqual, http.StatusOK)
+			validateBody(w.Body.Bytes(), expectedBody)
+		})
+
+		Convey("Successfully get a list of dimension options for an unpublished filter blueprint", func() {
+			r := createAuthenticatedRequest("GET", "http://localhost:22100/filters/12345678/dimensions/time/options", nil)
+
+			w := httptest.NewRecorder()
+			api := Setup(cfg(), mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock)
+			api.router.ServeHTTP(w, r)
+			So(w.Code, ShouldEqual, http.StatusOK)
+			validateBody(w.Body.Bytes(), expectedBody)
+		})
+
+		Convey("Successfully get a list of dimensionOptions for a filter blueprint providing values offest and limit", func() {
+			r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678/dimensions/time/options?limit=0&offset=0", nil)
+			So(err, ShouldBeNil)
+
+			w := httptest.NewRecorder()
+			api := Setup(cfg(), mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
+			api.router.ServeHTTP(w, r)
+			So(w.Code, ShouldEqual, http.StatusOK)
+			validateBody(w.Body.Bytes(), expectedBody)
+		})
+
+		Convey("Successfully get the expected subset of dimensionOptions for a filter blueprint providing a non-zero offest", func() {
+			r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678/dimensions/time/options?limit=0&offset=1", nil)
+			So(err, ShouldBeNil)
+
+			w := httptest.NewRecorder()
+			api := Setup(cfg(), mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
+			api.router.ServeHTTP(w, r)
+			So(w.Code, ShouldEqual, http.StatusOK)
+
+			expected := models.PublicDimensionOptions{
+				Items: []*models.PublicDimensionOption{
+					{
+						Links: &models.PublicDimensionOptionLinkMap{
+							Self:      models.LinkObject{ID: "2015", HRef: "http://localhost:80/filters//dimensions/time/options/2015"},
+							Filter:    models.LinkObject{ID: "", HRef: "http://localhost:80/filters/"},
+							Dimension: models.LinkObject{ID: "time", HRef: "http://localhost:80/filters//dimensions/time"},
+						},
+						Option: "2015",
+					},
+				},
+				Count:      1,
+				Offset:     1,
+				Limit:      0,
+				TotalCount: 2,
+			}
+			validateBody(w.Body.Bytes(), expected)
+		})
+
+		Convey("Successfully get the expected subset of dimensionOptions for a filter blueprint providing a non-zero limit", func() {
+			r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678/dimensions/time/options?limit=1&offset=0", nil)
+			So(err, ShouldBeNil)
+
+			w := httptest.NewRecorder()
+			api := Setup(cfg(), mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
+			api.router.ServeHTTP(w, r)
+			So(w.Code, ShouldEqual, http.StatusOK)
+
+			expected := models.PublicDimensionOptions{
+				Items: []*models.PublicDimensionOption{
+					{
+						Links: &models.PublicDimensionOptionLinkMap{
+							Self:      models.LinkObject{ID: "2014", HRef: "http://localhost:80/filters//dimensions/time/options/2014"},
+							Filter:    models.LinkObject{ID: "", HRef: "http://localhost:80/filters/"},
+							Dimension: models.LinkObject{ID: "time", HRef: "http://localhost:80/filters//dimensions/time"},
+						},
+						Option: "2014",
+					},
+				},
+				Count:      1,
+				Offset:     0,
+				Limit:      1,
+				TotalCount: 2,
+			}
+			validateBody(w.Body.Bytes(), expected)
+		})
 	})
 }
 
 func TestFailedToGetFilterBlueprintDimensionOptions(t *testing.T) {
 	t.Parallel()
+
+	Convey("When an invalid limit value is provided, a bad request error is returned", t, func() {
+		r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678/dimensions/time/options?limit=wrong&offset=0", nil)
+		So(err, ShouldBeNil)
+
+		w := httptest.NewRecorder()
+		api := Setup(cfg(), mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusBadRequest)
+
+		response := w.Body.String()
+		So(response, ShouldResemble, invalidQueryParameterResponse)
+	})
+
+	Convey("When an invalid offset value is provided, a bad request error is returned", t, func() {
+		r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678/dimensions/time/options?limit=0&offset=wrong", nil)
+		So(err, ShouldBeNil)
+
+		w := httptest.NewRecorder()
+		api := Setup(cfg(), mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusBadRequest)
+
+		response := w.Body.String()
+		So(response, ShouldResemble, invalidQueryParameterResponse)
+	})
 
 	Convey("When no data store is available, an internal error is returned", t, func() {
 		r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678/dimensions/1_age/options", nil)

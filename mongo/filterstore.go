@@ -262,7 +262,7 @@ func (s *FilterStore) RemoveFilterDimensionOption(filterID string, name string, 
 	return nil
 }
 
-// RemoveFilterDimensionOptions removes the provided options from a filter. The number of successfully added options is returned, along with an error.
+// RemoveFilterDimensionOptions removes the provided options from a filter. If an error happens, it is returned.
 func (s *FilterStore) RemoveFilterDimensionOptions(filterID string, name string, options []string, timestamp bson.MongoTimestamp) error {
 	session := s.Session.Copy()
 	defer session.Close()

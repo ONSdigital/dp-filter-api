@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/url"
+	"sort"
 	"strconv"
 
 	"github.com/ONSdigital/dp-filter-api/models"
@@ -32,7 +33,7 @@ func (api *FilterAPI) getFilterBlueprintDimensionOptionsHandler(w http.ResponseW
 	// get limit from query parameters, or default value
 	limit, err := getPositiveIntQueryParameter(r.URL.Query(), "limit", api.defaultLimit)
 	if err != nil {
-		log.Event(ctx, "failed to obtain limit from request query paramters", log.ERROR, log.Error(err), logData)
+		log.Event(ctx, "failed to obtain limit from request query paramters", log.ERROR, logData)
 		setErrorCode(w, err)
 		return
 	}
@@ -40,7 +41,7 @@ func (api *FilterAPI) getFilterBlueprintDimensionOptionsHandler(w http.ResponseW
 	// get offset from query parameters, or default value
 	offset, err := getPositiveIntQueryParameter(r.URL.Query(), "offset", api.defaultOffset)
 	if err != nil {
-		log.Event(ctx, "failed to obtain offset from request query paramters", log.ERROR, log.Error(err), logData)
+		log.Event(ctx, "failed to obtain offset from request query paramters", log.ERROR, logData)
 		setErrorCode(w, err)
 		return
 	}
@@ -52,7 +53,7 @@ func (api *FilterAPI) getFilterBlueprintDimensionOptionsHandler(w http.ResponseW
 		return
 	}
 
-	options, err := api.getFilterBlueprintDimensionOptions(ctx, filter, dimensionName, limit, offset)
+	options, err := api.getFilterBlueprintDimensionOptions(ctx, filter, dimensionName, offset, limit)
 	if err != nil {
 		log.Event(ctx, "failed to get dimension options for filter blueprint", log.ERROR, log.Error(err), logData)
 		setErrorCode(w, err)
@@ -79,17 +80,35 @@ func (api *FilterAPI) getFilterBlueprintDimensionOptionsHandler(w http.ResponseW
 	log.Event(ctx, "got dimension options for filter blueprint", log.INFO, logData)
 }
 
-func (api *FilterAPI) getFilterBlueprintDimensionOptions(ctx context.Context, filter *models.Filter, dimensionName string, limit, offset int) (options *models.PublicDimensionOptions, err error) {
+// utility function to cut a slice according to the provided offset and limit.
+// limit=0 means no limit, and values higher than the slice length are ignored
+func slice(full []string, offset, limit int) (sliced []string) {
+	end := offset + limit
+	if limit == 0 || end > len(full) {
+		end = len(full)
+	}
 
-	dimensionFound := false
+	if offset > len(full) {
+		return []string{}
+	}
+	return full[offset:end]
+}
+
+func (api *FilterAPI) getFilterBlueprintDimensionOptions(ctx context.Context, filter *models.Filter, dimensionName string, offset, limit int) (options *models.PublicDimensionOptions, err error) {
+
 	for _, dimension := range filter.Dimensions {
-
 		if dimension.Name == dimensionName {
-			dimensionFound = true
 
-			options := &models.PublicDimensionOptions{
-				Items: []*models.PublicDimensionOption{},
+			options = &models.PublicDimensionOptions{
+				Items:      []*models.PublicDimensionOption{},
+				TotalCount: len(dimension.Options),
+				Offset:     offset,
+				Limit:      limit,
 			}
+
+			// sort alphabetically and cut according to limit and offset
+			sort.Strings(dimension.Options)
+			dimension.Options = slice(dimension.Options, offset, limit)
 
 			dimLink := fmt.Sprintf("%s/filters/%s/dimensions/%s", api.host, filter.FilterID, dimension.Name)
 			filterObject := models.LinkObject{
@@ -108,15 +127,12 @@ func (api *FilterAPI) getFilterBlueprintDimensionOptions(ctx context.Context, fi
 				}
 				options.Items = append(options.Items, dimensionOption)
 			}
-			break
+			options.Count = len(options.Items)
+			return options, nil
 		}
 	}
 
-	if !dimensionFound {
-		return nil, filters.ErrDimensionNotFound
-	}
-
-	return options, nil
+	return nil, filters.ErrDimensionNotFound
 }
 
 func (api *FilterAPI) getFilterBlueprintDimensionOptionHandler(w http.ResponseWriter, r *http.Request) {
