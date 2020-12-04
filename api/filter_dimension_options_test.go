@@ -397,6 +397,45 @@ func TestSuccessfulPatchFilterBlueprintDimension(t *testing.T) {
 		So(w.Code, ShouldEqual, http.StatusOK)
 	})
 
+	Convey("Successfully patch dimension options, with a single valid 'remove' patch operation with a mix of existent and inexistent options, returns 200", t, func() {
+		reader := strings.NewReader(`[
+			{"op":"remove", "path": "/options/-", "value": ["33", "123456789"]}
+		]`)
+		r, err := http.NewRequest("PATCH", "http://localhost:22100/filters/12345678/dimensions/age", reader)
+		So(err, ShouldBeNil)
+
+		w := httptest.NewRecorder()
+		api := Setup(host, maxRequestOptions, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, serviceAuthToken)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusOK)
+	})
+
+	Convey("Successfully patch dimension options, with a single valid 'remove' patch operation with an inexistent option, returns 200", t, func() {
+		reader := strings.NewReader(`[
+			{"op":"remove", "path": "/options/-", "value": ["123456789"]}
+		]`)
+		r, err := http.NewRequest("PATCH", "http://localhost:22100/filters/12345678/dimensions/age", reader)
+		So(err, ShouldBeNil)
+
+		w := httptest.NewRecorder()
+		api := Setup(host, maxRequestOptions, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, serviceAuthToken)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusOK)
+	})
+
+	Convey("Successfully patch dimension options, with a single valid 'remove' patch operation without any option, returns 200", t, func() {
+		reader := strings.NewReader(`[
+			{"op":"remove", "path": "/options/-", "value": []}
+		]`)
+		r, err := http.NewRequest("PATCH", "http://localhost:22100/filters/12345678/dimensions/age", reader)
+		So(err, ShouldBeNil)
+
+		w := httptest.NewRecorder()
+		api := Setup(host, maxRequestOptions, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, serviceAuthToken)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusOK)
+	})
+
 	Convey("Successfully patch dimension options, with a combination of valid patch operations, returns 200", t, func() {
 		reader := strings.NewReader(`[
 			{"op":"add", "path": "/options/-", "value": ["27"]},

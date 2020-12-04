@@ -349,7 +349,7 @@ func (api *FilterAPI) removeFilterBlueprintDimensionOption(ctx context.Context, 
 	return nil
 }
 
-// removeFilterBlueprintDimensionOption removes all provided options, if any option did not exist, it will be ignored
+// removeFilterBlueprintDimensionOption removes all provided options.
 func (api *FilterAPI) removeFilterBlueprintDimensionOptions(ctx context.Context, filterBlueprint *models.Filter, dimensionName string, options []string, logData log.Data) error {
 
 	// check if any option has been provided
@@ -357,30 +357,32 @@ func (api *FilterAPI) removeFilterBlueprintDimensionOptions(ctx context.Context,
 		return nil
 	}
 
-	// Check if provided dimension and options exists
-	hasDimension, hasOptions, missingOptions := findDimensionAndOptions(filterBlueprint, dimensionName, options)
-
+	// Check if provided dimension and options exists in filter blueprint
+	hasDimension, hasAllOptions, missingOptions := findDimensionAndOptions(filterBlueprint, dimensionName, options)
 	if !hasDimension {
 		return filters.ErrDimensionNotFound
 	}
 
-	if !hasOptions {
+	// find options that actually need to be removed according to the existing options before applying any change
+	optionsToRemove := []string{}
+	if hasAllOptions {
+		optionsToRemove = options
+	} else {
+		for _, option := range options {
+			if _, found := missingOptions[option]; !found {
+				optionsToRemove = append(optionsToRemove, option)
+			}
+		}
+	}
+
+	// if none of the provided options were present, we don't need to remove anything
+	if len(optionsToRemove) == 0 {
 		log.Event(ctx, "options do not exist in the dimension, nothing to remove", log.INFO, log.Data{})
 		return nil
 	}
 
-	timestamp := filterBlueprint.UniqueTimestamp
-
-	// find options that need to be removed (i.e. are present in filer blueprint)
-	optionsToRemove := []string{}
-	for _, option := range options {
-		if _, found := missingOptions[option]; !found {
-			optionsToRemove = append(optionsToRemove, option)
-		}
-	}
-
 	// remove necessary options from DB
-	return api.dataStore.RemoveFilterDimensionOptions(filterBlueprint.FilterID, dimensionName, optionsToRemove, timestamp)
+	return api.dataStore.RemoveFilterDimensionOptions(filterBlueprint.FilterID, dimensionName, optionsToRemove, filterBlueprint.UniqueTimestamp)
 }
 
 // Handler for a list of patch operations against the dimension options
