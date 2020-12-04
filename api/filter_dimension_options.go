@@ -424,16 +424,8 @@ func (api *FilterAPI) patchFilterBlueprintDimensionHandler(w http.ResponseWriter
 		}
 	}
 
-	// Get filter blueprint
-	filterBlueprint, err := api.getFilterBlueprint(ctx, filterBlueprintID)
-	if err != nil {
-		log.Event(ctx, "error patching filter blueprint dimension option", log.ERROR, log.Error(err), logData)
-		setErrorCodeFromError(w, err)
-		return
-	}
-
 	// apply the patches to the filter blueprint dimension options
-	successfulPatches, err := api.patchFilterBlueprintDimension(ctx, filterBlueprint, dimensionName, patches, logData)
+	successfulPatches, err := api.patchFilterBlueprintDimension(ctx, filterBlueprintID, dimensionName, patches, logData)
 	if err != nil {
 		logData["successful_patches"] = successfulPatches
 		log.Event(ctx, "error patching filter blueprint dimension options", log.ERROR, log.Error(err), logData)
@@ -457,20 +449,31 @@ func (api *FilterAPI) patchFilterBlueprintDimensionHandler(w http.ResponseWriter
 	log.Event(ctx, "successfully patched filter dimension options on filter blueprint", log.INFO, logData)
 }
 
-// patchFilterBlueprintDimension applies the patches by calling add or remove filter dimension options. It keeps track of a list of successful patches, so that
-func (api *FilterAPI) patchFilterBlueprintDimension(ctx context.Context, filterBlueprint *models.Filter, dimensionName string, patches []dprequest.Patch, logData log.Data) (successful []dprequest.Patch, err error) {
+// patchFilterBlueprintDimension applies the patches by calling add or remove filter dimension options. It keeps track of a list of successful patches
+func (api *FilterAPI) patchFilterBlueprintDimension(ctx context.Context, filterBlueprintID string, dimensionName string, patches []dprequest.Patch, logData log.Data) (successful []dprequest.Patch, err error) {
 
 	successful = []dprequest.Patch{}
-
-	// if filter blueprint does not have dimension, return now with ErrDimensionNotFound, as no path operation can succeed
-	hasDimension, _, _ := findDimensionAndOptions(filterBlueprint, dimensionName, []string{})
-	if !hasDimension {
-		return successful, filters.ErrDimensionNotFound
-	}
+	dimensionValidated := false
 
 	// apply patch operations sequentially, stop processing if one patch fails, and return a list of successful patches operations
 	for _, patch := range patches {
 		options := removeDuplicateAndEmptyOptions(patch.Value)
+
+		// Get filter Blueprint in all iterations to prevent conflicts due to the timestamp check in mongoDB when adding or removing values
+		filterBlueprint, err := api.getFilterBlueprint(ctx, filterBlueprintID)
+		if err != nil {
+			return successful, err
+		}
+
+		// validate dimension (only once) and return ErrDimensionNotFound if it is not available, as no patch operation can succeed
+		if !dimensionValidated {
+			hasDimension, _, _ := findDimensionAndOptions(filterBlueprint, dimensionName, []string{})
+			if !hasDimension {
+				return successful, filters.ErrDimensionNotFound
+			}
+			dimensionValidated = true
+		}
+
 		if patch.Op == dprequest.OpAdd.String() {
 			if err := api.addFilterBlueprintDimensionOptions(ctx, filterBlueprint, dimensionName, options, logData); err != nil {
 				return successful, err
