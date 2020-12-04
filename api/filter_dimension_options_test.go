@@ -217,29 +217,31 @@ func TestSuccessfulGetFilterBlueprintDimensionOptions(t *testing.T) {
 
 	Convey("Given a mock returning a set of option dimensions", t, func() {
 
-		expectedBody := models.PublicDimensionOptions{
-			Items: []*models.PublicDimensionOption{
-				{
-					Links: &models.PublicDimensionOptionLinkMap{
-						Self:      models.LinkObject{ID: "2014", HRef: "http://localhost:80/filters//dimensions/time/options/2014"},
-						Filter:    models.LinkObject{ID: "", HRef: "http://localhost:80/filters/"},
-						Dimension: models.LinkObject{ID: "time", HRef: "http://localhost:80/filters//dimensions/time"},
+		expectedBodyFull := func() models.PublicDimensionOptions {
+			return models.PublicDimensionOptions{
+				Items: []*models.PublicDimensionOption{
+					{
+						Links: &models.PublicDimensionOptionLinkMap{
+							Self:      models.LinkObject{ID: "2014", HRef: "http://localhost:80/filters//dimensions/time/options/2014"},
+							Filter:    models.LinkObject{ID: "", HRef: "http://localhost:80/filters/"},
+							Dimension: models.LinkObject{ID: "time", HRef: "http://localhost:80/filters//dimensions/time"},
+						},
+						Option: "2014",
 					},
-					Option: "2014",
-				},
-				{
-					Links: &models.PublicDimensionOptionLinkMap{
-						Self:      models.LinkObject{ID: "2015", HRef: "http://localhost:80/filters//dimensions/time/options/2015"},
-						Filter:    models.LinkObject{ID: "", HRef: "http://localhost:80/filters/"},
-						Dimension: models.LinkObject{ID: "time", HRef: "http://localhost:80/filters//dimensions/time"},
+					{
+						Links: &models.PublicDimensionOptionLinkMap{
+							Self:      models.LinkObject{ID: "2015", HRef: "http://localhost:80/filters//dimensions/time/options/2015"},
+							Filter:    models.LinkObject{ID: "", HRef: "http://localhost:80/filters/"},
+							Dimension: models.LinkObject{ID: "time", HRef: "http://localhost:80/filters//dimensions/time"},
+						},
+						Option: "2015",
 					},
-					Option: "2015",
 				},
-			},
-			Count:      2,
-			Offset:     0,
-			Limit:      0,
-			TotalCount: 2,
+				Count:      2,
+				Offset:     0,
+				Limit:      0,
+				TotalCount: 2,
+			}
 		}
 
 		// func to unmarshal and validate body
@@ -258,7 +260,7 @@ func TestSuccessfulGetFilterBlueprintDimensionOptions(t *testing.T) {
 			api := Setup(cfg(), mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
 			api.router.ServeHTTP(w, r)
 			So(w.Code, ShouldEqual, http.StatusOK)
-			validateBody(w.Body.Bytes(), expectedBody)
+			validateBody(w.Body.Bytes(), expectedBodyFull())
 		})
 
 		Convey("Successfully get a list of dimension options for an unpublished filter blueprint", func() {
@@ -268,10 +270,10 @@ func TestSuccessfulGetFilterBlueprintDimensionOptions(t *testing.T) {
 			api := Setup(cfg(), mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock)
 			api.router.ServeHTTP(w, r)
 			So(w.Code, ShouldEqual, http.StatusOK)
-			validateBody(w.Body.Bytes(), expectedBody)
+			validateBody(w.Body.Bytes(), expectedBodyFull())
 		})
 
-		Convey("Successfully get a list of dimensionOptions for a filter blueprint providing values offest and limit", func() {
+		Convey("Successfully get a list of dimensionOptions for a filter blueprint providing zero values for offest and limit", func() {
 			r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678/dimensions/time/options?limit=0&offset=0", nil)
 			So(err, ShouldBeNil)
 
@@ -279,7 +281,7 @@ func TestSuccessfulGetFilterBlueprintDimensionOptions(t *testing.T) {
 			api := Setup(cfg(), mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
 			api.router.ServeHTTP(w, r)
 			So(w.Code, ShouldEqual, http.StatusOK)
-			validateBody(w.Body.Bytes(), expectedBody)
+			validateBody(w.Body.Bytes(), expectedBodyFull())
 		})
 
 		Convey("Successfully get the expected subset of dimensionOptions for a filter blueprint providing a non-zero offest", func() {
@@ -336,6 +338,51 @@ func TestSuccessfulGetFilterBlueprintDimensionOptions(t *testing.T) {
 				TotalCount: 2,
 			}
 			validateBody(w.Body.Bytes(), expected)
+		})
+
+		Convey("Successfully get the expected subset of dimensionOptions for a filter blueprint providing a limit greater than the total count", func() {
+			r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678/dimensions/time/options?limit=3&offset=0", nil)
+			So(err, ShouldBeNil)
+
+			w := httptest.NewRecorder()
+			api := Setup(cfg(), mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
+			api.router.ServeHTTP(w, r)
+			So(w.Code, ShouldEqual, http.StatusOK)
+
+			expected := expectedBodyFull()
+			expected.Limit = 3
+			validateBody(w.Body.Bytes(), expected)
+		})
+
+		Convey("Successfully get dimensionOptions with empty list of items for a filter blueprint providing an offset greater than the total count", func() {
+			r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678/dimensions/time/options?limit=0&offset=3", nil)
+			So(err, ShouldBeNil)
+
+			w := httptest.NewRecorder()
+			api := Setup(cfg(), mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
+			api.router.ServeHTTP(w, r)
+			So(w.Code, ShouldEqual, http.StatusOK)
+
+			expected := models.PublicDimensionOptions{
+				Items:      []*models.PublicDimensionOption{},
+				Count:      0,
+				Offset:     3,
+				Limit:      0,
+				TotalCount: 2,
+			}
+			validateBody(w.Body.Bytes(), expected)
+		})
+
+		Convey("Successfully get the full expected set of dimensionOptions for a filter blueprint providing negative values for limit and offset", func() {
+			r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678/dimensions/time/options?limit=-1&offset=-1", nil)
+			So(err, ShouldBeNil)
+
+			w := httptest.NewRecorder()
+			api := Setup(cfg(), mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
+			api.router.ServeHTTP(w, r)
+			So(w.Code, ShouldEqual, http.StatusOK)
+
+			validateBody(w.Body.Bytes(), expectedBodyFull())
 		})
 	})
 }
