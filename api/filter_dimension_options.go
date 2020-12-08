@@ -33,7 +33,7 @@ func (api *FilterAPI) getFilterBlueprintDimensionOptionsHandler(w http.ResponseW
 	// get limit from query parameters, or default value
 	limit, err := getPositiveIntQueryParameter(r.URL.Query(), "limit", api.defaultLimit)
 	if err != nil {
-		log.Event(ctx, "failed to obtain limit from request query paramters", log.ERROR, logData)
+		log.Event(ctx, "failed to obtain limit from request query parameters", log.ERROR, logData)
 		setErrorCode(w, err)
 		return
 	}
@@ -41,7 +41,7 @@ func (api *FilterAPI) getFilterBlueprintDimensionOptionsHandler(w http.ResponseW
 	// get offset from query parameters, or default value
 	offset, err := getPositiveIntQueryParameter(r.URL.Query(), "offset", api.defaultOffset)
 	if err != nil {
-		log.Event(ctx, "failed to obtain offset from request query paramters", log.ERROR, logData)
+		log.Event(ctx, "failed to obtain offset from request query parameters", log.ERROR, logData)
 		setErrorCode(w, err)
 		return
 	}
