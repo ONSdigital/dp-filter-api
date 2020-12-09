@@ -204,24 +204,6 @@ func ValidateFilterDimensions(filterDimensions []Dimension, dimensions *dataset.
 	return nil
 }
 
-// ValidateFilterDimensionOptions checks the selected filter dimension options
-// are valid for a dimension of a single version of a dataset
-func ValidateFilterDimensionOptions(filterDimensionOptions []string, datasetDimensionOptions *dataset.Options) []string {
-	dimensionOptions := make(map[string]int)
-	for _, datasetOption := range datasetDimensionOptions.Items {
-		dimensionOptions[datasetOption.Option] = 1
-	}
-
-	var incorrectDimensionOptions []string
-	for _, filterOption := range filterDimensionOptions {
-		if _, ok := dimensionOptions[filterOption]; !ok {
-			incorrectDimensionOptions = append(incorrectDimensionOptions, filterOption)
-		}
-	}
-
-	return incorrectDimensionOptions
-}
-
 // ValidateFilterOutputUpdate checks the content of the filter structure
 func (filter *Filter) ValidateFilterOutputUpdate(currentFilter *Filter) error {
 

@@ -259,23 +259,55 @@ func (api *FilterAPI) checkNewFilterDimension(ctx context.Context, name string, 
 }
 
 // checkNewFilterDimensionOptions, assuming a valid dimension, this method checks that the options provided in the dimension struct are valid
-// by calling getDimensionOptions and verifying that the provided dataset contains all the provided dimension options.
+// by calling getDimensionOptions in batches and verifying that the provided dataset contains all the provided dimension options.
 func (api *FilterAPI) checkNewFilterDimensionOptions(ctx context.Context, dimension models.Dimension, dataset *models.Dataset, logData log.Data) error {
-	// Call dimension options endpoint
-	datasetDimensionOptions, err := api.getDimensionOptions(ctx, dataset, dimension.Name)
-	if err != nil {
-		log.Event(ctx, "failed to retrieve a list of dimension options from the dataset API", log.ERROR, log.Error(err), logData)
-		return err
-	}
+	logData["dimension"] = dimension
+	maxLogOptions := min(30, api.datasetLimit)
 
-	var incorrectDimensionOptions []string
-	incorrectOptions := models.ValidateFilterDimensionOptions(dimension.Options, datasetDimensionOptions)
-	if incorrectOptions != nil {
-		incorrectDimensionOptions = append(incorrectDimensionOptions, incorrectOptions...)
-	}
+	// create map of all options that need to be found
+	optionsNotFound := createMap(dimension.Options)
 
-	if incorrectDimensionOptions != nil {
-		err = fmt.Errorf("incorrect dimension options chosen: %v", incorrectDimensionOptions)
+	// find filter options in Dataset API (in batches, using paginated calls)
+	offset := 0
+	// limit := api.datasetLimit
+	totalCount := 1
+	for len(optionsNotFound) > 0 && offset < totalCount {
+
+		// get a batch of dimension options from Dataset API
+		datasetDimensionOptions, err := api.getDimensionOptions(ctx, dataset, dimension.Name, offset, api.datasetLimit)
+		if err != nil {
+			log.Event(ctx, "failed to retrieve a list of dimension options from dataset API", log.ERROR, log.Error(err), logData)
+			return err
+		}
+
+		// (first iteration only) - set totalCount and logData
+		if offset == 0 {
+			totalCount = datasetDimensionOptions.TotalCount
+			logData["dimension_options_total"] = totalCount
+			if totalCount > maxLogOptions {
+				logData["dimension_options_first"] = datasetDimensionOptions.Items[0]
+			} else {
+				logData["dimension_options"] = datasetDimensionOptions
+			}
+		}
+
+		// remove found items from notFound map
+		for _, opt := range datasetDimensionOptions.Items {
+			if _, found := optionsNotFound[opt.Option]; found {
+				delete(optionsNotFound, opt.Option)
+			}
+		}
+
+		// set offset for next iteration
+		offset += api.datasetLimit
+	}
+	log.Event(ctx, "dimension options retrieved from dataset API", log.INFO, logData)
+
+	// if there is any dimension that is not found, error
+	if optionsNotFound != nil && len(optionsNotFound) > 0 {
+		incorrectDimensionOptions := createArray(optionsNotFound)
+		logData["incorrect_dimension_options"] = incorrectDimensionOptions
+		err := fmt.Errorf("incorrect dimension options chosen: %v", incorrectDimensionOptions)
 		log.Event(ctx, "incorrect dimension options chosen", log.ERROR, log.Error(err), logData)
 		return err
 	}
