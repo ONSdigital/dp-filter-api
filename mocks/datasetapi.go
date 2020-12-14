@@ -2,6 +2,7 @@ package mocks
 
 import (
 	"context"
+
 	"github.com/ONSdigital/dp-api-clients-go/dataset"
 	"github.com/ONSdigital/dp-filter-api/filters"
 )
@@ -70,8 +71,8 @@ func (ds *DatasetAPI) GetVersionDimensions(ctx context.Context, userAuthToken, s
 	}, nil
 }
 
-// GetVersionDimensionOptions represents the mocked version of getting a list of dimension options from the dataset API
-func (ds *DatasetAPI) GetOptions(ctx context.Context, userAuthToken, serviceAuthToken, collectionID, id, edition, version, dimension string) (m dataset.Options, err error) {
+// GetOptions represents the mocked version of getting a list of dimension options from the dataset API
+func (ds *DatasetAPI) GetOptions(ctx context.Context, userAuthToken, serviceAuthToken, collectionID, id, edition, version, dimension string, offset, limit int) (m dataset.Options, err error) {
 	if ds.InternalServerError {
 		return m, errorInternalServer
 	}
@@ -86,7 +87,26 @@ func (ds *DatasetAPI) GetOptions(ctx context.Context, userAuthToken, serviceAuth
 		Option: "33",
 	}
 
+	items := slice([]dataset.Option{dimensionOptionOne, dimensionOptionTwo}, offset, limit)
+
 	return dataset.Options{
-		Items: []dataset.Option{dimensionOptionOne, dimensionOptionTwo},
+		Items:      items,
+		TotalCount: 2,
+		Offset:     offset,
+		Limit:      limit,
+		Count:      len(items),
 	}, nil
+}
+
+func slice(full []dataset.Option, offset, limit int) (sliced []dataset.Option) {
+	end := offset + limit
+	if limit == 0 || end > len(full) {
+		end = len(full)
+	}
+
+	if offset > len(full) {
+		return []dataset.Option{}
+	}
+
+	return full[offset:end]
 }

@@ -24,6 +24,7 @@ type Config struct {
 	EnablePrivateEndpoints     bool          `envconfig:"ENABLE_PRIVATE_ENDPOINTS"`
 	DownloadServiceURL         string        `envconfig:"DOWNLOAD_SERVICE_URL"`
 	DownloadServiceSecretKey   string        `envconfig:"DOWNLOAD_SERVICE_SECRET_KEY"      json:"-"`
+	DatasetLimit               int           `envconfig:"DATASET_LIMIT"`
 	MongoConfig                MongoConfig
 }
 
@@ -47,7 +48,7 @@ func Get() (*Config, error) {
 
 	cfg = &Config{
 		Host:                       "http://localhost:22100",
-		MaxRequestOptions:          1000,  // Compromise between one option per call (inefficient) and an order of 100k options per call, for census data (memory and computationally expensive)
+		MaxRequestOptions:          1000, // Compromise between one option per call (inefficient) and an order of 100k options per call, for census data (memory and computationally expensive)
 		BindAddr:                   ":22100",
 		Brokers:                    []string{"localhost:9092"},
 		FilterOutputSubmittedTopic: "filter-job-submitted",
@@ -57,6 +58,7 @@ func Get() (*Config, error) {
 		DatasetAPIAuthToken:        "FD0108EA-825D-411C-9B1D-41EF7727F465",
 		HealthCheckInterval:        30 * time.Second,
 		HealthCheckCriticalTimeout: 90 * time.Second,
+		DatasetLimit:               1000,
 		MongoConfig: MongoConfig{
 			BindAddr:          "localhost:27017",
 			Database:          "filters",

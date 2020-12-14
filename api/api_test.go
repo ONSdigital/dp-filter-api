@@ -42,6 +42,7 @@ func cfg() *config.Config {
 		DownloadServiceSecretKey: downloadServiceToken,
 		ServiceAuthToken:         serviceAuthToken,
 		EnablePrivateEndpoints:   enablePrivateEndpoints,
+		DatasetLimit:             1000,
 		MongoConfig: config.MongoConfig{
 			Limit:  0,
 			Offset: 0,

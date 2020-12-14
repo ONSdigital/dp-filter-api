@@ -536,26 +536,6 @@ func findDimensionAndOptions(filterBlueprint *models.Filter, dimensionName strin
 	return false, false, missingOptions
 }
 
-// createArray creates an array of keys from the provided map
-func createArray(m map[string]struct{}) (a []string) {
-	for k := range m {
-		a = append(a, k)
-	}
-	return a
-}
-
-// createMap creates a map whose keys are the unique values of the provided array(s).
-// values are empty structs for memory efficiency reasons (no storage used)
-func createMap(a ...[]string) (m map[string]struct{}) {
-	m = make(map[string]struct{})
-	for _, aa := range a {
-		for _, val := range aa {
-			m[val] = struct{}{}
-		}
-	}
-	return m
-}
-
 // setErrorCodeFromError sets the HTTP Status Code according to the provided error.
 func setErrorCodeFromError(w http.ResponseWriter, err error) {
 	switch err {
