@@ -269,7 +269,6 @@ func (api *FilterAPI) checkNewFilterDimensionOptions(ctx context.Context, dimens
 
 	// find filter options in Dataset API (in batches, using paginated calls)
 	offset := 0
-	// limit := api.datasetLimit
 	totalCount := 1
 	for len(optionsNotFound) > 0 && offset < totalCount {
 
