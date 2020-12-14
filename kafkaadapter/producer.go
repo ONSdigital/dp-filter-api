@@ -1,6 +1,6 @@
 package kafkaadapter
 
-import kafka "github.com/ONSdigital/dp-kafka"
+import kafka "github.com/ONSdigital/dp-kafka/v2"
 
 func NewProducerAdapter(producer *kafka.Producer) *Producer {
 	return &Producer{kafkaProducer: producer}
