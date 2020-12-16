@@ -56,14 +56,11 @@ var getObservationStore = func(ctx context.Context) (observationStore *graph.DB,
 	return observationStore, errorConsumer, nil
 }
 
-var pConfig *kafka.ProducerConfig
-
-var cfg *config.Config
-
 // getProducer returns a kafka producer
-var getProducer = func(ctx context.Context, kafkaBrokers []string, topic string) (kafkaProducer kafka.IProducer, err error) {
+var getProducer = func(ctx context.Context, cfg *config.Config, kafkaBrokers []string, topic string) (kafkaProducer kafka.IProducer, err error) {
 	pConfig := &kafka.ProducerConfig{
-		KafkaVersion: &cfg.KafkaVersion,
+		KafkaVersion:    &cfg.KafkaVersion,
+		MaxMessageBytes: &cfg.KafkaMaxBytes,
 	}
 	producerChannels := kafka.CreateProducerChannels()
 	return kafka.NewProducer(ctx, kafkaBrokers, topic, producerChannels, pConfig)
@@ -109,7 +106,7 @@ func (svc *Service) Init(ctx context.Context, cfg *config.Config, buildTime, git
 	}
 
 	// Get kafka producer
-	svc.filterOutputSubmittedProducer, err = getProducer(ctx, svc.cfg.Brokers, svc.cfg.FilterOutputSubmittedTopic)
+	svc.filterOutputSubmittedProducer, err = getProducer(ctx, cfg, svc.cfg.Brokers, svc.cfg.FilterOutputSubmittedTopic)
 	if err != nil {
 		log.Event(ctx, "error creating kafka filter output submitted producer", log.ERROR, log.Error(err))
 		return err

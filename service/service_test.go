@@ -65,7 +65,7 @@ func TestInit(t *testing.T) {
 				return &kafka.ProducerChannels{}
 			},
 		}
-		getProducer = func(ctx context.Context, kafkaBrokers []string, topic string) (kafkaProducer kafka.IProducer, err error) {
+		getProducer = func(ctx context.Context, cfg *config.Config, kafkaBrokers []string, topic string) (kafkaProducer kafka.IProducer, err error) {
 			return kafkaProducerMock, nil
 		}
 
@@ -127,7 +127,7 @@ func TestInit(t *testing.T) {
 		})
 
 		Convey("Given that initialising the kafka Producer returns an error", func() {
-			getProducer = func(ctx context.Context, kafkaBrokers []string, topic string) (kafkaProducer kafka.IProducer, err error) {
+			getProducer = func(ctx context.Context, cfg *config.Config, kafkaBrokers []string, topic string) (kafkaProducer kafka.IProducer, err error) {
 				return nil, errKafka
 			}
 
