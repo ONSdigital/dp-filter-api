@@ -25,6 +25,7 @@ type Config struct {
 	DownloadServiceURL         string        `envconfig:"DOWNLOAD_SERVICE_URL"`
 	DownloadServiceSecretKey   string        `envconfig:"DOWNLOAD_SERVICE_SECRET_KEY"      json:"-"`
 	DatasetLimit               int           `envconfig:"DATASET_LIMIT"`
+	KafkaVersion               string        `envconfig:"KAFKA_VERSION"`
 	MongoConfig                MongoConfig
 }
 
@@ -70,6 +71,7 @@ func Get() (*Config, error) {
 		EnablePrivateEndpoints:   true,
 		DownloadServiceURL:       "http://localhost:23600",
 		DownloadServiceSecretKey: "QB0108EZ-825D-412C-9B1D-41EF7747F462",
+		KafkaVersion:             "1.0.2",
 	}
 
 	err := envconfig.Process("", cfg)

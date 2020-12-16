@@ -16,7 +16,7 @@ import (
 	"github.com/ONSdigital/dp-filter-api/preview"
 	"github.com/ONSdigital/dp-graph/v2/graph"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
-	kafka "github.com/ONSdigital/dp-kafka"
+	kafka "github.com/ONSdigital/dp-kafka/v2"
 	dphandlers "github.com/ONSdigital/dp-net/handlers"
 	dphttp "github.com/ONSdigital/dp-net/http"
 	"github.com/ONSdigital/log.go/log"
@@ -57,9 +57,13 @@ var getObservationStore = func(ctx context.Context) (observationStore *graph.DB,
 }
 
 // getProducer returns a kafka producer
-var getProducer = func(ctx context.Context, kafkaBrokers []string, topic string, envMax int) (kafkaProducer kafka.IProducer, err error) {
+var getProducer = func(ctx context.Context, cfg *config.Config, kafkaBrokers []string, topic string) (kafkaProducer kafka.IProducer, err error) {
+	pConfig := &kafka.ProducerConfig{
+		KafkaVersion:    &cfg.KafkaVersion,
+		MaxMessageBytes: &cfg.KafkaMaxBytes,
+	}
 	producerChannels := kafka.CreateProducerChannels()
-	return kafka.NewProducer(ctx, kafkaBrokers, topic, envMax, producerChannels)
+	return kafka.NewProducer(ctx, kafkaBrokers, topic, producerChannels, pConfig)
 }
 
 // getHealthCheck returns a healthcheck
@@ -102,7 +106,7 @@ func (svc *Service) Init(ctx context.Context, cfg *config.Config, buildTime, git
 	}
 
 	// Get kafka producer
-	svc.filterOutputSubmittedProducer, err = getProducer(ctx, svc.cfg.Brokers, svc.cfg.FilterOutputSubmittedTopic, svc.cfg.KafkaMaxBytes)
+	svc.filterOutputSubmittedProducer, err = getProducer(ctx, cfg, svc.cfg.Brokers, svc.cfg.FilterOutputSubmittedTopic)
 	if err != nil {
 		log.Event(ctx, "error creating kafka filter output submitted producer", log.ERROR, log.Error(err))
 		return err
