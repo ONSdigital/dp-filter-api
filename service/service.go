@@ -58,8 +58,13 @@ var getObservationStore = func(ctx context.Context) (observationStore *graph.DB,
 
 var pConfig *kafka.ProducerConfig
 
+var cfg *config.Config
+
 // getProducer returns a kafka producer
 var getProducer = func(ctx context.Context, kafkaBrokers []string, topic string) (kafkaProducer kafka.IProducer, err error) {
+	pConfig := &kafka.ProducerConfig{
+		KafkaVersion: &cfg.KafkaVersion,
+	}
 	producerChannels := kafka.CreateProducerChannels()
 	return kafka.NewProducer(ctx, kafkaBrokers, topic, producerChannels, pConfig)
 }
