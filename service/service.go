@@ -166,10 +166,8 @@ func (svc *Service) Start(ctx context.Context, svcErrors chan error) {
 // CreateMiddleware creates an Alice middleware chain of handlers
 func (svc *Service) createMiddleware(ctx context.Context) alice.Chain {
 	healthCheckHandler := newMiddleware(svc.healthCheck.Handler, "/health")
-	oldHealthCheckHandler := newMiddleware(svc.healthCheck.Handler, "/healthcheck")
 	middlewareChain := alice.New(
 		healthCheckHandler,
-		oldHealthCheckHandler,
 		dphandlers.CheckHeader(dphandlers.CollectionID))
 
 	if svc.cfg.EnablePrivateEndpoints {
