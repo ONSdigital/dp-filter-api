@@ -186,6 +186,9 @@ func newMiddleware(healthcheckHandler func(http.ResponseWriter, *http.Request), 
 			if req.Method == "GET" && req.URL.Path == endpoint {
 				healthcheckHandler(w, req)
 				return
+			} else if req.Method == "GET" && req.URL.Path == "/healthcheck" {
+				http.NotFound(w, req)
+				return
 			}
 			h.ServeHTTP(w, req)
 		})
