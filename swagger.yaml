@@ -34,6 +34,18 @@ parameters:
     type: integer
     description: "Limit the number of rows returned in a preview. Defaults to 20 and capped at 100"
     in: query
+  page_limit:
+    name: limit
+    description: "Maximum number of items that will be returned. A value of zero will return all available items, without limit. The default value is 100."
+    in: query
+    required: false
+    type: integer
+  offset:
+    name: offset
+    description: "Starting index of the items array that will be returned. By default it is zero, meaning that the returned items will start from the beginning."
+    in: query
+    required: false
+    type: integer
   name:
     name: name
     type: string
@@ -268,6 +280,8 @@ paths:
     parameters:
       - $ref: '#/parameters/filter_id'
       - $ref: '#/parameters/name'
+      - $ref: '#/parameters/page_limit'
+      - $ref: '#/parameters/offset'
     get:
       tags:
       - "Public"
