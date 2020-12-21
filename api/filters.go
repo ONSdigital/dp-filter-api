@@ -471,7 +471,7 @@ func (api *FilterAPI) getDimensions(ctx context.Context, dataset *models.Dataset
 	return &dimensions, nil
 }
 
-func (api *FilterAPI) getDimensionOptions(ctx context.Context, dataset *models.Dataset, dimensionName string, offset, limit int) (*datasetAPI.Options, error) {
+func (api *FilterAPI) getDimensionOptions(ctx context.Context, dataset *models.Dataset, dimensionName string, ids []string) (*datasetAPI.Options, error) {
 
 	options, err := api.datasetAPI.GetOptions(ctx,
 		getUserAuthToken(ctx),
@@ -481,7 +481,7 @@ func (api *FilterAPI) getDimensionOptions(ctx context.Context, dataset *models.D
 		dataset.Edition,
 		strconv.Itoa(dataset.Version),
 		dimensionName,
-		offset, limit)
+		datasetAPI.QueryParams{IDs: ids})
 
 	if err != nil {
 		if apiErr, ok := err.(*datasetAPI.ErrInvalidDatasetAPIResponse); ok {

@@ -269,11 +269,11 @@ func (api *FilterAPI) checkNewFilterDimensionOptions(ctx context.Context, dimens
 
 	// find filter options in Dataset API (in batches, using paginated calls)
 	offset := 0
-	totalCount := 1
-	for len(optionsNotFound) > 0 && offset < totalCount {
+	for len(optionsNotFound) > 0 && offset < len(dimension.Options) {
 
-		// get a batch of dimension options from Dataset API
-		datasetDimensionOptions, err := api.getDimensionOptions(ctx, dataset, dimension.Name, offset, api.datasetLimit)
+		// find a batch of dimension options from Dataset API
+		batchOpts := slice(dimension.Options, offset, api.datasetLimit)
+		datasetDimensionOptions, err := api.getDimensionOptions(ctx, dataset, dimension.Name, batchOpts)
 		if err != nil {
 			log.Event(ctx, "failed to retrieve a list of dimension options from dataset API", log.ERROR, log.Error(err), logData)
 			return err
@@ -281,10 +281,11 @@ func (api *FilterAPI) checkNewFilterDimensionOptions(ctx context.Context, dimens
 
 		// (first iteration only) - set totalCount and logData
 		if offset == 0 {
-			totalCount = datasetDimensionOptions.TotalCount
-			logData["dimension_options_total"] = totalCount
-			if totalCount > maxLogOptions {
-				logData["dimension_options_first"] = datasetDimensionOptions.Items[0]
+			logData["dimension_options_total"] = datasetDimensionOptions.TotalCount
+			if datasetDimensionOptions.TotalCount > maxLogOptions {
+				if datasetDimensionOptions.Items != nil && len(datasetDimensionOptions.Items) > 0 {
+					logData["dimension_options_first"] = datasetDimensionOptions.Items[0]
+				}
 			} else {
 				logData["dimension_options"] = datasetDimensionOptions
 			}

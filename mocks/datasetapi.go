@@ -72,7 +72,7 @@ func (ds *DatasetAPI) GetVersionDimensions(ctx context.Context, userAuthToken, s
 }
 
 // GetOptions represents the mocked version of getting a list of dimension options from the dataset API
-func (ds *DatasetAPI) GetOptions(ctx context.Context, userAuthToken, serviceAuthToken, collectionID, id, edition, version, dimension string, offset, limit int) (m dataset.Options, err error) {
+func (ds *DatasetAPI) GetOptions(ctx context.Context, userAuthToken, serviceAuthToken, collectionID, id, edition, version, dimension string, q dataset.QueryParams) (m dataset.Options, err error) {
 	if ds.InternalServerError {
 		return m, errorInternalServer
 	}
@@ -87,13 +87,13 @@ func (ds *DatasetAPI) GetOptions(ctx context.Context, userAuthToken, serviceAuth
 		Option: "33",
 	}
 
-	items := slice([]dataset.Option{dimensionOptionOne, dimensionOptionTwo}, offset, limit)
+	items := slice([]dataset.Option{dimensionOptionOne, dimensionOptionTwo}, q.Offset, q.Limit)
 
 	return dataset.Options{
 		Items:      items,
 		TotalCount: 2,
-		Offset:     offset,
-		Limit:      limit,
+		Offset:     q.Offset,
+		Limit:      q.Limit,
 		Count:      len(items),
 	}, nil
 }

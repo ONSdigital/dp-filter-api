@@ -15,7 +15,7 @@ import (
 type DatasetAPI interface {
 	GetVersion(ctx context.Context, userAuthToken, serviceAuthToken, downloadServiceAuthToken, collectionID, datasetID, edition, version string) (m dataset.Version, err error)
 	GetVersionDimensions(ctx context.Context, userAuthToken, serviceAuthToken, collectionID, id, edition, version string) (m dataset.VersionDimensions, err error)
-	GetOptions(ctx context.Context, userAuthToken, serviceAuthToken, collectionID, id, edition, version, dimension string, offset, limit int) (m dataset.Options, err error)
+	GetOptions(ctx context.Context, userAuthToken, serviceAuthToken, collectionID, id, edition, version, dimension string, q dataset.QueryParams) (m dataset.Options, err error)
 }
 
 // OutputQueue - An interface used to queue filter outputs
