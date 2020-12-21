@@ -65,6 +65,8 @@ func Get() (*Config, error) {
 			Database:          "filters",
 			FiltersCollection: "filters",
 			OutputsCollection: "filterOutputs",
+			Limit:             100,
+			Offset:            0,
 		},
 		ServiceAuthToken:         "FD0108EA-825D-411C-9B1D-41EF7727F465",
 		ZebedeeURL:               "http://localhost:8082",
