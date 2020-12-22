@@ -81,6 +81,14 @@ type PublicDimension struct {
 	Links *PublicDimensionLinkMap `bson:"links"                   json:"links"`
 }
 
+type PublicDimensions struct {
+	Items      []*PublicDimension `json:"items"`
+	Count      int                `json:"count"`
+	Offset     int                `json:"offset"`
+	Limit      int                `json:"limit"`
+	TotalCount int                `json:"total_count"`
+}
+
 // PublicDimensionLinkMap is the links map for the PublicDimension structure
 type PublicDimensionLinkMap struct {
 	Self    LinkObject `bson:"self"                 json:"self"`

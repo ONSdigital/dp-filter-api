@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"sort"
 
 	"github.com/ONSdigital/dp-filter-api/filters"
 	"github.com/ONSdigital/dp-filter-api/models"
@@ -19,6 +20,22 @@ func (api *FilterAPI) getFilterBlueprintDimensionsHandler(w http.ResponseWriter,
 	logData := log.Data{"filter_blueprint_id": filterBlueprintID}
 	ctx := r.Context()
 	log.Event(ctx, "getting filter blueprint dimensions", log.INFO, logData)
+
+	// get limit from query parameters, or default value
+	limit, err := getPositiveIntQueryParameter(r.URL.Query(), "limit", api.defaultLimit)
+	if err != nil {
+		log.Event(ctx, "failed to obtain limit from request query parameters", log.ERROR, logData)
+		setErrorCode(w, err)
+		return
+	}
+
+	// get offset from query parameters, or default value
+	offset, err := getPositiveIntQueryParameter(r.URL.Query(), "offset", api.defaultOffset)
+	if err != nil {
+		log.Event(ctx, "failed to obtain offset from request query parameters", log.ERROR, logData)
+		setErrorCode(w, err)
+		return
+	}
 
 	filter, err := api.getFilterBlueprint(ctx, filterBlueprintID)
 	if err != nil {
@@ -35,7 +52,34 @@ func (api *FilterAPI) getFilterBlueprintDimensionsHandler(w http.ResponseWriter,
 		return
 	}
 
-	publicDimensions := createPublicDimensions(filter.Dimensions, api.host, filter.FilterID)
+	var dimensionNames []string
+
+	for _, dimension := range filter.Dimensions {
+		dimensionNames = append(dimensionNames, dimension.Name)
+	}
+
+	sort.Strings(dimensionNames)
+	slicedDimensionNames := slice(dimensionNames, offset, limit)
+
+	var filterDimensions []models.Dimension
+
+	for _, dimensionName := range slicedDimensionNames {
+		for _, dimension := range filter.Dimensions {
+			if dimension.Name == dimensionName {
+				filterDimensions = append(filterDimensions, dimension)
+				break
+			}
+		}
+	}
+
+	items := createPublicDimensions(filterDimensions, api.host, filter.FilterID)
+	publicDimensions := models.PublicDimensions{
+		Items:      items,
+		Count:      len(items),
+		TotalCount: len(filter.Dimensions),
+		Offset:     offset,
+		Limit:      limit,
+	}
 	b, err := json.Marshal(publicDimensions)
 	if err != nil {
 		log.Event(ctx, "failed to marshal filter blueprint dimensions into bytes", log.ERROR, log.Error(err), logData)
