@@ -4,27 +4,67 @@ import (
 	"context"
 
 	"github.com/ONSdigital/dp-api-clients-go/dataset"
+	apimocks "github.com/ONSdigital/dp-filter-api/api/mocks"
 	"github.com/ONSdigital/dp-filter-api/filters"
 )
 
-// DatasetAPI represents a list of error flags to set error in mocked dataset API
-type DatasetAPI struct {
+// DatasetAPIConfig represents a list of error flags to set error in mocked dataset API
+type DatasetAPIConfig struct {
 	VersionNotFound     bool
 	InternalServerError bool
 	Unpublished         bool
 }
 
+// DatasetAPI holds the list of possible error flats along with the mocked dataset api calls.
+// This struct can be used directly as a mock, as it implements the required methods,
+// or you can use the internal 'moq' Mock if you want ot validate calls, parameters etc.
+type DatasetAPI struct {
+	Cfg  DatasetAPIConfig
+	Mock *apimocks.DatasetAPIMock
+}
+
+// NewDatasetAPI creates a new dataset API mock with an empty config
+func NewDatasetAPI() *DatasetAPI {
+	ds := &DatasetAPI{
+		Cfg: DatasetAPIConfig{},
+	}
+	ds.Mock = &apimocks.DatasetAPIMock{
+		GetVersionFunc:           ds.GetVersion,
+		GetVersionDimensionsFunc: ds.GetVersionDimensions,
+		GetOptionsFunc:           ds.GetOptions,
+	}
+	return ds
+}
+
+// VersionNotFound sets VersionNotFound flag to true
+func (ds *DatasetAPI) VersionNotFound() *DatasetAPI {
+	ds.Cfg.VersionNotFound = true
+	return ds
+}
+
+// InternalServiceError sets InternalServiceError flag to true
+func (ds *DatasetAPI) InternalServiceError() *DatasetAPI {
+	ds.Cfg.InternalServerError = true
+	return ds
+}
+
+// Unpublished sets Unpublished flag to true
+func (ds *DatasetAPI) Unpublished() *DatasetAPI {
+	ds.Cfg.Unpublished = true
+	return ds
+}
+
 // GetVersion represents the mocked version of getting an version document from dataset API
 func (ds *DatasetAPI) GetVersion(ctx context.Context, userAuthToken, serviceAuthToken, downloadServiceAuthToken, collectionID, datasetID, edition, version string) (m dataset.Version, err error) {
-	if ds.InternalServerError {
+	if ds.Cfg.InternalServerError {
 		return m, errorInternalServer
 	}
 
-	if ds.VersionNotFound {
+	if ds.Cfg.VersionNotFound {
 		return m, filters.ErrVersionNotFound
 	}
 
-	if ds.Unpublished {
+	if ds.Cfg.Unpublished {
 		return dataset.Version{
 			Links: dataset.Links{
 				Dataset: dataset.Link{
@@ -58,7 +98,7 @@ func (ds *DatasetAPI) GetVersion(ctx context.Context, userAuthToken, serviceAuth
 
 // GetVersionDimensions represents the mocked version of getting a list of dimensions from the dataset API
 func (ds *DatasetAPI) GetVersionDimensions(ctx context.Context, userAuthToken, serviceAuthToken, collectionID, id, edition, version string) (m dataset.VersionDimensions, err error) {
-	if ds.InternalServerError {
+	if ds.Cfg.InternalServerError {
 		return m, errorInternalServer
 	}
 
@@ -73,7 +113,7 @@ func (ds *DatasetAPI) GetVersionDimensions(ctx context.Context, userAuthToken, s
 
 // GetOptions represents the mocked version of getting a list of dimension options from the dataset API
 func (ds *DatasetAPI) GetOptions(ctx context.Context, userAuthToken, serviceAuthToken, collectionID, id, edition, version, dimension string, q dataset.QueryParams) (m dataset.Options, err error) {
-	if ds.InternalServerError {
+	if ds.Cfg.InternalServerError {
 		return m, errorInternalServer
 	}
 

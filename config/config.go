@@ -12,7 +12,6 @@ type Config struct {
 	Brokers                    []string      `envconfig:"KAFKA_ADDR"`
 	FilterOutputSubmittedTopic string        `envconfig:"FILTER_JOB_SUBMITTED_TOPIC"`
 	Host                       string        `envconfig:"HOST"`
-	MaxRequestOptions          int           `envconfig:"MAX_REQUEST_OPTIONS"`
 	KafkaMaxBytes              int           `envconfig:"KAFKA_MAX_BYTES"`
 	ShutdownTimeout            time.Duration `envconfig:"SHUTDOWN_TIMEOUT"`
 	DatasetAPIURL              string        `envconfig:"DATASET_API_URL"`
@@ -24,7 +23,8 @@ type Config struct {
 	EnablePrivateEndpoints     bool          `envconfig:"ENABLE_PRIVATE_ENDPOINTS"`
 	DownloadServiceURL         string        `envconfig:"DOWNLOAD_SERVICE_URL"`
 	DownloadServiceSecretKey   string        `envconfig:"DOWNLOAD_SERVICE_SECRET_KEY"      json:"-"`
-	DatasetLimit               int           `envconfig:"DATASET_LIMIT"`
+	MaxRequestOptions          int           `envconfig:"MAX_REQUEST_OPTIONS"`
+	MaxDatasetOptions          int           `envconfig:"MAX_DATASET_OPTIONS"`
 	KafkaVersion               string        `envconfig:"KAFKA_VERSION"`
 	MongoConfig                MongoConfig
 }
@@ -49,7 +49,6 @@ func Get() (*Config, error) {
 
 	cfg = &Config{
 		Host:                       "http://localhost:22100",
-		MaxRequestOptions:          1000, // Compromise between one option per call (inefficient) and an order of 100k options per call, for census data (memory and computationally expensive)
 		BindAddr:                   ":22100",
 		Brokers:                    []string{"localhost:9092"},
 		FilterOutputSubmittedTopic: "filter-job-submitted",
@@ -59,7 +58,8 @@ func Get() (*Config, error) {
 		DatasetAPIAuthToken:        "FD0108EA-825D-411C-9B1D-41EF7727F465",
 		HealthCheckInterval:        30 * time.Second,
 		HealthCheckCriticalTimeout: 90 * time.Second,
-		DatasetLimit:               1000,
+		MaxRequestOptions:          1000, // Maximum number of options acceptable in an incoming Patch request. Compromise between one option per call (inefficient) and an order of 100k options per call, for census data (memory and computationally expensive)
+		MaxDatasetOptions:          200,  // Maximum number of options requested to Dataset API in a single call.
 		MongoConfig: MongoConfig{
 			BindAddr:          "localhost:27017",
 			Database:          "filters",

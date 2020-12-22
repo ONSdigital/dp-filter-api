@@ -9,7 +9,7 @@ import (
 	"net/http/httptest"
 	"strings"
 
-	"github.com/ONSdigital/dp-filter-api/api/datastoretest"
+	apimocks "github.com/ONSdigital/dp-filter-api/api/mocks"
 	"github.com/ONSdigital/dp-filter-api/filters"
 	"github.com/ONSdigital/dp-filter-api/models"
 	"github.com/gorilla/mux"
@@ -60,7 +60,7 @@ func TestSuccessfulGetFilterOutput(t *testing.T) {
 		r.Header.Add(dprequest.DownloadServiceHeaderKey, downloadServiceToken)
 
 		w := httptest.NewRecorder()
-		api := Setup(cfg(), mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock)
+		api := Setup(cfg(), mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, mocks.NewDatasetAPI().Unpublished(), previewMock)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusOK)
 
@@ -81,7 +81,7 @@ func TestSuccessfulGetFilterOutput(t *testing.T) {
 		r := createAuthenticatedRequest("GET", "http://localhost:22100/filter-outputs/12345678", nil)
 
 		w := httptest.NewRecorder()
-		api := Setup(cfg(), mux.NewRouter(), mocks.NewDataStore().Unpublished(), &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock)
+		api := Setup(cfg(), mux.NewRouter(), mocks.NewDataStore().Unpublished(), &mocks.FilterJob{}, mocks.NewDatasetAPI().Unpublished(), previewMock)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusOK)
 	})
@@ -121,7 +121,7 @@ func TestFailedToGetFilterOutput(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := Setup(cfg(), mux.NewRouter(), mocks.NewDataStore().Unpublished(), &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock)
+		api := Setup(cfg(), mux.NewRouter(), mocks.NewDataStore().Unpublished(), &mocks.FilterJob{}, mocks.NewDatasetAPI().Unpublished(), previewMock)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
@@ -170,7 +170,7 @@ func TestSuccessfulUpdateFilterOutput_StatusComplete(t *testing.T) {
 	t.Parallel()
 
 	Convey("Given a filter output without downloads", t, func() {
-		mockDatastore := &datastoretest.DataStoreMock{
+		mockDatastore := &apimocks.DataStoreMock{
 			AddEventToFilterOutputFunc: func(filterOutputID string, event *models.Event) error {
 				return nil
 			},
@@ -254,7 +254,7 @@ func TestSuccessfulUpdateFilterOutputUnpublished(t *testing.T) {
 		r := createAuthenticatedRequest("PUT", "http://localhost:22100/filter-outputs/21312", reader)
 
 		w := httptest.NewRecorder()
-		api := Setup(cfg(), mux.NewRouter(), mocks.NewDataStore().Unpublished(), &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock)
+		api := Setup(cfg(), mux.NewRouter(), mocks.NewDataStore().Unpublished(), &mocks.FilterJob{}, mocks.NewDatasetAPI().Unpublished(), previewMock)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusOK)
 
@@ -534,7 +534,7 @@ func TestSuccessfulGetPreview(t *testing.T) {
 		r := createAuthenticatedRequest("GET", "http://localhost:22100/filter-outputs/21312/preview", nil)
 
 		w := httptest.NewRecorder()
-		api := Setup(cfg(), mux.NewRouter(), mocks.NewDataStore().Unpublished(), &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock)
+		api := Setup(cfg(), mux.NewRouter(), mocks.NewDataStore().Unpublished(), &mocks.FilterJob{}, mocks.NewDatasetAPI().Unpublished(), previewMock)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusOK)
 		So(previewMock.GetPreviewCalls()[0].Limit, ShouldEqual, 20)
@@ -545,7 +545,7 @@ func TestSuccessfulGetPreview(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		previewMockForLimit := &datastoretest.PreviewDatasetMock{
+		previewMockForLimit := &apimocks.PreviewDatasetMock{
 			GetPreviewFunc: func(ctx context.Context, filter *models.Filter, limit int) (*models.FilterPreview, error) {
 				return &models.FilterPreview{}, nil
 			},
@@ -587,7 +587,7 @@ func TestFailedGetPreview(t *testing.T) {
 	})
 
 	Convey("Requesting a preview with no neo4j database connection", t, func() {
-		previewMockInternalError := &datastoretest.PreviewDatasetMock{
+		previewMockInternalError := &apimocks.PreviewDatasetMock{
 			GetPreviewFunc: func(ctx context.Context, filter *models.Filter, limit int) (*models.FilterPreview, error) {
 				return nil, errors.New("internal error")
 			},
@@ -635,7 +635,7 @@ func TestFailedGetPreview(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := Setup(cfg(), mux.NewRouter(), mocks.NewDataStore().Unpublished(), &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock)
+		api := Setup(cfg(), mux.NewRouter(), mocks.NewDataStore().Unpublished(), &mocks.FilterJob{}, mocks.NewDatasetAPI().Unpublished(), previewMock)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
@@ -649,7 +649,7 @@ func TestSuccessfulAddEventToFilterOutput(t *testing.T) {
 
 	Convey("Given an existing filter output", t, func() {
 
-		mockDatastore := &datastoretest.DataStoreMock{
+		mockDatastore := &apimocks.DataStoreMock{
 			AddEventToFilterOutputFunc: func(filterOutputID string, event *models.Event) error {
 				return nil
 			},
@@ -692,7 +692,7 @@ func TestFailedAddEventToFilterOutput_InvalidJson(t *testing.T) {
 
 	Convey("Given an existing filter output", t, func() {
 
-		mockDatastore := &datastoretest.DataStoreMock{}
+		mockDatastore := &apimocks.DataStoreMock{}
 
 		api := Setup(cfg(), mux.NewRouter(), mockDatastore, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
 
@@ -722,7 +722,7 @@ func TestFailedAddEventToFilterOutput_InvalidEvent(t *testing.T) {
 
 	Convey("Given an existing filter output", t, func() {
 
-		mockDatastore := &datastoretest.DataStoreMock{}
+		mockDatastore := &apimocks.DataStoreMock{}
 
 		api := Setup(cfg(), mux.NewRouter(), mockDatastore, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
 
@@ -752,7 +752,7 @@ func TestFailedAddEventToFilterOutput_DatastoreError(t *testing.T) {
 
 	Convey("Given an existing filter output", t, func() {
 
-		mockDatastore := &datastoretest.DataStoreMock{
+		mockDatastore := &apimocks.DataStoreMock{
 			AddEventToFilterOutputFunc: func(filterOutputID string, event *models.Event) error {
 				return errors.New("database is broken")
 			},

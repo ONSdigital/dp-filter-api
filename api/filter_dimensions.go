@@ -262,7 +262,7 @@ func (api *FilterAPI) checkNewFilterDimension(ctx context.Context, name string, 
 // by calling getDimensionOptions in batches and verifying that the provided dataset contains all the provided dimension options.
 func (api *FilterAPI) checkNewFilterDimensionOptions(ctx context.Context, dimension models.Dimension, dataset *models.Dataset, logData log.Data) error {
 	logData["dimension"] = dimension
-	maxLogOptions := min(30, api.datasetLimit)
+	maxLogOptions := min(30, api.maxDatasetOptions)
 
 	// create map of all options that need to be found
 	optionsNotFound := createMap(dimension.Options)
@@ -272,7 +272,7 @@ func (api *FilterAPI) checkNewFilterDimensionOptions(ctx context.Context, dimens
 	for len(optionsNotFound) > 0 && offset < len(dimension.Options) {
 
 		// find a batch of dimension options from Dataset API
-		batchOpts := slice(dimension.Options, offset, api.datasetLimit)
+		batchOpts := slice(dimension.Options, offset, api.maxDatasetOptions)
 		datasetDimensionOptions, err := api.getDimensionOptions(ctx, dataset, dimension.Name, batchOpts)
 		if err != nil {
 			log.Event(ctx, "failed to retrieve a list of dimension options from dataset API", log.ERROR, log.Error(err), logData)
@@ -299,7 +299,7 @@ func (api *FilterAPI) checkNewFilterDimensionOptions(ctx context.Context, dimens
 		}
 
 		// set offset for next iteration
-		offset += api.datasetLimit
+		offset += api.maxDatasetOptions
 	}
 	log.Event(ctx, "dimension options retrieved from dataset API", log.INFO, logData)
 

@@ -5,7 +5,7 @@ import (
 
 	"github.com/globalsign/mgo/bson"
 
-	"github.com/ONSdigital/dp-filter-api/api/datastoretest"
+	apimocks "github.com/ONSdigital/dp-filter-api/api/mocks"
 	"github.com/ONSdigital/dp-filter-api/filters"
 	"github.com/ONSdigital/dp-filter-api/models"
 )
@@ -36,7 +36,7 @@ type DataStoreConfig struct {
 // or you can use the internal 'moq' Mock if you want ot validate calls, parameters etc.
 type DataStore struct {
 	Cfg  DataStoreConfig
-	Mock *datastoretest.DataStoreMock
+	Mock *apimocks.DataStoreMock
 }
 
 // NewDataStore creates a new datastore mock with an empty config
@@ -44,7 +44,7 @@ func NewDataStore() *DataStore {
 	ds := &DataStore{
 		Cfg: DataStoreConfig{},
 	}
-	mock := &datastoretest.DataStoreMock{
+	ds.Mock = &apimocks.DataStoreMock{
 		AddFilterFunc:                    ds.AddFilter,
 		AddFilterDimensionFunc:           ds.AddFilterDimension,
 		AddFilterDimensionOptionFunc:     ds.AddFilterDimensionOption,
@@ -60,7 +60,6 @@ func NewDataStore() *DataStore {
 		UpdateFilterOutputFunc:           ds.UpdateFilterOutput,
 		AddEventToFilterOutputFunc:       ds.AddEventToFilterOutput,
 	}
-	ds.Mock = mock
 	return ds
 }
 

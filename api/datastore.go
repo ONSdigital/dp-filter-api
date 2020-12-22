@@ -5,7 +5,7 @@ import (
 	"github.com/globalsign/mgo/bson"
 )
 
-//go:generate moq -out datastoretest/datastore.go -pkg datastoretest . DataStore
+//go:generate moq -out mocks/datastore.go -pkg mocks . DataStore
 
 // DataStore - A interface used to store filters
 type DataStore interface {

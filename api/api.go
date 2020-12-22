@@ -9,7 +9,8 @@ import (
 	"github.com/gorilla/mux"
 )
 
-//go:generate moq -out datastoretest/preview.go -pkg datastoretest . PreviewDataset
+//go:generate moq -out mocks/preview.go -pkg mocks . PreviewDataset
+//go:generate moq -out mocks/datasetapi.go -pkg mocks . DatasetAPI
 
 // DatasetAPI - An interface used to access the DatasetAPI
 type DatasetAPI interface {
@@ -42,7 +43,7 @@ type FilterAPI struct {
 	serviceAuthToken     string
 	defaultLimit         int
 	defaultOffset        int
-	datasetLimit         int
+	maxDatasetOptions    int
 }
 
 // Setup manages all the routes configured to API
@@ -67,7 +68,7 @@ func Setup(
 		serviceAuthToken:     cfg.ServiceAuthToken,
 		defaultLimit:         cfg.MongoConfig.Limit,
 		defaultOffset:        cfg.MongoConfig.Offset,
-		datasetLimit:         cfg.DatasetLimit,
+		maxDatasetOptions:    cfg.MaxDatasetOptions,
 	}
 
 	api.router.HandleFunc("/filters", api.postFilterBlueprintHandler).Methods("POST")

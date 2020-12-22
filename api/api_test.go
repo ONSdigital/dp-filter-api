@@ -6,7 +6,7 @@ import (
 
 	"context"
 
-	"github.com/ONSdigital/dp-filter-api/api/datastoretest"
+	apimocks "github.com/ONSdigital/dp-filter-api/api/mocks"
 	"github.com/ONSdigital/dp-filter-api/config"
 	"github.com/ONSdigital/dp-filter-api/filters"
 	"github.com/ONSdigital/dp-filter-api/models"
@@ -42,7 +42,7 @@ func cfg() *config.Config {
 		DownloadServiceSecretKey: downloadServiceToken,
 		ServiceAuthToken:         serviceAuthToken,
 		EnablePrivateEndpoints:   enablePrivateEndpoints,
-		DatasetLimit:             1000,
+		MaxDatasetOptions:        200,
 		MongoConfig: config.MongoConfig{
 			Limit:  0,
 			Offset: 0,
@@ -50,7 +50,7 @@ func cfg() *config.Config {
 	}
 }
 
-var previewMock = &datastoretest.PreviewDatasetMock{
+var previewMock = &apimocks.PreviewDatasetMock{
 	GetPreviewFunc: func(ctx context.Context, filter *models.Filter, limit int) (*models.FilterPreview, error) {
 		return &models.FilterPreview{}, nil
 	},
