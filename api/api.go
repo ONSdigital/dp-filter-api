@@ -4,17 +4,19 @@ import (
 	"context"
 
 	"github.com/ONSdigital/dp-api-clients-go/dataset"
+	"github.com/ONSdigital/dp-filter-api/config"
 	"github.com/ONSdigital/dp-filter-api/models"
 	"github.com/gorilla/mux"
 )
 
-//go:generate moq -out datastoretest/preview.go -pkg datastoretest . PreviewDataset
+//go:generate moq -out mocks/preview.go -pkg mocks . PreviewDataset
+//go:generate moq -out mocks/datasetapi.go -pkg mocks . DatasetAPI
 
 // DatasetAPI - An interface used to access the DatasetAPI
 type DatasetAPI interface {
 	GetVersion(ctx context.Context, userAuthToken, serviceAuthToken, downloadServiceAuthToken, collectionID, datasetID, edition, version string) (m dataset.Version, err error)
 	GetVersionDimensions(ctx context.Context, userAuthToken, serviceAuthToken, collectionID, id, edition, version string) (m dataset.VersionDimensions, err error)
-	GetOptions(ctx context.Context, userAuthToken, serviceAuthToken, collectionID, id, edition, version, dimension string) (m dataset.Options, err error)
+	GetOptions(ctx context.Context, userAuthToken, serviceAuthToken, collectionID, id, edition, version, dimension string, q dataset.QueryParams) (m dataset.Options, err error)
 }
 
 // OutputQueue - An interface used to queue filter outputs
@@ -30,36 +32,43 @@ type PreviewDataset interface {
 // FilterAPI manages importing filters against a dataset
 type FilterAPI struct {
 	host                 string
+	maxRequestOptions    int
+	router               *mux.Router
 	dataStore            DataStore
 	outputQueue          OutputQueue
-	router               *mux.Router
 	datasetAPI           DatasetAPI
 	preview              PreviewDataset
 	downloadServiceURL   string
 	downloadServiceToken string
 	serviceAuthToken     string
+	defaultLimit         int
+	defaultOffset        int
+	maxDatasetOptions    int
 }
 
 // Setup manages all the routes configured to API
-func Setup(host string,
+func Setup(
+	cfg *config.Config,
 	router *mux.Router,
 	dataStore DataStore,
 	outputQueue OutputQueue,
 	datasetAPI DatasetAPI,
-	preview PreviewDataset,
-	enablePrivateEndpoints bool,
-	downloadServiceURL, downloadServiceToken, serviceAuthToken string) *FilterAPI {
+	preview PreviewDataset) *FilterAPI {
 
 	api := &FilterAPI{
-		host:                 host,
-		dataStore:            dataStore,
+		host:                 cfg.Host,
+		maxRequestOptions:    cfg.MaxRequestOptions,
 		router:               router,
+		dataStore:            dataStore,
 		outputQueue:          outputQueue,
 		datasetAPI:           datasetAPI,
 		preview:              preview,
-		downloadServiceURL:   downloadServiceURL,
-		downloadServiceToken: downloadServiceToken,
-		serviceAuthToken:     serviceAuthToken,
+		downloadServiceURL:   cfg.DownloadServiceURL,
+		downloadServiceToken: cfg.DownloadServiceSecretKey,
+		serviceAuthToken:     cfg.ServiceAuthToken,
+		defaultLimit:         cfg.MongoConfig.Limit,
+		defaultOffset:        cfg.MongoConfig.Offset,
+		maxDatasetOptions:    cfg.MaxDatasetOptions,
 	}
 
 	api.router.HandleFunc("/filters", api.postFilterBlueprintHandler).Methods("POST")
@@ -78,7 +87,7 @@ func Setup(host string,
 	api.router.HandleFunc("/filter-outputs/{filter_output_id}", api.getFilterOutputHandler).Methods("GET")
 	api.router.HandleFunc("/filter-outputs/{filter_output_id}/preview", api.getFilterOutputPreviewHandler).Methods("GET")
 
-	if enablePrivateEndpoints {
+	if cfg.EnablePrivateEndpoints {
 		api.router.HandleFunc("/filter-outputs/{filter_output_id}", api.updateFilterOutputHandler).Methods("PUT")
 		api.router.HandleFunc("/filter-outputs/{filter_output_id}/events", api.addEventHandler).Methods("POST")
 	}

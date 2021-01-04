@@ -81,6 +81,14 @@ type PublicDimension struct {
 	Links *PublicDimensionLinkMap `bson:"links"                   json:"links"`
 }
 
+type PublicDimensions struct {
+	Items      []*PublicDimension `json:"items"`
+	Count      int                `json:"count"`
+	Offset     int                `json:"offset"`
+	Limit      int                `json:"limit"`
+	TotalCount int                `json:"total_count"`
+}
+
 // PublicDimensionLinkMap is the links map for the PublicDimension structure
 type PublicDimensionLinkMap struct {
 	Self    LinkObject `bson:"self"                 json:"self"`
@@ -88,10 +96,19 @@ type PublicDimensionLinkMap struct {
 	Options LinkObject `bson:"options"              json:"options, omitempty"`
 }
 
-// PublicDimensionOptions represents information about a single dimension option as served by /options and /options/<id>
+// PublicDimensionOption represents information about a single dimension option as served by /options and /options/<id>
 type PublicDimensionOption struct {
 	Links  *PublicDimensionOptionLinkMap `bson:"links"               json:"links"`
 	Option string                        `bson:"option"              json:"option"`
+}
+
+// PublicDimensionOptions represents information about a set of dimension options
+type PublicDimensionOptions struct {
+	Items      []*PublicDimensionOption `json:"items"`
+	Count      int                      `json:"count"`
+	Offset     int                      `json:"offset"`
+	Limit      int                      `json:"limit"`
+	TotalCount int                      `json:"total_count"`
 }
 
 // PublicDimensionOptionLinkMap is the links map for the PublicDimensionOption structure
@@ -193,24 +210,6 @@ func ValidateFilterDimensions(filterDimensions []Dimension, dimensions *dataset.
 	}
 
 	return nil
-}
-
-// ValidateFilterDimensionOptions checks the selected filter dimension options
-// are valid for a dimension of a single version of a dataset
-func ValidateFilterDimensionOptions(filterDimensionOptions []string, datasetDimensionOptions *dataset.Options) []string {
-	dimensionOptions := make(map[string]int)
-	for _, datasetOption := range datasetDimensionOptions.Items {
-		dimensionOptions[datasetOption.Option] = 1
-	}
-
-	var incorrectDimensionOptions []string
-	for _, filterOption := range filterDimensionOptions {
-		if _, ok := dimensionOptions[filterOption]; !ok {
-			incorrectDimensionOptions = append(incorrectDimensionOptions, filterOption)
-		}
-	}
-
-	return incorrectDimensionOptions
 }
 
 // ValidateFilterOutputUpdate checks the content of the filter structure

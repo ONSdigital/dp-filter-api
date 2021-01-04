@@ -1,12 +1,15 @@
 package api
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
+	"github.com/ONSdigital/dp-api-clients-go/dataset"
 	"github.com/ONSdigital/dp-filter-api/mocks"
+	"github.com/ONSdigital/dp-filter-api/models"
 	"github.com/gorilla/mux"
 	. "github.com/smartystreets/goconvey/convey"
 
@@ -16,105 +19,169 @@ import (
 func TestSuccessfulAddFilterBlueprintDimensionOption(t *testing.T) {
 	t.Parallel()
 
-	Convey("Successfully add a dimension option to a filter", t, func() {
+	Convey("Given that a dimension option is successfully added to a filter", t, func() {
 		r, err := http.NewRequest("POST", "http://localhost:22100/filters/12345678/dimensions/age/options/33", nil)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := Setup(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, serviceAuthToken)
+		datasetAPIMock := mocks.NewDatasetAPI().Mock
+		api := Setup(cfg(), mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, datasetAPIMock, previewMock)
 		api.router.ServeHTTP(w, r)
-		So(w.Code, ShouldEqual, http.StatusCreated)
+
+		Convey("Then a 201 Created status code is returned", func() {
+			So(w.Code, ShouldEqual, http.StatusCreated)
+		})
+
+		Convey("And the dimension and options are efficiently validated with dataset API", func() {
+			So(datasetAPIMock.GetVersionDimensionsCalls(), ShouldHaveLength, 1)
+			So(datasetAPIMock.GetOptionsCalls(), ShouldHaveLength, 1)
+			So(datasetAPIMock.GetOptionsCalls()[0].Q, ShouldResemble, dataset.QueryParams{IDs: []string{"33"}})
+		})
 	})
 
-	Convey("Successfully add a dimension option to an unpublished filter", t, func() {
+	Convey("Given that a dimension option is successfully added to an unpublished filter", t, func() {
 		r := createAuthenticatedRequest("POST", "http://localhost:22100/filters/12345678/dimensions/age/options/33", nil)
 
 		w := httptest.NewRecorder()
-		api := Setup(host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, serviceAuthToken)
+		datasetAPIMock := mocks.NewDatasetAPI().Unpublished().Mock
+		api := Setup(cfg(), mux.NewRouter(), mocks.NewDataStore().Unpublished(), &mocks.FilterJob{}, datasetAPIMock, previewMock)
 		api.router.ServeHTTP(w, r)
-		So(w.Code, ShouldEqual, http.StatusCreated)
+
+		Convey("Then a 201 Created status code is returned", func() {
+			So(w.Code, ShouldEqual, http.StatusCreated)
+		})
+
+		Convey("And the dimension and options are efficiently validated with dataset API", func() {
+			So(datasetAPIMock.GetVersionDimensionsCalls(), ShouldHaveLength, 1)
+			So(datasetAPIMock.GetOptionsCalls(), ShouldHaveLength, 1)
+			So(datasetAPIMock.GetOptionsCalls()[0].Q, ShouldResemble, dataset.QueryParams{IDs: []string{"33"}})
+		})
 	})
 }
 
 func TestFailedToAddFilterBlueprintDimensionOption(t *testing.T) {
 	t.Parallel()
 
-	Convey("When no data store is available, an internal error is returned", t, func() {
+	Convey("Given that no data store is available, when trying to add a dimension option to a filter", t, func() {
 		r, err := http.NewRequest("POST", "http://localhost:22100/filters/12345678/dimensions/age/options/33", nil)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := Setup(host, mux.NewRouter(), &mocks.DataStore{InternalError: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, serviceAuthToken)
+		datasetAPIMock := mocks.NewDatasetAPI().Mock
+		api := Setup(cfg(), mux.NewRouter(), mocks.NewDataStore().InternalError(), &mocks.FilterJob{}, datasetAPIMock, previewMock)
 		api.router.ServeHTTP(w, r)
-		So(w.Code, ShouldEqual, http.StatusInternalServerError)
 
-		response := w.Body.String()
-		So(response, ShouldResemble, internalErrResponse)
+		Convey("Then a 500 InternalServerError status is returned with the expected error response", func() {
+			So(w.Code, ShouldEqual, http.StatusInternalServerError)
+			So(w.Body.String(), ShouldResemble, internalErrResponse)
+		})
+
+		Convey("And no dimension or option is validated against DatasetAPI", func() {
+			So(datasetAPIMock.GetVersionDimensionsCalls(), ShouldHaveLength, 0)
+			So(datasetAPIMock.GetOptionsCalls(), ShouldHaveLength, 0)
+		})
 	})
 
-	Convey("When the filter blueprint does not exist, a bad request status is returned", t, func() {
+	Convey("Given that the filter blueprint does not exist, when trying to add a dimension option to a filter", t, func() {
 		r, err := http.NewRequest("POST", "http://localhost:22100/filters/12345678/dimensions/age/options/33", nil)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := Setup(host, mux.NewRouter(), &mocks.DataStore{NotFound: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, serviceAuthToken)
+		datasetAPIMock := mocks.NewDatasetAPI().Mock
+		api := Setup(cfg(), mux.NewRouter(), mocks.NewDataStore().NotFound(), &mocks.FilterJob{}, datasetAPIMock, previewMock)
 		api.router.ServeHTTP(w, r)
-		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
-		response := w.Body.String()
-		So(response, ShouldResemble, filterNotFoundResponse)
+		Convey("Then a 400 BadRequest status is returned with the expected error response", func() {
+			So(w.Code, ShouldEqual, http.StatusBadRequest)
+			So(w.Body.String(), ShouldResemble, filterNotFoundResponse)
+		})
+
+		Convey("And no dimension or option is validated against DatasetAPI", func() {
+			So(datasetAPIMock.GetVersionDimensionsCalls(), ShouldHaveLength, 0)
+			So(datasetAPIMock.GetOptionsCalls(), ShouldHaveLength, 0)
+		})
 	})
 
-	Convey("When the filter blueprint is unpublished, and the request is unauthenticated, a bad request status is returned", t, func() {
+	Convey("Given that a filter blueprint is unpublished and the request is unauthenticated, a bad request status is returned", t, func() {
 		r, err := http.NewRequest("POST", "http://localhost:22100/filters/12345678/dimensions/age/options/33", nil)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := Setup(host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, serviceAuthToken)
+		datasetAPIMock := mocks.NewDatasetAPI().Unpublished().Mock
+		api := Setup(cfg(), mux.NewRouter(), mocks.NewDataStore().Unpublished(), &mocks.FilterJob{}, datasetAPIMock, previewMock)
 		api.router.ServeHTTP(w, r)
-		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
-		response := w.Body.String()
-		So(response, ShouldResemble, filterNotFoundResponse)
+		Convey("Then a 400 BadRequest status is returned with the expected error response", func() {
+			So(w.Code, ShouldEqual, http.StatusBadRequest)
+			So(w.Body.String(), ShouldResemble, filterNotFoundResponse)
+		})
+
+		Convey("And no dimension or option is validated against DatasetAPI", func() {
+			So(datasetAPIMock.GetVersionDimensionsCalls(), ShouldHaveLength, 0)
+			So(datasetAPIMock.GetOptionsCalls(), ShouldHaveLength, 0)
+		})
 	})
 
-	Convey("When the dimension option for filter blueprint does not exist, a bad request status is returned", t, func() {
+	Convey("Given that a dimension option for filter blueprint does not exist, a bad request status is returned", t, func() {
 		r, err := http.NewRequest("POST", "http://localhost:22100/filters/12345678/dimensions/age/options/66", nil)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := Setup(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, serviceAuthToken)
+		datasetAPIMock := mocks.NewDatasetAPI().Mock
+		api := Setup(cfg(), mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, datasetAPIMock, previewMock)
 		api.router.ServeHTTP(w, r)
-		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
-		response := w.Body.String()
-		So(response, ShouldResemble, "incorrect dimension options chosen: [66]\n")
+		Convey("Then a 400 BadRequest status is returned with the expected error response", func() {
+			So(w.Code, ShouldEqual, http.StatusBadRequest)
+			So(w.Body.String(), ShouldResemble, "incorrect dimension options chosen: [66]\n")
+		})
+
+		Convey("And the dimension and options are efficiently validated with dataset API", func() {
+			So(datasetAPIMock.GetVersionDimensionsCalls(), ShouldHaveLength, 1)
+			So(datasetAPIMock.GetOptionsCalls(), ShouldHaveLength, 1)
+			So(datasetAPIMock.GetOptionsCalls()[0].Q, ShouldResemble, dataset.QueryParams{IDs: []string{"66"}})
+		})
 	})
 
-	Convey("When a dimension for filter blueprint does not exist, a bad request status is returned", t, func() {
+	Convey("Given that a dimension for filter blueprint does not exist for that filter", t, func() {
 		r, err := http.NewRequest("POST", "http://localhost:22100/filters/12345678/dimensions/notage/options/33", nil)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := Setup(host, mux.NewRouter(), &mocks.DataStore{InvalidDimensionOption: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, serviceAuthToken)
+		datasetAPIMock := mocks.NewDatasetAPI().Mock
+		api := Setup(cfg(), mux.NewRouter(), mocks.NewDataStore().InvalidDimensionOption(), &mocks.FilterJob{}, datasetAPIMock, previewMock)
 		api.router.ServeHTTP(w, r)
-		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
-		response := w.Body.String()
-		So(response, ShouldResemble, "dimension not found\n")
+		Convey("Then a 400 BadRequest status is returned with the expected error response", func() {
+			So(w.Code, ShouldEqual, http.StatusBadRequest)
+			response := w.Body.String()
+			So(response, ShouldResemble, "dimension not found\n")
+		})
+
+		Convey("And no dimension or option is validated against DatasetAPI", func() {
+			So(datasetAPIMock.GetVersionDimensionsCalls(), ShouldHaveLength, 0)
+			So(datasetAPIMock.GetOptionsCalls(), ShouldHaveLength, 0)
+		})
 	})
 
-	Convey("When the filter document has been modified by an external source, a conflict request status is returned", t, func() {
+	Convey("Given that a filter document has been modified by an external source", t, func() {
 		r, err := http.NewRequest("POST", "http://localhost:22100/filters/12345678/dimensions/age/options/33", nil)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := Setup(host, mux.NewRouter(), &mocks.DataStore{ConflictRequest: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, serviceAuthToken)
+		datasetAPIMock := mocks.NewDatasetAPI().Mock
+		api := Setup(cfg(), mux.NewRouter(), mocks.NewDataStore().ConflictRequest(), &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
 		api.router.ServeHTTP(w, r)
-		So(w.Code, ShouldEqual, http.StatusConflict)
 
-		response := w.Body.String()
-		So(response, ShouldContainSubstring, filters.ErrFilterBlueprintConflict.Error())
+		Convey("Then a 409 Conflict status is returned with the expected error response", func() {
+			So(w.Code, ShouldEqual, http.StatusConflict)
+			So(w.Body.String(), ShouldContainSubstring, filters.ErrFilterBlueprintConflict.Error())
+		})
+
+		Convey("And no dimension or option is validated against DatasetAPI", func() {
+			So(datasetAPIMock.GetVersionDimensionsCalls(), ShouldHaveLength, 0)
+			So(datasetAPIMock.GetOptionsCalls(), ShouldHaveLength, 0)
+		})
 	})
 }
 
@@ -126,7 +193,7 @@ func TestSuccessfulRemoveFilterBlueprintDimensionOption(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := Setup(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, serviceAuthToken)
+		api := Setup(cfg(), mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNoContent)
 	})
@@ -135,7 +202,7 @@ func TestSuccessfulRemoveFilterBlueprintDimensionOption(t *testing.T) {
 		r := createAuthenticatedRequest("DELETE", "http://localhost:22100/filters/12345678/dimensions/time/options/2015", nil)
 
 		w := httptest.NewRecorder()
-		api := Setup(host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, serviceAuthToken)
+		api := Setup(cfg(), mux.NewRouter(), mocks.NewDataStore().Unpublished(), &mocks.FilterJob{}, mocks.NewDatasetAPI().Unpublished(), previewMock)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNoContent)
 	})
@@ -149,7 +216,7 @@ func TestFailedToRemoveFilterBlueprintDimensionOption(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := Setup(host, mux.NewRouter(), &mocks.DataStore{InternalError: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, serviceAuthToken)
+		api := Setup(cfg(), mux.NewRouter(), mocks.NewDataStore().InternalError(), &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusInternalServerError)
 
@@ -162,7 +229,7 @@ func TestFailedToRemoveFilterBlueprintDimensionOption(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := Setup(host, mux.NewRouter(), &mocks.DataStore{NotFound: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, serviceAuthToken)
+		api := Setup(cfg(), mux.NewRouter(), mocks.NewDataStore().NotFound(), &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
@@ -175,7 +242,7 @@ func TestFailedToRemoveFilterBlueprintDimensionOption(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := Setup(host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, serviceAuthToken)
+		api := Setup(cfg(), mux.NewRouter(), mocks.NewDataStore().Unpublished(), &mocks.FilterJob{}, mocks.NewDatasetAPI().Unpublished(), previewMock)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
@@ -188,7 +255,7 @@ func TestFailedToRemoveFilterBlueprintDimensionOption(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := Setup(host, mux.NewRouter(), &mocks.DataStore{DimensionNotFound: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, serviceAuthToken)
+		api := Setup(cfg(), mux.NewRouter(), mocks.NewDataStore().DimensionNotFound(), &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
@@ -201,7 +268,7 @@ func TestFailedToRemoveFilterBlueprintDimensionOption(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := Setup(host, mux.NewRouter(), &mocks.DataStore{ConflictRequest: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, serviceAuthToken)
+		api := Setup(cfg(), mux.NewRouter(), mocks.NewDataStore().ConflictRequest(), &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusConflict)
 
@@ -213,35 +280,213 @@ func TestFailedToRemoveFilterBlueprintDimensionOption(t *testing.T) {
 func TestSuccessfulGetFilterBlueprintDimensionOptions(t *testing.T) {
 	t.Parallel()
 
-	Convey("Successfully get a list of dimension options for a filter blueprint", t, func() {
-		r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678/dimensions/time/options", nil)
-		So(err, ShouldBeNil)
+	Convey("Given a mock returning a set of option dimensions", t, func() {
 
-		w := httptest.NewRecorder()
-		api := Setup(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, serviceAuthToken)
-		api.router.ServeHTTP(w, r)
-		So(w.Code, ShouldEqual, http.StatusOK)
-	})
+		expectedBodyFull := func() models.PublicDimensionOptions {
+			return models.PublicDimensionOptions{
+				Items: []*models.PublicDimensionOption{
+					{
+						Links: &models.PublicDimensionOptionLinkMap{
+							Self:      models.LinkObject{ID: "2014", HRef: "http://localhost:80/filters//dimensions/time/options/2014"},
+							Filter:    models.LinkObject{ID: "", HRef: "http://localhost:80/filters/"},
+							Dimension: models.LinkObject{ID: "time", HRef: "http://localhost:80/filters//dimensions/time"},
+						},
+						Option: "2014",
+					},
+					{
+						Links: &models.PublicDimensionOptionLinkMap{
+							Self:      models.LinkObject{ID: "2015", HRef: "http://localhost:80/filters//dimensions/time/options/2015"},
+							Filter:    models.LinkObject{ID: "", HRef: "http://localhost:80/filters/"},
+							Dimension: models.LinkObject{ID: "time", HRef: "http://localhost:80/filters//dimensions/time"},
+						},
+						Option: "2015",
+					},
+				},
+				Count:      2,
+				Offset:     0,
+				Limit:      0,
+				TotalCount: 2,
+			}
+		}
 
-	Convey("Successfully get a list of dimension options for an unpublished filter blueprint", t, func() {
-		r := createAuthenticatedRequest("GET", "http://localhost:22100/filters/12345678/dimensions/time/options", nil)
+		// func to unmarshal and validate body
+		validateBody := func(bytes []byte, expected models.PublicDimensionOptions) {
+			var response models.PublicDimensionOptions
+			err := json.Unmarshal(bytes, &response)
+			So(err, ShouldBeNil)
+			So(response, ShouldResemble, expected)
+		}
 
-		w := httptest.NewRecorder()
-		api := Setup(host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, serviceAuthToken)
-		api.router.ServeHTTP(w, r)
-		So(w.Code, ShouldEqual, http.StatusOK)
+		Convey("Successfully get a list of dimension options for a filter blueprint", func() {
+			r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678/dimensions/time/options", nil)
+			So(err, ShouldBeNil)
+
+			w := httptest.NewRecorder()
+			api := Setup(cfg(), mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
+			api.router.ServeHTTP(w, r)
+			So(w.Code, ShouldEqual, http.StatusOK)
+			validateBody(w.Body.Bytes(), expectedBodyFull())
+		})
+
+		Convey("Successfully get a list of dimension options for an unpublished filter blueprint", func() {
+			r := createAuthenticatedRequest("GET", "http://localhost:22100/filters/12345678/dimensions/time/options", nil)
+
+			w := httptest.NewRecorder()
+			api := Setup(cfg(), mux.NewRouter(), mocks.NewDataStore().Unpublished(), &mocks.FilterJob{}, mocks.NewDatasetAPI().Unpublished(), previewMock)
+			api.router.ServeHTTP(w, r)
+			So(w.Code, ShouldEqual, http.StatusOK)
+			validateBody(w.Body.Bytes(), expectedBodyFull())
+		})
+
+		Convey("Successfully get a list of dimensionOptions for a filter blueprint providing zero values for offest and limit", func() {
+			r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678/dimensions/time/options?limit=0&offset=0", nil)
+			So(err, ShouldBeNil)
+
+			w := httptest.NewRecorder()
+			api := Setup(cfg(), mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
+			api.router.ServeHTTP(w, r)
+			So(w.Code, ShouldEqual, http.StatusOK)
+			validateBody(w.Body.Bytes(), expectedBodyFull())
+		})
+
+		Convey("Successfully get the expected subset of dimensionOptions for a filter blueprint providing a non-zero offest", func() {
+			r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678/dimensions/time/options?limit=0&offset=1", nil)
+			So(err, ShouldBeNil)
+
+			w := httptest.NewRecorder()
+			api := Setup(cfg(), mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
+			api.router.ServeHTTP(w, r)
+			So(w.Code, ShouldEqual, http.StatusOK)
+
+			expected := models.PublicDimensionOptions{
+				Items: []*models.PublicDimensionOption{
+					{
+						Links: &models.PublicDimensionOptionLinkMap{
+							Self:      models.LinkObject{ID: "2015", HRef: "http://localhost:80/filters//dimensions/time/options/2015"},
+							Filter:    models.LinkObject{ID: "", HRef: "http://localhost:80/filters/"},
+							Dimension: models.LinkObject{ID: "time", HRef: "http://localhost:80/filters//dimensions/time"},
+						},
+						Option: "2015",
+					},
+				},
+				Count:      1,
+				Offset:     1,
+				Limit:      0,
+				TotalCount: 2,
+			}
+			validateBody(w.Body.Bytes(), expected)
+		})
+
+		Convey("Successfully get the expected subset of dimensionOptions for a filter blueprint providing a non-zero limit", func() {
+			r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678/dimensions/time/options?limit=1&offset=0", nil)
+			So(err, ShouldBeNil)
+
+			w := httptest.NewRecorder()
+			api := Setup(cfg(), mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
+			api.router.ServeHTTP(w, r)
+			So(w.Code, ShouldEqual, http.StatusOK)
+
+			expected := models.PublicDimensionOptions{
+				Items: []*models.PublicDimensionOption{
+					{
+						Links: &models.PublicDimensionOptionLinkMap{
+							Self:      models.LinkObject{ID: "2014", HRef: "http://localhost:80/filters//dimensions/time/options/2014"},
+							Filter:    models.LinkObject{ID: "", HRef: "http://localhost:80/filters/"},
+							Dimension: models.LinkObject{ID: "time", HRef: "http://localhost:80/filters//dimensions/time"},
+						},
+						Option: "2014",
+					},
+				},
+				Count:      1,
+				Offset:     0,
+				Limit:      1,
+				TotalCount: 2,
+			}
+			validateBody(w.Body.Bytes(), expected)
+		})
+
+		Convey("Successfully get the expected subset of dimensionOptions for a filter blueprint providing a limit greater than the total count", func() {
+			r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678/dimensions/time/options?limit=3&offset=0", nil)
+			So(err, ShouldBeNil)
+
+			w := httptest.NewRecorder()
+			api := Setup(cfg(), mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
+			api.router.ServeHTTP(w, r)
+			So(w.Code, ShouldEqual, http.StatusOK)
+
+			expected := expectedBodyFull()
+			expected.Limit = 3
+			validateBody(w.Body.Bytes(), expected)
+		})
+
+		Convey("Successfully get dimensionOptions with empty list of items for a filter blueprint providing an offset greater than the total count", func() {
+			r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678/dimensions/time/options?limit=0&offset=3", nil)
+			So(err, ShouldBeNil)
+
+			w := httptest.NewRecorder()
+			api := Setup(cfg(), mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
+			api.router.ServeHTTP(w, r)
+			So(w.Code, ShouldEqual, http.StatusOK)
+
+			expected := models.PublicDimensionOptions{
+				Items:      []*models.PublicDimensionOption{},
+				Count:      0,
+				Offset:     3,
+				Limit:      0,
+				TotalCount: 2,
+			}
+			validateBody(w.Body.Bytes(), expected)
+		})
+
+		Convey("Successfully get the full expected set of dimensionOptions for a filter blueprint providing negative values for limit and offset", func() {
+			r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678/dimensions/time/options?limit=-1&offset=-1", nil)
+			So(err, ShouldBeNil)
+
+			w := httptest.NewRecorder()
+			api := Setup(cfg(), mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
+			api.router.ServeHTTP(w, r)
+			So(w.Code, ShouldEqual, http.StatusOK)
+
+			validateBody(w.Body.Bytes(), expectedBodyFull())
+		})
 	})
 }
 
 func TestFailedToGetFilterBlueprintDimensionOptions(t *testing.T) {
 	t.Parallel()
 
+	Convey("When an invalid limit value is provided, a bad request error is returned", t, func() {
+		r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678/dimensions/time/options?limit=wrong&offset=0", nil)
+		So(err, ShouldBeNil)
+
+		w := httptest.NewRecorder()
+		api := Setup(cfg(), mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusBadRequest)
+
+		response := w.Body.String()
+		So(response, ShouldResemble, invalidQueryParameterResponse)
+	})
+
+	Convey("When an invalid offset value is provided, a bad request error is returned", t, func() {
+		r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678/dimensions/time/options?limit=0&offset=wrong", nil)
+		So(err, ShouldBeNil)
+
+		w := httptest.NewRecorder()
+		api := Setup(cfg(), mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusBadRequest)
+
+		response := w.Body.String()
+		So(response, ShouldResemble, invalidQueryParameterResponse)
+	})
+
 	Convey("When no data store is available, an internal error is returned", t, func() {
 		r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678/dimensions/1_age/options", nil)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := Setup(host, mux.NewRouter(), &mocks.DataStore{InternalError: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, serviceAuthToken)
+		api := Setup(cfg(), mux.NewRouter(), mocks.NewDataStore().InternalError(), &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusInternalServerError)
 
@@ -254,7 +499,7 @@ func TestFailedToGetFilterBlueprintDimensionOptions(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := Setup(host, mux.NewRouter(), &mocks.DataStore{NotFound: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, serviceAuthToken)
+		api := Setup(cfg(), mux.NewRouter(), mocks.NewDataStore().NotFound(), &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
@@ -267,7 +512,7 @@ func TestFailedToGetFilterBlueprintDimensionOptions(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := Setup(host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, serviceAuthToken)
+		api := Setup(cfg(), mux.NewRouter(), mocks.NewDataStore().Unpublished(), &mocks.FilterJob{}, mocks.NewDatasetAPI().Unpublished(), previewMock)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
@@ -280,7 +525,7 @@ func TestFailedToGetFilterBlueprintDimensionOptions(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := Setup(host, mux.NewRouter(), &mocks.DataStore{DimensionNotFound: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, serviceAuthToken)
+		api := Setup(cfg(), mux.NewRouter(), mocks.NewDataStore().DimensionNotFound(), &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
@@ -297,7 +542,7 @@ func TestSuccessfulGetFilterBlueprintDimensionOption(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := Setup(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, serviceAuthToken)
+		api := Setup(cfg(), mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusOK)
 	})
@@ -306,7 +551,7 @@ func TestSuccessfulGetFilterBlueprintDimensionOption(t *testing.T) {
 		r := createAuthenticatedRequest("GET", "http://localhost:22100/filters/12345678/dimensions/time/options/2015", nil)
 
 		w := httptest.NewRecorder()
-		api := Setup(host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, serviceAuthToken)
+		api := Setup(cfg(), mux.NewRouter(), mocks.NewDataStore().Unpublished(), &mocks.FilterJob{}, mocks.NewDatasetAPI().Unpublished(), previewMock)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusOK)
 	})
@@ -320,7 +565,7 @@ func TestFailedToGetFilterBlueprintDimensionOption(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := Setup(host, mux.NewRouter(), &mocks.DataStore{InternalError: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, serviceAuthToken)
+		api := Setup(cfg(), mux.NewRouter(), mocks.NewDataStore().InternalError(), &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusInternalServerError)
 
@@ -333,7 +578,7 @@ func TestFailedToGetFilterBlueprintDimensionOption(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := Setup(host, mux.NewRouter(), &mocks.DataStore{NotFound: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, serviceAuthToken)
+		api := Setup(cfg(), mux.NewRouter(), mocks.NewDataStore().NotFound(), &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
@@ -346,7 +591,7 @@ func TestFailedToGetFilterBlueprintDimensionOption(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := Setup(host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, serviceAuthToken)
+		api := Setup(cfg(), mux.NewRouter(), mocks.NewDataStore().Unpublished(), &mocks.FilterJob{}, mocks.NewDatasetAPI().Unpublished(), previewMock)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
@@ -359,7 +604,7 @@ func TestFailedToGetFilterBlueprintDimensionOption(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := Setup(host, mux.NewRouter(), &mocks.DataStore{InvalidDimensionOption: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, serviceAuthToken)
+		api := Setup(cfg(), mux.NewRouter(), mocks.NewDataStore().InvalidDimensionOption(), &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
@@ -371,33 +616,166 @@ func TestFailedToGetFilterBlueprintDimensionOption(t *testing.T) {
 func TestSuccessfulPatchFilterBlueprintDimension(t *testing.T) {
 	t.Parallel()
 
-	Convey("Successfully patch dimension options, with a single valid 'add' patch operation, returns 200", t, func() {
+	Convey("Sending a single valid 'add' patch operation with 2 valid options, one already existing in the filter and one that does not exist", t, func() {
 		reader := strings.NewReader(`[
 			{"op":"add", "path": "/options/-", "value": ["27","33"]}
 		]`)
 		r, err := http.NewRequest("PATCH", "http://localhost:22100/filters/12345678/dimensions/age", reader)
 		So(err, ShouldBeNil)
 
+		ds := mocks.NewDataStore().Mock
+		datasetAPIMock := mocks.NewDatasetAPI().Mock
 		w := httptest.NewRecorder()
-		api := Setup(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, serviceAuthToken)
+		api := Setup(cfg(), mux.NewRouter(), ds, &mocks.FilterJob{}, datasetAPIMock, previewMock)
 		api.router.ServeHTTP(w, r)
-		So(w.Code, ShouldEqual, http.StatusOK)
+
+		Convey("Results in a 200 OK response", func() {
+			So(w.Code, ShouldEqual, http.StatusOK)
+		})
+
+		Convey("And the dimension and options are efficiently validated with dataset API", func() {
+			So(datasetAPIMock.GetVersionDimensionsCalls(), ShouldHaveLength, 1)
+			So(datasetAPIMock.GetOptionsCalls(), ShouldHaveLength, 1)
+			So(datasetAPIMock.GetOptionsCalls()[0].Q, ShouldResemble, dataset.QueryParams{IDs: []string{"27", "33"}})
+		})
+
+		Convey("And only the valid inexistent option being added to the database", func() {
+			So(ds.GetFilterCalls(), ShouldHaveLength, 1)
+			So(ds.GetFilterCalls()[0].FilterID, ShouldEqual, "12345678")
+			So(ds.AddFilterDimensionOptionsCalls(), ShouldHaveLength, 1)
+			So(ds.AddFilterDimensionOptionsCalls()[0].FilterID, ShouldEqual, "12345678")
+			So(ds.AddFilterDimensionOptionsCalls()[0].Name, ShouldEqual, "age")
+			So(ds.AddFilterDimensionOptionsCalls()[0].Options, ShouldResemble, []string{"27"})
+			So(ds.RemoveFilterDimensionOptionsCalls(), ShouldHaveLength, 0)
+		})
 	})
 
-	Convey("Successfully patch dimension options, with a single valid 'remove' patch operation, returns 200", t, func() {
+	Convey("Sending a single valid 'remove' patch operation with an existent option", t, func() {
 		reader := strings.NewReader(`[
 			{"op":"remove", "path": "/options/-", "value": ["33"]}
 		]`)
 		r, err := http.NewRequest("PATCH", "http://localhost:22100/filters/12345678/dimensions/age", reader)
 		So(err, ShouldBeNil)
 
+		ds := mocks.NewDataStore().Mock
+		datasetAPIMock := mocks.NewDatasetAPI().Mock
 		w := httptest.NewRecorder()
-		api := Setup(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, serviceAuthToken)
+		api := Setup(cfg(), mux.NewRouter(), ds, &mocks.FilterJob{}, datasetAPIMock, previewMock)
 		api.router.ServeHTTP(w, r)
-		So(w.Code, ShouldEqual, http.StatusOK)
+
+		Convey("Results in a 200 OK response", func() {
+			So(w.Code, ShouldEqual, http.StatusOK)
+		})
+
+		Convey("And no dimension or option is validated against DatasetAPI", func() {
+			So(datasetAPIMock.GetVersionDimensionsCalls(), ShouldHaveLength, 0)
+			So(datasetAPIMock.GetOptionsCalls(), ShouldHaveLength, 0)
+		})
+
+		Convey("And the option being removed from the database", func() {
+			So(ds.GetFilterCalls(), ShouldHaveLength, 1)
+			So(ds.GetFilterCalls()[0].FilterID, ShouldEqual, "12345678")
+			So(ds.AddFilterDimensionOptionsCalls(), ShouldHaveLength, 0)
+			So(ds.RemoveFilterDimensionOptionsCalls(), ShouldHaveLength, 1)
+			So(ds.RemoveFilterDimensionOptionsCalls()[0].FilterID, ShouldEqual, "12345678")
+			So(ds.RemoveFilterDimensionOptionsCalls()[0].Name, ShouldEqual, "age")
+			So(ds.RemoveFilterDimensionOptionsCalls()[0].Options, ShouldResemble, []string{"33"})
+		})
 	})
 
-	Convey("Successfully patch dimension options, with a combination of valid patch operations, returns 200", t, func() {
+	Convey("Sending a single valid 'remove' patch operation with a mix of existent and inexistent options", t, func() {
+		reader := strings.NewReader(`[
+			{"op":"remove", "path": "/options/-", "value": ["33", "inexistent"]}
+		]`)
+		r, err := http.NewRequest("PATCH", "http://localhost:22100/filters/12345678/dimensions/age", reader)
+		So(err, ShouldBeNil)
+
+		ds := mocks.NewDataStore().Mock
+		datasetAPIMock := mocks.NewDatasetAPI().Mock
+		w := httptest.NewRecorder()
+		api := Setup(cfg(), mux.NewRouter(), ds, &mocks.FilterJob{}, datasetAPIMock, previewMock)
+		api.router.ServeHTTP(w, r)
+
+		Convey("Results in a 200 OK response ", func() {
+			So(w.Code, ShouldEqual, http.StatusOK)
+		})
+
+		Convey("And no dimension or option is validated against DatasetAPI", func() {
+			So(datasetAPIMock.GetVersionDimensionsCalls(), ShouldHaveLength, 0)
+			So(datasetAPIMock.GetOptionsCalls(), ShouldHaveLength, 0)
+		})
+
+		Convey("And only the existing options being updated to the database", func() {
+			So(ds.GetFilterCalls(), ShouldHaveLength, 1)
+			So(ds.GetFilterCalls()[0].FilterID, ShouldEqual, "12345678")
+			So(ds.AddFilterDimensionOptionsCalls(), ShouldHaveLength, 0)
+			So(ds.RemoveFilterDimensionOptionsCalls(), ShouldHaveLength, 1)
+			So(ds.RemoveFilterDimensionOptionsCalls()[0].FilterID, ShouldEqual, "12345678")
+			So(ds.RemoveFilterDimensionOptionsCalls()[0].Name, ShouldEqual, "age")
+			So(ds.RemoveFilterDimensionOptionsCalls()[0].Options, ShouldResemble, []string{"33"})
+		})
+	})
+
+	Convey("Sending a single valid 'remove' patch operation with an inexistent option", t, func() {
+		reader := strings.NewReader(`[
+			{"op":"remove", "path": "/options/-", "value": ["inexistent"]}
+		]`)
+		r, err := http.NewRequest("PATCH", "http://localhost:22100/filters/12345678/dimensions/age", reader)
+		So(err, ShouldBeNil)
+
+		ds := mocks.NewDataStore().Mock
+		datasetAPIMock := mocks.NewDatasetAPI().Mock
+		w := httptest.NewRecorder()
+		api := Setup(cfg(), mux.NewRouter(), ds, &mocks.FilterJob{}, datasetAPIMock, previewMock)
+		api.router.ServeHTTP(w, r)
+
+		Convey("Results in a 200 OK response", func() {
+			So(w.Code, ShouldEqual, http.StatusOK)
+		})
+
+		Convey("And no dimension or option is validated against DatasetAPI", func() {
+			So(datasetAPIMock.GetVersionDimensionsCalls(), ShouldHaveLength, 0)
+			So(datasetAPIMock.GetOptionsCalls(), ShouldHaveLength, 0)
+		})
+
+		Convey("And no calls to remove options from the database", func() {
+			So(ds.GetFilterCalls(), ShouldHaveLength, 1)
+			So(ds.GetFilterCalls()[0].FilterID, ShouldEqual, "12345678")
+			So(ds.AddFilterDimensionOptionsCalls(), ShouldHaveLength, 0)
+			So(ds.RemoveFilterDimensionOptionsCalls(), ShouldHaveLength, 0)
+		})
+	})
+
+	Convey("Sending an empty list of patch operations", t, func() {
+		reader := strings.NewReader(`[
+			{"op":"remove", "path": "/options/-", "value": []}
+		]`)
+		r, err := http.NewRequest("PATCH", "http://localhost:22100/filters/12345678/dimensions/age", reader)
+		So(err, ShouldBeNil)
+
+		ds := mocks.NewDataStore().Mock
+		datasetAPIMock := mocks.NewDatasetAPI().Mock
+		w := httptest.NewRecorder()
+		api := Setup(cfg(), mux.NewRouter(), ds, &mocks.FilterJob{}, datasetAPIMock, previewMock)
+		api.router.ServeHTTP(w, r)
+
+		Convey("Results in a 200 OK response", func() {
+			So(w.Code, ShouldEqual, http.StatusOK)
+		})
+
+		Convey("And no dimension or option is validated against DatasetAPI", func() {
+			So(datasetAPIMock.GetVersionDimensionsCalls(), ShouldHaveLength, 0)
+			So(datasetAPIMock.GetOptionsCalls(), ShouldHaveLength, 0)
+		})
+
+		Convey("And no calls the database", func() {
+			So(ds.GetFilterCalls(), ShouldHaveLength, 0)
+			So(ds.AddFilterDimensionOptionsCalls(), ShouldHaveLength, 0)
+			So(ds.RemoveFilterDimensionOptionsCalls(), ShouldHaveLength, 0)
+		})
+	})
+
+	Convey("Sending a list of 2 valid patch operations", t, func() {
 		reader := strings.NewReader(`[
 			{"op":"add", "path": "/options/-", "value": ["27"]},
 			{"op":"remove", "path": "/options/-", "value": ["33"]}
@@ -405,10 +783,35 @@ func TestSuccessfulPatchFilterBlueprintDimension(t *testing.T) {
 		r, err := http.NewRequest("PATCH", "http://localhost:22100/filters/12345678/dimensions/age", reader)
 		So(err, ShouldBeNil)
 
+		ds := mocks.NewDataStore().Mock
+		datasetAPIMock := mocks.NewDatasetAPI().Mock
 		w := httptest.NewRecorder()
-		api := Setup(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, serviceAuthToken)
+		api := Setup(cfg(), mux.NewRouter(), ds, &mocks.FilterJob{}, datasetAPIMock, previewMock)
 		api.router.ServeHTTP(w, r)
-		So(w.Code, ShouldEqual, http.StatusOK)
+
+		Convey("Results in a 200 OK response", func() {
+			So(w.Code, ShouldEqual, http.StatusOK)
+		})
+
+		Convey("And the dimension and options are efficiently validated with dataset API", func() {
+			So(datasetAPIMock.GetVersionDimensionsCalls(), ShouldHaveLength, 1)
+			So(datasetAPIMock.GetOptionsCalls(), ShouldHaveLength, 1)
+			So(datasetAPIMock.GetOptionsCalls()[0].Q, ShouldResemble, dataset.QueryParams{IDs: []string{"27"}})
+		})
+
+		Convey("And the expected calls for both operations are performed against the database", func() {
+			So(ds.GetFilterCalls(), ShouldHaveLength, 2)
+			So(ds.GetFilterCalls()[0].FilterID, ShouldEqual, "12345678")
+			So(ds.GetFilterCalls()[1].FilterID, ShouldEqual, "12345678")
+			So(ds.AddFilterDimensionOptionsCalls(), ShouldHaveLength, 1)
+			So(ds.AddFilterDimensionOptionsCalls()[0].FilterID, ShouldEqual, "12345678")
+			So(ds.AddFilterDimensionOptionsCalls()[0].Name, ShouldEqual, "age")
+			So(ds.AddFilterDimensionOptionsCalls()[0].Options, ShouldResemble, []string{"27"})
+			So(ds.RemoveFilterDimensionOptionsCalls(), ShouldHaveLength, 1)
+			So(ds.RemoveFilterDimensionOptionsCalls()[0].FilterID, ShouldEqual, "12345678")
+			So(ds.RemoveFilterDimensionOptionsCalls()[0].Name, ShouldEqual, "age")
+			So(ds.RemoveFilterDimensionOptionsCalls()[0].Options, ShouldResemble, []string{"33"})
+		})
 	})
 
 	Convey("Successfully patch dimension options for an unpublished filter blueprint", t, func() {
@@ -418,10 +821,35 @@ func TestSuccessfulPatchFilterBlueprintDimension(t *testing.T) {
 		]`)
 		r := createAuthenticatedRequest("PATCH", "http://localhost:22100/filters/12345678/dimensions/age", reader)
 
+		ds := mocks.NewDataStore().Unpublished().Mock
+		datasetAPIMock := mocks.NewDatasetAPI().Unpublished().Mock
 		w := httptest.NewRecorder()
-		api := Setup(host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, serviceAuthToken)
+		api := Setup(cfg(), mux.NewRouter(), ds, &mocks.FilterJob{}, datasetAPIMock, previewMock)
 		api.router.ServeHTTP(w, r)
-		So(w.Code, ShouldEqual, http.StatusOK)
+
+		Convey("Results in a 200 OK response, and the expected calls for both operations", func() {
+			So(w.Code, ShouldEqual, http.StatusOK)
+		})
+
+		Convey("And the dimension and options are efficiently validated with dataset API", func() {
+			So(datasetAPIMock.GetVersionDimensionsCalls(), ShouldHaveLength, 1)
+			So(datasetAPIMock.GetOptionsCalls(), ShouldHaveLength, 1)
+			So(datasetAPIMock.GetOptionsCalls()[0].Q, ShouldResemble, dataset.QueryParams{IDs: []string{"27"}})
+		})
+
+		Convey("And the expected calls for both operations are performed against the database", func() {
+			So(ds.GetFilterCalls(), ShouldHaveLength, 2)
+			So(ds.GetFilterCalls()[0].FilterID, ShouldEqual, "12345678")
+			So(ds.GetFilterCalls()[1].FilterID, ShouldEqual, "12345678")
+			So(ds.AddFilterDimensionOptionsCalls(), ShouldHaveLength, 1)
+			So(ds.AddFilterDimensionOptionsCalls()[0].FilterID, ShouldEqual, "12345678")
+			So(ds.AddFilterDimensionOptionsCalls()[0].Name, ShouldEqual, "age")
+			So(ds.AddFilterDimensionOptionsCalls()[0].Options, ShouldResemble, []string{"27"})
+			So(ds.RemoveFilterDimensionOptionsCalls(), ShouldHaveLength, 1)
+			So(ds.RemoveFilterDimensionOptionsCalls()[0].FilterID, ShouldEqual, "12345678")
+			So(ds.RemoveFilterDimensionOptionsCalls()[0].Name, ShouldEqual, "age")
+			So(ds.RemoveFilterDimensionOptionsCalls()[0].Options, ShouldResemble, []string{"33"})
+		})
 	})
 }
 
@@ -434,7 +862,7 @@ func TestFailedPatchBlueprintDimension(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := Setup(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, serviceAuthToken)
+		api := Setup(cfg(), mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
@@ -448,7 +876,7 @@ func TestFailedPatchBlueprintDimension(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := Setup(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, serviceAuthToken)
+		api := Setup(cfg(), mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
@@ -462,12 +890,44 @@ func TestFailedPatchBlueprintDimension(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := Setup(host, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, serviceAuthToken)
+		api := Setup(cfg(), mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
 		response := w.Body.String()
 		So(response, ShouldResemble, "provided path '/wrong/path' not supported. Supported paths: '/options/-'\n")
+	})
+
+	Convey("Whe a valid 'add' patch with an incorrect option for a dimension is provided, a 400 BadRequest is returned", t, func() {
+		reader := strings.NewReader(`[{"op":"add", "path": "/options/-", "value": ["wrong"]}]`)
+		r, err := http.NewRequest("PATCH", "http://localhost:22100/filters/12345678/dimensions/age", reader)
+		So(err, ShouldBeNil)
+
+		w := httptest.NewRecorder()
+		api := Setup(cfg(), mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusBadRequest)
+
+		response := w.Body.String()
+		So(response, ShouldResemble, "incorrect dimension options chosen: [wrong]\n")
+	})
+
+	Convey("When a valid patch with an overall sum of values higher than the maximum allowed is provided, a 400 BadRequest is returned", t, func() {
+		cfg := cfg()
+		cfg.MaxRequestOptions = 10
+		reader := strings.NewReader(`[
+			{"op":"add", "path": "/options/-", "value": ["27", "33", "27", "33", "27", "33", "27", "33"]},
+			{"op":"add", "path": "/options/-", "value": ["27", "33", "27"]}]`)
+		r, err := http.NewRequest("PATCH", "http://localhost:22100/filters/12345678/dimensions/age", reader)
+		So(err, ShouldBeNil)
+
+		w := httptest.NewRecorder()
+		api := Setup(cfg, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusBadRequest)
+
+		response := w.Body.String()
+		So(response, ShouldResemble, "a maximum of 10 overall option values can be provied in a set of patch operations, which has been exceeded\n")
 	})
 
 	Convey("When no data store is available, an internal error is returned", t, func() {
@@ -476,7 +936,7 @@ func TestFailedPatchBlueprintDimension(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := Setup(host, mux.NewRouter(), &mocks.DataStore{InternalError: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, serviceAuthToken)
+		api := Setup(cfg(), mux.NewRouter(), mocks.NewDataStore().InternalError(), &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusInternalServerError)
 
@@ -490,7 +950,7 @@ func TestFailedPatchBlueprintDimension(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := Setup(host, mux.NewRouter(), &mocks.DataStore{NotFound: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, serviceAuthToken)
+		api := Setup(cfg(), mux.NewRouter(), mocks.NewDataStore().NotFound(), &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
@@ -504,7 +964,7 @@ func TestFailedPatchBlueprintDimension(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := Setup(host, mux.NewRouter(), &mocks.DataStore{Unpublished: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{Unpublished: true}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, serviceAuthToken)
+		api := Setup(cfg(), mux.NewRouter(), mocks.NewDataStore().Unpublished(), &mocks.FilterJob{}, mocks.NewDatasetAPI().Unpublished(), previewMock)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
@@ -518,7 +978,7 @@ func TestFailedPatchBlueprintDimension(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := Setup(host, mux.NewRouter(), &mocks.DataStore{DimensionNotFound: true}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock, enablePrivateEndpoints, downloadServiceURL, downloadServiceToken, serviceAuthToken)
+		api := Setup(cfg(), mux.NewRouter(), mocks.NewDataStore().DimensionNotFound(), &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 

@@ -393,38 +393,12 @@ func (api *FilterAPI) checkFilterOptions(ctx context.Context, newFilter *models.
 	}
 	log.Event(ctx, "successfully validated filter dimensions", log.INFO, logData)
 
-	var incorrectDimensionOptions []string
+	// check options for all dimensions in the filter
 	for _, filterDimension := range newFilter.Dimensions {
-		localData := logData
-
-		datasetDimensionOptions, err := api.getDimensionOptions(ctx, newFilter.Dataset, filterDimension.Name)
-		if err != nil {
-			localData["dimension"] = filterDimension
-			log.Event(ctx, "failed to retrieve a list of dimension options from dataset API", log.ERROR, log.Error(err), localData)
+		if err := api.checkNewFilterDimensionOptions(ctx, filterDimension, newFilter.Dataset, logData); err != nil {
 			return err
 		}
-
-		localData["dimension_options_total"] = len(datasetDimensionOptions.Items)
-		if len(datasetDimensionOptions.Items) > 30 {
-			localData["dimension_options_first"] = datasetDimensionOptions.Items[0]
-		} else {
-			localData["dimension_options"] = datasetDimensionOptions
-		}
-		log.Event(ctx, "dimension options retrieved from dataset API", log.INFO, localData)
-
-		incorrectOptions := models.ValidateFilterDimensionOptions(filterDimension.Options, datasetDimensionOptions)
-		if incorrectOptions != nil {
-			incorrectDimensionOptions = append(incorrectDimensionOptions, incorrectOptions...)
-		}
 	}
-
-	if incorrectDimensionOptions != nil {
-		logData["incorrect_dimension_options"] = incorrectDimensionOptions
-		err = fmt.Errorf("incorrect dimension options chosen: %v", incorrectDimensionOptions)
-		log.Event(ctx, "incorrect dimension options chosen", log.ERROR, log.Error(err), logData)
-		return err
-	}
-
 	return nil
 }
 
@@ -497,7 +471,7 @@ func (api *FilterAPI) getDimensions(ctx context.Context, dataset *models.Dataset
 	return &dimensions, nil
 }
 
-func (api *FilterAPI) getDimensionOptions(ctx context.Context, dataset *models.Dataset, dimensionName string) (*datasetAPI.Options, error) {
+func (api *FilterAPI) getDimensionOptions(ctx context.Context, dataset *models.Dataset, dimensionName string, ids []string) (*datasetAPI.Options, error) {
 
 	options, err := api.datasetAPI.GetOptions(ctx,
 		getUserAuthToken(ctx),
@@ -506,7 +480,8 @@ func (api *FilterAPI) getDimensionOptions(ctx context.Context, dataset *models.D
 		dataset.ID,
 		dataset.Edition,
 		strconv.Itoa(dataset.Version),
-		dimensionName)
+		dimensionName,
+		datasetAPI.QueryParams{IDs: ids})
 
 	if err != nil {
 		if apiErr, ok := err.(*datasetAPI.ErrInvalidDatasetAPIResponse); ok {
@@ -634,6 +609,9 @@ func setErrorCode(w http.ResponseWriter, err error, typ ...string) {
 		return
 	case filters.ErrUnauthorised:
 		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	case filters.ErrInvalidQueryParameter:
+		http.Error(w, filters.ErrInvalidQueryParameter.Error(), http.StatusBadRequest)
 		return
 	case filters.ErrBadRequest:
 		http.Error(w, badRequest, http.StatusBadRequest)

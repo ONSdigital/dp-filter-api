@@ -48,7 +48,7 @@ var (
 //             AddFilterDimensionOptionFunc: func(filterID string, name string, option string, timestamp bson.MongoTimestamp) error {
 // 	               panic("mock out the AddFilterDimensionOption method")
 //             },
-//             AddFilterDimensionOptionsFunc: func(filterID string, name string, options []string, timestamp bson.MongoTimestamp) (int, error) {
+//             AddFilterDimensionOptionsFunc: func(filterID string, name string, options []string, timestamp bson.MongoTimestamp) error {
 // 	               panic("mock out the AddFilterDimensionOptions method")
 //             },
 //             CheckerFunc: func(ctx context.Context, state *healthcheck.CheckState) error {
@@ -75,7 +75,7 @@ var (
 //             RemoveFilterDimensionOptionFunc: func(filterID string, name string, option string, timestamp bson.MongoTimestamp) error {
 // 	               panic("mock out the RemoveFilterDimensionOption method")
 //             },
-//             RemoveFilterDimensionOptionsFunc: func(filterID string, name string, options []string, timestamp bson.MongoTimestamp) (int, error) {
+//             RemoveFilterDimensionOptionsFunc: func(filterID string, name string, options []string, timestamp bson.MongoTimestamp) error {
 // 	               panic("mock out the RemoveFilterDimensionOptions method")
 //             },
 //             UpdateFilterFunc: func(filter *models.Filter, timestamp bson.MongoTimestamp) error {
@@ -104,7 +104,7 @@ type MongoDBMock struct {
 	AddFilterDimensionOptionFunc func(filterID string, name string, option string, timestamp bson.MongoTimestamp) error
 
 	// AddFilterDimensionOptionsFunc mocks the AddFilterDimensionOptions method.
-	AddFilterDimensionOptionsFunc func(filterID string, name string, options []string, timestamp bson.MongoTimestamp) (int, error)
+	AddFilterDimensionOptionsFunc func(filterID string, name string, options []string, timestamp bson.MongoTimestamp) error
 
 	// CheckerFunc mocks the Checker method.
 	CheckerFunc func(ctx context.Context, state *healthcheck.CheckState) error
@@ -131,7 +131,7 @@ type MongoDBMock struct {
 	RemoveFilterDimensionOptionFunc func(filterID string, name string, option string, timestamp bson.MongoTimestamp) error
 
 	// RemoveFilterDimensionOptionsFunc mocks the RemoveFilterDimensionOptions method.
-	RemoveFilterDimensionOptionsFunc func(filterID string, name string, options []string, timestamp bson.MongoTimestamp) (int, error)
+	RemoveFilterDimensionOptionsFunc func(filterID string, name string, options []string, timestamp bson.MongoTimestamp) error
 
 	// UpdateFilterFunc mocks the UpdateFilter method.
 	UpdateFilterFunc func(filter *models.Filter, timestamp bson.MongoTimestamp) error
@@ -427,7 +427,7 @@ func (mock *MongoDBMock) AddFilterDimensionOptionCalls() []struct {
 }
 
 // AddFilterDimensionOptions calls AddFilterDimensionOptionsFunc.
-func (mock *MongoDBMock) AddFilterDimensionOptions(filterID string, name string, options []string, timestamp bson.MongoTimestamp) (int, error) {
+func (mock *MongoDBMock) AddFilterDimensionOptions(filterID string, name string, options []string, timestamp bson.MongoTimestamp) error {
 	if mock.AddFilterDimensionOptionsFunc == nil {
 		panic("MongoDBMock.AddFilterDimensionOptionsFunc: method is nil but MongoDB.AddFilterDimensionOptions was just called")
 	}
@@ -746,7 +746,7 @@ func (mock *MongoDBMock) RemoveFilterDimensionOptionCalls() []struct {
 }
 
 // RemoveFilterDimensionOptions calls RemoveFilterDimensionOptionsFunc.
-func (mock *MongoDBMock) RemoveFilterDimensionOptions(filterID string, name string, options []string, timestamp bson.MongoTimestamp) (int, error) {
+func (mock *MongoDBMock) RemoveFilterDimensionOptions(filterID string, name string, options []string, timestamp bson.MongoTimestamp) error {
 	if mock.RemoveFilterDimensionOptionsFunc == nil {
 		panic("MongoDBMock.RemoveFilterDimensionOptionsFunc: method is nil but MongoDB.RemoveFilterDimensionOptions was just called")
 	}

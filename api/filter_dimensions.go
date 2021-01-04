@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"sort"
 
 	"github.com/ONSdigital/dp-filter-api/filters"
 	"github.com/ONSdigital/dp-filter-api/models"
@@ -19,6 +20,22 @@ func (api *FilterAPI) getFilterBlueprintDimensionsHandler(w http.ResponseWriter,
 	logData := log.Data{"filter_blueprint_id": filterBlueprintID}
 	ctx := r.Context()
 	log.Event(ctx, "getting filter blueprint dimensions", log.INFO, logData)
+
+	// get limit from query parameters, or default value
+	limit, err := getPositiveIntQueryParameter(r.URL.Query(), "limit", api.defaultLimit)
+	if err != nil {
+		log.Event(ctx, "failed to obtain limit from request query parameters", log.ERROR, logData)
+		setErrorCode(w, err)
+		return
+	}
+
+	// get offset from query parameters, or default value
+	offset, err := getPositiveIntQueryParameter(r.URL.Query(), "offset", api.defaultOffset)
+	if err != nil {
+		log.Event(ctx, "failed to obtain offset from request query parameters", log.ERROR, logData)
+		setErrorCode(w, err)
+		return
+	}
 
 	filter, err := api.getFilterBlueprint(ctx, filterBlueprintID)
 	if err != nil {
@@ -35,7 +52,34 @@ func (api *FilterAPI) getFilterBlueprintDimensionsHandler(w http.ResponseWriter,
 		return
 	}
 
-	publicDimensions := createPublicDimensions(filter.Dimensions, api.host, filter.FilterID)
+	var dimensionNames []string
+
+	for _, dimension := range filter.Dimensions {
+		dimensionNames = append(dimensionNames, dimension.Name)
+	}
+
+	sort.Strings(dimensionNames)
+	slicedDimensionNames := slice(dimensionNames, offset, limit)
+
+	var filterDimensions []models.Dimension
+
+	for _, dimensionName := range slicedDimensionNames {
+		for _, dimension := range filter.Dimensions {
+			if dimension.Name == dimensionName {
+				filterDimensions = append(filterDimensions, dimension)
+				break
+			}
+		}
+	}
+
+	items := createPublicDimensions(filterDimensions, api.host, filter.FilterID)
+	publicDimensions := models.PublicDimensions{
+		Items:      items,
+		Count:      len(items),
+		TotalCount: len(filter.Dimensions),
+		Offset:     offset,
+		Limit:      limit,
+	}
 	b, err := json.Marshal(publicDimensions)
 	if err != nil {
 		log.Event(ctx, "failed to marshal filter blueprint dimensions into bytes", log.ERROR, log.Error(err), logData)
@@ -171,7 +215,7 @@ func (api *FilterAPI) addFilterBlueprintDimensionHandler(w http.ResponseWriter, 
 		return
 	}
 
-	options = removeDuplicateOptions(options)
+	options = removeDuplicateAndEmptyOptions(options)
 
 	err = api.addFilterBlueprintDimension(ctx, filterBlueprintID, dimensionName, options)
 	if err != nil {
@@ -259,23 +303,55 @@ func (api *FilterAPI) checkNewFilterDimension(ctx context.Context, name string, 
 }
 
 // checkNewFilterDimensionOptions, assuming a valid dimension, this method checks that the options provided in the dimension struct are valid
-// by calling getDimensionOptions and verifying that the provided dataset contains all the provided dimension options.
+// by calling getDimensionOptions in batches and verifying that the provided dataset contains all the provided dimension options.
 func (api *FilterAPI) checkNewFilterDimensionOptions(ctx context.Context, dimension models.Dimension, dataset *models.Dataset, logData log.Data) error {
-	// Call dimension options endpoint
-	datasetDimensionOptions, err := api.getDimensionOptions(ctx, dataset, dimension.Name)
-	if err != nil {
-		log.Event(ctx, "failed to retrieve a list of dimension options from the dataset API", log.ERROR, log.Error(err), logData)
-		return err
-	}
+	logData["dimension"] = dimension
+	maxLogOptions := min(30, api.maxDatasetOptions)
 
-	var incorrectDimensionOptions []string
-	incorrectOptions := models.ValidateFilterDimensionOptions(dimension.Options, datasetDimensionOptions)
-	if incorrectOptions != nil {
-		incorrectDimensionOptions = append(incorrectDimensionOptions, incorrectOptions...)
-	}
+	// create map of all options that need to be found
+	optionsNotFound := createMap(dimension.Options)
 
-	if incorrectDimensionOptions != nil {
-		err = fmt.Errorf("incorrect dimension options chosen: %v", incorrectDimensionOptions)
+	// find filter options in Dataset API (in batches, using paginated calls)
+	offset := 0
+	for len(optionsNotFound) > 0 && offset < len(dimension.Options) {
+
+		// find a batch of dimension options from Dataset API
+		batchOpts := slice(dimension.Options, offset, api.maxDatasetOptions)
+		datasetDimensionOptions, err := api.getDimensionOptions(ctx, dataset, dimension.Name, batchOpts)
+		if err != nil {
+			log.Event(ctx, "failed to retrieve a list of dimension options from dataset API", log.ERROR, log.Error(err), logData)
+			return err
+		}
+
+		// (first iteration only) - set totalCount and logData
+		if offset == 0 {
+			logData["dimension_options_total"] = datasetDimensionOptions.TotalCount
+			if datasetDimensionOptions.TotalCount > maxLogOptions {
+				if datasetDimensionOptions.Items != nil && len(datasetDimensionOptions.Items) > 0 {
+					logData["dimension_options_first"] = datasetDimensionOptions.Items[0]
+				}
+			} else {
+				logData["dimension_options"] = datasetDimensionOptions
+			}
+		}
+
+		// remove found items from notFound map
+		for _, opt := range datasetDimensionOptions.Items {
+			if _, found := optionsNotFound[opt.Option]; found {
+				delete(optionsNotFound, opt.Option)
+			}
+		}
+
+		// set offset for next iteration
+		offset += api.maxDatasetOptions
+	}
+	log.Event(ctx, "dimension options retrieved from dataset API", log.INFO, logData)
+
+	// if there is any dimension that is not found, error
+	if optionsNotFound != nil && len(optionsNotFound) > 0 {
+		incorrectDimensionOptions := createArray(optionsNotFound)
+		logData["incorrect_dimension_options"] = incorrectDimensionOptions
+		err := fmt.Errorf("incorrect dimension options chosen: %v", incorrectDimensionOptions)
 		log.Event(ctx, "incorrect dimension options chosen", log.ERROR, log.Error(err), logData)
 		return err
 	}
@@ -314,14 +390,16 @@ func createPublicDimension(dimension models.Dimension, host, filterID string) *m
 	return publicDim
 }
 
-func removeDuplicateOptions(elements []string) []string {
+func removeDuplicateAndEmptyOptions(elements []string) []string {
 	encountered := map[string]bool{}
 	result := []string{}
 
 	for v := range elements {
 		if !encountered[elements[v]] {
 			encountered[elements[v]] = true
-			result = append(result, elements[v])
+			if elements[v] != "" {
+				result = append(result, elements[v])
+			}
 		}
 	}
 

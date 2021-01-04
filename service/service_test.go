@@ -12,8 +12,8 @@ import (
 	"github.com/ONSdigital/dp-filter-api/service/mock"
 	"github.com/ONSdigital/dp-graph/v2/graph"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
-	kafka "github.com/ONSdigital/dp-kafka"
-	"github.com/ONSdigital/dp-kafka/kafkatest"
+	kafka "github.com/ONSdigital/dp-kafka/v2"
+	"github.com/ONSdigital/dp-kafka/v2/kafkatest"
 	"github.com/pkg/errors"
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -65,7 +65,7 @@ func TestInit(t *testing.T) {
 				return &kafka.ProducerChannels{}
 			},
 		}
-		getProducer = func(ctx context.Context, kafkaBrokers []string, topic string, envMax int) (kafkaProducer kafka.IProducer, err error) {
+		getProducer = func(ctx context.Context, cfg *config.Config, kafkaBrokers []string, topic string) (kafkaProducer kafka.IProducer, err error) {
 			return kafkaProducerMock, nil
 		}
 
@@ -127,7 +127,7 @@ func TestInit(t *testing.T) {
 		})
 
 		Convey("Given that initialising the kafka Producer returns an error", func() {
-			getProducer = func(ctx context.Context, kafkaBrokers []string, topic string, envMax int) (kafkaProducer kafka.IProducer, err error) {
+			getProducer = func(ctx context.Context, cfg *config.Config, kafkaBrokers []string, topic string) (kafkaProducer kafka.IProducer, err error) {
 				return nil, errKafka
 			}
 
@@ -405,9 +405,9 @@ func TestClose(t *testing.T) {
 		})
 
 		Convey("Given that a dependency takes more time to close than the graceful shutdown timeout", func() {
-			cfg.ShutdownTimeout = 1 * time.Millisecond
+			cfg.ShutdownTimeout = 5 * time.Millisecond
 			serverMock.ShutdownFunc = func(ctx context.Context) error {
-				time.Sleep(2 * time.Millisecond)
+				time.Sleep(10 * time.Millisecond)
 				return nil
 			}
 

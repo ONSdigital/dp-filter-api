@@ -34,6 +34,18 @@ parameters:
     type: integer
     description: "Limit the number of rows returned in a preview. Defaults to 20 and capped at 100"
     in: query
+  page_limit:
+    name: limit
+    description: "Maximum number of items that will be returned. A value of zero will return all available items, without limit. The default value is 100."
+    in: query
+    required: false
+    type: integer
+  offset:
+    name: offset
+    description: "Starting index of the items array that will be returned. By default it is zero, meaning that the returned items will start from the beginning."
+    in: query
+    required: false
+    type: integer
   name:
     name: name
     type: string
@@ -237,11 +249,11 @@ paths:
       - $ref: '#/parameters/patch_options'
       responses:
         200:
-          description: "The dimension was patched and the updated values are returned"
+          description: "The dimension was patched and the successfully applied patch operations are returned"
           schema:
-            $ref: '#/definitions/Options'
+            $ref: '#/definitions/PatchOptions'
         400:
-          description: "Invalid request body or Filter job does not exist"
+          description: "Invalid request body, filter job does not exist or too many values have been provided in the patch operations"
         401:
           description: "Unauthorised, request lacks valid authentication credentials"
         404:
@@ -268,6 +280,8 @@ paths:
     parameters:
       - $ref: '#/parameters/filter_id'
       - $ref: '#/parameters/name'
+      - $ref: '#/parameters/page_limit'
+      - $ref: '#/parameters/offset'
     get:
       tags:
       - "Public"

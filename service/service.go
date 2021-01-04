@@ -16,7 +16,7 @@ import (
 	"github.com/ONSdigital/dp-filter-api/preview"
 	"github.com/ONSdigital/dp-graph/v2/graph"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
-	kafka "github.com/ONSdigital/dp-kafka"
+	kafka "github.com/ONSdigital/dp-kafka/v2"
 	dphandlers "github.com/ONSdigital/dp-net/handlers"
 	dphttp "github.com/ONSdigital/dp-net/http"
 	"github.com/ONSdigital/log.go/log"
@@ -57,9 +57,13 @@ var getObservationStore = func(ctx context.Context) (observationStore *graph.DB,
 }
 
 // getProducer returns a kafka producer
-var getProducer = func(ctx context.Context, kafkaBrokers []string, topic string, envMax int) (kafkaProducer kafka.IProducer, err error) {
+var getProducer = func(ctx context.Context, cfg *config.Config, kafkaBrokers []string, topic string) (kafkaProducer kafka.IProducer, err error) {
+	pConfig := &kafka.ProducerConfig{
+		KafkaVersion:    &cfg.KafkaVersion,
+		MaxMessageBytes: &cfg.KafkaMaxBytes,
+	}
 	producerChannels := kafka.CreateProducerChannels()
-	return kafka.NewProducer(ctx, kafkaBrokers, topic, envMax, producerChannels)
+	return kafka.NewProducer(ctx, kafkaBrokers, topic, producerChannels, pConfig)
 }
 
 // getHealthCheck returns a healthcheck
@@ -102,7 +106,7 @@ func (svc *Service) Init(ctx context.Context, cfg *config.Config, buildTime, git
 	}
 
 	// Get kafka producer
-	svc.filterOutputSubmittedProducer, err = getProducer(ctx, svc.cfg.Brokers, svc.cfg.FilterOutputSubmittedTopic, svc.cfg.KafkaMaxBytes)
+	svc.filterOutputSubmittedProducer, err = getProducer(ctx, cfg, svc.cfg.Brokers, svc.cfg.FilterOutputSubmittedTopic)
 	if err != nil {
 		log.Event(ctx, "error creating kafka filter output submitted producer", log.ERROR, log.Error(err))
 		return err
@@ -135,17 +139,13 @@ func (svc *Service) Init(ctx context.Context, cfg *config.Config, buildTime, git
 	// Create API, with previewDatasets and outputQueue
 	previewDatasets := preview.DatasetStore{Store: svc.observationStore}
 	outputQueue := filterOutputQueue.CreateOutputQueue(svc.filterOutputSubmittedProducer.Channels().Output)
-	svc.api = api.Setup(svc.cfg.Host,
+	svc.api = api.Setup(
+		svc.cfg,
 		r,
 		svc.filterStore,
 		&outputQueue,
 		svc.datasetAPI,
-		&previewDatasets,
-		svc.cfg.EnablePrivateEndpoints,
-		svc.cfg.DownloadServiceURL,
-		svc.cfg.DownloadServiceSecretKey,
-		svc.cfg.ServiceAuthToken,
-	)
+		&previewDatasets)
 	return nil
 }
 
@@ -170,10 +170,8 @@ func (svc *Service) Start(ctx context.Context, svcErrors chan error) {
 // CreateMiddleware creates an Alice middleware chain of handlers
 func (svc *Service) createMiddleware(ctx context.Context) alice.Chain {
 	healthCheckHandler := newMiddleware(svc.healthCheck.Handler, "/health")
-	oldHealthCheckHandler := newMiddleware(svc.healthCheck.Handler, "/healthcheck")
 	middlewareChain := alice.New(
 		healthCheckHandler,
-		oldHealthCheckHandler,
 		dphandlers.CheckHeader(dphandlers.CollectionID))
 
 	if svc.cfg.EnablePrivateEndpoints {
@@ -191,6 +189,9 @@ func newMiddleware(healthcheckHandler func(http.ResponseWriter, *http.Request), 
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 			if req.Method == "GET" && req.URL.Path == endpoint {
 				healthcheckHandler(w, req)
+				return
+			} else if req.Method == "GET" && req.URL.Path == "/healthcheck" {
+				http.NotFound(w, req)
 				return
 			}
 			h.ServeHTTP(w, req)
