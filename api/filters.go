@@ -471,30 +471,33 @@ func (api *FilterAPI) getDimensions(ctx context.Context, dataset *models.Dataset
 	return &dimensions, nil
 }
 
-func (api *FilterAPI) getDimensionOptions(ctx context.Context, dataset *models.Dataset, dimensionName string, ids []string) (*datasetAPI.Options, error) {
+// getDimensionOptionsBatchProcess calls dataset API GetOptionsBatchProcess with the provided batch processor
+func (api *FilterAPI) getDimensionOptionsBatchProcess(ctx context.Context, dimension models.Dimension, dataset *models.Dataset, processBatch datasetAPI.OptionsBatchProcessor) error {
 
-	options, err := api.datasetAPI.GetOptions(ctx,
+	err := api.datasetAPI.GetOptionsBatchProcess(ctx,
 		getUserAuthToken(ctx),
 		api.serviceAuthToken,
 		getCollectionID(ctx),
 		dataset.ID,
 		dataset.Edition,
 		strconv.Itoa(dataset.Version),
-		dimensionName,
-		datasetAPI.QueryParams{IDs: ids})
+		dimension.Name,
+		&dimension.Options,
+		processBatch,
+		api.maxDatasetOptions,
+		api.BatchMaxWorkers)
 
 	if err != nil {
 		if apiErr, ok := err.(*datasetAPI.ErrInvalidDatasetAPIResponse); ok {
 			switch apiErr.Code() {
 			case http.StatusNotFound:
-				return nil, filters.ErrDimensionOptionsNotFound
+				return filters.ErrDimensionOptionsNotFound
 			}
 		}
-
-		return nil, err
+		return err
 	}
 
-	return &options, nil
+	return nil
 }
 
 func (api *FilterAPI) createFilterOutputResource(ctx context.Context, newFilter *models.Filter, filterBlueprintID string) (models.Filter, error) {

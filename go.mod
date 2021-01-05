@@ -3,7 +3,7 @@ module github.com/ONSdigital/dp-filter-api
 go 1.15
 
 require (
-	github.com/ONSdigital/dp-api-clients-go v1.32.1
+	github.com/ONSdigital/dp-api-clients-go v1.32.2-0.20210105125646-318bb2d3bb05
 	github.com/ONSdigital/dp-graph/v2 v2.3.0
 	github.com/ONSdigital/dp-healthcheck v1.0.5
 	github.com/ONSdigital/dp-kafka/v2 v2.1.2

@@ -29,9 +29,9 @@ func NewDatasetAPI() *DatasetAPI {
 		Cfg: DatasetAPIConfig{},
 	}
 	ds.Mock = &apimocks.DatasetAPIMock{
-		GetVersionFunc:           ds.GetVersion,
-		GetVersionDimensionsFunc: ds.GetVersionDimensions,
-		GetOptionsFunc:           ds.GetOptions,
+		GetVersionFunc:             ds.GetVersion,
+		GetVersionDimensionsFunc:   ds.GetVersionDimensions,
+		GetOptionsBatchProcessFunc: ds.GetOptionsBatchProcess,
 	}
 	return ds
 }
@@ -111,10 +111,11 @@ func (ds *DatasetAPI) GetVersionDimensions(ctx context.Context, userAuthToken, s
 	}, nil
 }
 
-// GetOptions represents the mocked version of getting a list of dimension options from the dataset API
-func (ds *DatasetAPI) GetOptions(ctx context.Context, userAuthToken, serviceAuthToken, collectionID, id, edition, version, dimension string, q dataset.QueryParams) (m dataset.Options, err error) {
+// GetOptionsBatchProcess represents the mocked version of getting a list of dimension options from the dataset API
+func (ds *DatasetAPI) GetOptionsBatchProcess(ctx context.Context, userAuthToken, serviceAuthToken, collectionID, id, edition, version, dimension string, optionIDs *[]string, processBatch dataset.OptionsBatchProcessor, batchSize int, maxWorkers int) (err error) {
+
 	if ds.Cfg.InternalServerError {
-		return m, errorInternalServer
+		return errorInternalServer
 	}
 
 	dimensionOptionOne := dataset.Option{
@@ -127,15 +128,30 @@ func (ds *DatasetAPI) GetOptions(ctx context.Context, userAuthToken, serviceAuth
 		Option: "33",
 	}
 
-	items := slice([]dataset.Option{dimensionOptionOne, dimensionOptionTwo}, q.Offset, q.Limit)
+	offset := 0
+	for offset < 2 {
 
-	return dataset.Options{
-		Items:      items,
-		TotalCount: 2,
-		Offset:     q.Offset,
-		Limit:      q.Limit,
-		Count:      len(items),
-	}, nil
+		// get items for the offset
+		items := slice([]dataset.Option{dimensionOptionOne, dimensionOptionTwo}, offset, batchSize)
+		opts := dataset.Options{
+			Items:      items,
+			TotalCount: 2,
+			Offset:     offset,
+			Limit:      batchSize,
+			Count:      len(items),
+		}
+
+		// call the provided processor
+		abort, err := processBatch(opts)
+		if abort || err != nil {
+			return err
+		}
+
+		// increase offset for next iteration
+		offset += batchSize
+	}
+
+	return nil
 }
 
 func slice(full []dataset.Option, offset, limit int) (sliced []dataset.Option) {
