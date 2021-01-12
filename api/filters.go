@@ -474,6 +474,11 @@ func (api *FilterAPI) getDimensions(ctx context.Context, dataset *models.Dataset
 // getDimensionOptionsBatchProcess calls dataset API GetOptionsBatchProcess with the provided batch processor
 func (api *FilterAPI) getDimensionOptionsBatchProcess(ctx context.Context, dimension models.Dimension, dataset *models.Dataset, processBatch datasetAPI.OptionsBatchProcessor) error {
 
+	// if no options are defined, there is nothing to validate against dataset API
+	if dimension.Options == nil || len(dimension.Options) == 0 {
+		return nil
+	}
+
 	err := api.datasetAPI.GetOptionsBatchProcess(ctx,
 		getUserAuthToken(ctx),
 		api.serviceAuthToken,
