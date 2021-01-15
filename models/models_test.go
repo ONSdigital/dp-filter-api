@@ -341,3 +341,90 @@ func TestValidateFilterBlueprintUpdate(t *testing.T) {
 		})
 	})
 }
+
+func TestFilterHash(t *testing.T) {
+
+	testFilter := func() Filter {
+		return Filter{
+			FilterID:   "myFilter",
+			InstanceID: "myInstance",
+			State:      CreatedState,
+			Dimensions: []Dimension{
+				{
+					URL:     "http://dimensions.co.uk/dim1",
+					Name:    "dim1",
+					Options: []string{"op11", "op12", "op13"},
+				},
+				{
+					URL:     "http://dimensions.co.uk/dim2",
+					Name:    "dim2",
+					Options: []string{"op21"},
+				},
+			},
+		}
+	}
+
+	Convey("Given a filter blueprint with some data", t, func() {
+		filter := testFilter()
+
+		Convey("We can generate a valid hash", func() {
+			h, err := filter.Hash()
+			So(err, ShouldBeNil)
+			So(len(h), ShouldEqual, 40)
+
+			Convey("Then hashing it twice, produces the same result", func() {
+				hash, err := filter.Hash()
+				So(err, ShouldBeNil)
+				So(hash, ShouldEqual, h)
+			})
+
+			Convey("Then another filter with exactly the same data will resolve to the same hash", func() {
+				filter2 := testFilter()
+				hash, err := filter2.Hash()
+				So(err, ShouldBeNil)
+				So(hash, ShouldEqual, h)
+			})
+
+			Convey("Then if a filter value is modified, its hash changes", func() {
+				filter.State = CompletedState
+				hash, err := filter.Hash()
+				So(err, ShouldBeNil)
+				So(hash, ShouldNotEqual, h)
+			})
+
+			Convey("Then if a dimension is added to the filter, its hash changes", func() {
+				filter.Dimensions = append(filter.Dimensions, Dimension{Name: "dim3"})
+				hash, err := filter.Hash()
+				So(err, ShouldBeNil)
+				So(hash, ShouldNotEqual, h)
+			})
+
+			Convey("Then if a dimension is removed from the filter, its hash changes", func() {
+				filter.Dimensions = []Dimension{
+					{
+						URL:     "http://dimensions.co.uk/dim1",
+						Name:    "dim1",
+						Options: []string{"op11", "op12", "op13"},
+					},
+				}
+				hash, err := filter.Hash()
+				So(err, ShouldBeNil)
+				So(hash, ShouldNotEqual, h)
+			})
+
+			Convey("Then if a dimension option is added to a filter dimension, its hash changes", func() {
+				filter.Dimensions[0].Options = append(filter.Dimensions[0].Options, "op14")
+				hash, err := filter.Hash()
+				So(err, ShouldBeNil)
+				So(hash, ShouldNotEqual, h)
+			})
+
+			Convey("Then if a dimension option is removed from a filter dimension, its hash changes", func() {
+				filter.Dimensions[0].Options = []string{"op11", "op13"}
+				hash, err := filter.Hash()
+				So(err, ShouldBeNil)
+				So(hash, ShouldNotEqual, h)
+			})
+		})
+	})
+}

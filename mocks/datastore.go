@@ -144,7 +144,7 @@ func (ds *DataStore) AddFilter(filterJob *models.Filter) (*models.Filter, error)
 }
 
 // AddFilterDimension represents the mocked version of creating a filter dimension to the datastore
-func (ds *DataStore) AddFilterDimension(filterID, name string, options []string, dimensions []models.Dimension, timestamp bson.MongoTimestamp) error {
+func (ds *DataStore) AddFilterDimension(filterID, name string, options []string, dimensions []models.Dimension, timestamp bson.MongoTimestamp, eTag string) error {
 	if ds.Cfg.InternalError {
 		return errorInternalServer
 	}
@@ -161,7 +161,7 @@ func (ds *DataStore) AddFilterDimension(filterID, name string, options []string,
 }
 
 // AddFilterDimensionOption represents the mocked version of creating a filter dimension option to the datastore
-func (ds *DataStore) AddFilterDimensionOption(filterID, name, option string, timestamp bson.MongoTimestamp) error {
+func (ds *DataStore) AddFilterDimensionOption(filterID, name, option string, timestamp bson.MongoTimestamp, eTag string) error {
 	if ds.Cfg.InternalError {
 		return errorInternalServer
 	}
@@ -178,7 +178,7 @@ func (ds *DataStore) AddFilterDimensionOption(filterID, name, option string, tim
 }
 
 // AddFilterDimensionOptions represents the mocked version of adding a list of dimension options to the datastore
-func (ds *DataStore) AddFilterDimensionOptions(filterID, name string, options []string, timestamp bson.MongoTimestamp) error {
+func (ds *DataStore) AddFilterDimensionOptions(filterID, name string, options []string, timestamp bson.MongoTimestamp, eTag string) error {
 	if ds.Cfg.InternalError {
 		return errorInternalServer
 	}
@@ -290,7 +290,7 @@ func (ds *DataStore) GetFilterOutput(filterID string) (*models.Filter, error) {
 }
 
 // RemoveFilterDimension represents the mocked version of removing a filter dimension from the datastore
-func (ds *DataStore) RemoveFilterDimension(string, string, bson.MongoTimestamp) error {
+func (ds *DataStore) RemoveFilterDimension(string, string, bson.MongoTimestamp, string) error {
 	if ds.Cfg.InternalError {
 		return errorInternalServer
 	}
@@ -307,7 +307,7 @@ func (ds *DataStore) RemoveFilterDimension(string, string, bson.MongoTimestamp) 
 }
 
 // RemoveFilterDimensionOption represents the mocked version of removing a filter dimension option from the datastore
-func (ds *DataStore) RemoveFilterDimensionOption(filterJobID, name, option string, timestamp bson.MongoTimestamp) error {
+func (ds *DataStore) RemoveFilterDimensionOption(filterJobID, name, option string, timestamp bson.MongoTimestamp, eTag string) error {
 	if ds.Cfg.InternalError {
 		return errorInternalServer
 	}
@@ -324,7 +324,7 @@ func (ds *DataStore) RemoveFilterDimensionOption(filterJobID, name, option strin
 }
 
 // RemoveFilterDimensionOptions represents the mocked version of removing a set of filter dimension options from the datastore
-func (ds *DataStore) RemoveFilterDimensionOptions(filterJobID, name string, options []string, timestamp bson.MongoTimestamp) error {
+func (ds *DataStore) RemoveFilterDimensionOptions(filterJobID, name string, options []string, timestamp bson.MongoTimestamp, eTag string) error {
 	if ds.Cfg.InternalError {
 		return errorInternalServer
 	}
@@ -341,7 +341,7 @@ func (ds *DataStore) RemoveFilterDimensionOptions(filterJobID, name string, opti
 }
 
 // UpdateFilter represents the mocked version of updating a filter blueprint from the datastore
-func (ds *DataStore) UpdateFilter(filterJob *models.Filter, timestamp bson.MongoTimestamp) error {
+func (ds *DataStore) UpdateFilter(filterJob *models.Filter, timestamp bson.MongoTimestamp, eTag string) error {
 	if ds.Cfg.InternalError {
 		return errorInternalServer
 	}
@@ -362,7 +362,7 @@ func (ds *DataStore) UpdateFilter(filterJob *models.Filter, timestamp bson.Mongo
 }
 
 // UpdateFilterOutput represents the mocked version of updating a filter output from the datastore
-func (ds *DataStore) UpdateFilterOutput(filterJob *models.Filter, timestamp bson.MongoTimestamp) error {
+func (ds *DataStore) UpdateFilterOutput(filterJob *models.Filter, timestamp bson.MongoTimestamp, eTag string) error {
 	if ds.Cfg.InternalError {
 		return errorInternalServer
 	}

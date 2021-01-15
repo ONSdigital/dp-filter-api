@@ -75,6 +75,7 @@ func (api *FilterAPI) postFilterBlueprintHandler(w http.ResponseWriter, r *http.
 	}
 
 	setJSONContentType(w)
+	setETag(w, newFilter.ETag)
 	w.WriteHeader(http.StatusCreated)
 	_, err = w.Write(bytes)
 	if err != nil {
@@ -177,7 +178,7 @@ func (api *FilterAPI) getFilterBlueprintHandler(w http.ResponseWriter, r *http.R
 	ctx := r.Context()
 	log.Event(ctx, "getting filter blueprint", log.INFO, logData)
 
-	filterBlueprint, err := api.getFilterBlueprint(ctx, filterID)
+	filterBlueprint, err := api.getFilterBlueprint(ctx, filterID, "")
 	if err != nil {
 		log.Event(ctx, "unable to get filter blueprint", log.ERROR, log.Error(err), logData)
 		setErrorCode(w, err)
@@ -195,6 +196,7 @@ func (api *FilterAPI) getFilterBlueprintHandler(w http.ResponseWriter, r *http.R
 	}
 
 	setJSONContentType(w)
+	setETag(w, filterBlueprint.ETag)
 	w.WriteHeader(http.StatusOK)
 	_, err = w.Write(bytes)
 	if err != nil {
@@ -216,6 +218,15 @@ func (api *FilterAPI) putFilterBlueprintHandler(w http.ResponseWriter, r *http.R
 	ctx := r.Context()
 	log.Event(ctx, "updating filter blueprint", log.INFO, logData)
 
+	// eTag value present in If-Match header
+	eTag := getIfMatch(r)
+	if eTag == "" {
+		err := filters.ErrNoIfMatchHeader
+		log.Event(ctx, "not enough information provided to perform put filter", log.ERROR, log.Data{"error": err.Error()})
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
 	filter, err := models.CreateFilter(r.Body)
 	if err != nil {
 		// When filter blueprint has query parameter `submitted` set to true then
@@ -228,7 +239,7 @@ func (api *FilterAPI) putFilterBlueprintHandler(w http.ResponseWriter, r *http.R
 	}
 	filter.FilterID = filterID
 
-	newFilter, err := api.updateFilterBlueprint(ctx, filter, submitted)
+	newFilter, err := api.updateFilterBlueprint(ctx, filter, submitted, eTag)
 	if err != nil {
 		log.Event(ctx, "failed to update filter blueprint", log.ERROR, log.Error(err), logData)
 		setErrorCode(w, err)
@@ -244,6 +255,7 @@ func (api *FilterAPI) putFilterBlueprintHandler(w http.ResponseWriter, r *http.R
 	}
 
 	setJSONContentType(w)
+	setETag(w, newFilter.ETag)
 	w.WriteHeader(http.StatusOK)
 	_, err = w.Write(bytes)
 	if err != nil {
@@ -253,7 +265,7 @@ func (api *FilterAPI) putFilterBlueprintHandler(w http.ResponseWriter, r *http.R
 	}
 }
 
-func (api *FilterAPI) updateFilterBlueprint(ctx context.Context, filter *models.Filter, submitted string) (*models.Filter, error) {
+func (api *FilterAPI) updateFilterBlueprint(ctx context.Context, filter *models.Filter, submitted, eTag string) (*models.Filter, error) {
 
 	logData := log.Data{"filter_blueprint_id": filter.FilterID, "submitted": submitted}
 	log.Event(ctx, "updating filter blueprint", log.INFO, logData)
@@ -264,7 +276,7 @@ func (api *FilterAPI) updateFilterBlueprint(ctx context.Context, filter *models.
 		return nil, filters.ErrBadRequest
 	}
 
-	currentFilter, err := api.getFilterBlueprint(ctx, filter.FilterID)
+	currentFilter, err := api.getFilterBlueprint(ctx, filter.FilterID, eTag)
 	if err != nil {
 		log.Event(ctx, "unable to get filter blueprint", log.ERROR, log.Error(err), logData)
 		return nil, err
@@ -302,7 +314,7 @@ func (api *FilterAPI) updateFilterBlueprint(ctx context.Context, filter *models.
 		}
 	}
 
-	err = api.dataStore.UpdateFilter(newFilter, timestamp)
+	err = api.dataStore.UpdateFilter(newFilter, timestamp, eTag)
 	if err != nil {
 		log.Event(ctx, "unable to update filter blueprint", log.ERROR, log.Error(err), logData)
 		return nil, err
@@ -329,7 +341,7 @@ func (api *FilterAPI) updateFilterBlueprint(ctx context.Context, filter *models.
 	return newFilter, nil
 }
 
-func (api *FilterAPI) getFilterBlueprint(ctx context.Context, filterID string) (*models.Filter, error) {
+func (api *FilterAPI) getFilterBlueprint(ctx context.Context, filterID, eTag string) (*models.Filter, error) {
 
 	logData := log.Data{"filter_blueprint_id": filterID}
 
@@ -337,6 +349,14 @@ func (api *FilterAPI) getFilterBlueprint(ctx context.Context, filterID string) (
 	if err != nil {
 		log.Event(ctx, "error getting filter", log.ERROR, log.Error(err), logData)
 		return nil, err
+	}
+
+	// validate eTag, if provided. Otherwise use the value obtained from getFilter
+	if eTag == "" {
+		eTag = filter.ETag
+	}
+	if eTag != filter.ETag {
+		return nil, filters.ErrFilterBlueprintConflict
 	}
 
 	//only return the filter if it is for published data or via authenticated request
@@ -352,10 +372,11 @@ func (api *FilterAPI) getFilterBlueprint(ctx context.Context, filterID string) (
 		return nil, err
 	}
 
-	//version has been published since filter was last requested, so update filter and return
+	// version has been published since filter was last requested, so update filter and return
 	if version.State == publishedState {
 		filter.Published = &models.Published
-		if err := api.dataStore.UpdateFilter(filter, filter.UniqueTimestamp); err != nil {
+		filter.ETag, err = api.dataStore.UpdateFilter(filter, filter.UniqueTimestamp, eTag)
+		if err != nil {
 			log.Event(ctx, "error updating filter", log.ERROR, log.Error(err), logData)
 			return nil, filters.ErrFilterBlueprintNotFound
 		}
@@ -559,6 +580,14 @@ func setJSONContentType(w http.ResponseWriter) {
 
 func setJSONPatchContentType(w http.ResponseWriter) {
 	w.Header().Set("Content-Type", "application/json-patch+json")
+}
+
+func setETag(w http.ResponseWriter, eTag string) {
+	w.Header().Set("ETag", eTag)
+}
+
+func getIfMatch(r *http.Request) string {
+	return r.Header.Get("If-Match")
 }
 
 func createNewFilter(filter *models.Filter, currentFilter *models.Filter) (newFilter *models.Filter, versionHasChanged bool) {

@@ -1,6 +1,7 @@
 package models
 
 import (
+	"crypto/sha1"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -40,7 +41,8 @@ type NewFilter struct {
 // Filter represents a structure for a filter job
 type Filter struct {
 	UniqueTimestamp bson.MongoTimestamp `bson:"unique_timestamp,omitempty" json:"-"`
-	LastUpdated     time.Time           `bson:"last_updated"         json:"-"`
+	LastUpdated     time.Time           `bson:"last_updated"               json:"-"`
+	ETag            string              `bson:"e_tag"                      json:"-"`
 
 	Dataset    *Dataset    `bson:"dataset"              json:"dataset"`
 	InstanceID string      `bson:"instance_id"          json:"instance_id"`
@@ -51,6 +53,24 @@ type Filter struct {
 	State      string      `bson:"state,omitempty"      json:"state,omitempty"`
 	Published  *bool       `bson:"published,omitempty"  json:"published,omitempty"`
 	Links      LinkMap     `bson:"links"                json:"links,omitempty"`
+}
+
+// Hash generates a SHA-1 hash of the filter struct. SHA-1 is not cryptographically safe,
+// but it has been selected for performance as we are only interested in uniqueness.
+// If an update filter parameter is provided, the hash will be calculated from the filter that would result after applying the update.
+func (f *Filter) Hash() (string, error) {
+	h := sha1.New()
+
+	b, err := bson.Marshal(f)
+	if err != nil {
+		return "", err
+	}
+
+	if _, err := h.Write(b); err != nil {
+		return "", err
+	}
+
+	return fmt.Sprintf("%x", h.Sum(nil)), nil
 }
 
 // LinkMap contains a named LinkObject for each link to other resources

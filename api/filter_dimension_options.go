@@ -46,7 +46,7 @@ func (api *FilterAPI) getFilterBlueprintDimensionOptionsHandler(w http.ResponseW
 		return
 	}
 
-	filter, err := api.getFilterBlueprint(ctx, filterBlueprintID)
+	filter, err := api.getFilterBlueprint(ctx, filterBlueprintID, "")
 	if err != nil {
 		log.Event(ctx, "failed to get dimension options for filter blueprint", log.ERROR, log.Error(err), logData)
 		setErrorCode(w, err)
@@ -70,6 +70,7 @@ func (api *FilterAPI) getFilterBlueprintDimensionOptionsHandler(w http.ResponseW
 	}
 
 	setJSONContentType(w)
+	setETag(w, filter.ETag)
 	_, err = w.Write(b)
 	if err != nil {
 		log.Event(ctx, "failed to write bytes for http response", log.ERROR, log.Error(err), logData)
@@ -149,7 +150,7 @@ func (api *FilterAPI) getFilterBlueprintDimensionOptionHandler(w http.ResponseWr
 	ctx := r.Context()
 	log.Event(ctx, "get filter blueprint dimension option", log.INFO, logData)
 
-	filter, err := api.getFilterBlueprint(ctx, filterBlueprintID)
+	filter, err := api.getFilterBlueprint(ctx, filterBlueprintID, "")
 	if err != nil {
 		log.Event(ctx, "unable to get dimension option for filter blueprint", log.ERROR, log.Error(err), logData)
 		setErrorCodeFromError(w, err)
@@ -171,6 +172,7 @@ func (api *FilterAPI) getFilterBlueprintDimensionOptionHandler(w http.ResponseWr
 	}
 
 	setJSONContentType(w)
+	setETag(w, filter.ETag)
 	_, err = w.Write(b)
 	if err != nil {
 		log.Event(ctx, "failed to write bytes for http response", log.ERROR, log.Error(err), logData)
@@ -250,8 +252,17 @@ func (api *FilterAPI) addFilterBlueprintDimensionOptionHandler(w http.ResponseWr
 	}
 	ctx := r.Context()
 
+	// eTag value present in If-Match header
+	eTag := getIfMatch(r)
+	if eTag == "" {
+		err := filters.ErrNoIfMatchHeader
+		log.Event(ctx, "not enough information provided to perform put filter", log.ERROR, log.Data{"error": err.Error()})
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
 	// add the dimension options, if valid
-	err := api.addFilterBlueprintDimensionOptions(ctx, filterBlueprintID, dimensionName, []string{option}, logData)
+	newETag, err := api.addFilterBlueprintDimensionOptions(ctx, filterBlueprintID, dimensionName, []string{option}, logData, eTag)
 	if err != nil {
 		log.Event(ctx, "error adding filter blueprint dimension option", log.ERROR, log.Error(err), logData)
 		setErrorCodeFromErrorExpectDimension(w, err)
@@ -259,7 +270,7 @@ func (api *FilterAPI) addFilterBlueprintDimensionOptionHandler(w http.ResponseWr
 	}
 
 	// request filterBlueprint again in order to construct the response from the updated filter (if a new option was added)
-	filterBlueprint, err := api.getFilterBlueprint(ctx, filterBlueprintID)
+	filterBlueprint, err := api.getFilterBlueprint(ctx, filterBlueprintID, newETag)
 	if err != nil {
 		log.Event(ctx, "error getting filter blueprint dimension option after the dimension option has been successfully added", log.ERROR, log.Error(err), logData)
 		setErrorCodeFromErrorExpectDimension(w, err)
@@ -282,6 +293,7 @@ func (api *FilterAPI) addFilterBlueprintDimensionOptionHandler(w http.ResponseWr
 	}
 
 	setJSONContentType(w)
+	setETag(w, newETag)
 	w.WriteHeader(http.StatusCreated)
 	_, err = w.Write(b)
 	if err != nil {
@@ -294,39 +306,39 @@ func (api *FilterAPI) addFilterBlueprintDimensionOptionHandler(w http.ResponseWr
 }
 
 // addFilterBlueprintDimensionOptions adds the provided options to the filter dimension, only if the options are available for the dimension.
-func (api *FilterAPI) addFilterBlueprintDimensionOptions(ctx context.Context, filterBlueprintID string, dimensionName string, options []string, logData log.Data) error {
+func (api *FilterAPI) addFilterBlueprintDimensionOptions(ctx context.Context, filterBlueprintID string, dimensionName string, options []string, logData log.Data, eTag string) (newETag string, err error) {
 
 	// request filterBlueprint before updating it
-	filterBlueprint, err := api.getFilterBlueprint(ctx, filterBlueprintID)
+	filterBlueprint, err := api.getFilterBlueprint(ctx, filterBlueprintID, eTag)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	// Check if dimension exists and any provided option already exists
 	hasDimension, _, missingOptions := findDimensionAndOptions(filterBlueprint, dimensionName, options)
 	if !hasDimension {
-		return filters.ErrDimensionNotFound
+		return "", filters.ErrDimensionNotFound
 	}
 
 	// validate that the provided existing dimension is still valid and the options are acceptable for the dimension
 	if err := api.checkNewFilterDimension(ctx, dimensionName, options, filterBlueprint.Dataset); err != nil {
 		if err == filters.ErrVersionNotFound || err == filters.ErrDimensionsNotFound {
-			return err
+			return "", err
 		}
 
 		if incorrectDimensionOptions.MatchString(err.Error()) {
-			return filters.NewBadRequestErr(err.Error())
+			return "", filters.NewBadRequestErr(err.Error())
 		}
 
 		if incorrectDimension.MatchString(err.Error()) {
-			return filters.NewBadRequestErr(err.Error())
+			return "", filters.NewBadRequestErr(err.Error())
 		}
 
-		return err
+		return "", err
 	}
 
 	// All validations succeeded - add dimension options that do not already exist
-	return api.dataStore.AddFilterDimensionOptions(filterBlueprintID, dimensionName, createArray(missingOptions), filterBlueprint.UniqueTimestamp)
+	return api.dataStore.AddFilterDimensionOptions(filterBlueprintID, dimensionName, createArray(missingOptions), filterBlueprint.UniqueTimestamp, eTag)
 }
 
 func (api *FilterAPI) removeFilterBlueprintDimensionOptionHandler(w http.ResponseWriter, r *http.Request) {
@@ -343,63 +355,70 @@ func (api *FilterAPI) removeFilterBlueprintDimensionOptionHandler(w http.Respons
 	ctx := r.Context()
 	log.Event(ctx, "remove filter blueprint dimension option", log.INFO, logData)
 
-	if err := api.removeFilterBlueprintDimensionOption(ctx, filterBlueprintID, dimensionName, option); err != nil {
+	// eTag value present in If-Match header
+	eTag := getIfMatch(r)
+	if eTag == "" {
+		err := filters.ErrNoIfMatchHeader
+		log.Event(ctx, "not enough information provided to perform put filter", log.ERROR, log.Data{"error": err.Error()})
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	newETag, err := api.removeFilterBlueprintDimensionOption(ctx, filterBlueprintID, dimensionName, option, eTag)
+	if err != nil {
 		log.Event(ctx, "error removing filter blueprint dimension option", log.ERROR, log.Error(err), logData)
 		setErrorCodeFromError(w, err)
 		return
 	}
 
 	setJSONContentType(w)
+	setETag(w, newETag)
 	w.WriteHeader(http.StatusNoContent)
 
 	log.Event(ctx, "delete dimension option on filter blueprint", log.INFO, logData)
 }
 
 // removeFilterBlueprintDimensionOption removes a single dimension option, failing if the option did not exist
-func (api *FilterAPI) removeFilterBlueprintDimensionOption(ctx context.Context, filterBlueprintID string, dimensionName, option string) error {
+func (api *FilterAPI) removeFilterBlueprintDimensionOption(ctx context.Context, filterBlueprintID string, dimensionName, option, eTag string) (newETag string, err error) {
 
 	// Get filter Blueprint before updating it
-	filterBlueprint, err := api.getFilterBlueprint(ctx, filterBlueprintID)
+	filterBlueprint, err := api.getFilterBlueprint(ctx, filterBlueprintID, eTag)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	// Check if dimension and option exists
 	hasDimension, hasOptions, _ := findDimensionAndOptions(filterBlueprint, dimensionName, []string{option})
 
 	if !hasDimension {
-		return filters.ErrDimensionNotFound
+		return "", filters.ErrDimensionNotFound
 	}
 
 	if !hasOptions {
-		return filters.ErrDimensionOptionNotFound
+		return "", filters.ErrDimensionOptionNotFound
 	}
 
-	if err := api.dataStore.RemoveFilterDimensionOption(filterBlueprint.FilterID, dimensionName, option, filterBlueprint.UniqueTimestamp); err != nil {
-		return err
-	}
-
-	return nil
+	return api.dataStore.RemoveFilterDimensionOption(filterBlueprint.FilterID, dimensionName, option, filterBlueprint.UniqueTimestamp, filterBlueprint.ETag)
 }
 
 // removeFilterBlueprintDimensionOption removes all provided options.
-func (api *FilterAPI) removeFilterBlueprintDimensionOptions(ctx context.Context, filterBlueprintID string, dimensionName string, options []string, logData log.Data) error {
+func (api *FilterAPI) removeFilterBlueprintDimensionOptions(ctx context.Context, filterBlueprintID string, dimensionName string, options []string, logData log.Data, eTag string) (newETag string, err error) {
 
 	// check if any option has been provided
 	if len(options) == 0 {
-		return nil
+		return "", nil
 	}
 
 	// Get filter Blueprint before updating it
-	filterBlueprint, err := api.getFilterBlueprint(ctx, filterBlueprintID)
+	filterBlueprint, err := api.getFilterBlueprint(ctx, filterBlueprintID, eTag)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	// Check if provided dimension and options exists in filter blueprint
 	hasDimension, hasAllOptions, missingOptions := findDimensionAndOptions(filterBlueprint, dimensionName, options)
 	if !hasDimension {
-		return filters.ErrDimensionNotFound
+		return "", filters.ErrDimensionNotFound
 	}
 
 	// find options that actually need to be removed according to the existing options before applying any change
@@ -417,11 +436,11 @@ func (api *FilterAPI) removeFilterBlueprintDimensionOptions(ctx context.Context,
 	// if none of the provided options were present, we don't need to remove anything
 	if len(optionsToRemove) == 0 {
 		log.Event(ctx, "options do not exist in the dimension, nothing to remove", log.INFO)
-		return nil
+		return eTag, nil
 	}
 
 	// remove necessary options from DB
-	return api.dataStore.RemoveFilterDimensionOptions(filterBlueprintID, dimensionName, optionsToRemove, filterBlueprint.UniqueTimestamp)
+	return api.dataStore.RemoveFilterDimensionOptions(filterBlueprintID, dimensionName, optionsToRemove, filterBlueprint.UniqueTimestamp, eTag)
 }
 
 // Handler for a list of patch operations against the dimension options
@@ -436,6 +455,15 @@ func (api *FilterAPI) patchFilterBlueprintDimensionHandler(w http.ResponseWriter
 	}
 	ctx := r.Context()
 	log.Event(ctx, "patch filter blueprint dimension", log.INFO, logData)
+
+	// eTag value present in If-Match header
+	eTag := getIfMatch(r)
+	if eTag == "" {
+		err := filters.ErrNoIfMatchHeader
+		log.Event(ctx, "not enough information provided to perform put filter", log.ERROR, log.Data{"error": err.Error()})
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
 
 	// unmarshal and validate the patch array
 	patches, err := models.CreatePatches(r.Body)
@@ -466,7 +494,7 @@ func (api *FilterAPI) patchFilterBlueprintDimensionHandler(w http.ResponseWriter
 	}
 
 	// apply the patches to the filter blueprint dimension options
-	successfulPatches, err := api.patchFilterBlueprintDimension(ctx, filterBlueprintID, dimensionName, patches, logData)
+	successfulPatches, newETag, err := api.patchFilterBlueprintDimension(ctx, filterBlueprintID, dimensionName, patches, logData, eTag)
 	if err != nil {
 		logData["successful_patches"] = successfulPatches
 		log.Event(ctx, "error patching filter blueprint dimension options", log.ERROR, log.Error(err), logData)
@@ -481,6 +509,7 @@ func (api *FilterAPI) patchFilterBlueprintDimensionHandler(w http.ResponseWriter
 
 	// set content type, marshal and write response
 	setJSONPatchContentType(w)
+	setETag(w, newETag)
 	if err := WriteJSONBody(ctx, successfulPatches, w, logData); err != nil {
 		log.Event(ctx, "error writing JSON body after a successful filter blueprint patch", log.ERROR, log.Error(err), logData)
 		setErrorCodeFromError(w, err)
@@ -491,7 +520,7 @@ func (api *FilterAPI) patchFilterBlueprintDimensionHandler(w http.ResponseWriter
 }
 
 // patchFilterBlueprintDimension applies the patches by calling add or remove filter dimension options. It keeps track of a list of successful patches
-func (api *FilterAPI) patchFilterBlueprintDimension(ctx context.Context, filterBlueprintID string, dimensionName string, patches []dprequest.Patch, logData log.Data) (successful []dprequest.Patch, err error) {
+func (api *FilterAPI) patchFilterBlueprintDimension(ctx context.Context, filterBlueprintID string, dimensionName string, patches []dprequest.Patch, logData log.Data, eTag string) (successful []dprequest.Patch, newETag string, err error) {
 
 	successful = []dprequest.Patch{}
 
@@ -500,17 +529,19 @@ func (api *FilterAPI) patchFilterBlueprintDimension(ctx context.Context, filterB
 		options := removeDuplicateAndEmptyOptions(patch.Value)
 
 		if patch.Op == dprequest.OpAdd.String() {
-			if err := api.addFilterBlueprintDimensionOptions(ctx, filterBlueprintID, dimensionName, options, logData); err != nil {
-				return successful, err
+			newETag, err = api.addFilterBlueprintDimensionOptions(ctx, filterBlueprintID, dimensionName, options, logData, eTag)
+			if err != nil {
+				return successful, newETag, err
 			}
 		} else {
-			if err := api.removeFilterBlueprintDimensionOptions(ctx, filterBlueprintID, dimensionName, options, logData); err != nil {
-				return successful, err
+			newETag, err = api.removeFilterBlueprintDimensionOptions(ctx, filterBlueprintID, dimensionName, options, logData, newETag)
+			if err != nil {
+				return successful, newETag, err
 			}
 		}
 		successful = append(successful, patch)
 	}
-	return successful, nil
+	return successful, newETag, nil
 }
 
 // findDimensionAndOptions finds the provided dimensionName and options (in the dimension) in the filterBlueprint

@@ -132,7 +132,7 @@ func (api *FilterAPI) updateFilterOutput(ctx context.Context, filterOutputID str
 		isNowStatusCompleted = true
 	}
 
-	if err = api.dataStore.UpdateFilterOutput(filterOutput, timestamp); err != nil {
+	if _, err = api.dataStore.UpdateFilterOutput(filterOutput, timestamp, ""); err != nil {
 		log.Event(ctx, "unable to update filter output", log.ERROR, log.Error(err), logData)
 		return err
 	}
@@ -288,7 +288,7 @@ func (api *FilterAPI) getOutput(ctx context.Context, filterID string, hideS3Link
 
 	log.Event(ctx, "unauthenticated request to access unpublished filter output", log.INFO, logData)
 
-	filter, err := api.getFilterBlueprint(ctx, output.Links.FilterBlueprint.ID)
+	filter, err := api.getFilterBlueprint(ctx, output.Links.FilterBlueprint.ID, "")
 	if err != nil {
 		log.Event(ctx, "failed to retrieve filter blueprint", log.ERROR, log.Error(err), logData)
 		return nil, filters.ErrFilterOutputNotFound
@@ -297,7 +297,7 @@ func (api *FilterAPI) getOutput(ctx context.Context, filterID string, hideS3Link
 	//filter has been published since output was last requested, so update output and return
 	if filter.Published != nil && *filter.Published == models.Published {
 		output.Published = &models.Published
-		if err := api.dataStore.UpdateFilterOutput(output, output.UniqueTimestamp); err != nil {
+		if _, err := api.dataStore.UpdateFilterOutput(output, output.UniqueTimestamp, ""); err != nil {
 			log.Event(ctx, "error updating filter output", log.ERROR, log.Error(err), logData)
 			return nil, filters.ErrFilterOutputNotFound
 		}
