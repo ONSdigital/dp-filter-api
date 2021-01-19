@@ -63,7 +63,7 @@ var (
 //             GetFilterFunc: func(filterID string, eTagSelector string) (*models.Filter, error) {
 // 	               panic("mock out the GetFilter method")
 //             },
-//             GetFilterDimensionFunc: func(filterID string, name string, eTagSelector string) (*models.Dimension, string, error) {
+//             GetFilterDimensionFunc: func(filterID string, name string, eTagSelector string) (*models.Dimension, error) {
 // 	               panic("mock out the GetFilterDimension method")
 //             },
 //             GetFilterOutputFunc: func(filterOutputID string) (*models.Filter, error) {
@@ -81,7 +81,7 @@ var (
 //             UpdateFilterFunc: func(updatedFilter *models.Filter, timestamp bson.MongoTimestamp, eTagSelector string, currentFilter *models.Filter) (string, error) {
 // 	               panic("mock out the UpdateFilter method")
 //             },
-//             UpdateFilterOutputFunc: func(filter *models.Filter, timestamp bson.MongoTimestamp, eTag string) error {
+//             UpdateFilterOutputFunc: func(filter *models.Filter, timestamp bson.MongoTimestamp) error {
 // 	               panic("mock out the UpdateFilterOutput method")
 //             },
 //         }
@@ -119,7 +119,7 @@ type MongoDBMock struct {
 	GetFilterFunc func(filterID string, eTagSelector string) (*models.Filter, error)
 
 	// GetFilterDimensionFunc mocks the GetFilterDimension method.
-	GetFilterDimensionFunc func(filterID string, name string, eTagSelector string) (*models.Dimension, string, error)
+	GetFilterDimensionFunc func(filterID string, name string, eTagSelector string) (*models.Dimension, error)
 
 	// GetFilterOutputFunc mocks the GetFilterOutput method.
 	GetFilterOutputFunc func(filterOutputID string) (*models.Filter, error)
@@ -137,7 +137,7 @@ type MongoDBMock struct {
 	UpdateFilterFunc func(updatedFilter *models.Filter, timestamp bson.MongoTimestamp, eTagSelector string, currentFilter *models.Filter) (string, error)
 
 	// UpdateFilterOutputFunc mocks the UpdateFilterOutput method.
-	UpdateFilterOutputFunc func(filter *models.Filter, timestamp bson.MongoTimestamp, eTag string) error
+	UpdateFilterOutputFunc func(filter *models.Filter, timestamp bson.MongoTimestamp) error
 
 	// calls tracks calls to the methods.
 	calls struct {
@@ -298,8 +298,6 @@ type MongoDBMock struct {
 			Filter *models.Filter
 			// Timestamp is the timestamp argument value.
 			Timestamp bson.MongoTimestamp
-			// ETag is the eTag argument value.
-			ETag string
 		}
 	}
 }
@@ -660,7 +658,7 @@ func (mock *MongoDBMock) GetFilterCalls() []struct {
 }
 
 // GetFilterDimension calls GetFilterDimensionFunc.
-func (mock *MongoDBMock) GetFilterDimension(filterID string, name string, eTagSelector string) (*models.Dimension, string, error) {
+func (mock *MongoDBMock) GetFilterDimension(filterID string, name string, eTagSelector string) (*models.Dimension, error) {
 	if mock.GetFilterDimensionFunc == nil {
 		panic("MongoDBMock.GetFilterDimensionFunc: method is nil but MongoDB.GetFilterDimension was just called")
 	}
@@ -922,23 +920,21 @@ func (mock *MongoDBMock) UpdateFilterCalls() []struct {
 }
 
 // UpdateFilterOutput calls UpdateFilterOutputFunc.
-func (mock *MongoDBMock) UpdateFilterOutput(filter *models.Filter, timestamp bson.MongoTimestamp, eTag string) error {
+func (mock *MongoDBMock) UpdateFilterOutput(filter *models.Filter, timestamp bson.MongoTimestamp) error {
 	if mock.UpdateFilterOutputFunc == nil {
 		panic("MongoDBMock.UpdateFilterOutputFunc: method is nil but MongoDB.UpdateFilterOutput was just called")
 	}
 	callInfo := struct {
 		Filter    *models.Filter
 		Timestamp bson.MongoTimestamp
-		ETag      string
 	}{
 		Filter:    filter,
 		Timestamp: timestamp,
-		ETag:      eTag,
 	}
 	lockMongoDBMockUpdateFilterOutput.Lock()
 	mock.calls.UpdateFilterOutput = append(mock.calls.UpdateFilterOutput, callInfo)
 	lockMongoDBMockUpdateFilterOutput.Unlock()
-	return mock.UpdateFilterOutputFunc(filter, timestamp, eTag)
+	return mock.UpdateFilterOutputFunc(filter, timestamp)
 }
 
 // UpdateFilterOutputCalls gets all the calls that were made to UpdateFilterOutput.
@@ -947,12 +943,10 @@ func (mock *MongoDBMock) UpdateFilterOutput(filter *models.Filter, timestamp bso
 func (mock *MongoDBMock) UpdateFilterOutputCalls() []struct {
 	Filter    *models.Filter
 	Timestamp bson.MongoTimestamp
-	ETag      string
 } {
 	var calls []struct {
 		Filter    *models.Filter
 		Timestamp bson.MongoTimestamp
-		ETag      string
 	}
 	lockMongoDBMockUpdateFilterOutput.RLock()
 	calls = mock.calls.UpdateFilterOutput

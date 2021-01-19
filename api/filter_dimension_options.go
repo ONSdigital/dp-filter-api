@@ -8,6 +8,7 @@ import (
 	"strconv"
 
 	"github.com/ONSdigital/dp-filter-api/models"
+	"github.com/ONSdigital/dp-filter-api/utils"
 	dprequest "github.com/ONSdigital/dp-net/request"
 	"github.com/ONSdigital/log.go/log"
 	"github.com/gorilla/mux"
@@ -252,11 +253,10 @@ func (api *FilterAPI) addFilterBlueprintDimensionOptionHandler(w http.ResponseWr
 	}
 	ctx := r.Context()
 
-	// eTag value present in If-Match header
-	eTag := getIfMatch(r)
-	if eTag == "" {
-		err := filters.ErrNoIfMatchHeader
-		log.Event(ctx, "not enough information provided to perform put filter", log.ERROR, log.Data{"error": err.Error()})
+	// eTag value must be present in If-Match header
+	eTag, err := getIfMatchForce(r)
+	if err != nil {
+		log.Event(ctx, "missing header", log.ERROR, log.Data{"error": err.Error()})
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -338,7 +338,7 @@ func (api *FilterAPI) addFilterBlueprintDimensionOptions(ctx context.Context, fi
 	}
 
 	// All validations succeeded - add dimension options that do not already exist
-	return api.dataStore.AddFilterDimensionOptions(filterBlueprintID, dimensionName, createArray(missingOptions), filterBlueprint.UniqueTimestamp, eTag)
+	return api.dataStore.AddFilterDimensionOptions(filterBlueprintID, dimensionName, utils.CreateArray(missingOptions), filterBlueprint.UniqueTimestamp, filterBlueprint.ETag, filterBlueprint)
 }
 
 func (api *FilterAPI) removeFilterBlueprintDimensionOptionHandler(w http.ResponseWriter, r *http.Request) {
@@ -355,11 +355,10 @@ func (api *FilterAPI) removeFilterBlueprintDimensionOptionHandler(w http.Respons
 	ctx := r.Context()
 	log.Event(ctx, "remove filter blueprint dimension option", log.INFO, logData)
 
-	// eTag value present in If-Match header
-	eTag := getIfMatch(r)
-	if eTag == "" {
-		err := filters.ErrNoIfMatchHeader
-		log.Event(ctx, "not enough information provided to perform put filter", log.ERROR, log.Data{"error": err.Error()})
+	// eTag value must be present in If-Match header
+	eTag, err := getIfMatchForce(r)
+	if err != nil {
+		log.Event(ctx, "missing header", log.ERROR, log.Data{"error": err.Error()})
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -398,7 +397,7 @@ func (api *FilterAPI) removeFilterBlueprintDimensionOption(ctx context.Context, 
 		return "", filters.ErrDimensionOptionNotFound
 	}
 
-	return api.dataStore.RemoveFilterDimensionOption(filterBlueprint.FilterID, dimensionName, option, filterBlueprint.UniqueTimestamp, filterBlueprint.ETag)
+	return api.dataStore.RemoveFilterDimensionOption(filterBlueprint.FilterID, dimensionName, option, filterBlueprint.UniqueTimestamp, filterBlueprint.ETag, filterBlueprint)
 }
 
 // removeFilterBlueprintDimensionOption removes all provided options.
@@ -406,7 +405,7 @@ func (api *FilterAPI) removeFilterBlueprintDimensionOptions(ctx context.Context,
 
 	// check if any option has been provided
 	if len(options) == 0 {
-		return "", nil
+		return eTag, nil
 	}
 
 	// Get filter Blueprint before updating it
@@ -440,7 +439,7 @@ func (api *FilterAPI) removeFilterBlueprintDimensionOptions(ctx context.Context,
 	}
 
 	// remove necessary options from DB
-	return api.dataStore.RemoveFilterDimensionOptions(filterBlueprintID, dimensionName, optionsToRemove, filterBlueprint.UniqueTimestamp, eTag)
+	return api.dataStore.RemoveFilterDimensionOptions(filterBlueprintID, dimensionName, optionsToRemove, filterBlueprint.UniqueTimestamp, eTag, filterBlueprint)
 }
 
 // Handler for a list of patch operations against the dimension options
@@ -456,11 +455,10 @@ func (api *FilterAPI) patchFilterBlueprintDimensionHandler(w http.ResponseWriter
 	ctx := r.Context()
 	log.Event(ctx, "patch filter blueprint dimension", log.INFO, logData)
 
-	// eTag value present in If-Match header
-	eTag := getIfMatch(r)
-	if eTag == "" {
-		err := filters.ErrNoIfMatchHeader
-		log.Event(ctx, "not enough information provided to perform put filter", log.ERROR, log.Data{"error": err.Error()})
+	// eTag value must be present in If-Match header
+	eTag, err := getIfMatchForce(r)
+	if err != nil {
+		log.Event(ctx, "missing header", log.ERROR, log.Data{"error": err.Error()})
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -529,26 +527,26 @@ func (api *FilterAPI) patchFilterBlueprintDimension(ctx context.Context, filterB
 		options := removeDuplicateAndEmptyOptions(patch.Value)
 
 		if patch.Op == dprequest.OpAdd.String() {
-			newETag, err = api.addFilterBlueprintDimensionOptions(ctx, filterBlueprintID, dimensionName, options, logData, eTag)
+			eTag, err = api.addFilterBlueprintDimensionOptions(ctx, filterBlueprintID, dimensionName, options, logData, eTag)
 			if err != nil {
-				return successful, newETag, err
+				return successful, eTag, err
 			}
 		} else {
-			newETag, err = api.removeFilterBlueprintDimensionOptions(ctx, filterBlueprintID, dimensionName, options, logData, newETag)
+			eTag, err = api.removeFilterBlueprintDimensionOptions(ctx, filterBlueprintID, dimensionName, options, logData, eTag)
 			if err != nil {
-				return successful, newETag, err
+				return successful, eTag, err
 			}
 		}
 		successful = append(successful, patch)
 	}
-	return successful, newETag, nil
+	return successful, eTag, nil
 }
 
 // findDimensionAndOptions finds the provided dimensionName and options (in the dimension) in the filterBlueprint
 func findDimensionAndOptions(filterBlueprint *models.Filter, dimensionName string, options []string) (hasDimension bool, hasAllOptions bool, missingOptions map[string]struct{}) {
 
 	// unique option names that have not been found yet
-	missingOptions = createMap(options)
+	missingOptions = utils.CreateMap(options)
 
 	// find dimension and options in dimension
 	for _, dimension := range filterBlueprint.Dimensions {

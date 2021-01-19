@@ -10,6 +10,7 @@ import (
 	datasetAPI "github.com/ONSdigital/dp-api-clients-go/dataset"
 	"github.com/ONSdigital/dp-filter-api/filters"
 	"github.com/ONSdigital/dp-filter-api/models"
+	"github.com/ONSdigital/dp-filter-api/utils"
 	dphttp "github.com/ONSdigital/dp-net/http"
 	"github.com/ONSdigital/log.go/log"
 	"github.com/gorilla/mux"
@@ -111,7 +112,8 @@ func (api *FilterAPI) getFilterBlueprintDimensionHandler(w http.ResponseWriter, 
 	ctx := r.Context()
 	log.Event(ctx, "getting filter blueprint dimension", log.INFO, logData)
 
-	if _, err := api.getFilterBlueprint(ctx, filterBlueprintID, ""); err != nil {
+	filter, err := api.getFilterBlueprint(ctx, filterBlueprintID, "")
+	if err != nil {
 		log.Event(ctx, "error getting filter blueprint", log.ERROR, log.Error(err), logData)
 		if err == filters.ErrFilterBlueprintNotFound {
 			setErrorCode(w, err, statusBadRequest)
@@ -121,7 +123,7 @@ func (api *FilterAPI) getFilterBlueprintDimensionHandler(w http.ResponseWriter, 
 		return
 	}
 
-	dimension, eTag, err := api.dataStore.GetFilterDimension(filterBlueprintID, name)
+	dimension, err := api.dataStore.GetFilterDimension(filterBlueprintID, name, filter.ETag)
 	if err != nil {
 		log.Event(ctx, "error getting filter dimension", log.ERROR, log.Error(err), logData)
 		setErrorCode(w, err)
@@ -137,7 +139,7 @@ func (api *FilterAPI) getFilterBlueprintDimensionHandler(w http.ResponseWriter, 
 	}
 
 	setJSONContentType(w)
-	setETag(w, eTag)
+	setETag(w, filter.ETag)
 	_, err = w.Write(b)
 	if err != nil {
 		log.Event(ctx, "failed to write bytes for http response", log.ERROR, log.Error(err), logData)
@@ -156,13 +158,13 @@ func (api *FilterAPI) removeFilterBlueprintDimensionHandler(w http.ResponseWrite
 		"filter_blueprint_id": filterBlueprintID,
 		"dimension":           dimensionName,
 	}
-	log.Event(r.Context(), "removing filter blueprint dimension", log.INFO, logData)
+	ctx := r.Context()
+	log.Event(ctx, "removing filter blueprint dimension", log.INFO, logData)
 
-	// eTag value present in If-Match header
-	eTag := getIfMatch(r)
-	if eTag == "" {
-		err := filters.ErrNoIfMatchHeader
-		log.Event(r.Context(), "not enough information provided to perform put filter", log.ERROR, log.Data{"error": err.Error()})
+	// eTag value must be present in If-Match header
+	eTag, err := getIfMatchForce(r)
+	if err != nil {
+		log.Event(ctx, "missing header", log.ERROR, log.Data{"error": err.Error()})
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -203,7 +205,7 @@ func (api *FilterAPI) removeFilterBlueprintDimension(ctx context.Context, filter
 		return "", filters.ErrDimensionNotFound
 	}
 
-	return api.dataStore.RemoveFilterDimension(filterBlueprintID, dimensionName, filter.UniqueTimestamp, filter.ETag)
+	return api.dataStore.RemoveFilterDimension(filterBlueprintID, dimensionName, filter.UniqueTimestamp, eTag, filter)
 }
 
 func (api *FilterAPI) addFilterBlueprintDimensionHandler(w http.ResponseWriter, r *http.Request) {
@@ -220,11 +222,10 @@ func (api *FilterAPI) addFilterBlueprintDimensionHandler(w http.ResponseWriter, 
 	ctx := r.Context()
 	log.Event(ctx, "add filter blueprint dimension", log.INFO, logData)
 
-	// eTag value present in If-Match header
-	eTag := getIfMatch(r)
-	if eTag == "" {
-		err := filters.ErrNoIfMatchHeader
-		log.Event(ctx, "not enough information provided to perform put filter", log.ERROR, log.Data{"error": err.Error()})
+	// eTag value must be present in If-Match header
+	eTag, err := getIfMatchForce(r)
+	if err != nil {
+		log.Event(ctx, "missing header", log.ERROR, log.Data{"error": err.Error()})
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -238,7 +239,7 @@ func (api *FilterAPI) addFilterBlueprintDimensionHandler(w http.ResponseWriter, 
 
 	options = removeDuplicateAndEmptyOptions(options)
 
-	_, err = api.addFilterBlueprintDimension(ctx, filterBlueprintID, dimensionName, options, eTag)
+	newETag, err := api.addFilterBlueprintDimension(ctx, filterBlueprintID, dimensionName, options, eTag)
 	if err != nil {
 		log.Event(ctx, "error adding filter blueprint dimension", log.ERROR, log.Error(err), logData)
 		if err == filters.ErrVersionNotFound || err == filters.ErrDimensionsNotFound {
@@ -249,7 +250,7 @@ func (api *FilterAPI) addFilterBlueprintDimensionHandler(w http.ResponseWriter, 
 		return
 	}
 
-	dimension, newETag, err := api.dataStore.GetFilterDimension(filterBlueprintID, dimensionName)
+	dimension, err := api.dataStore.GetFilterDimension(filterBlueprintID, dimensionName, newETag)
 	if err != nil {
 		log.Event(ctx, "error getting filter dimension", log.ERROR, log.Error(err), logData)
 		setErrorCode(w, err)
@@ -292,7 +293,7 @@ func (api *FilterAPI) addFilterBlueprintDimension(ctx context.Context, filterBlu
 		return "", filters.NewBadRequestErr(err.Error())
 	}
 
-	return api.dataStore.AddFilterDimension(filterBlueprintID, dimensionName, options, filterBlueprint.Dimensions, timestamp, eTag)
+	return api.dataStore.AddFilterDimension(filterBlueprintID, dimensionName, options, filterBlueprint.Dimensions, timestamp, eTag, filterBlueprint)
 }
 
 // checkNewFilterDimension validates that the dimension with the provided name is valid, by calling GetDimensions in Dataset API.
@@ -328,10 +329,10 @@ func (api *FilterAPI) checkNewFilterDimension(ctx context.Context, name string, 
 // by calling getDimensionOptions in batches and verifying that the provided dataset contains all the provided dimension options.
 func (api *FilterAPI) checkNewFilterDimensionOptions(ctx context.Context, dimension models.Dimension, dataset *models.Dataset, logData log.Data) error {
 	logData["dimension"] = dimension
-	maxLogOptions := min(30, api.maxDatasetOptions)
+	maxLogOptions := utils.Min(30, api.maxDatasetOptions)
 
 	// create map of all options that need to be found
-	optionsNotFound := createMap(dimension.Options)
+	optionsNotFound := utils.CreateMap(dimension.Options)
 	isFirstBatch := true
 
 	// process batch func
@@ -375,7 +376,7 @@ func (api *FilterAPI) checkNewFilterDimensionOptions(ctx context.Context, dimens
 
 	// if there is any dimension that is not found, error
 	if optionsNotFound != nil && len(optionsNotFound) > 0 {
-		incorrectDimensionOptions := createArray(optionsNotFound)
+		incorrectDimensionOptions := utils.CreateArray(optionsNotFound)
 		logData["incorrect_dimension_options"] = incorrectDimensionOptions
 		err := fmt.Errorf("incorrect dimension options chosen: %v", incorrectDimensionOptions)
 		log.Event(ctx, "incorrect dimension options chosen", log.ERROR, log.Error(err), logData)

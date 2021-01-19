@@ -2,6 +2,7 @@ package mocks
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/globalsign/mgo/bson"
 
@@ -14,6 +15,29 @@ import (
 var (
 	errorInternalServer = errors.New("DataStore internal error")
 )
+
+// TestETag represents an mocked base value for ETags
+var TestETag = "testETag"
+
+// aux function to get the eTag, without updating it (ie. for readers)
+func (ds *DataStore) currentETag() string {
+	return fmt.Sprintf("%s%d", TestETag, ds.eTagUpdateCount)
+}
+
+// aux function to get a new eTag, updating it (ie. for writers)
+func (ds *DataStore) newETag() string {
+	ds.eTagUpdateCount++
+	return ds.currentETag()
+}
+
+// aux function to validate that the eTagSelector, if provided, is correct
+func (ds *DataStore) validateETag(eTagSelector string) error {
+	// expectedETag := fmt.Sprintf("%s%d", TestETag, ds.eTagUpdateCount)
+	if eTagSelector != "" && eTagSelector != ds.currentETag() {
+		return filters.ErrFilterBlueprintConflict
+	}
+	return nil
+}
 
 // DataStoreConfig represents a list of error flags to set error in mocked datastore
 type DataStoreConfig struct {
@@ -35,14 +59,16 @@ type DataStoreConfig struct {
 // This struct can be used directly as a mock, as it implements the required methods,
 // or you can use the internal 'moq' Mock if you want ot validate calls, parameters etc.
 type DataStore struct {
-	Cfg  DataStoreConfig
-	Mock *apimocks.DataStoreMock
+	Cfg             DataStoreConfig
+	Mock            *apimocks.DataStoreMock
+	eTagUpdateCount int
 }
 
 // NewDataStore creates a new datastore mock with an empty config
 func NewDataStore() *DataStore {
 	ds := &DataStore{
-		Cfg: DataStoreConfig{},
+		Cfg:             DataStoreConfig{},
+		eTagUpdateCount: 0,
 	}
 	ds.Mock = &apimocks.DataStoreMock{
 		AddFilterFunc:                    ds.AddFilter,
@@ -140,58 +166,73 @@ func (ds *DataStore) AddFilter(filterJob *models.Filter) (*models.Filter, error)
 	if ds.Cfg.InternalError {
 		return nil, errorInternalServer
 	}
-	return &models.Filter{InstanceID: "12345678"}, nil
+	return &models.Filter{InstanceID: "12345678", ETag: ds.newETag()}, nil
 }
 
 // AddFilterDimension represents the mocked version of creating a filter dimension to the datastore
-func (ds *DataStore) AddFilterDimension(filterID, name string, options []string, dimensions []models.Dimension, timestamp bson.MongoTimestamp, eTag string) error {
+func (ds *DataStore) AddFilterDimension(filterID, name string, options []string, dimensions []models.Dimension, timestamp bson.MongoTimestamp, eTagSelector string, currentFilter *models.Filter) (newETag string, err error) {
+
 	if ds.Cfg.InternalError {
-		return errorInternalServer
+		return "", errorInternalServer
 	}
 
 	if ds.Cfg.NotFound {
-		return filters.ErrFilterBlueprintNotFound
+		return "", filters.ErrFilterBlueprintNotFound
 	}
 
 	if ds.Cfg.ConflictRequest {
-		return filters.ErrFilterBlueprintConflict
+		return "", filters.ErrFilterBlueprintConflict
 	}
 
-	return nil
+	if err := ds.validateETag(eTagSelector); err != nil {
+		return "", err
+	}
+
+	return ds.newETag(), nil
 }
 
 // AddFilterDimensionOption represents the mocked version of creating a filter dimension option to the datastore
-func (ds *DataStore) AddFilterDimensionOption(filterID, name, option string, timestamp bson.MongoTimestamp, eTag string) error {
+func (ds *DataStore) AddFilterDimensionOption(filterID, name, option string, timestamp bson.MongoTimestamp, eTagSelector string, currentFilter *models.Filter) (newETag string, err error) {
+
 	if ds.Cfg.InternalError {
-		return errorInternalServer
+		return "", errorInternalServer
 	}
 
 	if ds.Cfg.NotFound {
-		return filters.ErrFilterBlueprintNotFound
+		return "", filters.ErrFilterBlueprintNotFound
 	}
 
 	if ds.Cfg.ConflictRequest {
-		return filters.ErrFilterBlueprintConflict
+		return "", filters.ErrFilterBlueprintConflict
 	}
 
-	return nil
+	if err := ds.validateETag(eTagSelector); err != nil {
+		return "", err
+	}
+
+	return ds.newETag(), nil
 }
 
 // AddFilterDimensionOptions represents the mocked version of adding a list of dimension options to the datastore
-func (ds *DataStore) AddFilterDimensionOptions(filterID, name string, options []string, timestamp bson.MongoTimestamp, eTag string) error {
+func (ds *DataStore) AddFilterDimensionOptions(filterID, name string, options []string, timestamp bson.MongoTimestamp, eTagSelector string, currentFilter *models.Filter) (newETag string, err error) {
+
 	if ds.Cfg.InternalError {
-		return errorInternalServer
+		return "", errorInternalServer
 	}
 
 	if ds.Cfg.NotFound {
-		return filters.ErrDimensionNotFound
+		return "", filters.ErrDimensionNotFound
 	}
 
 	if ds.Cfg.ConflictRequest {
-		return filters.ErrFilterBlueprintConflict
+		return "", filters.ErrFilterBlueprintConflict
 	}
 
-	return nil
+	if err := ds.validateETag(eTagSelector); err != nil {
+		return "", err
+	}
+
+	return ds.newETag(), nil
 }
 
 // CreateFilterOutput represents the mocked version of creating a filter output to the datastore
@@ -204,7 +245,8 @@ func (ds *DataStore) CreateFilterOutput(filterJob *models.Filter) error {
 }
 
 // GetFilter represents the mocked version of getting a filter blueprint from the datastore
-func (ds *DataStore) GetFilter(filterID string) (*models.Filter, error) {
+func (ds *DataStore) GetFilter(filterID, eTagSelector string) (*models.Filter, error) {
+
 	if ds.Cfg.NotFound {
 		return nil, filters.ErrFilterBlueprintNotFound
 	}
@@ -213,36 +255,44 @@ func (ds *DataStore) GetFilter(filterID string) (*models.Filter, error) {
 		return nil, errorInternalServer
 	}
 
+	if err := ds.validateETag(eTagSelector); err != nil {
+		return nil, err
+	}
+
 	if ds.Cfg.BadRequest {
-		return &models.Filter{Dataset: &models.Dataset{ID: "123", Edition: "2017", Version: 1}, InstanceID: "12345678"}, nil
+		return &models.Filter{Dataset: &models.Dataset{ID: "123", Edition: "2017", Version: 1}, InstanceID: "12345678", ETag: ds.currentETag()}, nil
 	}
 
 	if ds.Cfg.InvalidDimensionOption {
-		return &models.Filter{Dataset: &models.Dataset{ID: "123", Edition: "2017", Version: 1}, InstanceID: "12345678", Published: &models.Published, Dimensions: []models.Dimension{{Name: "age", Options: []string{"28"}}}}, nil
+		return &models.Filter{Dataset: &models.Dataset{ID: "123", Edition: "2017", Version: 1}, InstanceID: "12345678", Published: &models.Published, Dimensions: []models.Dimension{{Name: "age", Options: []string{"28"}}}, ETag: ds.currentETag()}, nil
 	}
 
 	if ds.Cfg.Unpublished {
 		if ds.Cfg.DimensionNotFound {
-			return &models.Filter{Dataset: &models.Dataset{ID: "123", Edition: "2017", Version: 1}, InstanceID: "12345678", Dimensions: []models.Dimension{{URL: "http://localhost:22100/filters/12345678/dimensions/time", Name: "time", Options: []string{"2014", "2015"}}}}, nil
+			return &models.Filter{Dataset: &models.Dataset{ID: "123", Edition: "2017", Version: 1}, InstanceID: "12345678", Dimensions: []models.Dimension{{URL: "http://localhost:22100/filters/12345678/dimensions/time", Name: "time", Options: []string{"2014", "2015"}}}, ETag: ds.currentETag()}, nil
 		}
-		return &models.Filter{Dataset: &models.Dataset{ID: "123", Edition: "2017", Version: 1}, InstanceID: "12345678", Dimensions: []models.Dimension{{Name: "age", Options: []string{"33"}}, {URL: "http://localhost:22100/filters/12345678/dimensions/time", Name: "time", Options: []string{"2014", "2015"}}, {URL: "http://localhost:22100/filters/12345678/dimensions/1_age", Name: "1_age", Options: []string{"2014", "2015"}}}}, nil
+		return &models.Filter{Dataset: &models.Dataset{ID: "123", Edition: "2017", Version: 1}, InstanceID: "12345678", Dimensions: []models.Dimension{{Name: "age", Options: []string{"33"}}, {URL: "http://localhost:22100/filters/12345678/dimensions/time", Name: "time", Options: []string{"2014", "2015"}}, {URL: "http://localhost:22100/filters/12345678/dimensions/1_age", Name: "1_age", Options: []string{"2014", "2015"}}}, ETag: ds.currentETag()}, nil
 	}
 
 	if ds.Cfg.DimensionNotFound {
-		return &models.Filter{Dataset: &models.Dataset{ID: "123", Edition: "2017", Version: 1}, InstanceID: "12345678", Dimensions: []models.Dimension{{URL: "http://localhost:22100/filters/12345678/dimensions/time", Name: "time", Options: []string{"2014", "2015"}}}}, nil
+		return &models.Filter{Dataset: &models.Dataset{ID: "123", Edition: "2017", Version: 1}, InstanceID: "12345678", Dimensions: []models.Dimension{{URL: "http://localhost:22100/filters/12345678/dimensions/time", Name: "time", Options: []string{"2014", "2015"}}}, ETag: ds.currentETag()}, nil
 	}
 
-	return &models.Filter{Dataset: &models.Dataset{ID: "123", Edition: "2017", Version: 1}, InstanceID: "12345678", Published: &models.Published, Dimensions: []models.Dimension{{Name: "age", Options: []string{"33"}}, {URL: "http://localhost:22100/filters/12345678/dimensions/time", Name: "time", Options: []string{"2014", "2015"}}, {URL: "http://localhost:22100/filters/12345678/dimensions/1_age", Name: "1_age", Options: []string{"2014", "2015"}}}}, nil
+	return &models.Filter{Dataset: &models.Dataset{ID: "123", Edition: "2017", Version: 1}, InstanceID: "12345678", Published: &models.Published, Dimensions: []models.Dimension{{Name: "age", Options: []string{"33"}}, {URL: "http://localhost:22100/filters/12345678/dimensions/time", Name: "time", Options: []string{"2014", "2015"}}, {URL: "http://localhost:22100/filters/12345678/dimensions/1_age", Name: "1_age", Options: []string{"2014", "2015"}}}, ETag: ds.currentETag()}, nil
 }
 
 // GetFilterDimension represents the mocked version of getting a filter dimension from the datastore
-func (ds *DataStore) GetFilterDimension(filterID, name string) (*models.Dimension, error) {
+func (ds *DataStore) GetFilterDimension(filterID string, name, eTagSelector string) (dimension *models.Dimension, err error) {
 	if ds.Cfg.DimensionNotFound {
 		return nil, filters.ErrDimensionNotFound
 	}
 
 	if ds.Cfg.InternalError {
 		return nil, errorInternalServer
+	}
+
+	if err := ds.validateETag(eTagSelector); err != nil {
+		return nil, err
 	}
 
 	return &models.Dimension{Name: "1_age"}, nil
@@ -290,79 +340,99 @@ func (ds *DataStore) GetFilterOutput(filterID string) (*models.Filter, error) {
 }
 
 // RemoveFilterDimension represents the mocked version of removing a filter dimension from the datastore
-func (ds *DataStore) RemoveFilterDimension(string, string, bson.MongoTimestamp, string) error {
+func (ds *DataStore) RemoveFilterDimension(filterID, name string, timestamp bson.MongoTimestamp, eTagSelector string, currentFilter *models.Filter) (newETag string, err error) {
+
 	if ds.Cfg.InternalError {
-		return errorInternalServer
+		return "", errorInternalServer
 	}
 
 	if ds.Cfg.NotFound {
-		return filters.ErrFilterBlueprintNotFound
+		return "", filters.ErrFilterBlueprintNotFound
 	}
 
 	if ds.Cfg.ConflictRequest {
-		return filters.ErrFilterBlueprintConflict
+		return "", filters.ErrFilterBlueprintConflict
 	}
 
-	return nil
+	if err := ds.validateETag(eTagSelector); err != nil {
+		return "", err
+	}
+
+	return ds.newETag(), nil
 }
 
 // RemoveFilterDimensionOption represents the mocked version of removing a filter dimension option from the datastore
-func (ds *DataStore) RemoveFilterDimensionOption(filterJobID, name, option string, timestamp bson.MongoTimestamp, eTag string) error {
+func (ds *DataStore) RemoveFilterDimensionOption(filterID string, name string, option string, timestamp bson.MongoTimestamp, eTagSelector string, currentFilter *models.Filter) (newETag string, err error) {
+
 	if ds.Cfg.InternalError {
-		return errorInternalServer
+		return "", errorInternalServer
 	}
 
 	if ds.Cfg.DimensionNotFound {
-		return filters.ErrDimensionNotFound
+		return "", filters.ErrDimensionNotFound
 	}
 
 	if ds.Cfg.ConflictRequest {
-		return filters.ErrFilterBlueprintConflict
+		return "", filters.ErrFilterBlueprintConflict
 	}
 
-	return nil
+	if err := ds.validateETag(eTagSelector); err != nil {
+		return "", err
+	}
+
+	return ds.newETag(), nil
 }
 
 // RemoveFilterDimensionOptions represents the mocked version of removing a set of filter dimension options from the datastore
-func (ds *DataStore) RemoveFilterDimensionOptions(filterJobID, name string, options []string, timestamp bson.MongoTimestamp, eTag string) error {
+func (ds *DataStore) RemoveFilterDimensionOptions(filterID string, name string, options []string, timestamp bson.MongoTimestamp, eTagSelector string, currentFilter *models.Filter) (newETag string, err error) {
+
 	if ds.Cfg.InternalError {
-		return errorInternalServer
+		return "", errorInternalServer
 	}
 
 	if ds.Cfg.NotFound {
-		return filters.ErrDimensionNotFound
+		return "", filters.ErrDimensionNotFound
 	}
 
 	if ds.Cfg.ConflictRequest {
-		return filters.ErrFilterBlueprintConflict
+		return "", filters.ErrFilterBlueprintConflict
 	}
 
-	return nil
+	if err := ds.validateETag(eTagSelector); err != nil {
+		return "", err
+	}
+
+	return ds.newETag(), nil
 }
 
 // UpdateFilter represents the mocked version of updating a filter blueprint from the datastore
-func (ds *DataStore) UpdateFilter(filterJob *models.Filter, timestamp bson.MongoTimestamp, eTag string) error {
+func (ds *DataStore) UpdateFilter(updatedFilter *models.Filter, timestamp bson.MongoTimestamp, eTagSelector string, currentFilter *models.Filter) (newETag string, err error) {
+
 	if ds.Cfg.InternalError {
-		return errorInternalServer
+		return "", errorInternalServer
 	}
 
 	if ds.Cfg.NotFound {
-		return filters.ErrFilterBlueprintNotFound
+		return "", filters.ErrFilterBlueprintNotFound
 	}
 
 	if ds.Cfg.VersionNotFound {
-		return filters.ErrVersionNotFound
+		return "", filters.ErrVersionNotFound
 	}
 
 	if ds.Cfg.ConflictRequest {
-		return filters.ErrFilterBlueprintConflict
+		return "", filters.ErrFilterBlueprintConflict
 	}
 
-	return nil
+	if err := ds.validateETag(eTagSelector); err != nil {
+		return "", err
+	}
+
+	return ds.newETag(), nil
 }
 
 // UpdateFilterOutput represents the mocked version of updating a filter output from the datastore
-func (ds *DataStore) UpdateFilterOutput(filterJob *models.Filter, timestamp bson.MongoTimestamp, eTag string) error {
+func (ds *DataStore) UpdateFilterOutput(filterJob *models.Filter, timestamp bson.MongoTimestamp) error {
 	if ds.Cfg.InternalError {
 		return errorInternalServer
 	}

@@ -6,7 +6,6 @@ package mocks
 import (
 	"context"
 	"github.com/ONSdigital/dp-api-clients-go/dataset"
-	"github.com/ONSdigital/dp-filter-api/api"
 	"sync"
 )
 
@@ -15,10 +14,6 @@ var (
 	lockDatasetAPIMockGetVersion             sync.RWMutex
 	lockDatasetAPIMockGetVersionDimensions   sync.RWMutex
 )
-
-// Ensure, that DatasetAPIMock does implement api.DatasetAPI.
-// If this is not the case, regenerate this file with moq.
-var _ api.DatasetAPI = &DatasetAPIMock{}
 
 // DatasetAPIMock is a mock implementation of api.DatasetAPI.
 //

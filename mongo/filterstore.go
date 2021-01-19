@@ -143,7 +143,7 @@ func (s *FilterStore) UpdateFilter(updatedFilter *models.Filter, timestamp bson.
 }
 
 // GetFilterDimension return a single dimension, along with the filter eTag hash
-func (s *FilterStore) GetFilterDimension(filterID string, name, eTagSelector string) (dimension *models.Dimension, eTag string, err error) {
+func (s *FilterStore) GetFilterDimension(filterID string, name, eTagSelector string) (dimension *models.Dimension, err error) {
 	session := s.Session.Copy()
 	defer session.Close()
 
@@ -154,12 +154,12 @@ func (s *FilterStore) GetFilterDimension(filterID string, name, eTagSelector str
 	var result models.Filter
 	if err := session.DB(s.db).C(s.filtersCollection).Find(selector).Select(dimensionSelect).One(&result); err != nil {
 		if err == mgo.ErrNotFound {
-			return nil, "", filters.ErrDimensionNotFound
+			return nil, filters.ErrDimensionNotFound
 		}
-		return nil, "", err
+		return nil, err
 	}
 
-	return &result.Dimensions[0], result.ETag, nil
+	return &result.Dimensions[0], nil
 }
 
 // AddFilterDimension to a filter
@@ -365,10 +365,10 @@ func (s *FilterStore) RemoveFilterDimensionOptions(filterID string, name string,
 }
 
 // selector creates a select query for mongoDB with the provided parameters
-// - filterID represents the ID of the filter document that we want to query. It is compulsory.
-// - dimensionName is the name of a dimension that needs to be matched. It is optional.
-// - timestamp is a unique MongoDB timestamp to be matched to prevent race conditions. It is optional.
-// - eTagselector is a unique hash of a filter document to be matched to prevent race conditions. It is optional.
+// - filterID represents the ID of the filter document that we want to query. Required.
+// - dimensionName is the name of a dimension that needs to be matched. Optional.
+// - timestamp is a unique MongoDB timestamp to be matched to prevent race conditions. Optional.
+// - eTagselector is a unique hash of a filter document to be matched to prevent race conditions. Optional.
 func selector(filterID, dimensionName string, timestamp bson.MongoTimestamp, eTagSelector string) bson.M {
 	selector := bson.M{"filter_id": filterID}
 	if dimensionName != "" {
@@ -416,7 +416,7 @@ func (s *FilterStore) GetFilterOutput(filterID string) (*models.Filter, error) {
 }
 
 // UpdateFilterOutput updates a filter output resource
-func (s *FilterStore) UpdateFilterOutput(filter *models.Filter, timestamp bson.MongoTimestamp, eTag string) error {
+func (s *FilterStore) UpdateFilterOutput(filter *models.Filter, timestamp bson.MongoTimestamp) error {
 	session := s.Session.Copy()
 	defer session.Close()
 

@@ -4,7 +4,6 @@
 package mocks
 
 import (
-	"github.com/ONSdigital/dp-filter-api/api"
 	"github.com/ONSdigital/dp-filter-api/models"
 	"github.com/globalsign/mgo/bson"
 	"sync"
@@ -26,10 +25,6 @@ var (
 	lockDataStoreMockUpdateFilter                 sync.RWMutex
 	lockDataStoreMockUpdateFilterOutput           sync.RWMutex
 )
-
-// Ensure, that DataStoreMock does implement api.DataStore.
-// If this is not the case, regenerate this file with moq.
-var _ api.DataStore = &DataStoreMock{}
 
 // DataStoreMock is a mock implementation of api.DataStore.
 //
@@ -58,7 +53,7 @@ var _ api.DataStore = &DataStoreMock{}
 //             GetFilterFunc: func(filterID string, eTagSelector string) (*models.Filter, error) {
 // 	               panic("mock out the GetFilter method")
 //             },
-//             GetFilterDimensionFunc: func(filterID string, name string, eTagSelector string) (*models.Dimension, string, error) {
+//             GetFilterDimensionFunc: func(filterID string, name string, eTagSelector string) (*models.Dimension, error) {
 // 	               panic("mock out the GetFilterDimension method")
 //             },
 //             GetFilterOutputFunc: func(filterOutputID string) (*models.Filter, error) {
@@ -76,7 +71,7 @@ var _ api.DataStore = &DataStoreMock{}
 //             UpdateFilterFunc: func(updatedFilter *models.Filter, timestamp bson.MongoTimestamp, eTagSelector string, currentFilter *models.Filter) (string, error) {
 // 	               panic("mock out the UpdateFilter method")
 //             },
-//             UpdateFilterOutputFunc: func(filter *models.Filter, timestamp bson.MongoTimestamp, eTag string) error {
+//             UpdateFilterOutputFunc: func(filter *models.Filter, timestamp bson.MongoTimestamp) error {
 // 	               panic("mock out the UpdateFilterOutput method")
 //             },
 //         }
@@ -108,7 +103,7 @@ type DataStoreMock struct {
 	GetFilterFunc func(filterID string, eTagSelector string) (*models.Filter, error)
 
 	// GetFilterDimensionFunc mocks the GetFilterDimension method.
-	GetFilterDimensionFunc func(filterID string, name string, eTagSelector string) (*models.Dimension, string, error)
+	GetFilterDimensionFunc func(filterID string, name string, eTagSelector string) (*models.Dimension, error)
 
 	// GetFilterOutputFunc mocks the GetFilterOutput method.
 	GetFilterOutputFunc func(filterOutputID string) (*models.Filter, error)
@@ -126,7 +121,7 @@ type DataStoreMock struct {
 	UpdateFilterFunc func(updatedFilter *models.Filter, timestamp bson.MongoTimestamp, eTagSelector string, currentFilter *models.Filter) (string, error)
 
 	// UpdateFilterOutputFunc mocks the UpdateFilterOutput method.
-	UpdateFilterOutputFunc func(filter *models.Filter, timestamp bson.MongoTimestamp, eTag string) error
+	UpdateFilterOutputFunc func(filter *models.Filter, timestamp bson.MongoTimestamp) error
 
 	// calls tracks calls to the methods.
 	calls struct {
@@ -275,8 +270,6 @@ type DataStoreMock struct {
 			Filter *models.Filter
 			// Timestamp is the timestamp argument value.
 			Timestamp bson.MongoTimestamp
-			// ETag is the eTag argument value.
-			ETag string
 		}
 	}
 }
@@ -571,7 +564,7 @@ func (mock *DataStoreMock) GetFilterCalls() []struct {
 }
 
 // GetFilterDimension calls GetFilterDimensionFunc.
-func (mock *DataStoreMock) GetFilterDimension(filterID string, name string, eTagSelector string) (*models.Dimension, string, error) {
+func (mock *DataStoreMock) GetFilterDimension(filterID string, name string, eTagSelector string) (*models.Dimension, error) {
 	if mock.GetFilterDimensionFunc == nil {
 		panic("DataStoreMock.GetFilterDimensionFunc: method is nil but DataStore.GetFilterDimension was just called")
 	}
@@ -833,23 +826,21 @@ func (mock *DataStoreMock) UpdateFilterCalls() []struct {
 }
 
 // UpdateFilterOutput calls UpdateFilterOutputFunc.
-func (mock *DataStoreMock) UpdateFilterOutput(filter *models.Filter, timestamp bson.MongoTimestamp, eTag string) error {
+func (mock *DataStoreMock) UpdateFilterOutput(filter *models.Filter, timestamp bson.MongoTimestamp) error {
 	if mock.UpdateFilterOutputFunc == nil {
 		panic("DataStoreMock.UpdateFilterOutputFunc: method is nil but DataStore.UpdateFilterOutput was just called")
 	}
 	callInfo := struct {
 		Filter    *models.Filter
 		Timestamp bson.MongoTimestamp
-		ETag      string
 	}{
 		Filter:    filter,
 		Timestamp: timestamp,
-		ETag:      eTag,
 	}
 	lockDataStoreMockUpdateFilterOutput.Lock()
 	mock.calls.UpdateFilterOutput = append(mock.calls.UpdateFilterOutput, callInfo)
 	lockDataStoreMockUpdateFilterOutput.Unlock()
-	return mock.UpdateFilterOutputFunc(filter, timestamp, eTag)
+	return mock.UpdateFilterOutputFunc(filter, timestamp)
 }
 
 // UpdateFilterOutputCalls gets all the calls that were made to UpdateFilterOutput.
@@ -858,12 +849,10 @@ func (mock *DataStoreMock) UpdateFilterOutput(filter *models.Filter, timestamp b
 func (mock *DataStoreMock) UpdateFilterOutputCalls() []struct {
 	Filter    *models.Filter
 	Timestamp bson.MongoTimestamp
-	ETag      string
 } {
 	var calls []struct {
 		Filter    *models.Filter
 		Timestamp bson.MongoTimestamp
-		ETag      string
 	}
 	lockDataStoreMockUpdateFilterOutput.RLock()
 	calls = mock.calls.UpdateFilterOutput

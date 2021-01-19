@@ -193,7 +193,7 @@ func TestSuccessfulUpdateFilterOutput_StatusComplete(t *testing.T) {
 
 			Convey("Then the data store is called to update the event", func() {
 				So(len(mockDatastore.UpdateFilterOutputCalls()), ShouldEqual, 1)
-				filterOutput := mockDatastore.UpdateFilterOutputCalls()[0].FilterOutput
+				filterOutput := mockDatastore.UpdateFilterOutputCalls()[0].Filter
 				So(filterOutput.State, ShouldEqual, models.CompletedState)
 			})
 
@@ -223,7 +223,7 @@ func TestSuccessfulUpdateFilterOutput_StatusComplete(t *testing.T) {
 
 			Convey("Then the data store is called to update the event", func() {
 				So(len(mockDatastore.UpdateFilterOutputCalls()), ShouldEqual, 1)
-				filterOutput := mockDatastore.UpdateFilterOutputCalls()[0].FilterOutput
+				filterOutput := mockDatastore.UpdateFilterOutputCalls()[0].Filter
 				So(filterOutput.State, ShouldEqual, models.CompletedState)
 			})
 

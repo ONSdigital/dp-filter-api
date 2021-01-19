@@ -2,6 +2,7 @@ package api
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -9,6 +10,7 @@ import (
 	"testing"
 
 	apimocks "github.com/ONSdigital/dp-filter-api/api/mocks"
+	"github.com/ONSdigital/dp-filter-api/filters"
 	"github.com/ONSdigital/dp-filter-api/mocks"
 	"github.com/ONSdigital/dp-filter-api/models"
 	"github.com/globalsign/mgo/bson"
@@ -17,7 +19,10 @@ import (
 )
 
 var (
-	errAudit = errors.New("auditing error")
+	errAudit  = errors.New("auditing error")
+	testETag  = fmt.Sprintf("%s0", mocks.TestETag)
+	testETag1 = fmt.Sprintf("%s1", mocks.TestETag)
+	testETag2 = fmt.Sprintf("%s2", mocks.TestETag)
 )
 
 func TestSuccessfulAddFilterBlueprint_PublishedDataset(t *testing.T) {
@@ -29,6 +34,7 @@ func TestSuccessfulAddFilterBlueprint_PublishedDataset(t *testing.T) {
 
 		mockDatastore := &apimocks.DataStoreMock{
 			AddFilterFunc: func(filter *models.Filter) (*models.Filter, error) {
+				filter.ETag = testETag
 				return filter, nil
 			},
 			CreateFilterOutputFunc: func(filter *models.Filter) error {
@@ -53,6 +59,10 @@ func TestSuccessfulAddFilterBlueprint_PublishedDataset(t *testing.T) {
 				So(w.Code, ShouldEqual, http.StatusCreated)
 			})
 
+			Convey("Then the expected ETag is returned in a header", func() {
+				So(w.HeaderMap.Get("ETag"), ShouldResemble, testETag)
+			})
+
 			Convey("Then the request body has been drained", func() {
 				bytesRead, err := r.Body.Read(make([]byte, 1))
 				So(bytesRead, ShouldEqual, 0)
@@ -73,6 +83,10 @@ func TestSuccessfulAddFilterBlueprint_PublishedDataset(t *testing.T) {
 
 			Convey("Then the response is 201 created", func() {
 				So(w.Code, ShouldEqual, http.StatusCreated)
+			})
+
+			Convey("Then the expected ETag is returned in a header", func() {
+				So(w.HeaderMap.Get("ETag"), ShouldResemble, testETag)
 			})
 
 			Convey("Then the request body has been drained", func() {
@@ -103,6 +117,10 @@ func TestSuccessfulAddFilterBlueprint_PublishedDataset(t *testing.T) {
 				So(w.Code, ShouldEqual, http.StatusCreated)
 			})
 
+			Convey("Then the expected ETag is returned in a header", func() {
+				So(w.HeaderMap.Get("ETag"), ShouldResemble, testETag)
+			})
+
 			Convey("Then the request body has been drained", func() {
 				bytesRead, err := r.Body.Read(make([]byte, 1))
 				So(bytesRead, ShouldEqual, 0)
@@ -130,6 +148,10 @@ func TestSuccessfulAddFilterBlueprint_UnpublishedDataset(t *testing.T) {
 				So(w.Code, ShouldEqual, http.StatusCreated)
 			})
 
+			Convey("Then the expected ETag is returned in a header", func() {
+				So(w.HeaderMap.Get("ETag"), ShouldResemble, testETag1)
+			})
+
 			Convey("Then the request body has been drained", func() {
 				bytesRead, err := r.Body.Read(make([]byte, 1))
 				So(bytesRead, ShouldEqual, 0)
@@ -143,7 +165,7 @@ func TestSuccessfulAddFilterBlueprint_UnpublishedDataset(t *testing.T) {
 func TestFailedToAddFilterBlueprint(t *testing.T) {
 	t.Parallel()
 
-	Convey("When duplicate dimensions are sent then a bad request is returned", t, func() {
+	Convey("When duplicate dimensions are sent", t, func() {
 		reader := strings.NewReader(`{"dataset":{"version":1, "edition":"1", "id":"1"},"dimensions":[{"name":"time","options":["Jun-15","Jun-12"]},{"name":"time","options":["Jun-14"]}]}`)
 		r, err := http.NewRequest("POST", "http://localhost:22100/filters", reader)
 		So(err, ShouldBeNil)
@@ -151,10 +173,16 @@ func TestFailedToAddFilterBlueprint(t *testing.T) {
 		w := httptest.NewRecorder()
 		api := Setup(cfg(), mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
 		api.router.ServeHTTP(w, r)
-		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
-		response := w.Body.String()
-		So(response, ShouldContainSubstring, "Bad request - duplicate dimension found: time")
+		Convey("Then the response is 400 bad request, with the expected response body", func() {
+			So(w.Code, ShouldEqual, http.StatusBadRequest)
+			response := w.Body.String()
+			So(response, ShouldContainSubstring, "Bad request - duplicate dimension found: time")
+		})
+
+		Convey("Then the ETag header is empty", func() {
+			So(w.HeaderMap.Get("ETag"), ShouldResemble, "")
+		})
 
 		Convey("Then the request body has been drained", func() {
 			bytesRead, err := r.Body.Read(make([]byte, 1))
@@ -163,7 +191,7 @@ func TestFailedToAddFilterBlueprint(t *testing.T) {
 		})
 	})
 
-	Convey("When no data store is available, an internal error is returned", t, func() {
+	Convey("When no data store is available", t, func() {
 		reader := strings.NewReader(`{"dataset":{"version":1, "edition":"1", "id":"1"} }`)
 		r, err := http.NewRequest("POST", "http://localhost:22100/filters", reader)
 		So(err, ShouldBeNil)
@@ -171,10 +199,16 @@ func TestFailedToAddFilterBlueprint(t *testing.T) {
 		w := httptest.NewRecorder()
 		api := Setup(cfg(), mux.NewRouter(), mocks.NewDataStore().InternalError(), &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
 		api.router.ServeHTTP(w, r)
-		So(w.Code, ShouldEqual, http.StatusInternalServerError)
 
-		response := w.Body.String()
-		So(response, ShouldResemble, internalErrResponse)
+		Convey("Then the response is 500 internal error, with the expected response body", func() {
+			So(w.Code, ShouldEqual, http.StatusInternalServerError)
+			response := w.Body.String()
+			So(response, ShouldResemble, internalErrResponse)
+		})
+
+		Convey("Then the ETag header is empty", func() {
+			So(w.HeaderMap.Get("ETag"), ShouldResemble, "")
+		})
 
 		Convey("Then the request body has been drained", func() {
 			bytesRead, err := r.Body.Read(make([]byte, 1))
@@ -183,7 +217,7 @@ func TestFailedToAddFilterBlueprint(t *testing.T) {
 		})
 	})
 
-	Convey("When dataset API is unavailable, an internal error is returned", t, func() {
+	Convey("When dataset API is unavailable", t, func() {
 		reader := strings.NewReader(`{"dataset":{"version":1, "edition":"1", "id":"1"} }`)
 		r, err := http.NewRequest("POST", "http://localhost:22100/filters", reader)
 		So(err, ShouldBeNil)
@@ -191,10 +225,16 @@ func TestFailedToAddFilterBlueprint(t *testing.T) {
 		w := httptest.NewRecorder()
 		api := Setup(cfg(), mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, mocks.NewDatasetAPI().InternalServiceError(), previewMock)
 		api.router.ServeHTTP(w, r)
-		So(w.Code, ShouldEqual, http.StatusInternalServerError)
 
-		response := w.Body.String()
-		So(response, ShouldResemble, internalErrResponse)
+		Convey("Then the response is 500 internal error, with the expected response body", func() {
+			So(w.Code, ShouldEqual, http.StatusInternalServerError)
+			response := w.Body.String()
+			So(response, ShouldResemble, internalErrResponse)
+		})
+
+		Convey("Then the ETag header is empty", func() {
+			So(w.HeaderMap.Get("ETag"), ShouldResemble, "")
+		})
 
 		Convey("Then the request body has been drained", func() {
 			bytesRead, err := r.Body.Read(make([]byte, 1))
@@ -203,7 +243,7 @@ func TestFailedToAddFilterBlueprint(t *testing.T) {
 		})
 	})
 
-	Convey("When version does not exist, a not found error is returned", t, func() {
+	Convey("When version does not exist", t, func() {
 		reader := strings.NewReader(`{"dataset":{"version":1, "edition":"1", "id":"1"} }`)
 		r, err := http.NewRequest("POST", "http://localhost:22100/filters", reader)
 		So(err, ShouldBeNil)
@@ -211,10 +251,16 @@ func TestFailedToAddFilterBlueprint(t *testing.T) {
 		w := httptest.NewRecorder()
 		api := Setup(cfg(), mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, mocks.NewDatasetAPI().VersionNotFound(), previewMock)
 		api.router.ServeHTTP(w, r)
-		So(w.Code, ShouldEqual, http.StatusNotFound)
 
-		response := w.Body.String()
-		So(response, ShouldResemble, versionNotFoundResponse)
+		Convey("Then the response is 404 Not Found, with the expected response body", func() {
+			So(w.Code, ShouldEqual, http.StatusNotFound)
+			response := w.Body.String()
+			So(response, ShouldResemble, versionNotFoundResponse)
+		})
+
+		Convey("Then the ETag header is empty", func() {
+			So(w.HeaderMap.Get("ETag"), ShouldResemble, "")
+		})
 
 		Convey("Then the request body has been drained", func() {
 			bytesRead, err := r.Body.Read(make([]byte, 1))
@@ -223,7 +269,7 @@ func TestFailedToAddFilterBlueprint(t *testing.T) {
 		})
 	})
 
-	Convey("When version is unpublished and the request is not authenticated, a not found error is returned", t, func() {
+	Convey("When version is unpublished and the request is not authenticated", t, func() {
 		reader := strings.NewReader(`{"dataset":{"version":1, "edition":"1", "id":"1"}, "dimensions":[{"name": "age", "options": ["27","33"]}]}`)
 		r, err := http.NewRequest("POST", "http://localhost:22100/filters", reader)
 		So(err, ShouldBeNil)
@@ -231,10 +277,16 @@ func TestFailedToAddFilterBlueprint(t *testing.T) {
 		w := httptest.NewRecorder()
 		api := Setup(cfg(), mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, mocks.NewDatasetAPI().Unpublished(), previewMock)
 		api.router.ServeHTTP(w, r)
-		So(w.Code, ShouldEqual, http.StatusNotFound)
 
-		response := w.Body.String()
-		So(response, ShouldResemble, versionNotFoundResponse)
+		Convey("Then the response is 404 not found, with the expected response body", func() {
+			So(w.Code, ShouldEqual, http.StatusNotFound)
+			response := w.Body.String()
+			So(response, ShouldResemble, versionNotFoundResponse)
+		})
+
+		Convey("Then the ETag header is empty", func() {
+			So(w.HeaderMap.Get("ETag"), ShouldResemble, "")
+		})
 
 		Convey("Then the request body has been drained", func() {
 			bytesRead, err := r.Body.Read(make([]byte, 1))
@@ -267,6 +319,10 @@ func TestFailedToAddFilterBlueprint_BadJSON(t *testing.T) {
 				So(w.Body.String(), ShouldResemble, badRequestResponse)
 			})
 
+			Convey("Then the ETag header is empty", func() {
+				So(w.HeaderMap.Get("ETag"), ShouldResemble, "")
+			})
+
 			Convey("Then the request body has been drained", func() {
 				bytesRead, err := r.Body.Read(make([]byte, 1))
 				So(bytesRead, ShouldEqual, 0)
@@ -288,6 +344,10 @@ func TestFailedToAddFilterBlueprint_BadJSON(t *testing.T) {
 
 			Convey("Then the response body contains the expected content", func() {
 				So(w.Body.String(), ShouldResemble, badRequestResponse)
+			})
+
+			Convey("Then the ETag header is empty", func() {
+				So(w.HeaderMap.Get("ETag"), ShouldResemble, "")
 			})
 
 			Convey("Then the request body has been drained", func() {
@@ -313,6 +373,10 @@ func TestFailedToAddFilterBlueprint_BadJSON(t *testing.T) {
 				So(w.Body.String(), ShouldResemble, badRequestResponse)
 			})
 
+			Convey("Then the ETag header is empty", func() {
+				So(w.HeaderMap.Get("ETag"), ShouldResemble, "")
+			})
+
 			Convey("Then the request body has been drained", func() {
 				bytesRead, err := r.Body.Read(make([]byte, 1))
 				So(bytesRead, ShouldEqual, 0)
@@ -336,6 +400,10 @@ func TestFailedToAddFilterBlueprint_BadJSON(t *testing.T) {
 				So(w.Body.String(), ShouldResemble, "incorrect dimensions chosen: [weight]\n")
 			})
 
+			Convey("Then the ETag header is empty", func() {
+				So(w.HeaderMap.Get("ETag"), ShouldResemble, "")
+			})
+
 			Convey("Then the request body has been drained", func() {
 				bytesRead, err := r.Body.Read(make([]byte, 1))
 				So(bytesRead, ShouldEqual, 0)
@@ -357,6 +425,10 @@ func TestFailedToAddFilterBlueprint_BadJSON(t *testing.T) {
 
 			Convey("Then the response body contains the expected content", func() {
 				So(w.Body.String(), ShouldResemble, "incorrect dimension options chosen: [29]\n")
+			})
+
+			Convey("Then the ETag header is empty", func() {
+				So(w.HeaderMap.Get("ETag"), ShouldResemble, "")
 			})
 
 			Convey("Then the request body has been drained", func() {
@@ -386,6 +458,10 @@ func TestSuccessfulGetFilterBlueprint_PublishedDataset(t *testing.T) {
 			Convey("Then the response is 200 ok", func() {
 				So(w.Code, ShouldEqual, http.StatusOK)
 			})
+
+			Convey("Then the expected ETag is returned in the ETag header", func() {
+				So(w.HeaderMap.Get("ETag"), ShouldResemble, testETag)
+			})
 		})
 	})
 }
@@ -401,6 +477,10 @@ func TestSuccessfulGetFilterBlueprint_UnpublishedDataset(t *testing.T) {
 
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusOK)
+
+		Convey("Then the expected ETag is returned in the ETag header", func() {
+			So(w.HeaderMap.Get("ETag"), ShouldResemble, testETag)
+		})
 	})
 }
 
@@ -417,6 +497,8 @@ func TestFailedToGetFilterBlueprint(t *testing.T) {
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusInternalServerError)
 
+		So(w.HeaderMap.Get("ETag"), ShouldResemble, "")
+
 		response := w.Body.String()
 		So(response, ShouldResemble, internalErrResponse)
 	})
@@ -429,6 +511,7 @@ func TestFailedToGetFilterBlueprint(t *testing.T) {
 		api := Setup(cfg(), mux.NewRouter(), mocks.NewDataStore().NotFound(), &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
+		So(w.HeaderMap.Get("ETag"), ShouldResemble, "")
 
 		response := w.Body.String()
 		So(response, ShouldResemble, filterNotFoundResponse)
@@ -442,6 +525,7 @@ func TestFailedToGetFilterBlueprint(t *testing.T) {
 		api := Setup(cfg(), mux.NewRouter(), mocks.NewDataStore().Unpublished(), &mocks.FilterJob{}, mocks.NewDatasetAPI().Unpublished(), previewMock)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
+		So(w.HeaderMap.Get("ETag"), ShouldResemble, "")
 
 		response := w.Body.String()
 		So(response, ShouldResemble, filterNotFoundResponse)
@@ -452,27 +536,35 @@ func TestSuccessfulUpdateFilterBlueprint_PublishedDataset(t *testing.T) {
 	t.Parallel()
 
 	Convey("Given a published dataset", t, func() {
-
+		testETag := "testETag"
+		testETagUpdated := "testETagUpdated"
 		w := httptest.NewRecorder()
 
 		mockDatastore := &apimocks.DataStoreMock{
 			CreateFilterOutputFunc: func(filter *models.Filter) error {
 				return nil
 			},
-			GetFilterFunc: func(filterID string) (*models.Filter, error) {
-				return &models.Filter{Dataset: &models.Dataset{ID: "123", Edition: "2017", Version: 1}, InstanceID: "12345678", Published: &models.Published, Dimensions: []models.Dimension{{Name: "time", Options: []string{"2014", "2015"}}, {Name: "1_age"}}}, nil
+			GetFilterFunc: func(filterID string, eTagSelector string) (*models.Filter, error) {
+				if eTagSelector != testETag {
+					return nil, filters.ErrFilterBlueprintConflict
+				}
+				return &models.Filter{Dataset: &models.Dataset{ID: "123", Edition: "2017", Version: 1}, InstanceID: "12345678", Published: &models.Published, Dimensions: []models.Dimension{{Name: "time", Options: []string{"2014", "2015"}}, {Name: "1_age"}}, ETag: testETag}, nil
 			},
-			UpdateFilterFunc: func(filter *models.Filter, timestamp bson.MongoTimestamp) error {
-				return nil
+			UpdateFilterFunc: func(filter *models.Filter, timestamp bson.MongoTimestamp, eTagSelector string, currentFilter *models.Filter) (string, error) {
+				if eTagSelector != testETag {
+					return "", filters.ErrFilterBlueprintConflict
+				}
+				return testETagUpdated, nil
 			},
 		}
 
 		api := Setup(cfg(), mux.NewRouter(), mockDatastore, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
 
-		Convey("When a PUT request is made to the filters endpoint", func() {
+		Convey("When a PUT request is made to the filters endpoint and a valid ETag", func() {
 
 			reader := strings.NewReader(`{"dataset":{"version":1}}`)
 			r, err := http.NewRequest("PUT", "http://localhost:22100/filters/21312", reader)
+			r.Header.Set("If-Match", testETag)
 			So(err, ShouldBeNil)
 
 			api.router.ServeHTTP(w, r)
@@ -483,6 +575,10 @@ func TestSuccessfulUpdateFilterBlueprint_PublishedDataset(t *testing.T) {
 
 			Convey("Then the response is 200 OK", func() {
 				So(w.Code, ShouldEqual, http.StatusOK)
+			})
+
+			Convey("Then the updated ETag is returned in the ETag header", func() {
+				So(w.HeaderMap.Get("ETag"), ShouldResemble, testETagUpdated)
 			})
 
 			Convey("Then the request body has been drained", func() {
@@ -498,6 +594,7 @@ func TestSuccessfulUpdateFilterBlueprint_PublishedDataset(t *testing.T) {
 
 			reader := strings.NewReader(updateBlueprintData)
 			r, err := http.NewRequest("PUT", "http://localhost:22100/filters/21312", reader)
+			r.Header.Set("If-Match", testETag)
 			So(err, ShouldBeNil)
 
 			api.router.ServeHTTP(w, r)
@@ -508,6 +605,10 @@ func TestSuccessfulUpdateFilterBlueprint_PublishedDataset(t *testing.T) {
 
 			Convey("Then the response is 200 OK", func() {
 				So(w.Code, ShouldEqual, http.StatusOK)
+			})
+
+			Convey("Then the updated ETag is returned in the ETag header", func() {
+				So(w.HeaderMap.Get("ETag"), ShouldResemble, testETagUpdated)
 			})
 
 			Convey("Then the request body has been drained", func() {
@@ -521,6 +622,7 @@ func TestSuccessfulUpdateFilterBlueprint_PublishedDataset(t *testing.T) {
 
 			reader := strings.NewReader("{}")
 			r, err := http.NewRequest("PUT", "http://localhost:22100/filters/21312?submitted=true", reader)
+			r.Header.Set("If-Match", testETag)
 			So(err, ShouldBeNil)
 
 			api.router.ServeHTTP(w, r)
@@ -539,6 +641,10 @@ func TestSuccessfulUpdateFilterBlueprint_PublishedDataset(t *testing.T) {
 				So(w.Code, ShouldEqual, http.StatusOK)
 			})
 
+			Convey("Then the updated ETag is returned in the ETag header", func() {
+				So(w.HeaderMap.Get("ETag"), ShouldResemble, testETagUpdated)
+			})
+
 			Convey("Then the request body has been drained", func() {
 				bytesRead, err := r.Body.Read(make([]byte, 1))
 				So(bytesRead, ShouldEqual, 0)
@@ -554,11 +660,13 @@ func TestSuccessfulUpdateFilterBlueprint_UnpublishedDataset(t *testing.T) {
 	Convey("Successfully send a request to submit an unpublished filter blueprint", t, func() {
 		reader := strings.NewReader("{}")
 		r := createAuthenticatedRequest("PUT", "http://localhost:22100/filters/21312?submitted=true", reader)
+		r.Header.Set("If-Match", testETag)
 
 		w := httptest.NewRecorder()
 		api := Setup(cfg(), mux.NewRouter(), mocks.NewDataStore().Unpublished(), &mocks.FilterJob{}, mocks.NewDatasetAPI().Unpublished(), previewMock)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusOK)
+		So(w.HeaderMap.Get("ETag"), ShouldResemble, testETag1)
 
 		Convey("Then the request body has been drained", func() {
 			bytesRead, err := r.Body.Read(make([]byte, 1))
@@ -574,12 +682,14 @@ func TestFailedToUpdateFilterBlueprint(t *testing.T) {
 	Convey("When an invalid json message is sent, a bad request is returned", t, func() {
 		reader := strings.NewReader("{")
 		r, err := http.NewRequest("PUT", "http://localhost:22100/filters/21312", reader)
+		r.Header.Set("If-Match", testETag)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
 		api := Setup(cfg(), mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
+		So(w.HeaderMap.Get("ETag"), ShouldResemble, "")
 
 		response := w.Body.String()
 		So(response, ShouldResemble, badRequestResponse)
@@ -594,12 +704,14 @@ func TestFailedToUpdateFilterBlueprint(t *testing.T) {
 	Convey("When an empty json message is sent, a bad request is returned", t, func() {
 		reader := strings.NewReader("{}")
 		r, err := http.NewRequest("PUT", "http://localhost:22100/filters/21312", reader)
+		r.Header.Set("If-Match", testETag)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
 		api := Setup(cfg(), mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
+		So(w.HeaderMap.Get("ETag"), ShouldResemble, "")
 
 		response := w.Body.String()
 		So(response, ShouldResemble, badRequestResponse)
@@ -614,12 +726,14 @@ func TestFailedToUpdateFilterBlueprint(t *testing.T) {
 	Convey("When a json message is sent to update filter blueprint that doesn't exist, a status of not found is returned", t, func() {
 		reader := strings.NewReader(`{"dataset":{"version":1}}`)
 		r, err := http.NewRequest("PUT", "http://localhost:22100/filters/21312", reader)
+		r.Header.Set("If-Match", testETag)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
 		api := Setup(cfg(), mux.NewRouter(), mocks.NewDataStore().NotFound(), &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
+		So(w.HeaderMap.Get("ETag"), ShouldResemble, "")
 
 		response := w.Body.String()
 		So(response, ShouldResemble, filterNotFoundResponse)
@@ -634,6 +748,7 @@ func TestFailedToUpdateFilterBlueprint(t *testing.T) {
 	Convey("When no authentication is provided to update an unpublished filter, a not found is returned", t, func() {
 		reader := strings.NewReader(`{"dimensions":[]}`)
 		r, err := http.NewRequest("PUT", "http://localhost:22100/filters/21312", reader)
+		r.Header.Set("If-Match", testETag)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
@@ -641,6 +756,7 @@ func TestFailedToUpdateFilterBlueprint(t *testing.T) {
 		api := Setup(cfg(), mux.NewRouter(), mocks.NewDataStore().Unpublished(), &mocks.FilterJob{}, mocks.NewDatasetAPI().Unpublished(), previewMock)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
+		So(w.HeaderMap.Get("ETag"), ShouldResemble, "")
 
 		response := w.Body.String()
 		So(response, ShouldResemble, filterNotFoundResponse)
@@ -655,12 +771,14 @@ func TestFailedToUpdateFilterBlueprint(t *testing.T) {
 	Convey("When a json message is sent to change the dataset version of a filter blueprint and the version does not exist, a status of bad request is returned", t, func() {
 		reader := strings.NewReader(`{"dataset":{"version":2}}`)
 		r, err := http.NewRequest("PUT", "http://localhost:22100/filters/21312", reader)
+		r.Header.Set("If-Match", testETag)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
 		api := Setup(cfg(), mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, mocks.NewDatasetAPI().VersionNotFound(), previewMock)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
+		So(w.HeaderMap.Get("ETag"), ShouldResemble, "")
 
 		response := w.Body.String()
 		So(response, ShouldResemble, versionNotFoundResponse)
@@ -675,12 +793,14 @@ func TestFailedToUpdateFilterBlueprint(t *testing.T) {
 	Convey("When a json message is sent to change the datset version of a filter blueprint and the current dimensions do not match, a status of bad request is returned", t, func() {
 		reader := strings.NewReader(`{"dataset":{"version":2}}`)
 		r, err := http.NewRequest("PUT", "http://localhost:22100/filters/21312", reader)
+		r.Header.Set("If-Match", testETag)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
 		api := Setup(cfg(), mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
+		So(w.HeaderMap.Get("ETag"), ShouldResemble, "")
 
 		response := w.Body.String()
 		So(response, ShouldResemble, "incorrect dimensions chosen: [time 1_age]\n")
@@ -695,15 +815,38 @@ func TestFailedToUpdateFilterBlueprint(t *testing.T) {
 	Convey("When a json message is sent to change the dataset version of a filter blueprint and the current dimension options do not match, a status of bad request is returned", t, func() {
 		reader := strings.NewReader(`{"dataset":{"version":2}}`)
 		r, err := http.NewRequest("PUT", "http://localhost:22100/filters/21312", reader)
+		r.Header.Set("If-Match", testETag)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
 		api := Setup(cfg(), mux.NewRouter(), mocks.NewDataStore().InvalidDimensionOption(), &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
+		So(w.HeaderMap.Get("ETag"), ShouldResemble, "")
 
 		response := w.Body.String()
 		So(response, ShouldResemble, "incorrect dimension options chosen: [28]\n")
+
+		Convey("Then the request body has been drained", func() {
+			bytesRead, err := r.Body.Read(make([]byte, 1))
+			So(bytesRead, ShouldEqual, 0)
+			So(err, ShouldEqual, io.EOF)
+		})
+	})
+
+	Convey("When a request is made without providing an If-Match header, a status of bad request is returned", t, func() {
+		reader := strings.NewReader(`{"dataset":{"version":1}}`)
+		r, err := http.NewRequest("PUT", "http://localhost:22100/filters/21312", reader)
+		So(err, ShouldBeNil)
+
+		w := httptest.NewRecorder()
+		api := Setup(cfg(), mux.NewRouter(), mocks.NewDataStore().InvalidDimensionOption(), &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusBadRequest)
+		So(w.HeaderMap.Get("ETag"), ShouldResemble, "")
+
+		response := w.Body.String()
+		So(response, ShouldResemble, "required If-Match header not provided\n")
 
 		Convey("Then the request body has been drained", func() {
 			bytesRead, err := r.Body.Read(make([]byte, 1))

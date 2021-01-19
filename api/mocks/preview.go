@@ -5,7 +5,6 @@ package mocks
 
 import (
 	"context"
-	"github.com/ONSdigital/dp-filter-api/api"
 	"github.com/ONSdigital/dp-filter-api/models"
 	"sync"
 )
@@ -13,10 +12,6 @@ import (
 var (
 	lockPreviewDatasetMockGetPreview sync.RWMutex
 )
-
-// Ensure, that PreviewDatasetMock does implement api.PreviewDataset.
-// If this is not the case, regenerate this file with moq.
-var _ api.PreviewDataset = &PreviewDatasetMock{}
 
 // PreviewDatasetMock is a mock implementation of api.PreviewDataset.
 //
