@@ -1,10 +1,11 @@
 package mongo
 
 import (
+	"testing"
+
 	"github.com/ONSdigital/dp-filter-api/models"
 	"github.com/globalsign/mgo/bson"
 	. "github.com/smartystreets/goconvey/convey"
-	"testing"
 )
 
 func TestCreateUpdateFilterOutput(t *testing.T) {
@@ -67,5 +68,39 @@ func TestCreateUpdateFilterOutput(t *testing.T) {
 			So(state, ShouldEqual, models.CompletedState)
 
 		})
+	})
+}
+
+func TestSelector(t *testing.T) {
+
+	Convey("Given some testing values to provide as selector paramters", t, func() {
+		var testFilterID string = "filterID"
+		var testDimensionName string = "dimensionName"
+		var testETag string = "testETag"
+		var testMongoTimestamp bson.MongoTimestamp = 1234567890
+
+		Convey("Then, providing empty or zero values for dimension, timestamp and eTag generates a selector that only queries by filter_id", func() {
+			s := selector(testFilterID, "", 0, "")
+			So(s, ShouldResemble, bson.M{"filter_id": testFilterID})
+		})
+
+		Convey("Then, providing values for dimension, timestamp, and eTag generates a selector that queries by filterID, dimensionName, timestamp and eTag", func() {
+			s := selector(testFilterID, testDimensionName, testMongoTimestamp, testETag)
+			So(s, ShouldResemble, bson.M{
+				"filter_id":        testFilterID,
+				"dimensions":       bson.M{"$elemMatch": bson.M{"name": testDimensionName}},
+				"unique_timestamp": testMongoTimestamp,
+				"e_tag":            testETag,
+			})
+		})
+	})
+}
+
+func TestValidateFilter(t *testing.T) {
+	Convey("validateFilter creates empty slices for dimensions and events if the values were nil", t, func() {
+		filter := models.Filter{}
+		validateFilter(&filter)
+		So(filter.Dimensions, ShouldResemble, []models.Dimension{})
+		So(filter.Events, ShouldResemble, []*models.Event{})
 	})
 }
