@@ -16,7 +16,7 @@ import (
 type DatasetAPI interface {
 	GetVersion(ctx context.Context, userAuthToken, serviceAuthToken, downloadServiceAuthToken, collectionID, datasetID, edition, version string) (m dataset.Version, err error)
 	GetVersionDimensions(ctx context.Context, userAuthToken, serviceAuthToken, collectionID, id, edition, version string) (m dataset.VersionDimensions, err error)
-	GetOptions(ctx context.Context, userAuthToken, serviceAuthToken, collectionID, id, edition, version, dimension string, q dataset.QueryParams) (m dataset.Options, err error)
+	GetOptionsBatchProcess(ctx context.Context, userAuthToken, serviceAuthToken, collectionID, id, edition, version, dimension string, optionIDs *[]string, processBatch dataset.OptionsBatchProcessor, batchSize, maxWorkers int) (err error)
 }
 
 // OutputQueue - An interface used to queue filter outputs
@@ -44,6 +44,7 @@ type FilterAPI struct {
 	defaultLimit         int
 	defaultOffset        int
 	maxDatasetOptions    int
+	BatchMaxWorkers      int
 }
 
 // Setup manages all the routes configured to API
@@ -69,6 +70,7 @@ func Setup(
 		defaultLimit:         cfg.MongoConfig.Limit,
 		defaultOffset:        cfg.MongoConfig.Offset,
 		maxDatasetOptions:    cfg.MaxDatasetOptions,
+		BatchMaxWorkers:      cfg.BatchMaxWorkers,
 	}
 
 	api.router.HandleFunc("/filters", api.postFilterBlueprintHandler).Methods("POST")

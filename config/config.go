@@ -25,6 +25,7 @@ type Config struct {
 	DownloadServiceSecretKey   string        `envconfig:"DOWNLOAD_SERVICE_SECRET_KEY"      json:"-"`
 	MaxRequestOptions          int           `envconfig:"MAX_REQUEST_OPTIONS"`
 	MaxDatasetOptions          int           `envconfig:"MAX_DATASET_OPTIONS"`
+	BatchMaxWorkers            int           `envconfig:"BATCH_MAX_WORKERS"`
 	KafkaVersion               string        `envconfig:"KAFKA_VERSION"`
 	MongoConfig                MongoConfig
 }
@@ -60,6 +61,7 @@ func Get() (*Config, error) {
 		HealthCheckCriticalTimeout: 90 * time.Second,
 		MaxRequestOptions:          1000, // Maximum number of options acceptable in an incoming Patch request. Compromise between one option per call (inefficient) and an order of 100k options per call, for census data (memory and computationally expensive)
 		MaxDatasetOptions:          200,  // Maximum number of options requested to Dataset API in a single call.
+		BatchMaxWorkers:            25,   // maximum number of concurrent go-routines requesting items concurrently from APIs with pagination
 		MongoConfig: MongoConfig{
 			BindAddr:          "localhost:27017",
 			Database:          "filters",

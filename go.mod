@@ -3,7 +3,7 @@ module github.com/ONSdigital/dp-filter-api
 go 1.15
 
 require (
-	github.com/ONSdigital/dp-api-clients-go v1.32.1
+	github.com/ONSdigital/dp-api-clients-go v1.32.3
 	github.com/ONSdigital/dp-graph/v2 v2.3.0
 	github.com/ONSdigital/dp-healthcheck v1.0.5
 	github.com/ONSdigital/dp-kafka/v2 v2.1.2
@@ -15,6 +15,7 @@ require (
 	github.com/google/go-cmp v0.5.2 // indirect
 	github.com/gopherjs/gopherjs v0.0.0-20200217142428-fce0ec30dd00 // indirect
 	github.com/gorilla/mux v1.8.0
+	github.com/gorilla/websocket v1.4.2 // indirect
 	github.com/justinas/alice v1.2.0
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/mattn/go-colorable v0.1.7 // indirect

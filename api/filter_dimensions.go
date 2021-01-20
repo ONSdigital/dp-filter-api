@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"sort"
 
+	datasetAPI "github.com/ONSdigital/dp-api-clients-go/dataset"
 	"github.com/ONSdigital/dp-filter-api/filters"
 	"github.com/ONSdigital/dp-filter-api/models"
 	dphttp "github.com/ONSdigital/dp-net/http"
@@ -310,42 +311,46 @@ func (api *FilterAPI) checkNewFilterDimensionOptions(ctx context.Context, dimens
 
 	// create map of all options that need to be found
 	optionsNotFound := createMap(dimension.Options)
+	isFirstBatch := true
 
-	// find filter options in Dataset API (in batches, using paginated calls)
-	offset := 0
-	for len(optionsNotFound) > 0 && offset < len(dimension.Options) {
+	// process batch func
+	processBatch := func(batch datasetAPI.Options) (forceAbort bool, err error) {
 
-		// find a batch of dimension options from Dataset API
-		batchOpts := slice(dimension.Options, offset, api.maxDatasetOptions)
-		datasetDimensionOptions, err := api.getDimensionOptions(ctx, dataset, dimension.Name, batchOpts)
-		if err != nil {
-			log.Event(ctx, "failed to retrieve a list of dimension options from dataset API", log.ERROR, log.Error(err), logData)
-			return err
-		}
-
-		// (first iteration only) - set totalCount and logData
-		if offset == 0 {
-			logData["dimension_options_total"] = datasetDimensionOptions.TotalCount
-			if datasetDimensionOptions.TotalCount > maxLogOptions {
-				if datasetDimensionOptions.Items != nil && len(datasetDimensionOptions.Items) > 0 {
-					logData["dimension_options_first"] = datasetDimensionOptions.Items[0]
+		// (first iteration only) - logData
+		if isFirstBatch {
+			isFirstBatch = false
+			logData["dimension_options_total"] = batch.TotalCount
+			if batch.TotalCount > maxLogOptions {
+				if batch.Items != nil && len(batch.Items) > 0 {
+					logData["dimension_options_first"] = batch.Items[0]
 				}
 			} else {
-				logData["dimension_options"] = datasetDimensionOptions
+				logData["dimension_options"] = batch
 			}
 		}
 
 		// remove found items from notFound map
-		for _, opt := range datasetDimensionOptions.Items {
+		for _, opt := range batch.Items {
 			if _, found := optionsNotFound[opt.Option]; found {
 				delete(optionsNotFound, opt.Option)
 			}
 		}
 
-		// set offset for next iteration
-		offset += api.maxDatasetOptions
+		// abort if all options have been found
+		if len(optionsNotFound) == 0 {
+			return true, nil
+		}
+
+		// otherwise continue with next batch
+		return false, nil
 	}
-	log.Event(ctx, "dimension options retrieved from dataset API", log.INFO, logData)
+
+	// get dimension options from dataset API in batches
+	if err := api.getDimensionOptionsBatchProcess(ctx, dimension, dataset, processBatch); err != nil {
+		return err
+	}
+
+	log.Event(ctx, "dimension options successfully retrieved from dataset API", log.INFO, logData)
 
 	// if there is any dimension that is not found, error
 	if optionsNotFound != nil && len(optionsNotFound) > 0 {

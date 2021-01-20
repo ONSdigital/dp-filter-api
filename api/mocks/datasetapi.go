@@ -10,9 +10,9 @@ import (
 )
 
 var (
-	lockDatasetAPIMockGetOptions           sync.RWMutex
-	lockDatasetAPIMockGetVersion           sync.RWMutex
-	lockDatasetAPIMockGetVersionDimensions sync.RWMutex
+	lockDatasetAPIMockGetOptionsBatchProcess sync.RWMutex
+	lockDatasetAPIMockGetVersion             sync.RWMutex
+	lockDatasetAPIMockGetVersionDimensions   sync.RWMutex
 )
 
 // DatasetAPIMock is a mock implementation of api.DatasetAPI.
@@ -21,8 +21,8 @@ var (
 //
 //         // make and configure a mocked api.DatasetAPI
 //         mockedDatasetAPI := &DatasetAPIMock{
-//             GetOptionsFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, collectionID string, id string, edition string, version string, dimension string, q dataset.QueryParams) (dataset.Options, error) {
-// 	               panic("mock out the GetOptions method")
+//             GetOptionsBatchProcessFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, collectionID string, id string, edition string, version string, dimension string, optionIDs *[]string, processBatch dataset.OptionsBatchProcessor, batchSize int, maxWorkers int) error {
+// 	               panic("mock out the GetOptionsBatchProcess method")
 //             },
 //             GetVersionFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, downloadServiceAuthToken string, collectionID string, datasetID string, edition string, version string) (dataset.Version, error) {
 // 	               panic("mock out the GetVersion method")
@@ -37,8 +37,8 @@ var (
 //
 //     }
 type DatasetAPIMock struct {
-	// GetOptionsFunc mocks the GetOptions method.
-	GetOptionsFunc func(ctx context.Context, userAuthToken string, serviceAuthToken string, collectionID string, id string, edition string, version string, dimension string, q dataset.QueryParams) (dataset.Options, error)
+	// GetOptionsBatchProcessFunc mocks the GetOptionsBatchProcess method.
+	GetOptionsBatchProcessFunc func(ctx context.Context, userAuthToken string, serviceAuthToken string, collectionID string, id string, edition string, version string, dimension string, optionIDs *[]string, processBatch dataset.OptionsBatchProcessor, batchSize int, maxWorkers int) error
 
 	// GetVersionFunc mocks the GetVersion method.
 	GetVersionFunc func(ctx context.Context, userAuthToken string, serviceAuthToken string, downloadServiceAuthToken string, collectionID string, datasetID string, edition string, version string) (dataset.Version, error)
@@ -48,8 +48,8 @@ type DatasetAPIMock struct {
 
 	// calls tracks calls to the methods.
 	calls struct {
-		// GetOptions holds details about calls to the GetOptions method.
-		GetOptions []struct {
+		// GetOptionsBatchProcess holds details about calls to the GetOptionsBatchProcess method.
+		GetOptionsBatchProcess []struct {
 			// Ctx is the ctx argument value.
 			Ctx context.Context
 			// UserAuthToken is the userAuthToken argument value.
@@ -66,8 +66,14 @@ type DatasetAPIMock struct {
 			Version string
 			// Dimension is the dimension argument value.
 			Dimension string
-			// Q is the q argument value.
-			Q dataset.QueryParams
+			// OptionIDs is the optionIDs argument value.
+			OptionIDs *[]string
+			// ProcessBatch is the processBatch argument value.
+			ProcessBatch dataset.OptionsBatchProcessor
+			// BatchSize is the batchSize argument value.
+			BatchSize int
+			// MaxWorkers is the maxWorkers argument value.
+			MaxWorkers int
 		}
 		// GetVersion holds details about calls to the GetVersion method.
 		GetVersion []struct {
@@ -108,10 +114,10 @@ type DatasetAPIMock struct {
 	}
 }
 
-// GetOptions calls GetOptionsFunc.
-func (mock *DatasetAPIMock) GetOptions(ctx context.Context, userAuthToken string, serviceAuthToken string, collectionID string, id string, edition string, version string, dimension string, q dataset.QueryParams) (dataset.Options, error) {
-	if mock.GetOptionsFunc == nil {
-		panic("DatasetAPIMock.GetOptionsFunc: method is nil but DatasetAPI.GetOptions was just called")
+// GetOptionsBatchProcess calls GetOptionsBatchProcessFunc.
+func (mock *DatasetAPIMock) GetOptionsBatchProcess(ctx context.Context, userAuthToken string, serviceAuthToken string, collectionID string, id string, edition string, version string, dimension string, optionIDs *[]string, processBatch dataset.OptionsBatchProcessor, batchSize int, maxWorkers int) error {
+	if mock.GetOptionsBatchProcessFunc == nil {
+		panic("DatasetAPIMock.GetOptionsBatchProcessFunc: method is nil but DatasetAPI.GetOptionsBatchProcess was just called")
 	}
 	callInfo := struct {
 		Ctx              context.Context
@@ -122,7 +128,10 @@ func (mock *DatasetAPIMock) GetOptions(ctx context.Context, userAuthToken string
 		Edition          string
 		Version          string
 		Dimension        string
-		Q                dataset.QueryParams
+		OptionIDs        *[]string
+		ProcessBatch     dataset.OptionsBatchProcessor
+		BatchSize        int
+		MaxWorkers       int
 	}{
 		Ctx:              ctx,
 		UserAuthToken:    userAuthToken,
@@ -132,18 +141,21 @@ func (mock *DatasetAPIMock) GetOptions(ctx context.Context, userAuthToken string
 		Edition:          edition,
 		Version:          version,
 		Dimension:        dimension,
-		Q:                q,
+		OptionIDs:        optionIDs,
+		ProcessBatch:     processBatch,
+		BatchSize:        batchSize,
+		MaxWorkers:       maxWorkers,
 	}
-	lockDatasetAPIMockGetOptions.Lock()
-	mock.calls.GetOptions = append(mock.calls.GetOptions, callInfo)
-	lockDatasetAPIMockGetOptions.Unlock()
-	return mock.GetOptionsFunc(ctx, userAuthToken, serviceAuthToken, collectionID, id, edition, version, dimension, q)
+	lockDatasetAPIMockGetOptionsBatchProcess.Lock()
+	mock.calls.GetOptionsBatchProcess = append(mock.calls.GetOptionsBatchProcess, callInfo)
+	lockDatasetAPIMockGetOptionsBatchProcess.Unlock()
+	return mock.GetOptionsBatchProcessFunc(ctx, userAuthToken, serviceAuthToken, collectionID, id, edition, version, dimension, optionIDs, processBatch, batchSize, maxWorkers)
 }
 
-// GetOptionsCalls gets all the calls that were made to GetOptions.
+// GetOptionsBatchProcessCalls gets all the calls that were made to GetOptionsBatchProcess.
 // Check the length with:
-//     len(mockedDatasetAPI.GetOptionsCalls())
-func (mock *DatasetAPIMock) GetOptionsCalls() []struct {
+//     len(mockedDatasetAPI.GetOptionsBatchProcessCalls())
+func (mock *DatasetAPIMock) GetOptionsBatchProcessCalls() []struct {
 	Ctx              context.Context
 	UserAuthToken    string
 	ServiceAuthToken string
@@ -152,7 +164,10 @@ func (mock *DatasetAPIMock) GetOptionsCalls() []struct {
 	Edition          string
 	Version          string
 	Dimension        string
-	Q                dataset.QueryParams
+	OptionIDs        *[]string
+	ProcessBatch     dataset.OptionsBatchProcessor
+	BatchSize        int
+	MaxWorkers       int
 } {
 	var calls []struct {
 		Ctx              context.Context
@@ -163,11 +178,14 @@ func (mock *DatasetAPIMock) GetOptionsCalls() []struct {
 		Edition          string
 		Version          string
 		Dimension        string
-		Q                dataset.QueryParams
+		OptionIDs        *[]string
+		ProcessBatch     dataset.OptionsBatchProcessor
+		BatchSize        int
+		MaxWorkers       int
 	}
-	lockDatasetAPIMockGetOptions.RLock()
-	calls = mock.calls.GetOptions
-	lockDatasetAPIMockGetOptions.RUnlock()
+	lockDatasetAPIMockGetOptionsBatchProcess.RLock()
+	calls = mock.calls.GetOptionsBatchProcess
+	lockDatasetAPIMockGetOptionsBatchProcess.RUnlock()
 	return calls
 }
 

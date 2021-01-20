@@ -7,7 +7,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ONSdigital/dp-api-clients-go/dataset"
 	"github.com/ONSdigital/dp-filter-api/mocks"
 	"github.com/ONSdigital/dp-filter-api/models"
 	"github.com/gorilla/mux"
@@ -34,8 +33,8 @@ func TestSuccessfulAddFilterBlueprintDimensionOption(t *testing.T) {
 
 		Convey("And the dimension and options are efficiently validated with dataset API", func() {
 			So(datasetAPIMock.GetVersionDimensionsCalls(), ShouldHaveLength, 1)
-			So(datasetAPIMock.GetOptionsCalls(), ShouldHaveLength, 1)
-			So(datasetAPIMock.GetOptionsCalls()[0].Q, ShouldResemble, dataset.QueryParams{IDs: []string{"33"}})
+			So(datasetAPIMock.GetOptionsBatchProcessCalls(), ShouldHaveLength, 1)
+			So(*datasetAPIMock.GetOptionsBatchProcessCalls()[0].OptionIDs, ShouldResemble, []string{"33"})
 		})
 	})
 
@@ -53,8 +52,8 @@ func TestSuccessfulAddFilterBlueprintDimensionOption(t *testing.T) {
 
 		Convey("And the dimension and options are efficiently validated with dataset API", func() {
 			So(datasetAPIMock.GetVersionDimensionsCalls(), ShouldHaveLength, 1)
-			So(datasetAPIMock.GetOptionsCalls(), ShouldHaveLength, 1)
-			So(datasetAPIMock.GetOptionsCalls()[0].Q, ShouldResemble, dataset.QueryParams{IDs: []string{"33"}})
+			So(datasetAPIMock.GetOptionsBatchProcessCalls(), ShouldHaveLength, 1)
+			So(*datasetAPIMock.GetOptionsBatchProcessCalls()[0].OptionIDs, ShouldResemble, []string{"33"})
 		})
 	})
 }
@@ -78,7 +77,7 @@ func TestFailedToAddFilterBlueprintDimensionOption(t *testing.T) {
 
 		Convey("And no dimension or option is validated against DatasetAPI", func() {
 			So(datasetAPIMock.GetVersionDimensionsCalls(), ShouldHaveLength, 0)
-			So(datasetAPIMock.GetOptionsCalls(), ShouldHaveLength, 0)
+			So(datasetAPIMock.GetOptionsBatchProcessCalls(), ShouldHaveLength, 0)
 		})
 	})
 
@@ -98,7 +97,7 @@ func TestFailedToAddFilterBlueprintDimensionOption(t *testing.T) {
 
 		Convey("And no dimension or option is validated against DatasetAPI", func() {
 			So(datasetAPIMock.GetVersionDimensionsCalls(), ShouldHaveLength, 0)
-			So(datasetAPIMock.GetOptionsCalls(), ShouldHaveLength, 0)
+			So(datasetAPIMock.GetOptionsBatchProcessCalls(), ShouldHaveLength, 0)
 		})
 	})
 
@@ -118,7 +117,7 @@ func TestFailedToAddFilterBlueprintDimensionOption(t *testing.T) {
 
 		Convey("And no dimension or option is validated against DatasetAPI", func() {
 			So(datasetAPIMock.GetVersionDimensionsCalls(), ShouldHaveLength, 0)
-			So(datasetAPIMock.GetOptionsCalls(), ShouldHaveLength, 0)
+			So(datasetAPIMock.GetOptionsBatchProcessCalls(), ShouldHaveLength, 0)
 		})
 	})
 
@@ -138,8 +137,8 @@ func TestFailedToAddFilterBlueprintDimensionOption(t *testing.T) {
 
 		Convey("And the dimension and options are efficiently validated with dataset API", func() {
 			So(datasetAPIMock.GetVersionDimensionsCalls(), ShouldHaveLength, 1)
-			So(datasetAPIMock.GetOptionsCalls(), ShouldHaveLength, 1)
-			So(datasetAPIMock.GetOptionsCalls()[0].Q, ShouldResemble, dataset.QueryParams{IDs: []string{"66"}})
+			So(datasetAPIMock.GetOptionsBatchProcessCalls(), ShouldHaveLength, 1)
+			So(*datasetAPIMock.GetOptionsBatchProcessCalls()[0].OptionIDs, ShouldResemble, []string{"66"})
 		})
 	})
 
@@ -160,7 +159,7 @@ func TestFailedToAddFilterBlueprintDimensionOption(t *testing.T) {
 
 		Convey("And no dimension or option is validated against DatasetAPI", func() {
 			So(datasetAPIMock.GetVersionDimensionsCalls(), ShouldHaveLength, 0)
-			So(datasetAPIMock.GetOptionsCalls(), ShouldHaveLength, 0)
+			So(datasetAPIMock.GetOptionsBatchProcessCalls(), ShouldHaveLength, 0)
 		})
 	})
 
@@ -180,7 +179,7 @@ func TestFailedToAddFilterBlueprintDimensionOption(t *testing.T) {
 
 		Convey("And no dimension or option is validated against DatasetAPI", func() {
 			So(datasetAPIMock.GetVersionDimensionsCalls(), ShouldHaveLength, 0)
-			So(datasetAPIMock.GetOptionsCalls(), ShouldHaveLength, 0)
+			So(datasetAPIMock.GetOptionsBatchProcessCalls(), ShouldHaveLength, 0)
 		})
 	})
 }
@@ -635,8 +634,8 @@ func TestSuccessfulPatchFilterBlueprintDimension(t *testing.T) {
 
 		Convey("And the dimension and options are efficiently validated with dataset API", func() {
 			So(datasetAPIMock.GetVersionDimensionsCalls(), ShouldHaveLength, 1)
-			So(datasetAPIMock.GetOptionsCalls(), ShouldHaveLength, 1)
-			So(datasetAPIMock.GetOptionsCalls()[0].Q, ShouldResemble, dataset.QueryParams{IDs: []string{"27", "33"}})
+			So(datasetAPIMock.GetOptionsBatchProcessCalls(), ShouldHaveLength, 1)
+			So(*datasetAPIMock.GetOptionsBatchProcessCalls()[0].OptionIDs, ShouldResemble, []string{"27", "33"})
 		})
 
 		Convey("And only the valid inexistent option being added to the database", func() {
@@ -669,7 +668,7 @@ func TestSuccessfulPatchFilterBlueprintDimension(t *testing.T) {
 
 		Convey("And no dimension or option is validated against DatasetAPI", func() {
 			So(datasetAPIMock.GetVersionDimensionsCalls(), ShouldHaveLength, 0)
-			So(datasetAPIMock.GetOptionsCalls(), ShouldHaveLength, 0)
+			So(datasetAPIMock.GetOptionsBatchProcessCalls(), ShouldHaveLength, 0)
 		})
 
 		Convey("And the option being removed from the database", func() {
@@ -702,7 +701,7 @@ func TestSuccessfulPatchFilterBlueprintDimension(t *testing.T) {
 
 		Convey("And no dimension or option is validated against DatasetAPI", func() {
 			So(datasetAPIMock.GetVersionDimensionsCalls(), ShouldHaveLength, 0)
-			So(datasetAPIMock.GetOptionsCalls(), ShouldHaveLength, 0)
+			So(datasetAPIMock.GetOptionsBatchProcessCalls(), ShouldHaveLength, 0)
 		})
 
 		Convey("And only the existing options being updated to the database", func() {
@@ -735,7 +734,7 @@ func TestSuccessfulPatchFilterBlueprintDimension(t *testing.T) {
 
 		Convey("And no dimension or option is validated against DatasetAPI", func() {
 			So(datasetAPIMock.GetVersionDimensionsCalls(), ShouldHaveLength, 0)
-			So(datasetAPIMock.GetOptionsCalls(), ShouldHaveLength, 0)
+			So(datasetAPIMock.GetOptionsBatchProcessCalls(), ShouldHaveLength, 0)
 		})
 
 		Convey("And no calls to remove options from the database", func() {
@@ -765,7 +764,7 @@ func TestSuccessfulPatchFilterBlueprintDimension(t *testing.T) {
 
 		Convey("And no dimension or option is validated against DatasetAPI", func() {
 			So(datasetAPIMock.GetVersionDimensionsCalls(), ShouldHaveLength, 0)
-			So(datasetAPIMock.GetOptionsCalls(), ShouldHaveLength, 0)
+			So(datasetAPIMock.GetOptionsBatchProcessCalls(), ShouldHaveLength, 0)
 		})
 
 		Convey("And no calls the database", func() {
@@ -795,8 +794,8 @@ func TestSuccessfulPatchFilterBlueprintDimension(t *testing.T) {
 
 		Convey("And the dimension and options are efficiently validated with dataset API", func() {
 			So(datasetAPIMock.GetVersionDimensionsCalls(), ShouldHaveLength, 1)
-			So(datasetAPIMock.GetOptionsCalls(), ShouldHaveLength, 1)
-			So(datasetAPIMock.GetOptionsCalls()[0].Q, ShouldResemble, dataset.QueryParams{IDs: []string{"27"}})
+			So(datasetAPIMock.GetOptionsBatchProcessCalls(), ShouldHaveLength, 1)
+			So(*datasetAPIMock.GetOptionsBatchProcessCalls()[0].OptionIDs, ShouldResemble, []string{"27"})
 		})
 
 		Convey("And the expected calls for both operations are performed against the database", func() {
@@ -833,8 +832,8 @@ func TestSuccessfulPatchFilterBlueprintDimension(t *testing.T) {
 
 		Convey("And the dimension and options are efficiently validated with dataset API", func() {
 			So(datasetAPIMock.GetVersionDimensionsCalls(), ShouldHaveLength, 1)
-			So(datasetAPIMock.GetOptionsCalls(), ShouldHaveLength, 1)
-			So(datasetAPIMock.GetOptionsCalls()[0].Q, ShouldResemble, dataset.QueryParams{IDs: []string{"27"}})
+			So(datasetAPIMock.GetOptionsBatchProcessCalls(), ShouldHaveLength, 1)
+			So(*datasetAPIMock.GetOptionsBatchProcessCalls()[0].OptionIDs, ShouldResemble, []string{"27"})
 		})
 
 		Convey("And the expected calls for both operations are performed against the database", func() {
