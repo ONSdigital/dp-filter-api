@@ -63,7 +63,7 @@ func (s *FilterStore) AddFilter(filter *models.Filter) (*models.Filter, error) {
 	}
 
 	// set eTag value to current hash of the filter
-	filter.ETag, err = filter.Hash()
+	filter.ETag, err = filter.Hash(nil)
 	if err != nil {
 		return nil, err
 	}
@@ -90,7 +90,8 @@ func (s *FilterStore) GetFilter(filterID, eTagSelector string) (*models.Filter, 
 // Optional timestamp and eTag can be provided to assure that a filter has not been modified since expected.
 func (s *FilterStore) getFilterWithSession(session *mgo.Session, filterID string, timestamp bson.MongoTimestamp, eTagSelector string) (*models.Filter, error) {
 
-	query := selector(filterID, "", timestamp, eTagSelector)
+	// ignore eTag for query, so that we can return the correct error if it does not match
+	query := selector(filterID, "", timestamp, "")
 
 	var result models.Filter
 	if err := session.DB(s.db).C(s.filtersCollection).Find(query).One(&result); err != nil {
@@ -98,6 +99,11 @@ func (s *FilterStore) getFilterWithSession(session *mgo.Session, filterID string
 			return nil, filters.ErrFilterBlueprintNotFound
 		}
 		return nil, err
+	}
+
+	// If eTag was provided and did not match, return the corresponding error
+	if eTagSelector != "" && eTagSelector != result.ETag {
+		return nil, filters.ErrFilterBlueprintConflict
 	}
 
 	validateFilter(&result)
@@ -110,7 +116,7 @@ func (s *FilterStore) UpdateFilter(updatedFilter *models.Filter, timestamp bson.
 	defer session.Close()
 
 	// calculate the new eTag hash for the filter that would result from applying the update
-	newETag, err = s.getNewETagForUpdate(session, timestamp, eTagSelector, currentFilter, updatedFilter)
+	newETag, err = newETagForUpdate(currentFilter, updatedFilter)
 	if err != nil {
 		return "", err
 	}
@@ -188,7 +194,7 @@ func (s *FilterStore) AddFilterDimension(filterID, name string, options []string
 	selector := selector(filterID, "", timestamp, eTagSelector)
 
 	// calculate the new eTag hash for the filter that would result from removing the dimension
-	newETag, err = s.getNewETagForAddDimensions(session, timestamp, eTagSelector, currentFilter, filterID, list)
+	newETag, err = newETagForAddDimensions(currentFilter, filterID, list)
 	if err != nil {
 		return "", err
 	}
@@ -221,7 +227,7 @@ func (s *FilterStore) RemoveFilterDimension(filterID, name string, timestamp bso
 	selector := selector(filterID, "", timestamp, eTagSelector)
 
 	// calculate the new eTag hash for the filter that would result from removing the dimension
-	newETag, err = s.getNewETagForRemoveDimension(session, timestamp, eTagSelector, currentFilter, filterID, name)
+	newETag, err = newETagForRemoveDimension(currentFilter, filterID, name)
 	if err != nil {
 		return "", err
 	}
@@ -265,7 +271,7 @@ func (s *FilterStore) AddFilterDimensionOptions(filterID, name string, options [
 	selector := selector(filterID, name, timestamp, eTagSelector)
 
 	// calculate the new eTag hash for the filter that would result from removing the dimension
-	newETag, err = s.getNewETagForAddDimensionOptions(session, timestamp, eTagSelector, currentFilter, filterID, name, options)
+	newETag, err = newETagForAddDimensionOptions(currentFilter, filterID, name, options)
 	if err != nil {
 		return "", err
 	}
@@ -299,7 +305,7 @@ func (s *FilterStore) RemoveFilterDimensionOption(filterID string, name string, 
 	selector := selector(filterID, name, timestamp, eTagSelector)
 
 	// calculate the new eTag hash for the filter that would result from removing the dimension
-	newETag, err = s.getNewETagForRemoveDimensionOptions(session, timestamp, eTagSelector, currentFilter, filterID, name, []string{option})
+	newETag, err = newETagForRemoveDimensionOptions(currentFilter, filterID, name, []string{option})
 	if err != nil {
 		return "", err
 	}
@@ -339,7 +345,7 @@ func (s *FilterStore) RemoveFilterDimensionOptions(filterID string, name string,
 	selector := selector(filterID, name, timestamp, eTagSelector)
 
 	// calculate the new eTag hash for the filter that would result from removing the dimension
-	newETag, err = s.getNewETagForRemoveDimensionOptions(session, timestamp, eTagSelector, currentFilter, filterID, name, options)
+	newETag, err = newETagForRemoveDimensionOptions(currentFilter, filterID, name, options)
 	if err != nil {
 		return "", err
 	}

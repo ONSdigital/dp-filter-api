@@ -368,33 +368,41 @@ func TestFilterHash(t *testing.T) {
 		filter := testFilter()
 
 		Convey("We can generate a valid hash", func() {
-			h, err := filter.Hash()
+			h, err := filter.Hash(nil)
 			So(err, ShouldBeNil)
 			So(len(h), ShouldEqual, 40)
 
 			Convey("Then hashing it twice, produces the same result", func() {
-				hash, err := filter.Hash()
+				hash, err := filter.Hash(nil)
 				So(err, ShouldBeNil)
 				So(hash, ShouldEqual, h)
 			})
 
+			Convey("Then storing the hash as its ETag value and hashing it again, produces the same result (field is ignored) and ETag field is preserved", func() {
+				filter.ETag = h
+				hash, err := filter.Hash(nil)
+				So(err, ShouldBeNil)
+				So(hash, ShouldEqual, h)
+				So(filter.ETag, ShouldEqual, h)
+			})
+
 			Convey("Then another filter with exactly the same data will resolve to the same hash", func() {
 				filter2 := testFilter()
-				hash, err := filter2.Hash()
+				hash, err := filter2.Hash(nil)
 				So(err, ShouldBeNil)
 				So(hash, ShouldEqual, h)
 			})
 
 			Convey("Then if a filter value is modified, its hash changes", func() {
 				filter.State = CompletedState
-				hash, err := filter.Hash()
+				hash, err := filter.Hash(nil)
 				So(err, ShouldBeNil)
 				So(hash, ShouldNotEqual, h)
 			})
 
 			Convey("Then if a dimension is added to the filter, its hash changes", func() {
 				filter.Dimensions = append(filter.Dimensions, Dimension{Name: "dim3"})
-				hash, err := filter.Hash()
+				hash, err := filter.Hash(nil)
 				So(err, ShouldBeNil)
 				So(hash, ShouldNotEqual, h)
 			})
@@ -407,21 +415,21 @@ func TestFilterHash(t *testing.T) {
 						Options: []string{"op11", "op12", "op13"},
 					},
 				}
-				hash, err := filter.Hash()
+				hash, err := filter.Hash(nil)
 				So(err, ShouldBeNil)
 				So(hash, ShouldNotEqual, h)
 			})
 
 			Convey("Then if a dimension option is added to a filter dimension, its hash changes", func() {
 				filter.Dimensions[0].Options = append(filter.Dimensions[0].Options, "op14")
-				hash, err := filter.Hash()
+				hash, err := filter.Hash(nil)
 				So(err, ShouldBeNil)
 				So(hash, ShouldNotEqual, h)
 			})
 
 			Convey("Then if a dimension option is removed from a filter dimension, its hash changes", func() {
 				filter.Dimensions[0].Options = []string{"op11", "op13"}
-				hash, err := filter.Hash()
+				hash, err := filter.Hash(nil)
 				So(err, ShouldBeNil)
 				So(hash, ShouldNotEqual, h)
 			})
