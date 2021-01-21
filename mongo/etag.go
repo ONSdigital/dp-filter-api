@@ -7,6 +7,9 @@ import (
 	"github.com/globalsign/mgo/bson"
 )
 
+// AnyETag represents the wildchar that corresponds to not check the ETag value for update requests
+const AnyETag = "*"
+
 func newETagForUpdate(currentFilter *models.Filter, update *models.Filter) (eTag string, err error) {
 	b, err := bson.Marshal(update)
 	if err != nil {

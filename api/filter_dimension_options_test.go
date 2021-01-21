@@ -9,6 +9,7 @@ import (
 
 	"github.com/ONSdigital/dp-filter-api/mocks"
 	"github.com/ONSdigital/dp-filter-api/models"
+	"github.com/ONSdigital/dp-filter-api/mongo"
 	"github.com/gorilla/mux"
 	. "github.com/smartystreets/goconvey/convey"
 
@@ -39,8 +40,8 @@ func TestSuccessfulAddFilterBlueprintDimensionOption(t *testing.T) {
 
 		Convey("The filter was requested to the data ase before and after being returned by the handler", func() {
 			So(datastoreMock.GetFilterCalls(), ShouldHaveLength, 2)
-			So(datastoreMock.GetFilterCalls()[0].ETagSelector, ShouldEqual, testETag)
-			So(datastoreMock.GetFilterCalls()[1].ETagSelector, ShouldEqual, testETag1)
+			So(datastoreMock.GetFilterCalls()[0].ETagSelector, ShouldEqual, mongo.AnyETag)
+			So(datastoreMock.GetFilterCalls()[1].ETagSelector, ShouldEqual, mongo.AnyETag)
 		})
 
 		Convey("And the dimension and options are efficiently validated with dataset API", func() {
@@ -68,10 +69,10 @@ func TestSuccessfulAddFilterBlueprintDimensionOption(t *testing.T) {
 			So(w.HeaderMap.Get("ETag"), ShouldEqual, testETag1)
 		})
 
-		Convey("The filter was requested to the data ase before and after being returned by the handler", func() {
+		Convey("The filter was requested to the database before and after being returned by the handler", func() {
 			So(datastoreMock.GetFilterCalls(), ShouldHaveLength, 2)
-			So(datastoreMock.GetFilterCalls()[0].ETagSelector, ShouldEqual, testETag)
-			So(datastoreMock.GetFilterCalls()[1].ETagSelector, ShouldEqual, testETag1)
+			So(datastoreMock.GetFilterCalls()[0].ETagSelector, ShouldEqual, mongo.AnyETag)
+			So(datastoreMock.GetFilterCalls()[1].ETagSelector, ShouldEqual, mongo.AnyETag)
 		})
 
 		Convey("And the dimension and options are efficiently validated with dataset API", func() {

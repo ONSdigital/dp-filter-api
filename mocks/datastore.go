@@ -32,8 +32,7 @@ func (ds *DataStore) newETag() string {
 
 // aux function to validate that the eTagSelector, if provided, is correct
 func (ds *DataStore) validateETag(eTagSelector string) error {
-	// expectedETag := fmt.Sprintf("%s%d", TestETag, ds.eTagUpdateCount)
-	if eTagSelector != "" && eTagSelector != ds.currentETag() {
+	if eTagSelector != "*" && eTagSelector != ds.currentETag() {
 		return filters.ErrFilterBlueprintConflict
 	}
 	return nil

@@ -654,17 +654,6 @@ func TestFailedToRemoveFilterBlueprintDimension(t *testing.T) {
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 	})
 
-	Convey("When dimension does not exist against filter blueprint, the response is 404 Status Not Found", t, func() {
-		r, err := http.NewRequest("DELETE", "http://localhost:22100/filters/12345678/dimensions/1_age", nil)
-		r.Header.Set("If-Match", testETag)
-		So(err, ShouldBeNil)
-
-		w := httptest.NewRecorder()
-		api := Setup(cfg(), mux.NewRouter(), mocks.NewDataStore().DimensionNotFound(), &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
-		api.router.ServeHTTP(w, r)
-		So(w.Code, ShouldEqual, http.StatusNotFound)
-	})
-
 	Convey("Trying to remove an existing dimension without providing a valid If-Match header results in 400 Bad Request", t, func() {
 		r, err := http.NewRequest("DELETE", "http://localhost:22100/filters/12345678/dimensions/1_age", nil)
 		So(err, ShouldBeNil)

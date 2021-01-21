@@ -12,6 +12,7 @@ import (
 	datasetAPI "github.com/ONSdigital/dp-api-clients-go/dataset"
 	"github.com/ONSdigital/dp-filter-api/filters"
 	"github.com/ONSdigital/dp-filter-api/models"
+	"github.com/ONSdigital/dp-filter-api/mongo"
 	dphttp "github.com/ONSdigital/dp-net/http"
 	dprequest "github.com/ONSdigital/dp-net/request"
 	"github.com/ONSdigital/log.go/log"
@@ -179,7 +180,7 @@ func (api *FilterAPI) getFilterBlueprintHandler(w http.ResponseWriter, r *http.R
 	ctx := r.Context()
 	log.Event(ctx, "getting filter blueprint", log.INFO, logData)
 
-	filterBlueprint, err := api.getFilterBlueprint(ctx, filterID, "")
+	filterBlueprint, err := api.getFilterBlueprint(ctx, filterID, mongo.AnyETag)
 	if err != nil {
 		log.Event(ctx, "unable to get filter blueprint", log.ERROR, log.Error(err), logData)
 		setErrorCode(w, err)
@@ -345,10 +346,14 @@ func (api *FilterAPI) getFilterBlueprint(ctx context.Context, filterID, eTag str
 
 	logData := log.Data{"filter_blueprint_id": filterID}
 
-	currentFilter, err := api.dataStore.GetFilter(filterID, eTag)
+	currentFilter, err := api.dataStore.GetFilter(filterID, mongo.AnyETag)
 	if err != nil {
 		log.Event(ctx, "error getting filter", log.ERROR, log.Error(err), logData)
 		return nil, err
+	}
+
+	if eTag != mongo.AnyETag && currentFilter.ETag != eTag {
+		return nil, filters.ErrFilterBlueprintConflict
 	}
 
 	//only return the filter if it is for published data or via authenticated request

@@ -79,8 +79,8 @@ func TestSelector(t *testing.T) {
 		var testETag string = "testETag"
 		var testMongoTimestamp bson.MongoTimestamp = 1234567890
 
-		Convey("Then, providing empty or zero values for dimension, timestamp and eTag generates a selector that only queries by filter_id", func() {
-			s := selector(testFilterID, "", 0, "")
+		Convey("Then, providing an empty string dimension, zero timestamp and any eTag generates a selector that only queries by filter_id", func() {
+			s := selector(testFilterID, "", 0, AnyETag)
 			So(s, ShouldResemble, bson.M{"filter_id": testFilterID})
 		})
 

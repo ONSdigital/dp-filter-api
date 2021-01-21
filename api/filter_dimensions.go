@@ -10,6 +10,7 @@ import (
 	datasetAPI "github.com/ONSdigital/dp-api-clients-go/dataset"
 	"github.com/ONSdigital/dp-filter-api/filters"
 	"github.com/ONSdigital/dp-filter-api/models"
+	"github.com/ONSdigital/dp-filter-api/mongo"
 	"github.com/ONSdigital/dp-filter-api/utils"
 	dphttp "github.com/ONSdigital/dp-net/http"
 	"github.com/ONSdigital/log.go/log"
@@ -39,7 +40,7 @@ func (api *FilterAPI) getFilterBlueprintDimensionsHandler(w http.ResponseWriter,
 		return
 	}
 
-	filter, err := api.getFilterBlueprint(ctx, filterBlueprintID, "")
+	filter, err := api.getFilterBlueprint(ctx, filterBlueprintID, mongo.AnyETag)
 	if err != nil {
 		log.Event(ctx, "unable to get dimensions for filter blueprint", log.ERROR, log.Error(err), logData)
 		setErrorCode(w, err)
@@ -112,7 +113,7 @@ func (api *FilterAPI) getFilterBlueprintDimensionHandler(w http.ResponseWriter, 
 	ctx := r.Context()
 	log.Event(ctx, "getting filter blueprint dimension", log.INFO, logData)
 
-	filter, err := api.getFilterBlueprint(ctx, filterBlueprintID, "")
+	filter, err := api.getFilterBlueprint(ctx, filterBlueprintID, mongo.AnyETag)
 	if err != nil {
 		log.Event(ctx, "error getting filter blueprint", log.ERROR, log.Error(err), logData)
 		if err == filters.ErrFilterBlueprintNotFound {
@@ -189,7 +190,7 @@ func (api *FilterAPI) removeFilterBlueprintDimensionHandler(w http.ResponseWrite
 
 func (api *FilterAPI) removeFilterBlueprintDimension(ctx context.Context, filterBlueprintID, dimensionName, eTag string) (newETag string, err error) {
 
-	filter, err := api.getFilterBlueprint(ctx, filterBlueprintID, eTag)
+	filter, err := api.getFilterBlueprint(ctx, filterBlueprintID, mongo.AnyETag)
 	if err != nil {
 		return "", err
 	}

@@ -91,7 +91,7 @@ func (s *FilterStore) GetFilter(filterID, eTagSelector string) (*models.Filter, 
 func (s *FilterStore) getFilterWithSession(session *mgo.Session, filterID string, timestamp bson.MongoTimestamp, eTagSelector string) (*models.Filter, error) {
 
 	// ignore eTag for query, so that we can return the correct error if it does not match
-	query := selector(filterID, "", timestamp, "")
+	query := selector(filterID, "", timestamp, AnyETag)
 
 	var result models.Filter
 	if err := session.DB(s.db).C(s.filtersCollection).Find(query).One(&result); err != nil {
@@ -102,7 +102,7 @@ func (s *FilterStore) getFilterWithSession(session *mgo.Session, filterID string
 	}
 
 	// If eTag was provided and did not match, return the corresponding error
-	if eTagSelector != "" && eTagSelector != result.ETag {
+	if eTagSelector != AnyETag && eTagSelector != result.ETag {
 		return nil, filters.ErrFilterBlueprintConflict
 	}
 
@@ -383,7 +383,7 @@ func selector(filterID, dimensionName string, timestamp bson.MongoTimestamp, eTa
 	if timestamp > 0 {
 		selector["unique_timestamp"] = timestamp
 	}
-	if eTagSelector != "" {
+	if eTagSelector != AnyETag {
 		selector["e_tag"] = eTagSelector
 	}
 	return selector
