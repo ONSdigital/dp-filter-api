@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net/url"
 	"time"
 
 	"github.com/ONSdigital/dp-api-clients-go/dataset"
@@ -73,6 +74,15 @@ type Dimension struct {
 	URL     string   `bson:"dimension_url,omitempty" json:"dimension_url,omitempty"`
 	Name    string   `bson:"name"                    json:"name"`
 	Options []string `bson:"options"                 json:"options"`
+}
+
+// EncodedOptions returns the list of options for this dimension after escaping the values for URL query paramters
+func (d *Dimension) EncodedOptions() []string {
+	encodedIDs := make([]string, len(d.Options))
+	for i, op := range d.Options {
+		encodedIDs[i] = url.QueryEscape(op)
+	}
+	return encodedIDs
 }
 
 // PublicDimension represents information about a single dimension as served by /dimensions and /dimensions/<id>

@@ -479,6 +479,10 @@ func (api *FilterAPI) getDimensionOptionsBatchProcess(ctx context.Context, dimen
 		return nil
 	}
 
+	// get encoded IDs so that they can be used as query paramters
+	encodedIDs := dimension.EncodedOptions()
+
+	// validate the options with Dataset API, in batches
 	err := api.datasetAPI.GetOptionsBatchProcess(ctx,
 		getUserAuthToken(ctx),
 		api.serviceAuthToken,
@@ -487,7 +491,7 @@ func (api *FilterAPI) getDimensionOptionsBatchProcess(ctx context.Context, dimen
 		dataset.Edition,
 		strconv.Itoa(dataset.Version),
 		dimension.Name,
-		&dimension.Options,
+		&encodedIDs,
 		processBatch,
 		api.maxDatasetOptions,
 		api.BatchMaxWorkers)
