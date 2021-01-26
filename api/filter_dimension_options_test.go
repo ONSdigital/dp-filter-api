@@ -56,59 +56,6 @@ func TestSuccessfulAddFilterBlueprintDimensionOption(t *testing.T) {
 			So(*datasetAPIMock.GetOptionsBatchProcessCalls()[0].OptionIDs, ShouldResemble, []string{"33"})
 		})
 	})
-
-	// Convey("Given that a dimension option with special characters is successfully added to a filter", t, func() {
-	// 	r, err := http.NewRequest("POST", "http://localhost:22100/filters/12345678/dimensions/age/options/90+", nil)
-	// 	So(err, ShouldBeNil)
-
-	// 	w := httptest.NewRecorder()
-
-	// 	datasetAPIMock := mocks.NewDatasetAPI().Mock
-	// 	datasetAPIMock.GetOptionsBatchProcessFunc = func(ctx context.Context, userAuthToken, serviceAuthToken, collectionID, id, edition, version, dimension string, optionIDs *[]string, processBatch dataset.OptionsBatchProcessor, batchSize int, maxWorkers int) (err error) {
-	// 		opts := dataset.Options{
-	// 			Items: []dataset.Option{
-	// 				{
-	// 					Option: "90%2B",
-	// 					Label:  "90 or more",
-	// 				},
-	// 			},
-	// 			Count:      1,
-	// 			Offset:     0,
-	// 			Limit:      0,
-	// 			TotalCount: 1,
-	// 		}
-	// 		_, err = processBatch(opts)
-	// 		return err
-	// 	}
-
-	// 	dataStoreMock := mocks.NewDataStore().Mock
-	// 	dataStoreMock.GetFilterFunc = func(filerID string) (*models.Filter, error) {
-	// 		return &models.Filter{
-	// 			Dimensions: []models.Dimension{
-	// 				{
-	// 					Name:    "age",
-	// 					Options: []string{"90+"},
-	// 				},
-	// 			},
-	// 			Dataset: &models.Dataset{
-	// 				Version: 1,
-	// 			},
-	// 		}, nil
-	// 	}
-
-	// 	api := Setup(cfg(), mux.NewRouter(), dataStoreMock, &mocks.FilterJob{}, datasetAPIMock, previewMock)
-	// 	api.router.ServeHTTP(w, r)
-
-	// 	Convey("Then a 201 Created status code is returned", func() {
-	// 		So(w.Code, ShouldEqual, http.StatusCreated)
-	// 	})
-
-	// 	Convey("And the dimension and options are efficiently validated with dataset API, with the IDs correctly escaped", func() {
-	// 		So(datasetAPIMock.GetVersionDimensionsCalls(), ShouldHaveLength, 1)
-	// 		So(datasetAPIMock.GetOptionsBatchProcessCalls(), ShouldHaveLength, 1)
-	// 		So(*datasetAPIMock.GetOptionsBatchProcessCalls()[0].OptionIDs, ShouldResemble, []string{`90%2B`})
-	// 	})
-	// })
 }
 
 func TestFailedToAddFilterBlueprintDimensionOption(t *testing.T) {
