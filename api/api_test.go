@@ -45,7 +45,7 @@ func cfg() *config.Config {
 		EnablePrivateEndpoints:   enablePrivateEndpoints,
 		MaxDatasetOptions:        200,
 		MongoConfig: config.MongoConfig{
-			Limit:  0,
+			Limit:  20,
 			Offset: 0,
 		},
 	}

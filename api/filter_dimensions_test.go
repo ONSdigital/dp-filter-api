@@ -54,7 +54,7 @@ func TestSuccessfulGetFilterBlueprintDimensions(t *testing.T) {
 
 			Count:      3,
 			Offset:     0,
-			Limit:      0,
+			Limit:      20,
 			TotalCount: 3,
 		}
 
@@ -91,8 +91,8 @@ func TestSuccessfulGetFilterBlueprintDimensions(t *testing.T) {
 			validateBody(w.Body.Bytes(), expectedBodyFull)
 		})
 
-		Convey("Geting a list of dimensions with 0 offset and 0 limit results in a 200 response and expected body", func() {
-			r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678/dimensions?offset=0&limit=0", nil)
+		Convey("Geting a list of dimensions with 0 offset results in a 200 response and expected body", func() {
+			r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678/dimensions?offset=0", nil)
 			So(err, ShouldBeNil)
 
 			w := httptest.NewRecorder()
@@ -143,6 +143,27 @@ func TestSuccessfulGetFilterBlueprintDimensions(t *testing.T) {
 
 			validateBody(w.Body.Bytes(), expected)
 		})
+
+		Convey("Geting a list of dimensions with a zero limit results in a 200 response and an empty list of dimensions, with the correct totalCount", func() {
+			r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678/dimensions?limit=0", nil)
+			So(err, ShouldBeNil)
+
+			expected := models.PublicDimensions{
+				Items:      []*models.PublicDimension{},
+				Count:      0,
+				Offset:     0,
+				Limit:      0,
+				TotalCount: 3,
+			}
+
+			w := httptest.NewRecorder()
+			api := Setup(cfg(), mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
+			api.router.ServeHTTP(w, r)
+			So(w.Code, ShouldEqual, http.StatusOK)
+			So(w.HeaderMap.Get("ETag"), ShouldResemble, testETag)
+
+			validateBody(w.Body.Bytes(), expected)
+		})
 	})
 }
 
@@ -163,6 +184,20 @@ func TestFailedToGetFilterBlueprintDimensions(t *testing.T) {
 		So(response, ShouldResemble, internalErrResponse)
 	})
 
+	Convey("When negative values are provided for limit and offset query parameters, a bad request error is returned", t, func() {
+		r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678/dimensions?offset=-8&limit=-3", nil)
+		So(err, ShouldBeNil)
+
+		w := httptest.NewRecorder()
+		api := Setup(cfg(), mux.NewRouter(), mocks.NewDataStore().InternalError(), &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusBadRequest)
+		So(w.HeaderMap.Get("ETag"), ShouldResemble, "")
+
+		response := w.Body.String()
+		So(response, ShouldResemble, invalidQueryParameterResponse)
+	})
+
 	Convey("When filter blueprint does not exist, a not found is returned", t, func() {
 		r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678/dimensions", nil)
 		So(err, ShouldBeNil)
@@ -175,7 +210,6 @@ func TestFailedToGetFilterBlueprintDimensions(t *testing.T) {
 
 		response := w.Body.String()
 		So(response, ShouldResemble, filterNotFoundResponse)
-
 	})
 }
 

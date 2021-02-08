@@ -3,9 +3,7 @@ package api
 import (
 	"encoding/json"
 	"net/http"
-	"net/url"
 	"sort"
-	"strconv"
 
 	"github.com/ONSdigital/dp-filter-api/models"
 	"github.com/ONSdigital/dp-filter-api/mongo"
@@ -28,24 +26,34 @@ func (api *FilterAPI) getFilterBlueprintDimensionOptionsHandler(w http.ResponseW
 		"filter_blueprint_id": filterBlueprintID,
 		"dimension":           dimensionName,
 	}
+	offsetParameter := r.URL.Query().Get("offset")
+	limitParameter := r.URL.Query().Get("limit")
 
 	ctx := r.Context()
 	log.Event(ctx, "get filter blueprint dimension options", log.INFO, logData)
 
-	// get limit from query parameters, or default value
-	limit, err := getPositiveIntQueryParameter(r.URL.Query(), "limit", api.defaultLimit)
-	if err != nil {
-		log.Event(ctx, "failed to obtain limit from request query parameters", log.ERROR, logData)
-		setErrorCode(w, err)
-		return
+	offset := api.defaultOffset
+	limit := api.defaultLimit
+	var err error
+
+	if offsetParameter != "" {
+		logData["offset"] = offsetParameter
+		offset, err = validatePositiveInt(offsetParameter)
+		if err != nil {
+			log.Event(ctx, "failed to obtain offset from request query parameters", log.ERROR, logData)
+			setErrorCode(w, err)
+			return
+		}
 	}
 
-	// get offset from query parameters, or default value
-	offset, err := getPositiveIntQueryParameter(r.URL.Query(), "offset", api.defaultOffset)
-	if err != nil {
-		log.Event(ctx, "failed to obtain offset from request query parameters", log.ERROR, logData)
-		setErrorCode(w, err)
-		return
+	if limitParameter != "" {
+		logData["limit"] = limitParameter
+		limit, err = validatePositiveInt(limitParameter)
+		if err != nil {
+			log.Event(ctx, "failed to obtain limit from request query parameters", log.ERROR, logData)
+			setErrorCode(w, err)
+			return
+		}
 	}
 
 	filter, err := api.getFilterBlueprint(ctx, filterBlueprintID, mongo.AnyETag)
@@ -84,14 +92,14 @@ func (api *FilterAPI) getFilterBlueprintDimensionOptionsHandler(w http.ResponseW
 }
 
 // utility function to cut a slice according to the provided offset and limit.
-// limit=0 means no limit, and values higher than the slice length are ignored
+// Values higher than the slice length are ignored
 func slice(full []string, offset, limit int) (sliced []string) {
 	end := offset + limit
-	if limit == 0 || end > len(full) {
+	if end > len(full) {
 		end = len(full)
 	}
 
-	if offset > len(full) {
+	if offset > len(full) || limit == 0 {
 		return []string{}
 	}
 	return full[offset:end]
@@ -608,20 +616,4 @@ func WriteJSONBody(ctx context.Context, v interface{}, w http.ResponseWriter, da
 		return err
 	}
 	return nil
-}
-
-// getPositiveIntQueryParameter obtains the positive int value of query var defined by the provided varKey
-func getPositiveIntQueryParameter(queryVars url.Values, varKey string, defaultValue int) (val int, err error) {
-	strVal, found := queryVars[varKey]
-	if !found {
-		return defaultValue, nil
-	}
-	val, err = strconv.Atoi(strVal[0])
-	if err != nil {
-		return -1, filters.ErrInvalidQueryParameter
-	}
-	if val < 0 {
-		return 0, nil
-	}
-	return val, nil
 }

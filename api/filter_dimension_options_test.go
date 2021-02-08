@@ -412,7 +412,7 @@ func TestSuccessfulGetFilterBlueprintDimensionOptions(t *testing.T) {
 				},
 				Count:      2,
 				Offset:     0,
-				Limit:      0,
+				Limit:      20,
 				TotalCount: 2,
 			}
 		}
@@ -448,8 +448,8 @@ func TestSuccessfulGetFilterBlueprintDimensionOptions(t *testing.T) {
 			validateBody(w.Body.Bytes(), expectedBodyFull())
 		})
 
-		Convey("Successfully get a list of dimensionOptions for a filter blueprint providing zero values for offest and limit", func() {
-			r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678/dimensions/time/options?limit=0&offset=0", nil)
+		Convey("Successfully get a list of dimensionOptions for a filter blueprint providing a zero offest", func() {
+			r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678/dimensions/time/options?offset=0", nil)
 			So(err, ShouldBeNil)
 
 			w := httptest.NewRecorder()
@@ -461,7 +461,7 @@ func TestSuccessfulGetFilterBlueprintDimensionOptions(t *testing.T) {
 		})
 
 		Convey("Successfully get the expected subset of dimensionOptions for a filter blueprint providing a non-zero offest", func() {
-			r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678/dimensions/time/options?limit=0&offset=1", nil)
+			r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678/dimensions/time/options?offset=1", nil)
 			So(err, ShouldBeNil)
 
 			w := httptest.NewRecorder()
@@ -483,7 +483,7 @@ func TestSuccessfulGetFilterBlueprintDimensionOptions(t *testing.T) {
 				},
 				Count:      1,
 				Offset:     1,
-				Limit:      0,
+				Limit:      20,
 				TotalCount: 2,
 			}
 			validateBody(w.Body.Bytes(), expected)
@@ -534,7 +534,7 @@ func TestSuccessfulGetFilterBlueprintDimensionOptions(t *testing.T) {
 		})
 
 		Convey("Successfully get dimensionOptions with empty list of items for a filter blueprint providing an offset greater than the total count", func() {
-			r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678/dimensions/time/options?limit=0&offset=3", nil)
+			r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678/dimensions/time/options?offset=3", nil)
 			So(err, ShouldBeNil)
 
 			w := httptest.NewRecorder()
@@ -547,14 +547,14 @@ func TestSuccessfulGetFilterBlueprintDimensionOptions(t *testing.T) {
 				Items:      []*models.PublicDimensionOption{},
 				Count:      0,
 				Offset:     3,
-				Limit:      0,
+				Limit:      20,
 				TotalCount: 2,
 			}
 			validateBody(w.Body.Bytes(), expected)
 		})
 
-		Convey("Successfully get the full expected set of dimensionOptions for a filter blueprint providing negative values for limit and offset", func() {
-			r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678/dimensions/time/options?limit=-1&offset=-1", nil)
+		Convey("Successfully get dimensionOptions with empty list of items for a filter blueprint providing a zero limit value", func() {
+			r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678/dimensions/time/options?limit=0", nil)
 			So(err, ShouldBeNil)
 
 			w := httptest.NewRecorder()
@@ -563,7 +563,14 @@ func TestSuccessfulGetFilterBlueprintDimensionOptions(t *testing.T) {
 			So(w.Code, ShouldEqual, http.StatusOK)
 			So(w.HeaderMap.Get("ETag"), ShouldEqual, testETag)
 
-			validateBody(w.Body.Bytes(), expectedBodyFull())
+			expected := models.PublicDimensionOptions{
+				Items:      []*models.PublicDimensionOption{},
+				Count:      0,
+				Offset:     0,
+				Limit:      0,
+				TotalCount: 2,
+			}
+			validateBody(w.Body.Bytes(), expected)
 		})
 	})
 }
@@ -585,8 +592,22 @@ func TestFailedToGetFilterBlueprintDimensionOptions(t *testing.T) {
 		So(response, ShouldResemble, invalidQueryParameterResponse)
 	})
 
+	Convey("When negative values are provided for limit and offset query parameters, a bad request error is returned", t, func() {
+		r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678/dimensions/time/options?limit=-1&offset=-1", nil)
+		So(err, ShouldBeNil)
+
+		w := httptest.NewRecorder()
+		api := Setup(cfg(), mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusBadRequest)
+		So(w.HeaderMap.Get("ETag"), ShouldEqual, "")
+
+		response := w.Body.String()
+		So(response, ShouldResemble, invalidQueryParameterResponse)
+	})
+
 	Convey("When an invalid offset value is provided, a bad request error is returned", t, func() {
-		r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678/dimensions/time/options?limit=0&offset=wrong", nil)
+		r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678/dimensions/time/options?offset=wrong", nil)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()

@@ -27,6 +27,7 @@ type Config struct {
 	MaxDatasetOptions          int           `envconfig:"MAX_DATASET_OPTIONS"`
 	BatchMaxWorkers            int           `envconfig:"BATCH_MAX_WORKERS"`
 	KafkaVersion               string        `envconfig:"KAFKA_VERSION"`
+	DefaultMaxLimit            int           `envconfig:"DEFAULT_MAXIMUM_LIMIT"`
 	MongoConfig                MongoConfig
 }
 
@@ -60,15 +61,16 @@ func Get() (*Config, error) {
 		HealthCheckInterval:        30 * time.Second,
 		HealthCheckCriticalTimeout: 90 * time.Second,
 		MaxRequestOptions:          1000, // Maximum number of options acceptable in an incoming Patch request. Compromise between one option per call (inefficient) and an order of 100k options per call, for census data (memory and computationally expensive)
-		MaxDatasetOptions:          200,  // Maximum number of options requested to Dataset API in a single call.
-		BatchMaxWorkers:            25,   // maximum number of concurrent go-routines requesting items concurrently from APIs with pagination
+		MaxDatasetOptions:          200,  // Maximum number of options requested to Dataset API in a single call by a list of ids
+		BatchMaxWorkers:            25,   // Maximum number of concurrent go-routines requesting items concurrently from APIs with pagination
+		DefaultMaxLimit:            1000, // Maximum limit allowed for paginated calls
 		MongoConfig: MongoConfig{
 			BindAddr:          "localhost:27017",
 			Database:          "filters",
 			FiltersCollection: "filters",
 			OutputsCollection: "filterOutputs",
-			Limit:             100,
-			Offset:            0,
+			Limit:             20, // Default limit for mongoDB queries that do not provide an explicit limit
+			Offset:            0,  // Default offset for mongoDB queries that do not provide an explicit offset
 		},
 		ServiceAuthToken:         "FD0108EA-825D-411C-9B1D-41EF7727F465",
 		ZebedeeURL:               "http://localhost:8082",

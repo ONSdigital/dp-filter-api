@@ -2,9 +2,11 @@ package api
 
 import (
 	"context"
+	"strconv"
 
 	"github.com/ONSdigital/dp-api-clients-go/dataset"
 	"github.com/ONSdigital/dp-filter-api/config"
+	"github.com/ONSdigital/dp-filter-api/filters"
 	"github.com/ONSdigital/dp-filter-api/models"
 	"github.com/gorilla/mux"
 )
@@ -95,4 +97,16 @@ func Setup(
 	}
 
 	return api
+}
+
+// validatePositiveInt obtains the positive int value corresponding to the provided string
+func validatePositiveInt(parameter string) (val int, err error) {
+	val, err = strconv.Atoi(parameter)
+	if err != nil {
+		return -1, filters.ErrInvalidQueryParameter
+	}
+	if val < 0 {
+		return 0, filters.ErrInvalidQueryParameter
+	}
+	return val, nil
 }

@@ -22,22 +22,34 @@ func (api *FilterAPI) getFilterBlueprintDimensionsHandler(w http.ResponseWriter,
 	filterBlueprintID := vars["filter_blueprint_id"]
 	logData := log.Data{"filter_blueprint_id": filterBlueprintID}
 	ctx := r.Context()
+
+	offsetParameter := r.URL.Query().Get("offset")
+	limitParameter := r.URL.Query().Get("limit")
+
 	log.Event(ctx, "getting filter blueprint dimensions", log.INFO, logData)
 
-	// get limit from query parameters, or default value
-	limit, err := getPositiveIntQueryParameter(r.URL.Query(), "limit", api.defaultLimit)
-	if err != nil {
-		log.Event(ctx, "failed to obtain limit from request query parameters", log.ERROR, logData)
-		setErrorCode(w, err)
-		return
+	offset := api.defaultOffset
+	limit := api.defaultLimit
+	var err error
+
+	if offsetParameter != "" {
+		logData["offset"] = offsetParameter
+		offset, err = validatePositiveInt(offsetParameter)
+		if err != nil {
+			log.Event(ctx, "failed to obtain offset from request query parameters", log.ERROR, logData)
+			setErrorCode(w, err)
+			return
+		}
 	}
 
-	// get offset from query parameters, or default value
-	offset, err := getPositiveIntQueryParameter(r.URL.Query(), "offset", api.defaultOffset)
-	if err != nil {
-		log.Event(ctx, "failed to obtain offset from request query parameters", log.ERROR, logData)
-		setErrorCode(w, err)
-		return
+	if limitParameter != "" {
+		logData["limit"] = limitParameter
+		limit, err = validatePositiveInt(limitParameter)
+		if err != nil {
+			log.Event(ctx, "failed to obtain limit from request query parameters", log.ERROR, logData)
+			setErrorCode(w, err)
+			return
+		}
 	}
 
 	filter, err := api.getFilterBlueprint(ctx, filterBlueprintID, mongo.AnyETag)
@@ -390,7 +402,7 @@ func (api *FilterAPI) checkNewFilterDimensionOptions(ctx context.Context, dimens
 // createPublicDimensions wraps createPublicDimension for converting arrays of dimensions
 func createPublicDimensions(inputDimensions []models.Dimension, host, filterID string) []*models.PublicDimension {
 
-	var outputDimensions []*models.PublicDimension
+	var outputDimensions = []*models.PublicDimension{}
 	for _, inputDimension := range inputDimensions {
 
 		publicDimension := createPublicDimension(inputDimension, host, filterID)
