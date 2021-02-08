@@ -44,6 +44,7 @@ type FilterAPI struct {
 	downloadServiceToken string
 	serviceAuthToken     string
 	defaultLimit         int
+	maxLimit             int
 	defaultOffset        int
 	maxDatasetOptions    int
 	BatchMaxWorkers      int
@@ -70,6 +71,7 @@ func Setup(
 		downloadServiceToken: cfg.DownloadServiceSecretKey,
 		serviceAuthToken:     cfg.ServiceAuthToken,
 		defaultLimit:         cfg.MongoConfig.Limit,
+		maxLimit:             cfg.DefaultMaxLimit,
 		defaultOffset:        cfg.MongoConfig.Offset,
 		maxDatasetOptions:    cfg.MaxDatasetOptions,
 		BatchMaxWorkers:      cfg.BatchMaxWorkers,

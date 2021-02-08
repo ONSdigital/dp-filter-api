@@ -606,6 +606,20 @@ func TestFailedToGetFilterBlueprintDimensionOptions(t *testing.T) {
 		So(response, ShouldResemble, invalidQueryParameterResponse)
 	})
 
+	Convey("When a limit higher than the maximum allowed is provided, a bad request error is returned", t, func() {
+		r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678/dimensions/time/options?limit=1001", nil)
+		So(err, ShouldBeNil)
+
+		w := httptest.NewRecorder()
+		api := Setup(cfg(), mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusBadRequest)
+		So(w.HeaderMap.Get("ETag"), ShouldEqual, "")
+
+		response := w.Body.String()
+		So(response, ShouldResemble, invalidQueryParameterResponse)
+	})
+
 	Convey("When an invalid offset value is provided, a bad request error is returned", t, func() {
 		r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678/dimensions/time/options?offset=wrong", nil)
 		So(err, ShouldBeNil)

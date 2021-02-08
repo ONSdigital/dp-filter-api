@@ -44,6 +44,7 @@ func cfg() *config.Config {
 		ServiceAuthToken:         serviceAuthToken,
 		EnablePrivateEndpoints:   enablePrivateEndpoints,
 		MaxDatasetOptions:        200,
+		DefaultMaxLimit:          1000,
 		MongoConfig: config.MongoConfig{
 			Limit:  20,
 			Offset: 0,

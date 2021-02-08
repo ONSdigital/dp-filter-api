@@ -198,6 +198,20 @@ func TestFailedToGetFilterBlueprintDimensions(t *testing.T) {
 		So(response, ShouldResemble, invalidQueryParameterResponse)
 	})
 
+	Convey("When a limit higher than the maximum allowed is provided, a bad request error is returned", t, func() {
+		r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678/dimensions?limit=1001", nil)
+		So(err, ShouldBeNil)
+
+		w := httptest.NewRecorder()
+		api := Setup(cfg(), mux.NewRouter(), mocks.NewDataStore().InternalError(), &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusBadRequest)
+		So(w.HeaderMap.Get("ETag"), ShouldResemble, "")
+
+		response := w.Body.String()
+		So(response, ShouldResemble, invalidQueryParameterResponse)
+	})
+
 	Convey("When filter blueprint does not exist, a not found is returned", t, func() {
 		r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678/dimensions", nil)
 		So(err, ShouldBeNil)

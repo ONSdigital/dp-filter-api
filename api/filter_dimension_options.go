@@ -56,6 +56,13 @@ func (api *FilterAPI) getFilterBlueprintDimensionOptionsHandler(w http.ResponseW
 		}
 	}
 
+	if limit > api.maxLimit {
+		err = filters.ErrInvalidQueryParameter
+		log.Event(ctx, "limit is greater than the maximum allowed", log.ERROR, logData)
+		setErrorCode(w, err)
+		return
+	}
+
 	filter, err := api.getFilterBlueprint(ctx, filterBlueprintID, mongo.AnyETag)
 	if err != nil {
 		log.Event(ctx, "failed to get dimension options for filter blueprint", log.ERROR, log.Error(err), logData)
