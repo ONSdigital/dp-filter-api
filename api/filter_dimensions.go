@@ -53,6 +53,7 @@ func (api *FilterAPI) getFilterBlueprintDimensionsHandler(w http.ResponseWriter,
 	}
 
 	if limit > api.maxLimit {
+		logData["max_limit"] = api.maxLimit
 		err = filters.ErrInvalidQueryParameter
 		log.Event(ctx, "limit is greater than the maximum allowed", log.ERROR, logData)
 		setErrorCode(w, err)
@@ -409,7 +410,7 @@ func (api *FilterAPI) checkNewFilterDimensionOptions(ctx context.Context, dimens
 // createPublicDimensions wraps createPublicDimension for converting arrays of dimensions
 func createPublicDimensions(inputDimensions []models.Dimension, host, filterID string) []*models.PublicDimension {
 
-	var outputDimensions = []*models.PublicDimension{}
+	outputDimensions := make([]*models.PublicDimension, 0)
 	for _, inputDimension := range inputDimensions {
 
 		publicDimension := createPublicDimension(inputDimension, host, filterID)

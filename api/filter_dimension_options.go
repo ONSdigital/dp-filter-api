@@ -57,6 +57,7 @@ func (api *FilterAPI) getFilterBlueprintDimensionOptionsHandler(w http.ResponseW
 	}
 
 	if limit > api.maxLimit {
+		logData["max_limit"] = api.maxLimit
 		err = filters.ErrInvalidQueryParameter
 		log.Event(ctx, "limit is greater than the maximum allowed", log.ERROR, logData)
 		setErrorCode(w, err)
