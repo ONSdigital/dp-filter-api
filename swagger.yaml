@@ -540,6 +540,10 @@ definitions:
       properties:
         downloads:
           $ref: '#/definitions/Downloads'
+        state:
+          description: "This describes the status of the filter."
+          example: "completed"
+          type: string
     - $ref: '#/definitions/JobState'
   NewFilterRequest:
     description: "A model used to create new filters. Dimensions are optional"
