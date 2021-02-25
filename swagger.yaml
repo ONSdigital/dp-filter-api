@@ -747,6 +747,8 @@ definitions:
       time:
         type: string
         description: "The time of the event happened"
+        example: "2016-07-17T08:38:25.316+0000"
+        format: string
       type:
         type: string
         description: "The type of event which happened"
