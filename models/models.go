@@ -119,17 +119,17 @@ type PublicDimension struct {
 
 type PublicDimensions struct {
 	Items      []*PublicDimension `json:"items"`
-	Count      int                `json:"count"`
+	Count      int                `json:"count,omitempty"`
 	Offset     int                `json:"offset"`
 	Limit      int                `json:"limit"`
-	TotalCount int                `json:"total_count"`
+	TotalCount int                `json:"total_count,omitempty"`
 }
 
 // PublicDimensionLinkMap is the links map for the PublicDimension structure
 type PublicDimensionLinkMap struct {
 	Self    LinkObject `bson:"self"                 json:"self"`
 	Filter  LinkObject `bson:"filter"               json:"filter"`
-	Options LinkObject `bson:"options"              json:"options, omitempty"`
+	Options LinkObject `bson:"options"              json:"options,omitempty"`
 }
 
 // PublicDimensionOption represents information about a single dimension option as served by /options and /options/<id>
@@ -141,10 +141,10 @@ type PublicDimensionOption struct {
 // PublicDimensionOptions represents information about a set of dimension options
 type PublicDimensionOptions struct {
 	Items      []*PublicDimensionOption `json:"items"`
-	Count      int                      `json:"count"`
+	Count      int                      `json:"count,omitempty"`
 	Offset     int                      `json:"offset"`
 	Limit      int                      `json:"limit"`
-	TotalCount int                      `json:"total_count"`
+	TotalCount int                      `json:"total_count,omitempty"`
 }
 
 // PublicDimensionOptionLinkMap is the links map for the PublicDimensionOption structure
