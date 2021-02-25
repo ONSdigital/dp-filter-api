@@ -124,13 +124,13 @@ func (api *FilterAPI) createFilterBlueprint(ctx context.Context, filter *models.
 	}
 
 	links := models.LinkMap{
-		Dimensions: models.LinkObject{
+		Dimensions: &models.LinkObject{
 			HRef: fmt.Sprintf("%s/filters/%s/dimensions", api.host, newFilter.FilterID),
 		},
-		Self: models.LinkObject{
+		Self: &models.LinkObject{
 			HRef: fmt.Sprintf("%s/filters/%s", api.host, newFilter.FilterID),
 		},
-		Version: models.LinkObject{
+		Version: &models.LinkObject{
 			HRef: version.Links.Self.URL,
 			ID:   strconv.Itoa(version.Version),
 		},

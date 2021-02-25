@@ -312,7 +312,7 @@ func (ds *DataStore) GetFilterOutput(filterID string) (*models.Filter, error) {
 	}
 
 	if ds.Cfg.Unpublished {
-		return &models.Filter{InstanceID: "12345678", FilterID: filterID, State: "created", Dimensions: []models.Dimension{{Name: "time"}}, Links: models.LinkMap{FilterBlueprint: models.LinkObject{ID: filterID}}}, nil
+		return &models.Filter{InstanceID: "12345678", FilterID: filterID, State: "created", Dimensions: []models.Dimension{{Name: "time"}}, Links: models.LinkMap{FilterBlueprint: &models.LinkObject{ID: filterID}}}, nil
 	}
 
 	downloads := &models.Downloads{
