@@ -542,7 +542,9 @@ definitions:
           $ref: '#/definitions/Downloads'
         state:
           description: "This describes the status of the filter."
-          example: "completed"
+          enum:
+            - "completed"
+            - "created"
           type: string
     - $ref: '#/definitions/JobState'
   NewFilterRequest:
