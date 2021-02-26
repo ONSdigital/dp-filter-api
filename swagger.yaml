@@ -536,17 +536,36 @@ definitions:
   FilterOutputResponse:
     description: "A model for the response body when retrieving a filter output"
     allOf:
-    - type: object
-      properties:
-        downloads:
-          $ref: '#/definitions/Downloads'
-        state:
-          description: "This describes the status of the filter."
-          enum:
-            - "completed"
-            - "created"
-          type: string
-    - $ref: '#/definitions/JobState'
+      - type: object
+        properties:
+          downloads:
+            $ref: '#/definitions/Downloads'
+          state:
+            description: "This describes the status of the filter."
+            enum:
+              - "completed"
+              - "created"
+            type: string
+      - type: object
+        properties:
+          links:
+            allOf:
+              - $ref: '#/definitions/FilterLinks'
+              - type: object
+                properties:
+                  filter_blueprint:
+                    allOf:
+                      - type: object
+                        properties:
+                          href:
+                            description: "A URL to the filter blueprint"
+                            example: "http://localhost:8080/filters/DE3BC0B6-D6C4-4E20-917E-95D7EA8C91DC"
+                            type: string
+                          id:
+                            description: "An ID of the filter blueprint"
+                            example: "DE3BC0B6-D6C4-4E20-917E-95D7EA8C91DC"
+                            type: string
+      - $ref: '#/definitions/JobState'
   NewFilterRequest:
     description: "A model used to create new filters. Dimensions are optional"
     allOf:
