@@ -540,6 +540,9 @@ definitions:
       properties:
         downloads:
           $ref: '#/definitions/Downloads'
+        id:
+          type: string
+          description: "A unique id for this resource"
     - $ref: '#/definitions/JobState'
   NewFilterRequest:
     description: "A model used to create new filters. Dimensions are optional"
@@ -577,6 +580,9 @@ definitions:
       properties:
         dataset:
           $ref: '#/definitions/Dataset'
+        id:
+          type: string
+          description: "A unique id for this resource"
   UpdateFilterResponse:
     description: "A model for the response body when updating a filter"
     allOf:
