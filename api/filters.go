@@ -187,6 +187,7 @@ func (api *FilterAPI) getFilterBlueprintHandler(w http.ResponseWriter, r *http.R
 		return
 	}
 
+	filterBlueprint.ID = filterBlueprint.FilterID
 	filterBlueprint.Dimensions = nil
 	logData["filter_blueprint"] = filterBlueprint
 

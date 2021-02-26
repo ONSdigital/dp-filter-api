@@ -260,7 +260,7 @@ func (api *FilterAPI) getOutput(ctx context.Context, filterID string, hideS3Link
 		log.Event(ctx, "error getting filter output", log.ERROR, log.Error(err), logData)
 		return nil, err
 	}
-
+	output.ID = output.FilterID
 	logData["filter_blueprint_id"] = output.Links.FilterBlueprint.ID
 
 	// Hide private download links if request is not authenticated

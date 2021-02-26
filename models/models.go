@@ -45,6 +45,7 @@ type Filter struct {
 	LastUpdated     time.Time           `bson:"last_updated"               json:"-"`
 	ETag            string              `bson:"e_tag"                      json:"-"`
 
+	ID         string      `bson:"-"                    json:"id,omitempty"`
 	Dataset    *Dataset    `bson:"dataset"              json:"dataset"`
 	InstanceID string      `bson:"instance_id"          json:"instance_id"`
 	Dimensions []Dimension `bson:"dimensions,omitempty" json:"dimensions,omitempty"`
