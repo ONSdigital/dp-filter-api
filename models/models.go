@@ -119,10 +119,10 @@ type PublicDimension struct {
 
 type PublicDimensions struct {
 	Items      []*PublicDimension `json:"items"`
-	Count      int                `json:"count,omitempty"`
+	Count      int                `json:"count"`
 	Offset     int                `json:"offset"`
 	Limit      int                `json:"limit"`
-	TotalCount int                `json:"total_count,omitempty"`
+	TotalCount int                `json:"total_count"`
 }
 
 // PublicDimensionLinkMap is the links map for the PublicDimension structure
@@ -141,10 +141,10 @@ type PublicDimensionOption struct {
 // PublicDimensionOptions represents information about a set of dimension options
 type PublicDimensionOptions struct {
 	Items      []*PublicDimensionOption `json:"items"`
-	Count      int                      `json:"count,omitempty"`
+	Count      int                      `json:"count"`
 	Offset     int                      `json:"offset"`
 	Limit      int                      `json:"limit"`
-	TotalCount int                      `json:"total_count,omitempty"`
+	TotalCount int                      `json:"total_count"`
 }
 
 // PublicDimensionOptionLinkMap is the links map for the PublicDimensionOption structure
