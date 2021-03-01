@@ -430,9 +430,9 @@ func createPublicDimension(dimension models.Dimension, host, filterID string) *m
 	publicDim := &models.PublicDimension{
 		Name: dimension.Name,
 		Links: &models.PublicDimensionLinkMap{
-			Self:    models.LinkObject{HRef: dimensionURL, ID: dimension.Name},
-			Filter:  models.LinkObject{HRef: filterURL, ID: filterID},
-			Options: models.LinkObject{HRef: dimensionURL + "/options"},
+			Self:    &models.LinkObject{HRef: dimensionURL, ID: dimension.Name},
+			Filter:  &models.LinkObject{HRef: filterURL, ID: filterID},
+			Options: &models.LinkObject{HRef: dimensionURL + "/options"},
 		},
 	}
 	return publicDim

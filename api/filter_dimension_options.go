@@ -130,7 +130,7 @@ func (api *FilterAPI) getFilterBlueprintDimensionOptions(ctx context.Context, fi
 			dimension.Options = slice(dimension.Options, offset, limit)
 
 			dimLink := fmt.Sprintf("%s/filters/%s/dimensions/%s", api.host, filter.FilterID, dimension.Name)
-			filterObject := models.LinkObject{
+			filterObject := &models.LinkObject{
 				HRef: fmt.Sprintf("%s/filters/%s", api.host, filter.FilterID),
 				ID:   filter.FilterID,
 			}
@@ -138,8 +138,8 @@ func (api *FilterAPI) getFilterBlueprintDimensionOptions(ctx context.Context, fi
 			for _, option := range dimension.Options {
 				dimensionOption := &models.PublicDimensionOption{
 					Links: &models.PublicDimensionOptionLinkMap{
-						Self:      models.LinkObject{HRef: dimLink + "/options/" + option, ID: option},
-						Dimension: models.LinkObject{HRef: dimLink, ID: dimension.Name},
+						Self:      &models.LinkObject{HRef: dimLink + "/options/" + option, ID: option},
+						Dimension: &models.LinkObject{HRef: dimLink, ID: dimension.Name},
 						Filter:    filterObject,
 					},
 					Option: option,
@@ -227,15 +227,15 @@ func (api *FilterAPI) getFilterBlueprintDimensionOption(ctx context.Context, fil
 					optionFound = true
 
 					dimLink := fmt.Sprintf("%s/filters/%s/dimensions/%s", api.host, filter.FilterID, d.Name)
-					filterObject := models.LinkObject{
+					filterObject := &models.LinkObject{
 						HRef: fmt.Sprintf("%s/filters/%s", api.host, filter.FilterID),
 						ID:   filter.FilterID,
 					}
 
 					dimensionOption = &models.PublicDimensionOption{
 						Links: &models.PublicDimensionOptionLinkMap{
-							Self:      models.LinkObject{HRef: dimLink + "/options/" + option, ID: option},
-							Dimension: models.LinkObject{HRef: dimLink, ID: d.Name},
+							Self:      &models.LinkObject{HRef: dimLink + "/options/" + option, ID: option},
+							Dimension: &models.LinkObject{HRef: dimLink, ID: d.Name},
 							Filter:    filterObject,
 						},
 						Option: option,

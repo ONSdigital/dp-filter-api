@@ -536,14 +536,34 @@ definitions:
   FilterOutputResponse:
     description: "A model for the response body when retrieving a filter output"
     allOf:
-    - type: object
-      properties:
-        downloads:
-          $ref: '#/definitions/Downloads'
-        id:
-          type: string
-          description: "A unique id for this resource"
-    - $ref: '#/definitions/JobState'
+      - type: object
+        properties:
+          downloads:
+            $ref: '#/definitions/Downloads'
+          state:
+            description: "This describes the status of the filter."
+            enum:
+              - "completed"
+              - "created"
+            type: string
+      - type: object
+        properties:
+          links:
+            allOf:
+              - $ref: '#/definitions/FilterLinks'
+              - type: object
+                properties:
+                  filter_blueprint:
+                    properties:
+                      href:
+                        description: "A URL to the filter blueprint"
+                        example: "http://localhost:8080/filters/DE3BC0B6-D6C4-4E20-917E-95D7EA8C91DC"
+                        type: string
+                      id:
+                        description: "An ID of the filter blueprint"
+                        example: "DE3BC0B6-D6C4-4E20-917E-95D7EA8C91DC"
+                        type: string
+      - $ref: '#/definitions/JobState'
   NewFilterRequest:
     description: "A model used to create new filters. Dimensions are optional"
     allOf:
@@ -580,9 +600,6 @@ definitions:
       properties:
         dataset:
           $ref: '#/definitions/Dataset'
-        id:
-          type: string
-          description: "A unique id for this resource"
   UpdateFilterResponse:
     description: "A model for the response body when updating a filter"
     allOf:
@@ -749,6 +766,8 @@ definitions:
       time:
         type: string
         description: "The time of the event happened"
+        example: "2016-07-17T08:38:25.316+0000"
+        format: string
       type:
         type: string
         description: "The type of event which happened"

@@ -124,13 +124,13 @@ func (api *FilterAPI) createFilterBlueprint(ctx context.Context, filter *models.
 	}
 
 	links := models.LinkMap{
-		Dimensions: models.LinkObject{
+		Dimensions: &models.LinkObject{
 			HRef: fmt.Sprintf("%s/filters/%s/dimensions", api.host, newFilter.FilterID),
 		},
-		Self: models.LinkObject{
+		Self: &models.LinkObject{
 			HRef: fmt.Sprintf("%s/filters/%s", api.host, newFilter.FilterID),
 		},
-		Version: models.LinkObject{
+		Version: &models.LinkObject{
 			HRef: version.Links.Self.URL,
 			ID:   strconv.Itoa(version.Version),
 		},
@@ -163,8 +163,10 @@ func (api *FilterAPI) createFilterBlueprint(ctx context.Context, filter *models.
 		logData["filter_output_id"] = filterOutput.FilterID
 
 		newFilter.Links = links
-		newFilter.Links.FilterOutput.HRef = filterOutput.Links.Self.HRef
-		newFilter.Links.FilterOutput.ID = filterOutput.FilterID
+		newFilter.Links.FilterOutput = &models.LinkObject{
+			HRef: filterOutput.Links.Self.HRef,
+			ID:   filterOutput.FilterID,
+		}
 
 		logData["new_filter"] = newFilter
 		log.Event(ctx, "filter output id sent in message to kafka", log.INFO, logData)
@@ -307,7 +309,9 @@ func (api *FilterAPI) updateFilterBlueprint(ctx context.Context, filter *models.
 		}
 
 		newFilter.InstanceID = version.ID
-		newFilter.Links.Version.HRef = version.Links.Self.URL
+		newFilter.Links.Version = &models.LinkObject{
+			HRef: version.Links.Self.URL,
+		}
 
 		// Check existing dimensions work for new version
 		if err = api.checkFilterOptions(ctx, newFilter, version); err != nil {
@@ -336,8 +340,10 @@ func (api *FilterAPI) updateFilterBlueprint(ctx context.Context, filter *models.
 
 		log.Event(ctx, "filter output id sent in message to kafka", log.INFO, logData)
 
-		newFilter.Links.FilterOutput.HRef = filterOutput.Links.Self.HRef
-		newFilter.Links.FilterOutput.ID = filterOutput.FilterID
+		newFilter.Links.FilterOutput = &models.LinkObject{
+			HRef: filterOutput.Links.Self.HRef,
+			ID:   filterOutput.FilterID,
+		}
 	}
 
 	return newFilter, nil
@@ -541,10 +547,16 @@ func (api *FilterAPI) createFilterOutputResource(ctx context.Context, newFilter 
 	}
 	filterOutput.FilterID = u.String()
 	filterOutput.State = models.CreatedState
-	filterOutput.Links.Self.HRef = fmt.Sprintf("%s/filter-outputs/%s", api.host, filterOutput.FilterID)
-	filterOutput.Links.Dimensions.HRef = ""
-	filterOutput.Links.FilterBlueprint.HRef = fmt.Sprintf("%s/filters/%s", api.host, filterBlueprintID)
-	filterOutput.Links.FilterBlueprint.ID = filterBlueprintID
+	filterOutput.Links.Self = &models.LinkObject{
+		HRef: fmt.Sprintf("%s/filter-outputs/%s", api.host, filterOutput.FilterID),
+	}
+	filterOutput.Links.Dimensions = &models.LinkObject{
+		HRef: "",
+	}
+	newFilter.Links.FilterBlueprint = &models.LinkObject{
+		HRef: fmt.Sprintf("%s/filters/%s", api.host, filterBlueprintID),
+		ID:   filterBlueprintID,
+	}
 	filterOutput.LastUpdated = time.Now()
 
 	// Clear out any event information to output document
