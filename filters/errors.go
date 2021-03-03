@@ -17,6 +17,7 @@ var (
 	ErrForbidden                = errors.New("forbidden")
 	ErrUnauthorised             = errors.New("unauthorised")
 	ErrInternalError            = errors.New("internal server error")
+	ErrNoIfMatchHeader          = errors.New("required If-Match header not provided")
 )
 
 func NewBadRequestErr(text string) error {

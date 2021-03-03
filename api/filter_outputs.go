@@ -10,6 +10,7 @@ import (
 
 	"github.com/ONSdigital/dp-filter-api/filters"
 	"github.com/ONSdigital/dp-filter-api/models"
+	"github.com/ONSdigital/dp-filter-api/mongo"
 	dphttp "github.com/ONSdigital/dp-net/http"
 	dprequest "github.com/ONSdigital/dp-net/request"
 	"github.com/ONSdigital/log.go/log"
@@ -288,7 +289,7 @@ func (api *FilterAPI) getOutput(ctx context.Context, filterID string, hideS3Link
 
 	log.Event(ctx, "unauthenticated request to access unpublished filter output", log.INFO, logData)
 
-	filter, err := api.getFilterBlueprint(ctx, output.Links.FilterBlueprint.ID)
+	filter, err := api.getFilterBlueprint(ctx, output.Links.FilterBlueprint.ID, mongo.AnyETag)
 	if err != nil {
 		log.Event(ctx, "failed to retrieve filter blueprint", log.ERROR, log.Error(err), logData)
 		return nil, filters.ErrFilterOutputNotFound

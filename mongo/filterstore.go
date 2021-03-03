@@ -50,7 +50,7 @@ func CreateFilterStore(cfg config.MongoConfig, host string) (*FilterStore, error
 	return filterStore, nil
 }
 
-// AddFilter to the data store
+// AddFilter to the data store.
 func (s *FilterStore) AddFilter(filter *models.Filter) (*models.Filter, error) {
 	session := s.Session.Copy()
 	defer session.Close()
@@ -62,6 +62,13 @@ func (s *FilterStore) AddFilter(filter *models.Filter) (*models.Filter, error) {
 		return nil, err
 	}
 
+	// set eTag value to current hash of the filter
+	filter.ETag, err = filter.Hash(nil)
+	if err != nil {
+		return nil, err
+	}
+
+	// Insert filter to database
 	if err = session.DB(s.db).C(s.filtersCollection).Insert(filter); err != nil {
 		return nil, err
 	}
@@ -70,14 +77,23 @@ func (s *FilterStore) AddFilter(filter *models.Filter) (*models.Filter, error) {
 	return filter, nil
 }
 
-// GetFilter returns a single filter, if not found return an error
-func (s *FilterStore) GetFilter(filterID string) (*models.Filter, error) {
+// GetFilter returns a single filter, if not found return an error.
+// An optional eTag can be provided to assure that a filter has not been modified since the hash was generated
+func (s *FilterStore) GetFilter(filterID, eTagSelector string) (*models.Filter, error) {
 	session := s.Session.Copy()
 	defer session.Close()
 
-	query := bson.M{"filter_id": filterID}
-	var result models.Filter
+	return s.getFilterWithSession(session, filterID, 0, eTagSelector)
+}
 
+// get a filter with the provided session.
+// Optional timestamp and eTag can be provided to assure that a filter has not been modified since expected.
+func (s *FilterStore) getFilterWithSession(session *mgo.Session, filterID string, timestamp bson.MongoTimestamp, eTagSelector string) (*models.Filter, error) {
+
+	// ignore eTag for query, so that we can return the correct error if it does not match
+	query := selector(filterID, "", timestamp, AnyETag)
+
+	var result models.Filter
 	if err := session.DB(s.db).C(s.filtersCollection).Find(query).One(&result); err != nil {
 		if err == mgo.ErrNotFound {
 			return nil, filters.ErrFilterBlueprintNotFound
@@ -85,41 +101,64 @@ func (s *FilterStore) GetFilter(filterID string) (*models.Filter, error) {
 		return nil, err
 	}
 
+	// If eTag was provided and did not match, return the corresponding error
+	if eTagSelector != AnyETag && eTagSelector != result.ETag {
+		return nil, filters.ErrFilterBlueprintConflict
+	}
+
 	validateFilter(&result)
 	return &result, nil
 }
 
-// UpdateFilter replaces the stored filter properties
-func (s *FilterStore) UpdateFilter(updatedFilter *models.Filter, timestamp bson.MongoTimestamp) error {
+// UpdateFilter replaces the stored filter properties.
+func (s *FilterStore) UpdateFilter(updatedFilter *models.Filter, timestamp bson.MongoTimestamp, eTagSelector string, currentFilter *models.Filter) (newETag string, err error) {
 	session := s.Session.Copy()
 	defer session.Close()
 
-	update, err := mongolib.WithUpdates(createUpdateFilterBlueprint(updatedFilter))
+	// calculate the new eTag hash for the filter that would result from applying the update
+	newETag, err = newETagForUpdate(currentFilter, updatedFilter)
 	if err != nil {
-		return err
+		return "", err
 	}
 
-	selector := bson.M{"filter_id": updatedFilter.FilterID, "unique_timestamp": timestamp}
+	// create selector query
+	selector := selector(updatedFilter.FilterID, "", timestamp, eTagSelector)
+
+	// create update query from updatedFilter and newly generated eTag
+	update, err := mongolib.WithUpdates(bson.M{
+		"$set": bson.M{
+			"events":      updatedFilter.Events,
+			"instance_id": updatedFilter.InstanceID,
+			"published":   updatedFilter.Published,
+			"e_tag":       newETag,
+		},
+	})
+	if err != nil {
+		return "", err
+	}
+
+	// execute the update against MongoDB to atomically check and update the filter
 	if err := session.DB(s.db).C(s.filtersCollection).Update(selector, update); err != nil {
 		if err == mgo.ErrNotFound {
-			return filters.ErrFilterBlueprintConflict
+			return "", filters.ErrFilterBlueprintConflict
 		}
-		return err
+		return "", err
 	}
 
-	return nil
+	return newETag, nil
 }
 
-// GetFilterDimension return a single dimension
-func (s *FilterStore) GetFilterDimension(filterID string, name string) (*models.Dimension, error) {
+// GetFilterDimension return a single dimension, along with the filter eTag hash
+func (s *FilterStore) GetFilterDimension(filterID string, name, eTagSelector string) (dimension *models.Dimension, err error) {
 	session := s.Session.Copy()
 	defer session.Close()
 
-	queryDimension := bson.M{"filter_id": filterID, "dimensions": bson.M{"$elemMatch": bson.M{"name": name}}}
+	// create selector query
+	selector := selector(filterID, name, 0, eTagSelector)
 	dimensionSelect := bson.M{"dimensions.$": 1}
-	var result models.Filter
 
-	if err := session.DB(s.db).C(s.filtersCollection).Find(queryDimension).Select(dimensionSelect).One(&result); err != nil {
+	var result models.Filter
+	if err := session.DB(s.db).C(s.filtersCollection).Find(selector).Select(dimensionSelect).One(&result); err != nil {
 		if err == mgo.ErrNotFound {
 			return nil, filters.ErrDimensionNotFound
 		}
@@ -130,7 +169,7 @@ func (s *FilterStore) GetFilterDimension(filterID string, name string) (*models.
 }
 
 // AddFilterDimension to a filter
-func (s *FilterStore) AddFilterDimension(filterID, name string, options []string, dimensions []models.Dimension, timestamp bson.MongoTimestamp) error {
+func (s *FilterStore) AddFilterDimension(filterID, name string, options []string, dimensions []models.Dimension, timestamp bson.MongoTimestamp, eTagSelector string, currentFilter *models.Filter) (newETag string, err error) {
 	session := s.Session.Copy()
 	defer session.Close()
 
@@ -151,139 +190,206 @@ func (s *FilterStore) AddFilterDimension(filterID, name string, options []string
 		list = append(list, d)
 	}
 
-	selector := bson.M{"filter_id": filterID, "unique_timestamp": timestamp}
-	update, err := mongolib.WithUpdates(bson.M{"$set": bson.M{"dimensions": list}})
+	// define selector query
+	selector := selector(filterID, "", timestamp, eTagSelector)
+
+	// calculate the new eTag hash for the filter that would result from removing the dimension
+	newETag, err = newETagForAddDimensions(currentFilter, filterID, list)
 	if err != nil {
-		return err
+		return "", err
 	}
 
+	// define update query
+	update, err := mongolib.WithUpdates(bson.M{
+		"$set": bson.M{"dimensions": list, "e_tag": newETag},
+	})
+	if err != nil {
+		return "", err
+	}
+
+	// run the query
 	if err := session.DB(s.db).C(s.filtersCollection).Update(selector, update); err != nil {
 		if err == mgo.ErrNotFound {
-			return filters.ErrFilterBlueprintConflict
+			return "", filters.ErrFilterBlueprintConflict
 		}
-		return err
+		return "", err
 	}
 
-	return nil
+	return newETag, nil
 }
 
 // RemoveFilterDimension from a filter
-func (s *FilterStore) RemoveFilterDimension(filterID, name string, timestamp bson.MongoTimestamp) error {
+func (s *FilterStore) RemoveFilterDimension(filterID, name string, timestamp bson.MongoTimestamp, eTagSelector string, currentFilter *models.Filter) (newETag string, err error) {
 	session := s.Session.Copy()
 	defer session.Close()
 
-	queryFilter := bson.M{"filter_id": filterID, "unique_timestamp": timestamp}
-	update, err := mongolib.WithUpdates(bson.M{"$pull": bson.M{"dimensions": bson.M{"name": name}}})
+	// define selector query
+	selector := selector(filterID, "", timestamp, eTagSelector)
+
+	// calculate the new eTag hash for the filter that would result from removing the dimension
+	newETag, err = newETagForRemoveDimension(currentFilter, filterID, name)
 	if err != nil {
-		return err
+		return "", err
 	}
 
-	info, err := session.DB(s.db).C(s.filtersCollection).UpdateAll(queryFilter, update)
+	// define update query
+	update, err := mongolib.WithUpdates(bson.M{
+		"$pull": bson.M{"dimensions": bson.M{"name": name}},
+		"$set":  bson.M{"e_tag": newETag},
+	})
+	if err != nil {
+		return "", err
+	}
+
+	// execute the query
+	info, err := session.DB(s.db).C(s.filtersCollection).UpdateAll(selector, update)
 	if err != nil {
 		if err == mgo.ErrNotFound {
-			return filters.ErrFilterBlueprintConflict
+			return "", filters.ErrFilterBlueprintConflict
 		}
-		return err
+		return "", err
 	}
 
 	if info.Updated == 0 {
-		return filters.ErrDimensionNotFound
+		return "", filters.ErrDimensionNotFound
 	}
 
-	return nil
+	return newETag, nil
 }
 
-// AddFilterDimensionOption to a filter
-func (s *FilterStore) AddFilterDimensionOption(filterID, name, option string, timestamp bson.MongoTimestamp) error {
-	session := s.Session.Copy()
-	defer session.Close()
-
-	queryOptions := bson.M{"filter_id": filterID, "unique_timestamp": timestamp, "dimensions": bson.M{"$elemMatch": bson.M{"name": name}}}
-	update, err := mongolib.WithUpdates(bson.M{"$addToSet": bson.M{"dimensions.$.options": option}})
-	if err != nil {
-		return err
-	}
-
-	if err := session.DB(s.db).C(s.filtersCollection).Update(queryOptions, update); err != nil {
-		if err == mgo.ErrNotFound {
-			return filters.ErrFilterBlueprintConflict
-		}
-		return err
-	}
-
-	return nil
+// AddFilterDimensionOption to a filter.
+func (s *FilterStore) AddFilterDimensionOption(filterID, name, option string, timestamp bson.MongoTimestamp, eTagSelector string, currentFilter *models.Filter) (newETag string, err error) {
+	return s.AddFilterDimensionOptions(filterID, name, []string{option}, timestamp, eTagSelector, currentFilter)
 }
 
 // AddFilterDimensionOptions adds the provided options to a filter. The number of successfully added options is returned, along with an error.
-func (s *FilterStore) AddFilterDimensionOptions(filterID, name string, options []string, timestamp bson.MongoTimestamp) error {
+func (s *FilterStore) AddFilterDimensionOptions(filterID, name string, options []string, timestamp bson.MongoTimestamp, eTagSelector string, currentFilter *models.Filter) (newETag string, err error) {
 	session := s.Session.Copy()
 	defer session.Close()
 
-	queryOptions := bson.M{"filter_id": filterID, "unique_timestamp": timestamp, "dimensions": bson.M{"$elemMatch": bson.M{"name": name}}}
-	update, err := mongolib.WithUpdates(bson.M{"$addToSet": bson.M{"dimensions.$.options": bson.M{"$each": options}}})
+	// define selector query
+	selector := selector(filterID, name, timestamp, eTagSelector)
+
+	// calculate the new eTag hash for the filter that would result from removing the dimension
+	newETag, err = newETagForAddDimensionOptions(currentFilter, filterID, name, options)
 	if err != nil {
-		return err
+		return "", err
 	}
 
-	if err := session.DB(s.db).C(s.filtersCollection).Update(queryOptions, update); err != nil {
+	// define update query
+	update, err := mongolib.WithUpdates(bson.M{
+		"$addToSet": bson.M{"dimensions.$.options": bson.M{"$each": options}},
+		"$set":      bson.M{"e_tag": newETag},
+	})
+	if err != nil {
+		return "", err
+	}
+
+	// execute update
+	if err := session.DB(s.db).C(s.filtersCollection).Update(selector, update); err != nil {
 		if err == mgo.ErrNotFound {
-			return filters.ErrFilterBlueprintConflict
+			return "", filters.ErrFilterBlueprintConflict
 		}
-		return err
+		return "", err
 	}
 
-	return nil
+	return newETag, nil
 }
 
 // RemoveFilterDimensionOption from a filter
-func (s *FilterStore) RemoveFilterDimensionOption(filterID string, name string, option string, timestamp bson.MongoTimestamp) error {
+func (s *FilterStore) RemoveFilterDimensionOption(filterID string, name string, option string, timestamp bson.MongoTimestamp, eTagSelector string, currentFilter *models.Filter) (newETag string, err error) {
 	session := s.Session.Copy()
 	defer session.Close()
 
-	queryOptions := bson.M{"filter_id": filterID, "unique_timestamp": timestamp, "dimensions": bson.M{"$elemMatch": bson.M{"name": name}}}
-	update, err := mongolib.WithUpdates(bson.M{"$pull": bson.M{"dimensions.$.options": option}})
+	// define selector query
+	selector := selector(filterID, name, timestamp, eTagSelector)
+
+	// calculate the new eTag hash for the filter that would result from removing the dimension
+	newETag, err = newETagForRemoveDimensionOptions(currentFilter, filterID, name, []string{option})
 	if err != nil {
-		return err
+		return "", err
 	}
 
-	info, err := session.DB(s.db).C(s.filtersCollection).UpdateAll(queryOptions, update)
+	// define update query
+	update, err := mongolib.WithUpdates(bson.M{
+		"$pull": bson.M{"dimensions.$.options": option},
+		"$set":  bson.M{"e_tag": newETag},
+	})
+	if err != nil {
+		return "", err
+	}
+
+	// execute the query
+	info, err := session.DB(s.db).C(s.filtersCollection).UpdateAll(selector, update)
 	if err != nil {
 		if err == mgo.ErrNotFound {
-			return filters.ErrFilterBlueprintConflict
+			return "", filters.ErrFilterBlueprintConflict
 		}
-		return err
+		return "", err
 	}
 
 	// document was match but nothing was removed
 	if info.Updated == 0 {
-		return filters.ErrDimensionOptionNotFound
+		return "", filters.ErrDimensionOptionNotFound
 	}
 
-	return nil
+	return newETag, nil
 }
 
 // RemoveFilterDimensionOptions removes the provided options from a filter. If an error happens, it is returned.
-func (s *FilterStore) RemoveFilterDimensionOptions(filterID string, name string, options []string, timestamp bson.MongoTimestamp) error {
+func (s *FilterStore) RemoveFilterDimensionOptions(filterID string, name string, options []string, timestamp bson.MongoTimestamp, eTagSelector string, currentFilter *models.Filter) (newETag string, err error) {
 	session := s.Session.Copy()
 	defer session.Close()
 
-	queryOptions := bson.M{"filter_id": filterID, "unique_timestamp": timestamp, "dimensions": bson.M{"$elemMatch": bson.M{"name": name}}}
-	update, err := mongolib.WithUpdates(bson.M{"$pull": bson.M{"dimensions.$.options": bson.M{"$in": options}}})
+	// define selector query
+	selector := selector(filterID, name, timestamp, eTagSelector)
+
+	// calculate the new eTag hash for the filter that would result from removing the dimension
+	newETag, err = newETagForRemoveDimensionOptions(currentFilter, filterID, name, options)
 	if err != nil {
-		return err
+		return "", err
 	}
 
-	if err := session.DB(s.db).C(s.filtersCollection).Update(queryOptions, update); err != nil {
+	// define update query
+	update, err := mongolib.WithUpdates(bson.M{
+		"$pull": bson.M{"dimensions.$.options": bson.M{"$in": options}},
+		"$set":  bson.M{"e_tag": newETag},
+	})
+	if err != nil {
+		return "", err
+	}
+
+	// execute the query
+	if err := session.DB(s.db).C(s.filtersCollection).Update(selector, update); err != nil {
 		if err == mgo.ErrNotFound {
-			return filters.ErrFilterBlueprintConflict
+			return "", filters.ErrFilterBlueprintConflict
 		}
-		return err
+		return "", err
 	}
 
-	return nil
+	return newETag, nil
 }
 
-// CreateFilterOutput creates a filter ouput resource
+// selector creates a select query for mongoDB with the provided parameters
+// - filterID represents the ID of the filter document that we want to query. Required.
+// - dimensionName is the name of a dimension that needs to be matched. Optional.
+// - timestamp is a unique MongoDB timestamp to be matched to prevent race conditions. Optional.
+// - eTagselector is a unique hash of a filter document to be matched to prevent race conditions. Optional.
+func selector(filterID, dimensionName string, timestamp bson.MongoTimestamp, eTagSelector string) bson.M {
+	selector := bson.M{"filter_id": filterID}
+	if dimensionName != "" {
+		selector["dimensions"] = bson.M{"$elemMatch": bson.M{"name": dimensionName}}
+	}
+	if timestamp > 0 {
+		selector["unique_timestamp"] = timestamp
+	}
+	if eTagSelector != AnyETag {
+		selector["e_tag"] = eTagSelector
+	}
+	return selector
+}
+
+// CreateFilterOutput creates a filter output resource
 func (s *FilterStore) CreateFilterOutput(filter *models.Filter) (err error) {
 	session := s.Session.Copy()
 	defer session.Close()
@@ -351,19 +457,6 @@ func (s *FilterStore) AddEventToFilterOutput(filterOutputID string, event *model
 	}
 
 	return nil
-}
-
-func createUpdateFilterBlueprint(filter *models.Filter) bson.M {
-
-	update := bson.M{
-		"$set": bson.M{
-			"filter.events":      filter.Events,
-			"filter.instance_id": filter.InstanceID,
-			"filter.published":   filter.Published,
-		},
-	}
-
-	return update
 }
 
 func createUpdateFilterOutput(filter *models.Filter) bson.M {

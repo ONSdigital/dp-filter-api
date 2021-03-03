@@ -24,13 +24,14 @@ const (
 )
 
 var (
-	filterNotFoundResponse        = filters.ErrFilterBlueprintNotFound.Error() + "\n"
-	dimensionNotFoundResponse     = filters.ErrDimensionNotFound.Error() + "\n"
-	versionNotFoundResponse       = filters.ErrVersionNotFound.Error() + "\n"
-	optionNotFoundResponse        = filters.ErrDimensionOptionNotFound.Error() + "\n"
-	invalidQueryParameterResponse = filters.ErrInvalidQueryParameter.Error() + "\n"
-	badRequestResponse            = badRequest + "\n"
-	internalErrResponse           = internalError + "\n"
+	filterNotFoundResponse         = filters.ErrFilterBlueprintNotFound.Error() + "\n"
+	dimensionNotFoundResponse      = filters.ErrDimensionNotFound.Error() + "\n"
+	filerBlueprintConflictResponse = filters.ErrFilterBlueprintConflict.Error() + "\n"
+	versionNotFoundResponse        = filters.ErrVersionNotFound.Error() + "\n"
+	optionNotFoundResponse         = filters.ErrDimensionOptionNotFound.Error() + "\n"
+	invalidQueryParameterResponse  = filters.ErrInvalidQueryParameter.Error() + "\n"
+	badRequestResponse             = badRequest + "\n"
+	internalErrResponse            = internalError + "\n"
 )
 
 // cfg obtains a new config for testing. Each test will have its own config instance by using this func.
@@ -43,8 +44,9 @@ func cfg() *config.Config {
 		ServiceAuthToken:         serviceAuthToken,
 		EnablePrivateEndpoints:   enablePrivateEndpoints,
 		MaxDatasetOptions:        200,
+		DefaultMaxLimit:          1000,
 		MongoConfig: config.MongoConfig{
-			Limit:  0,
+			Limit:  20,
 			Offset: 0,
 		},
 	}

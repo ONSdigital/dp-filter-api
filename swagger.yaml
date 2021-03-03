@@ -36,7 +36,7 @@ parameters:
     in: query
   page_limit:
     name: limit
-    description: "Maximum number of items that will be returned. A value of zero will return all available items, without limit. The default value is 100."
+    description: "Limit the number of items that will be returned. Defaults to 20 and capped at 1000"
     in: query
     required: false
     type: integer
@@ -112,6 +112,12 @@ parameters:
     required: true
     description: "The model of an event"
     in: body
+  if_match:
+    name: If-Match
+    required: true
+    description: "Filter resource version, as returned by a previous ETag, to be validated; or '*' to skip the version check"
+    in: header
+    type: string
 securityDefinitions:
   InternalAPIKey:
     name: internal-token
@@ -134,6 +140,10 @@ paths:
           description: "filter was created"
           schema:
             $ref: '#/definitions/NewFilterResponse'
+          headers:
+            ETag:
+              type: string
+              description: "Defines a unique filter resource version"
         400:
           description: "Invalid request body"
         500:
@@ -153,6 +163,10 @@ paths:
           description: "The filter was found and document is returned"
           schema:
             $ref: '#/definitions/NewFilterResponse'
+          headers:
+            ETag:
+              type: string
+              description: "Defines a unique filter resource version"
         404:
            $ref: '#/responses/FilterNotFound'
         500:
@@ -165,15 +179,22 @@ paths:
       parameters:
       - $ref: '#/parameters/submitted'
       - $ref: '#/parameters/update_filter'
+      - $ref: '#/parameters/if_match'
       responses:
         200:
           description: "The filter job has been updated"
           schema:
             $ref: '#/definitions/UpdateFilterResponse'
+          headers:
+            ETag:
+              type: string
+              description: "Defines a unique filter resource version"
         400:
-          description: "Invalid request body"
+          description: "Invalid request body or If-Match header not provided"
         404:
           $ref: '#/responses/FilterNotFound'
+        409:
+          description: '#/responses/FilterConflict'
         422:
           description: "Unprocessable entity - instance has been removed"
         500:
@@ -187,6 +208,8 @@ paths:
         Return a list of all dimensions which are going to be used to filter on
       parameters:
       - $ref: '#/parameters/filter_id'
+      - $ref: '#/parameters/page_limit'
+      - $ref: '#/parameters/offset'
       responses:
         200:
           description: "A list of dimension URLs"
@@ -194,6 +217,10 @@ paths:
             type: array
             items:
               $ref: '#/definitions/Dimension'
+          headers:
+            ETag:
+              type: string
+              description: "Defines a unique filter resource version"
         404:
           $ref: '#/responses/FilterNotFound'
         500:
@@ -212,6 +239,10 @@ paths:
           description: "A Dimension within a filter was returned"
           schema:
             $ref: '#/definitions/Dimension'
+          headers:
+            ETag:
+              type: string
+              description: "Defines a unique filter resource version"
         400:
           description: "Filter was not found"
         404:
@@ -227,13 +258,20 @@ paths:
       - "application/json"
       parameters:
       - $ref: '#/parameters/options'
+      - $ref: '#/parameters/if_match'
       responses:
         201:
           description: "The dimension was created"
+          headers:
+            ETag:
+              type: string
+              description: "Defines a unique filter resource version"
         400:
           description: "Invalid request body"
         404:
           description: "Filter job was not found"
+        409:
+          description: '#/responses/FilterConflict'
         422:
           description: "Unprocessable entity - instance has been removed"
         500:
@@ -247,17 +285,24 @@ paths:
       - "application/json-patch+json"
       parameters:
       - $ref: '#/parameters/patch_options'
+      - $ref: '#/parameters/if_match'
       responses:
         200:
           description: "The dimension was patched and the successfully applied patch operations are returned"
           schema:
             $ref: '#/definitions/PatchOptions'
+          headers:
+            ETag:
+              type: string
+              description: "Defines a unique filter resource version"
         400:
           description: "Invalid request body, filter job does not exist or too many values have been provided in the patch operations"
         401:
           description: "Unauthorised, request lacks valid authentication credentials"
         404:
           description: "Dimension was not found"
+        409:
+          description: '#/responses/FilterConflict'
         422:
           description: "Unprocessable entity - instance has been removed"
         500:
@@ -267,13 +312,21 @@ paths:
       - "Public"
       summary: "Remove a dimension from a filter"
       description: "Remove a dimension and any options set within the dimension"
+      parameters:
+        - $ref: '#/parameters/if_match'
       responses:
         204:
           description: "The dimension was removed"
+          headers:
+            ETag:
+              type: string
+              description: "Defines a unique filter resource version"
         400:
           description: "Filter was not found"
         404:
           description: "Dimension name was not found"
+        409:
+          description: '#/responses/FilterConflict'
         500:
           $ref: '#/responses/InternalError'
   /filters/{id}/dimensions/{name}/options:
@@ -294,6 +347,10 @@ paths:
             type: array
             items:
               $ref: '#/definitions/Option'
+          headers:
+            ETag:
+              type: string
+              description: "Defines a unique filter resource version"
         400:
           description: "Filter was not found"
         404:
@@ -315,6 +372,10 @@ paths:
           description: "An option within a dimension was returned"
           schema:
             $ref: '#/definitions/Option'
+          headers:
+            ETag:
+              type: string
+              description: "Defines a unique filter resource version"
         400:
           $ref: '#/responses/FilterOrDimensionNotFound'
         404:
@@ -326,13 +387,21 @@ paths:
       - "Public"
       summary: "Add an option to a filtered dimension"
       description: "Add an option to a filtered dimension"
+      parameters:
+        - $ref: '#/parameters/if_match'
       responses:
         201:
           description: "Option was added"
+          headers:
+            ETag:
+              type: string
+              description: "Defines a unique filter resource version"
         400:
           description: "Filter was not found"
         404:
           description: " Dimension name was not found"
+        409:
+          description: '#/responses/FilterConflict'
         422:
           description: "Unprocessable entity - instance has been removed"
         500:
@@ -342,9 +411,15 @@ paths:
       - "Public"
       summary: "Remove an option from a filtered dimension"
       description: "Remove a single option from a dimension"
+      parameters:
+        - $ref: '#/parameters/if_match'
       responses:
         204:
           description: "Option was removed"
+          headers:
+            ETag:
+              type: string
+              description: "Defines a unique filter resource version"
         400:
           description: |
             This error code could be one or more of:
@@ -352,6 +427,8 @@ paths:
             * Dimension name was not found
         404:
           description: "Dimension option was not found"
+        409:
+          description: '#/responses/FilterConflict'
         500:
           $ref: '#/responses/InternalError'
   /filter-outputs/{filter_output_id}:
@@ -445,6 +522,8 @@ paths:
 responses:
   FilterNotFound:
     description: "Filter not found"
+  FilterConflict:
+    description: "Filter was modified by an external entity"
   FilterOutputNotFound:
     description: "Filter output not found"
   FilterOrDimensionNotFound:

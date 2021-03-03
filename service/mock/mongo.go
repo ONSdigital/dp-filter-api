@@ -42,13 +42,13 @@ var (
 //             AddFilterFunc: func(filter *models.Filter) (*models.Filter, error) {
 // 	               panic("mock out the AddFilter method")
 //             },
-//             AddFilterDimensionFunc: func(filterID string, name string, options []string, dimensions []models.Dimension, timestamp bson.MongoTimestamp) error {
+//             AddFilterDimensionFunc: func(filterID string, name string, options []string, dimensions []models.Dimension, timestamp bson.MongoTimestamp, eTagSelector string, currentFilter *models.Filter) (string, error) {
 // 	               panic("mock out the AddFilterDimension method")
 //             },
-//             AddFilterDimensionOptionFunc: func(filterID string, name string, option string, timestamp bson.MongoTimestamp) error {
+//             AddFilterDimensionOptionFunc: func(filterID string, name string, option string, timestamp bson.MongoTimestamp, eTagSelector string, currentFilter *models.Filter) (string, error) {
 // 	               panic("mock out the AddFilterDimensionOption method")
 //             },
-//             AddFilterDimensionOptionsFunc: func(filterID string, name string, options []string, timestamp bson.MongoTimestamp) error {
+//             AddFilterDimensionOptionsFunc: func(filterID string, name string, options []string, timestamp bson.MongoTimestamp, eTagSelector string, currentFilter *models.Filter) (string, error) {
 // 	               panic("mock out the AddFilterDimensionOptions method")
 //             },
 //             CheckerFunc: func(ctx context.Context, state *healthcheck.CheckState) error {
@@ -60,28 +60,28 @@ var (
 //             CreateFilterOutputFunc: func(filter *models.Filter) error {
 // 	               panic("mock out the CreateFilterOutput method")
 //             },
-//             GetFilterFunc: func(filterID string) (*models.Filter, error) {
+//             GetFilterFunc: func(filterID string, eTagSelector string) (*models.Filter, error) {
 // 	               panic("mock out the GetFilter method")
 //             },
-//             GetFilterDimensionFunc: func(filterID string, name string) (*models.Dimension, error) {
+//             GetFilterDimensionFunc: func(filterID string, name string, eTagSelector string) (*models.Dimension, error) {
 // 	               panic("mock out the GetFilterDimension method")
 //             },
 //             GetFilterOutputFunc: func(filterOutputID string) (*models.Filter, error) {
 // 	               panic("mock out the GetFilterOutput method")
 //             },
-//             RemoveFilterDimensionFunc: func(filterID string, name string, timestamp bson.MongoTimestamp) error {
+//             RemoveFilterDimensionFunc: func(filterID string, name string, timestamp bson.MongoTimestamp, eTagSelector string, currentFilter *models.Filter) (string, error) {
 // 	               panic("mock out the RemoveFilterDimension method")
 //             },
-//             RemoveFilterDimensionOptionFunc: func(filterID string, name string, option string, timestamp bson.MongoTimestamp) error {
+//             RemoveFilterDimensionOptionFunc: func(filterID string, name string, option string, timestamp bson.MongoTimestamp, eTagSelector string, currentFilter *models.Filter) (string, error) {
 // 	               panic("mock out the RemoveFilterDimensionOption method")
 //             },
-//             RemoveFilterDimensionOptionsFunc: func(filterID string, name string, options []string, timestamp bson.MongoTimestamp) error {
+//             RemoveFilterDimensionOptionsFunc: func(filterID string, name string, options []string, timestamp bson.MongoTimestamp, eTagSelector string, currentFilter *models.Filter) (string, error) {
 // 	               panic("mock out the RemoveFilterDimensionOptions method")
 //             },
-//             UpdateFilterFunc: func(filter *models.Filter, timestamp bson.MongoTimestamp) error {
+//             UpdateFilterFunc: func(updatedFilter *models.Filter, timestamp bson.MongoTimestamp, eTagSelector string, currentFilter *models.Filter) (string, error) {
 // 	               panic("mock out the UpdateFilter method")
 //             },
-//             UpdateFilterOutputFunc: func(filterOutput *models.Filter, timestamp bson.MongoTimestamp) error {
+//             UpdateFilterOutputFunc: func(filter *models.Filter, timestamp bson.MongoTimestamp) error {
 // 	               panic("mock out the UpdateFilterOutput method")
 //             },
 //         }
@@ -98,13 +98,13 @@ type MongoDBMock struct {
 	AddFilterFunc func(filter *models.Filter) (*models.Filter, error)
 
 	// AddFilterDimensionFunc mocks the AddFilterDimension method.
-	AddFilterDimensionFunc func(filterID string, name string, options []string, dimensions []models.Dimension, timestamp bson.MongoTimestamp) error
+	AddFilterDimensionFunc func(filterID string, name string, options []string, dimensions []models.Dimension, timestamp bson.MongoTimestamp, eTagSelector string, currentFilter *models.Filter) (string, error)
 
 	// AddFilterDimensionOptionFunc mocks the AddFilterDimensionOption method.
-	AddFilterDimensionOptionFunc func(filterID string, name string, option string, timestamp bson.MongoTimestamp) error
+	AddFilterDimensionOptionFunc func(filterID string, name string, option string, timestamp bson.MongoTimestamp, eTagSelector string, currentFilter *models.Filter) (string, error)
 
 	// AddFilterDimensionOptionsFunc mocks the AddFilterDimensionOptions method.
-	AddFilterDimensionOptionsFunc func(filterID string, name string, options []string, timestamp bson.MongoTimestamp) error
+	AddFilterDimensionOptionsFunc func(filterID string, name string, options []string, timestamp bson.MongoTimestamp, eTagSelector string, currentFilter *models.Filter) (string, error)
 
 	// CheckerFunc mocks the Checker method.
 	CheckerFunc func(ctx context.Context, state *healthcheck.CheckState) error
@@ -116,28 +116,28 @@ type MongoDBMock struct {
 	CreateFilterOutputFunc func(filter *models.Filter) error
 
 	// GetFilterFunc mocks the GetFilter method.
-	GetFilterFunc func(filterID string) (*models.Filter, error)
+	GetFilterFunc func(filterID string, eTagSelector string) (*models.Filter, error)
 
 	// GetFilterDimensionFunc mocks the GetFilterDimension method.
-	GetFilterDimensionFunc func(filterID string, name string) (*models.Dimension, error)
+	GetFilterDimensionFunc func(filterID string, name string, eTagSelector string) (*models.Dimension, error)
 
 	// GetFilterOutputFunc mocks the GetFilterOutput method.
 	GetFilterOutputFunc func(filterOutputID string) (*models.Filter, error)
 
 	// RemoveFilterDimensionFunc mocks the RemoveFilterDimension method.
-	RemoveFilterDimensionFunc func(filterID string, name string, timestamp bson.MongoTimestamp) error
+	RemoveFilterDimensionFunc func(filterID string, name string, timestamp bson.MongoTimestamp, eTagSelector string, currentFilter *models.Filter) (string, error)
 
 	// RemoveFilterDimensionOptionFunc mocks the RemoveFilterDimensionOption method.
-	RemoveFilterDimensionOptionFunc func(filterID string, name string, option string, timestamp bson.MongoTimestamp) error
+	RemoveFilterDimensionOptionFunc func(filterID string, name string, option string, timestamp bson.MongoTimestamp, eTagSelector string, currentFilter *models.Filter) (string, error)
 
 	// RemoveFilterDimensionOptionsFunc mocks the RemoveFilterDimensionOptions method.
-	RemoveFilterDimensionOptionsFunc func(filterID string, name string, options []string, timestamp bson.MongoTimestamp) error
+	RemoveFilterDimensionOptionsFunc func(filterID string, name string, options []string, timestamp bson.MongoTimestamp, eTagSelector string, currentFilter *models.Filter) (string, error)
 
 	// UpdateFilterFunc mocks the UpdateFilter method.
-	UpdateFilterFunc func(filter *models.Filter, timestamp bson.MongoTimestamp) error
+	UpdateFilterFunc func(updatedFilter *models.Filter, timestamp bson.MongoTimestamp, eTagSelector string, currentFilter *models.Filter) (string, error)
 
 	// UpdateFilterOutputFunc mocks the UpdateFilterOutput method.
-	UpdateFilterOutputFunc func(filterOutput *models.Filter, timestamp bson.MongoTimestamp) error
+	UpdateFilterOutputFunc func(filter *models.Filter, timestamp bson.MongoTimestamp) error
 
 	// calls tracks calls to the methods.
 	calls struct {
@@ -165,6 +165,10 @@ type MongoDBMock struct {
 			Dimensions []models.Dimension
 			// Timestamp is the timestamp argument value.
 			Timestamp bson.MongoTimestamp
+			// ETagSelector is the eTagSelector argument value.
+			ETagSelector string
+			// CurrentFilter is the currentFilter argument value.
+			CurrentFilter *models.Filter
 		}
 		// AddFilterDimensionOption holds details about calls to the AddFilterDimensionOption method.
 		AddFilterDimensionOption []struct {
@@ -176,6 +180,10 @@ type MongoDBMock struct {
 			Option string
 			// Timestamp is the timestamp argument value.
 			Timestamp bson.MongoTimestamp
+			// ETagSelector is the eTagSelector argument value.
+			ETagSelector string
+			// CurrentFilter is the currentFilter argument value.
+			CurrentFilter *models.Filter
 		}
 		// AddFilterDimensionOptions holds details about calls to the AddFilterDimensionOptions method.
 		AddFilterDimensionOptions []struct {
@@ -187,6 +195,10 @@ type MongoDBMock struct {
 			Options []string
 			// Timestamp is the timestamp argument value.
 			Timestamp bson.MongoTimestamp
+			// ETagSelector is the eTagSelector argument value.
+			ETagSelector string
+			// CurrentFilter is the currentFilter argument value.
+			CurrentFilter *models.Filter
 		}
 		// Checker holds details about calls to the Checker method.
 		Checker []struct {
@@ -209,6 +221,8 @@ type MongoDBMock struct {
 		GetFilter []struct {
 			// FilterID is the filterID argument value.
 			FilterID string
+			// ETagSelector is the eTagSelector argument value.
+			ETagSelector string
 		}
 		// GetFilterDimension holds details about calls to the GetFilterDimension method.
 		GetFilterDimension []struct {
@@ -216,6 +230,8 @@ type MongoDBMock struct {
 			FilterID string
 			// Name is the name argument value.
 			Name string
+			// ETagSelector is the eTagSelector argument value.
+			ETagSelector string
 		}
 		// GetFilterOutput holds details about calls to the GetFilterOutput method.
 		GetFilterOutput []struct {
@@ -230,6 +246,10 @@ type MongoDBMock struct {
 			Name string
 			// Timestamp is the timestamp argument value.
 			Timestamp bson.MongoTimestamp
+			// ETagSelector is the eTagSelector argument value.
+			ETagSelector string
+			// CurrentFilter is the currentFilter argument value.
+			CurrentFilter *models.Filter
 		}
 		// RemoveFilterDimensionOption holds details about calls to the RemoveFilterDimensionOption method.
 		RemoveFilterDimensionOption []struct {
@@ -241,6 +261,10 @@ type MongoDBMock struct {
 			Option string
 			// Timestamp is the timestamp argument value.
 			Timestamp bson.MongoTimestamp
+			// ETagSelector is the eTagSelector argument value.
+			ETagSelector string
+			// CurrentFilter is the currentFilter argument value.
+			CurrentFilter *models.Filter
 		}
 		// RemoveFilterDimensionOptions holds details about calls to the RemoveFilterDimensionOptions method.
 		RemoveFilterDimensionOptions []struct {
@@ -252,18 +276,26 @@ type MongoDBMock struct {
 			Options []string
 			// Timestamp is the timestamp argument value.
 			Timestamp bson.MongoTimestamp
+			// ETagSelector is the eTagSelector argument value.
+			ETagSelector string
+			// CurrentFilter is the currentFilter argument value.
+			CurrentFilter *models.Filter
 		}
 		// UpdateFilter holds details about calls to the UpdateFilter method.
 		UpdateFilter []struct {
-			// Filter is the filter argument value.
-			Filter *models.Filter
+			// UpdatedFilter is the updatedFilter argument value.
+			UpdatedFilter *models.Filter
 			// Timestamp is the timestamp argument value.
 			Timestamp bson.MongoTimestamp
+			// ETagSelector is the eTagSelector argument value.
+			ETagSelector string
+			// CurrentFilter is the currentFilter argument value.
+			CurrentFilter *models.Filter
 		}
 		// UpdateFilterOutput holds details about calls to the UpdateFilterOutput method.
 		UpdateFilterOutput []struct {
-			// FilterOutput is the filterOutput argument value.
-			FilterOutput *models.Filter
+			// Filter is the filter argument value.
+			Filter *models.Filter
 			// Timestamp is the timestamp argument value.
 			Timestamp bson.MongoTimestamp
 		}
@@ -337,45 +369,53 @@ func (mock *MongoDBMock) AddFilterCalls() []struct {
 }
 
 // AddFilterDimension calls AddFilterDimensionFunc.
-func (mock *MongoDBMock) AddFilterDimension(filterID string, name string, options []string, dimensions []models.Dimension, timestamp bson.MongoTimestamp) error {
+func (mock *MongoDBMock) AddFilterDimension(filterID string, name string, options []string, dimensions []models.Dimension, timestamp bson.MongoTimestamp, eTagSelector string, currentFilter *models.Filter) (string, error) {
 	if mock.AddFilterDimensionFunc == nil {
 		panic("MongoDBMock.AddFilterDimensionFunc: method is nil but MongoDB.AddFilterDimension was just called")
 	}
 	callInfo := struct {
-		FilterID   string
-		Name       string
-		Options    []string
-		Dimensions []models.Dimension
-		Timestamp  bson.MongoTimestamp
+		FilterID      string
+		Name          string
+		Options       []string
+		Dimensions    []models.Dimension
+		Timestamp     bson.MongoTimestamp
+		ETagSelector  string
+		CurrentFilter *models.Filter
 	}{
-		FilterID:   filterID,
-		Name:       name,
-		Options:    options,
-		Dimensions: dimensions,
-		Timestamp:  timestamp,
+		FilterID:      filterID,
+		Name:          name,
+		Options:       options,
+		Dimensions:    dimensions,
+		Timestamp:     timestamp,
+		ETagSelector:  eTagSelector,
+		CurrentFilter: currentFilter,
 	}
 	lockMongoDBMockAddFilterDimension.Lock()
 	mock.calls.AddFilterDimension = append(mock.calls.AddFilterDimension, callInfo)
 	lockMongoDBMockAddFilterDimension.Unlock()
-	return mock.AddFilterDimensionFunc(filterID, name, options, dimensions, timestamp)
+	return mock.AddFilterDimensionFunc(filterID, name, options, dimensions, timestamp, eTagSelector, currentFilter)
 }
 
 // AddFilterDimensionCalls gets all the calls that were made to AddFilterDimension.
 // Check the length with:
 //     len(mockedMongoDB.AddFilterDimensionCalls())
 func (mock *MongoDBMock) AddFilterDimensionCalls() []struct {
-	FilterID   string
-	Name       string
-	Options    []string
-	Dimensions []models.Dimension
-	Timestamp  bson.MongoTimestamp
+	FilterID      string
+	Name          string
+	Options       []string
+	Dimensions    []models.Dimension
+	Timestamp     bson.MongoTimestamp
+	ETagSelector  string
+	CurrentFilter *models.Filter
 } {
 	var calls []struct {
-		FilterID   string
-		Name       string
-		Options    []string
-		Dimensions []models.Dimension
-		Timestamp  bson.MongoTimestamp
+		FilterID      string
+		Name          string
+		Options       []string
+		Dimensions    []models.Dimension
+		Timestamp     bson.MongoTimestamp
+		ETagSelector  string
+		CurrentFilter *models.Filter
 	}
 	lockMongoDBMockAddFilterDimension.RLock()
 	calls = mock.calls.AddFilterDimension
@@ -384,41 +424,49 @@ func (mock *MongoDBMock) AddFilterDimensionCalls() []struct {
 }
 
 // AddFilterDimensionOption calls AddFilterDimensionOptionFunc.
-func (mock *MongoDBMock) AddFilterDimensionOption(filterID string, name string, option string, timestamp bson.MongoTimestamp) error {
+func (mock *MongoDBMock) AddFilterDimensionOption(filterID string, name string, option string, timestamp bson.MongoTimestamp, eTagSelector string, currentFilter *models.Filter) (string, error) {
 	if mock.AddFilterDimensionOptionFunc == nil {
 		panic("MongoDBMock.AddFilterDimensionOptionFunc: method is nil but MongoDB.AddFilterDimensionOption was just called")
 	}
 	callInfo := struct {
-		FilterID  string
-		Name      string
-		Option    string
-		Timestamp bson.MongoTimestamp
+		FilterID      string
+		Name          string
+		Option        string
+		Timestamp     bson.MongoTimestamp
+		ETagSelector  string
+		CurrentFilter *models.Filter
 	}{
-		FilterID:  filterID,
-		Name:      name,
-		Option:    option,
-		Timestamp: timestamp,
+		FilterID:      filterID,
+		Name:          name,
+		Option:        option,
+		Timestamp:     timestamp,
+		ETagSelector:  eTagSelector,
+		CurrentFilter: currentFilter,
 	}
 	lockMongoDBMockAddFilterDimensionOption.Lock()
 	mock.calls.AddFilterDimensionOption = append(mock.calls.AddFilterDimensionOption, callInfo)
 	lockMongoDBMockAddFilterDimensionOption.Unlock()
-	return mock.AddFilterDimensionOptionFunc(filterID, name, option, timestamp)
+	return mock.AddFilterDimensionOptionFunc(filterID, name, option, timestamp, eTagSelector, currentFilter)
 }
 
 // AddFilterDimensionOptionCalls gets all the calls that were made to AddFilterDimensionOption.
 // Check the length with:
 //     len(mockedMongoDB.AddFilterDimensionOptionCalls())
 func (mock *MongoDBMock) AddFilterDimensionOptionCalls() []struct {
-	FilterID  string
-	Name      string
-	Option    string
-	Timestamp bson.MongoTimestamp
+	FilterID      string
+	Name          string
+	Option        string
+	Timestamp     bson.MongoTimestamp
+	ETagSelector  string
+	CurrentFilter *models.Filter
 } {
 	var calls []struct {
-		FilterID  string
-		Name      string
-		Option    string
-		Timestamp bson.MongoTimestamp
+		FilterID      string
+		Name          string
+		Option        string
+		Timestamp     bson.MongoTimestamp
+		ETagSelector  string
+		CurrentFilter *models.Filter
 	}
 	lockMongoDBMockAddFilterDimensionOption.RLock()
 	calls = mock.calls.AddFilterDimensionOption
@@ -427,41 +475,49 @@ func (mock *MongoDBMock) AddFilterDimensionOptionCalls() []struct {
 }
 
 // AddFilterDimensionOptions calls AddFilterDimensionOptionsFunc.
-func (mock *MongoDBMock) AddFilterDimensionOptions(filterID string, name string, options []string, timestamp bson.MongoTimestamp) error {
+func (mock *MongoDBMock) AddFilterDimensionOptions(filterID string, name string, options []string, timestamp bson.MongoTimestamp, eTagSelector string, currentFilter *models.Filter) (string, error) {
 	if mock.AddFilterDimensionOptionsFunc == nil {
 		panic("MongoDBMock.AddFilterDimensionOptionsFunc: method is nil but MongoDB.AddFilterDimensionOptions was just called")
 	}
 	callInfo := struct {
-		FilterID  string
-		Name      string
-		Options   []string
-		Timestamp bson.MongoTimestamp
+		FilterID      string
+		Name          string
+		Options       []string
+		Timestamp     bson.MongoTimestamp
+		ETagSelector  string
+		CurrentFilter *models.Filter
 	}{
-		FilterID:  filterID,
-		Name:      name,
-		Options:   options,
-		Timestamp: timestamp,
+		FilterID:      filterID,
+		Name:          name,
+		Options:       options,
+		Timestamp:     timestamp,
+		ETagSelector:  eTagSelector,
+		CurrentFilter: currentFilter,
 	}
 	lockMongoDBMockAddFilterDimensionOptions.Lock()
 	mock.calls.AddFilterDimensionOptions = append(mock.calls.AddFilterDimensionOptions, callInfo)
 	lockMongoDBMockAddFilterDimensionOptions.Unlock()
-	return mock.AddFilterDimensionOptionsFunc(filterID, name, options, timestamp)
+	return mock.AddFilterDimensionOptionsFunc(filterID, name, options, timestamp, eTagSelector, currentFilter)
 }
 
 // AddFilterDimensionOptionsCalls gets all the calls that were made to AddFilterDimensionOptions.
 // Check the length with:
 //     len(mockedMongoDB.AddFilterDimensionOptionsCalls())
 func (mock *MongoDBMock) AddFilterDimensionOptionsCalls() []struct {
-	FilterID  string
-	Name      string
-	Options   []string
-	Timestamp bson.MongoTimestamp
+	FilterID      string
+	Name          string
+	Options       []string
+	Timestamp     bson.MongoTimestamp
+	ETagSelector  string
+	CurrentFilter *models.Filter
 } {
 	var calls []struct {
-		FilterID  string
-		Name      string
-		Options   []string
-		Timestamp bson.MongoTimestamp
+		FilterID      string
+		Name          string
+		Options       []string
+		Timestamp     bson.MongoTimestamp
+		ETagSelector  string
+		CurrentFilter *models.Filter
 	}
 	lockMongoDBMockAddFilterDimensionOptions.RLock()
 	calls = mock.calls.AddFilterDimensionOptions
@@ -567,29 +623,33 @@ func (mock *MongoDBMock) CreateFilterOutputCalls() []struct {
 }
 
 // GetFilter calls GetFilterFunc.
-func (mock *MongoDBMock) GetFilter(filterID string) (*models.Filter, error) {
+func (mock *MongoDBMock) GetFilter(filterID string, eTagSelector string) (*models.Filter, error) {
 	if mock.GetFilterFunc == nil {
 		panic("MongoDBMock.GetFilterFunc: method is nil but MongoDB.GetFilter was just called")
 	}
 	callInfo := struct {
-		FilterID string
+		FilterID     string
+		ETagSelector string
 	}{
-		FilterID: filterID,
+		FilterID:     filterID,
+		ETagSelector: eTagSelector,
 	}
 	lockMongoDBMockGetFilter.Lock()
 	mock.calls.GetFilter = append(mock.calls.GetFilter, callInfo)
 	lockMongoDBMockGetFilter.Unlock()
-	return mock.GetFilterFunc(filterID)
+	return mock.GetFilterFunc(filterID, eTagSelector)
 }
 
 // GetFilterCalls gets all the calls that were made to GetFilter.
 // Check the length with:
 //     len(mockedMongoDB.GetFilterCalls())
 func (mock *MongoDBMock) GetFilterCalls() []struct {
-	FilterID string
+	FilterID     string
+	ETagSelector string
 } {
 	var calls []struct {
-		FilterID string
+		FilterID     string
+		ETagSelector string
 	}
 	lockMongoDBMockGetFilter.RLock()
 	calls = mock.calls.GetFilter
@@ -598,33 +658,37 @@ func (mock *MongoDBMock) GetFilterCalls() []struct {
 }
 
 // GetFilterDimension calls GetFilterDimensionFunc.
-func (mock *MongoDBMock) GetFilterDimension(filterID string, name string) (*models.Dimension, error) {
+func (mock *MongoDBMock) GetFilterDimension(filterID string, name string, eTagSelector string) (*models.Dimension, error) {
 	if mock.GetFilterDimensionFunc == nil {
 		panic("MongoDBMock.GetFilterDimensionFunc: method is nil but MongoDB.GetFilterDimension was just called")
 	}
 	callInfo := struct {
-		FilterID string
-		Name     string
+		FilterID     string
+		Name         string
+		ETagSelector string
 	}{
-		FilterID: filterID,
-		Name:     name,
+		FilterID:     filterID,
+		Name:         name,
+		ETagSelector: eTagSelector,
 	}
 	lockMongoDBMockGetFilterDimension.Lock()
 	mock.calls.GetFilterDimension = append(mock.calls.GetFilterDimension, callInfo)
 	lockMongoDBMockGetFilterDimension.Unlock()
-	return mock.GetFilterDimensionFunc(filterID, name)
+	return mock.GetFilterDimensionFunc(filterID, name, eTagSelector)
 }
 
 // GetFilterDimensionCalls gets all the calls that were made to GetFilterDimension.
 // Check the length with:
 //     len(mockedMongoDB.GetFilterDimensionCalls())
 func (mock *MongoDBMock) GetFilterDimensionCalls() []struct {
-	FilterID string
-	Name     string
+	FilterID     string
+	Name         string
+	ETagSelector string
 } {
 	var calls []struct {
-		FilterID string
-		Name     string
+		FilterID     string
+		Name         string
+		ETagSelector string
 	}
 	lockMongoDBMockGetFilterDimension.RLock()
 	calls = mock.calls.GetFilterDimension
@@ -664,37 +728,45 @@ func (mock *MongoDBMock) GetFilterOutputCalls() []struct {
 }
 
 // RemoveFilterDimension calls RemoveFilterDimensionFunc.
-func (mock *MongoDBMock) RemoveFilterDimension(filterID string, name string, timestamp bson.MongoTimestamp) error {
+func (mock *MongoDBMock) RemoveFilterDimension(filterID string, name string, timestamp bson.MongoTimestamp, eTagSelector string, currentFilter *models.Filter) (string, error) {
 	if mock.RemoveFilterDimensionFunc == nil {
 		panic("MongoDBMock.RemoveFilterDimensionFunc: method is nil but MongoDB.RemoveFilterDimension was just called")
 	}
 	callInfo := struct {
-		FilterID  string
-		Name      string
-		Timestamp bson.MongoTimestamp
+		FilterID      string
+		Name          string
+		Timestamp     bson.MongoTimestamp
+		ETagSelector  string
+		CurrentFilter *models.Filter
 	}{
-		FilterID:  filterID,
-		Name:      name,
-		Timestamp: timestamp,
+		FilterID:      filterID,
+		Name:          name,
+		Timestamp:     timestamp,
+		ETagSelector:  eTagSelector,
+		CurrentFilter: currentFilter,
 	}
 	lockMongoDBMockRemoveFilterDimension.Lock()
 	mock.calls.RemoveFilterDimension = append(mock.calls.RemoveFilterDimension, callInfo)
 	lockMongoDBMockRemoveFilterDimension.Unlock()
-	return mock.RemoveFilterDimensionFunc(filterID, name, timestamp)
+	return mock.RemoveFilterDimensionFunc(filterID, name, timestamp, eTagSelector, currentFilter)
 }
 
 // RemoveFilterDimensionCalls gets all the calls that were made to RemoveFilterDimension.
 // Check the length with:
 //     len(mockedMongoDB.RemoveFilterDimensionCalls())
 func (mock *MongoDBMock) RemoveFilterDimensionCalls() []struct {
-	FilterID  string
-	Name      string
-	Timestamp bson.MongoTimestamp
+	FilterID      string
+	Name          string
+	Timestamp     bson.MongoTimestamp
+	ETagSelector  string
+	CurrentFilter *models.Filter
 } {
 	var calls []struct {
-		FilterID  string
-		Name      string
-		Timestamp bson.MongoTimestamp
+		FilterID      string
+		Name          string
+		Timestamp     bson.MongoTimestamp
+		ETagSelector  string
+		CurrentFilter *models.Filter
 	}
 	lockMongoDBMockRemoveFilterDimension.RLock()
 	calls = mock.calls.RemoveFilterDimension
@@ -703,41 +775,49 @@ func (mock *MongoDBMock) RemoveFilterDimensionCalls() []struct {
 }
 
 // RemoveFilterDimensionOption calls RemoveFilterDimensionOptionFunc.
-func (mock *MongoDBMock) RemoveFilterDimensionOption(filterID string, name string, option string, timestamp bson.MongoTimestamp) error {
+func (mock *MongoDBMock) RemoveFilterDimensionOption(filterID string, name string, option string, timestamp bson.MongoTimestamp, eTagSelector string, currentFilter *models.Filter) (string, error) {
 	if mock.RemoveFilterDimensionOptionFunc == nil {
 		panic("MongoDBMock.RemoveFilterDimensionOptionFunc: method is nil but MongoDB.RemoveFilterDimensionOption was just called")
 	}
 	callInfo := struct {
-		FilterID  string
-		Name      string
-		Option    string
-		Timestamp bson.MongoTimestamp
+		FilterID      string
+		Name          string
+		Option        string
+		Timestamp     bson.MongoTimestamp
+		ETagSelector  string
+		CurrentFilter *models.Filter
 	}{
-		FilterID:  filterID,
-		Name:      name,
-		Option:    option,
-		Timestamp: timestamp,
+		FilterID:      filterID,
+		Name:          name,
+		Option:        option,
+		Timestamp:     timestamp,
+		ETagSelector:  eTagSelector,
+		CurrentFilter: currentFilter,
 	}
 	lockMongoDBMockRemoveFilterDimensionOption.Lock()
 	mock.calls.RemoveFilterDimensionOption = append(mock.calls.RemoveFilterDimensionOption, callInfo)
 	lockMongoDBMockRemoveFilterDimensionOption.Unlock()
-	return mock.RemoveFilterDimensionOptionFunc(filterID, name, option, timestamp)
+	return mock.RemoveFilterDimensionOptionFunc(filterID, name, option, timestamp, eTagSelector, currentFilter)
 }
 
 // RemoveFilterDimensionOptionCalls gets all the calls that were made to RemoveFilterDimensionOption.
 // Check the length with:
 //     len(mockedMongoDB.RemoveFilterDimensionOptionCalls())
 func (mock *MongoDBMock) RemoveFilterDimensionOptionCalls() []struct {
-	FilterID  string
-	Name      string
-	Option    string
-	Timestamp bson.MongoTimestamp
+	FilterID      string
+	Name          string
+	Option        string
+	Timestamp     bson.MongoTimestamp
+	ETagSelector  string
+	CurrentFilter *models.Filter
 } {
 	var calls []struct {
-		FilterID  string
-		Name      string
-		Option    string
-		Timestamp bson.MongoTimestamp
+		FilterID      string
+		Name          string
+		Option        string
+		Timestamp     bson.MongoTimestamp
+		ETagSelector  string
+		CurrentFilter *models.Filter
 	}
 	lockMongoDBMockRemoveFilterDimensionOption.RLock()
 	calls = mock.calls.RemoveFilterDimensionOption
@@ -746,41 +826,49 @@ func (mock *MongoDBMock) RemoveFilterDimensionOptionCalls() []struct {
 }
 
 // RemoveFilterDimensionOptions calls RemoveFilterDimensionOptionsFunc.
-func (mock *MongoDBMock) RemoveFilterDimensionOptions(filterID string, name string, options []string, timestamp bson.MongoTimestamp) error {
+func (mock *MongoDBMock) RemoveFilterDimensionOptions(filterID string, name string, options []string, timestamp bson.MongoTimestamp, eTagSelector string, currentFilter *models.Filter) (string, error) {
 	if mock.RemoveFilterDimensionOptionsFunc == nil {
 		panic("MongoDBMock.RemoveFilterDimensionOptionsFunc: method is nil but MongoDB.RemoveFilterDimensionOptions was just called")
 	}
 	callInfo := struct {
-		FilterID  string
-		Name      string
-		Options   []string
-		Timestamp bson.MongoTimestamp
+		FilterID      string
+		Name          string
+		Options       []string
+		Timestamp     bson.MongoTimestamp
+		ETagSelector  string
+		CurrentFilter *models.Filter
 	}{
-		FilterID:  filterID,
-		Name:      name,
-		Options:   options,
-		Timestamp: timestamp,
+		FilterID:      filterID,
+		Name:          name,
+		Options:       options,
+		Timestamp:     timestamp,
+		ETagSelector:  eTagSelector,
+		CurrentFilter: currentFilter,
 	}
 	lockMongoDBMockRemoveFilterDimensionOptions.Lock()
 	mock.calls.RemoveFilterDimensionOptions = append(mock.calls.RemoveFilterDimensionOptions, callInfo)
 	lockMongoDBMockRemoveFilterDimensionOptions.Unlock()
-	return mock.RemoveFilterDimensionOptionsFunc(filterID, name, options, timestamp)
+	return mock.RemoveFilterDimensionOptionsFunc(filterID, name, options, timestamp, eTagSelector, currentFilter)
 }
 
 // RemoveFilterDimensionOptionsCalls gets all the calls that were made to RemoveFilterDimensionOptions.
 // Check the length with:
 //     len(mockedMongoDB.RemoveFilterDimensionOptionsCalls())
 func (mock *MongoDBMock) RemoveFilterDimensionOptionsCalls() []struct {
-	FilterID  string
-	Name      string
-	Options   []string
-	Timestamp bson.MongoTimestamp
+	FilterID      string
+	Name          string
+	Options       []string
+	Timestamp     bson.MongoTimestamp
+	ETagSelector  string
+	CurrentFilter *models.Filter
 } {
 	var calls []struct {
-		FilterID  string
-		Name      string
-		Options   []string
-		Timestamp bson.MongoTimestamp
+		FilterID      string
+		Name          string
+		Options       []string
+		Timestamp     bson.MongoTimestamp
+		ETagSelector  string
+		CurrentFilter *models.Filter
 	}
 	lockMongoDBMockRemoveFilterDimensionOptions.RLock()
 	calls = mock.calls.RemoveFilterDimensionOptions
@@ -789,33 +877,41 @@ func (mock *MongoDBMock) RemoveFilterDimensionOptionsCalls() []struct {
 }
 
 // UpdateFilter calls UpdateFilterFunc.
-func (mock *MongoDBMock) UpdateFilter(filter *models.Filter, timestamp bson.MongoTimestamp) error {
+func (mock *MongoDBMock) UpdateFilter(updatedFilter *models.Filter, timestamp bson.MongoTimestamp, eTagSelector string, currentFilter *models.Filter) (string, error) {
 	if mock.UpdateFilterFunc == nil {
 		panic("MongoDBMock.UpdateFilterFunc: method is nil but MongoDB.UpdateFilter was just called")
 	}
 	callInfo := struct {
-		Filter    *models.Filter
-		Timestamp bson.MongoTimestamp
+		UpdatedFilter *models.Filter
+		Timestamp     bson.MongoTimestamp
+		ETagSelector  string
+		CurrentFilter *models.Filter
 	}{
-		Filter:    filter,
-		Timestamp: timestamp,
+		UpdatedFilter: updatedFilter,
+		Timestamp:     timestamp,
+		ETagSelector:  eTagSelector,
+		CurrentFilter: currentFilter,
 	}
 	lockMongoDBMockUpdateFilter.Lock()
 	mock.calls.UpdateFilter = append(mock.calls.UpdateFilter, callInfo)
 	lockMongoDBMockUpdateFilter.Unlock()
-	return mock.UpdateFilterFunc(filter, timestamp)
+	return mock.UpdateFilterFunc(updatedFilter, timestamp, eTagSelector, currentFilter)
 }
 
 // UpdateFilterCalls gets all the calls that were made to UpdateFilter.
 // Check the length with:
 //     len(mockedMongoDB.UpdateFilterCalls())
 func (mock *MongoDBMock) UpdateFilterCalls() []struct {
-	Filter    *models.Filter
-	Timestamp bson.MongoTimestamp
+	UpdatedFilter *models.Filter
+	Timestamp     bson.MongoTimestamp
+	ETagSelector  string
+	CurrentFilter *models.Filter
 } {
 	var calls []struct {
-		Filter    *models.Filter
-		Timestamp bson.MongoTimestamp
+		UpdatedFilter *models.Filter
+		Timestamp     bson.MongoTimestamp
+		ETagSelector  string
+		CurrentFilter *models.Filter
 	}
 	lockMongoDBMockUpdateFilter.RLock()
 	calls = mock.calls.UpdateFilter
@@ -824,33 +920,33 @@ func (mock *MongoDBMock) UpdateFilterCalls() []struct {
 }
 
 // UpdateFilterOutput calls UpdateFilterOutputFunc.
-func (mock *MongoDBMock) UpdateFilterOutput(filterOutput *models.Filter, timestamp bson.MongoTimestamp) error {
+func (mock *MongoDBMock) UpdateFilterOutput(filter *models.Filter, timestamp bson.MongoTimestamp) error {
 	if mock.UpdateFilterOutputFunc == nil {
 		panic("MongoDBMock.UpdateFilterOutputFunc: method is nil but MongoDB.UpdateFilterOutput was just called")
 	}
 	callInfo := struct {
-		FilterOutput *models.Filter
-		Timestamp    bson.MongoTimestamp
+		Filter    *models.Filter
+		Timestamp bson.MongoTimestamp
 	}{
-		FilterOutput: filterOutput,
-		Timestamp:    timestamp,
+		Filter:    filter,
+		Timestamp: timestamp,
 	}
 	lockMongoDBMockUpdateFilterOutput.Lock()
 	mock.calls.UpdateFilterOutput = append(mock.calls.UpdateFilterOutput, callInfo)
 	lockMongoDBMockUpdateFilterOutput.Unlock()
-	return mock.UpdateFilterOutputFunc(filterOutput, timestamp)
+	return mock.UpdateFilterOutputFunc(filter, timestamp)
 }
 
 // UpdateFilterOutputCalls gets all the calls that were made to UpdateFilterOutput.
 // Check the length with:
 //     len(mockedMongoDB.UpdateFilterOutputCalls())
 func (mock *MongoDBMock) UpdateFilterOutputCalls() []struct {
-	FilterOutput *models.Filter
-	Timestamp    bson.MongoTimestamp
+	Filter    *models.Filter
+	Timestamp bson.MongoTimestamp
 } {
 	var calls []struct {
-		FilterOutput *models.Filter
-		Timestamp    bson.MongoTimestamp
+		Filter    *models.Filter
+		Timestamp bson.MongoTimestamp
 	}
 	lockMongoDBMockUpdateFilterOutput.RLock()
 	calls = mock.calls.UpdateFilterOutput
