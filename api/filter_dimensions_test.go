@@ -29,25 +29,25 @@ func TestSuccessfulGetFilterBlueprintDimensions(t *testing.T) {
 				{
 					Name: "1_age",
 					Links: &models.PublicDimensionLinkMap{
-						Self:    models.LinkObject{ID: "1_age", HRef: "http://localhost:80/filters//dimensions/1_age"},
-						Filter:  models.LinkObject{ID: "", HRef: "http://localhost:80/filters/"},
-						Options: models.LinkObject{ID: "", HRef: "http://localhost:80/filters//dimensions/1_age/options"},
+						Self:    &models.LinkObject{ID: "1_age", HRef: "http://localhost:80/filters//dimensions/1_age"},
+						Filter:  &models.LinkObject{ID: "", HRef: "http://localhost:80/filters/"},
+						Options: &models.LinkObject{ID: "", HRef: "http://localhost:80/filters//dimensions/1_age/options"},
 					},
 				},
 				{
 					Name: "age",
 					Links: &models.PublicDimensionLinkMap{
-						Self:    models.LinkObject{ID: "age", HRef: "http://localhost:80/filters//dimensions/age"},
-						Filter:  models.LinkObject{ID: "", HRef: "http://localhost:80/filters/"},
-						Options: models.LinkObject{ID: "", HRef: "http://localhost:80/filters//dimensions/age/options"},
+						Self:    &models.LinkObject{ID: "age", HRef: "http://localhost:80/filters//dimensions/age"},
+						Filter:  &models.LinkObject{ID: "", HRef: "http://localhost:80/filters/"},
+						Options: &models.LinkObject{ID: "", HRef: "http://localhost:80/filters//dimensions/age/options"},
 					},
 				},
 				{
 					Name: "time",
 					Links: &models.PublicDimensionLinkMap{
-						Self:    models.LinkObject{ID: "time", HRef: "http://localhost:80/filters//dimensions/time"},
-						Filter:  models.LinkObject{ID: "", HRef: "http://localhost:80/filters/"},
-						Options: models.LinkObject{ID: "", HRef: "http://localhost:80/filters//dimensions/time/options"},
+						Self:    &models.LinkObject{ID: "time", HRef: "http://localhost:80/filters//dimensions/time"},
+						Filter:  &models.LinkObject{ID: "", HRef: "http://localhost:80/filters/"},
+						Options: &models.LinkObject{ID: "", HRef: "http://localhost:80/filters//dimensions/time/options"},
 					},
 				},
 			},
@@ -114,17 +114,17 @@ func TestSuccessfulGetFilterBlueprintDimensions(t *testing.T) {
 					{
 						Name: "age",
 						Links: &models.PublicDimensionLinkMap{
-							Self:    models.LinkObject{ID: "age", HRef: "http://localhost:80/filters//dimensions/age"},
-							Filter:  models.LinkObject{ID: "", HRef: "http://localhost:80/filters/"},
-							Options: models.LinkObject{ID: "", HRef: "http://localhost:80/filters//dimensions/age/options"},
+							Self:    &models.LinkObject{ID: "age", HRef: "http://localhost:80/filters//dimensions/age"},
+							Filter:  &models.LinkObject{ID: "", HRef: "http://localhost:80/filters/"},
+							Options: &models.LinkObject{ID: "", HRef: "http://localhost:80/filters//dimensions/age/options"},
 						},
 					},
 					{
 						Name: "time",
 						Links: &models.PublicDimensionLinkMap{
-							Self:    models.LinkObject{ID: "time", HRef: "http://localhost:80/filters//dimensions/time"},
-							Filter:  models.LinkObject{ID: "", HRef: "http://localhost:80/filters/"},
-							Options: models.LinkObject{ID: "", HRef: "http://localhost:80/filters//dimensions/time/options"},
+							Self:    &models.LinkObject{ID: "time", HRef: "http://localhost:80/filters//dimensions/time"},
+							Filter:  &models.LinkObject{ID: "", HRef: "http://localhost:80/filters/"},
+							Options: &models.LinkObject{ID: "", HRef: "http://localhost:80/filters//dimensions/time/options"},
 						},
 					},
 				},

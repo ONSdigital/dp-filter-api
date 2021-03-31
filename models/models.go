@@ -45,6 +45,7 @@ type Filter struct {
 	LastUpdated     time.Time           `bson:"last_updated"               json:"-"`
 	ETag            string              `bson:"e_tag"                      json:"-"`
 
+	ID         string      `bson:"-"                    json:"id,omitempty"`
 	Dataset    *Dataset    `bson:"dataset"              json:"dataset"`
 	InstanceID string      `bson:"instance_id"          json:"instance_id"`
 	Dimensions []Dimension `bson:"dimensions,omitempty" json:"dimensions,omitempty"`
@@ -80,13 +81,13 @@ func (f *Filter) Hash(extraBytes []byte) (string, error) {
 	return fmt.Sprintf("%x", h.Sum(nil)), nil
 }
 
-// LinkMap contains a named LinkObject for each link to other resources
+// LinkMap contains a named *LinkObject for each link to other resources
 type LinkMap struct {
-	Dimensions      LinkObject `bson:"dimensions"                 json:"dimensions,omitempty"`
-	FilterOutput    LinkObject `json:"filter_output,omitempty"`
-	FilterBlueprint LinkObject `bson:"filter_blueprint,omitempty" json:"filter_blueprint,omitempty"`
-	Self            LinkObject `bson:"self"                       json:"self,omitempty"`
-	Version         LinkObject `bson:"version"                    json:"version,omitempty"`
+	Dimensions      *LinkObject `bson:"dimensions"                 json:"dimensions,omitempty"`
+	FilterOutput    *LinkObject `json:"filter_output,omitempty"`
+	FilterBlueprint *LinkObject `bson:"filter_blueprint,omitempty" json:"filter_blueprint,omitempty"`
+	Self            *LinkObject `bson:"self"                       json:"self,omitempty"`
+	Version         *LinkObject `bson:"version"                    json:"version,omitempty"`
 }
 
 // LinkObject represents a generic structure for all links
@@ -127,9 +128,9 @@ type PublicDimensions struct {
 
 // PublicDimensionLinkMap is the links map for the PublicDimension structure
 type PublicDimensionLinkMap struct {
-	Self    LinkObject `bson:"self"                 json:"self"`
-	Filter  LinkObject `bson:"filter"               json:"filter"`
-	Options LinkObject `bson:"options"              json:"options, omitempty"`
+	Self    *LinkObject `bson:"self"                 json:"self"`
+	Filter  *LinkObject `bson:"filter"               json:"filter"`
+	Options *LinkObject `bson:"options"              json:"options,omitempty"`
 }
 
 // PublicDimensionOption represents information about a single dimension option as served by /options and /options/<id>
@@ -149,9 +150,9 @@ type PublicDimensionOptions struct {
 
 // PublicDimensionOptionLinkMap is the links map for the PublicDimensionOption structure
 type PublicDimensionOptionLinkMap struct {
-	Self      LinkObject `bson:"self"                 json:"self"`
-	Filter    LinkObject `bson:"filter"               json:"filter"`
-	Dimension LinkObject `bson:"dimension"            json:"dimension"`
+	Self      *LinkObject `bson:"self"                 json:"self"`
+	Filter    *LinkObject `bson:"filter"               json:"filter"`
+	Dimension *LinkObject `bson:"dimension"            json:"dimension"`
 }
 
 // Downloads represents a list of file types possible to download
