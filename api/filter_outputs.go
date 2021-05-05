@@ -60,7 +60,6 @@ func (api *FilterAPI) getFilterOutputHandler(w http.ResponseWriter, r *http.Requ
 }
 
 func (api *FilterAPI) updateFilterOutputHandler(w http.ResponseWriter, r *http.Request) {
-
 	defer dphttp.DrainBody(r)
 
 	vars := mux.Vars(r)
@@ -90,8 +89,8 @@ func (api *FilterAPI) updateFilterOutputHandler(w http.ResponseWriter, r *http.R
 }
 
 func (api *FilterAPI) updateFilterOutput(ctx context.Context, filterOutputID string, filterOutput *models.Filter) error {
-
 	logData := log.Data{"filter_output_id": filterOutputID}
+
 	log.Event(ctx, "updating filter output", log.INFO, logData)
 
 	if !dprequest.IsCallerPresent(ctx) {
@@ -221,14 +220,15 @@ func (api *FilterAPI) getFilterOutputPreviewHandler(w http.ResponseWriter, r *ht
 }
 
 func (api *FilterAPI) getFilterOutputPreview(ctx context.Context, filterOutputID string, limit int) (*models.FilterPreview, error) {
-
 	logData := log.Data{
 		"filter_output_id": filterOutputID,
 		"limit":            limit,
 	}
+
 	log.Event(ctx, "get filter output preview", log.INFO, logData)
 
 	hideS3Links := true // do not require s3 links for preview
+
 	filterOutput, err := api.getOutput(ctx, filterOutputID, hideS3Links)
 	if err != nil {
 		log.Event(ctx, "failed to find filter output", log.ERROR, log.Error(err), logData)
@@ -252,7 +252,6 @@ func (api *FilterAPI) getFilterOutputPreview(ctx context.Context, filterOutputID
 }
 
 func (api *FilterAPI) getOutput(ctx context.Context, filterID string, hideS3Links bool) (*models.Filter, error) {
-
 	logData := log.Data{"filter_output_id": filterID}
 
 	output, err := api.dataStore.GetFilterOutput(filterID)
@@ -260,16 +259,18 @@ func (api *FilterAPI) getOutput(ctx context.Context, filterID string, hideS3Link
 		log.Event(ctx, "error getting filter output", log.ERROR, log.Error(err), logData)
 		return nil, err
 	}
+
 	output.ID = output.FilterID
 	var blueprintID string
+
 	if output.Links.FilterBlueprint != nil {
 		blueprintID = output.Links.FilterBlueprint.ID
 	}
+
 	logData["filter_blueprint_id"] = blueprintID
 
 	// Hide private download links if request is not authenticated
 	if hideS3Links {
-
 		log.Event(ctx, "a valid download service token has not been provided. hiding links", log.INFO, logData)
 
 		if output.Downloads != nil {
@@ -314,7 +315,6 @@ func (api *FilterAPI) getOutput(ctx context.Context, filterID string, hideS3Link
 }
 
 func buildDownloadsObject(previousFilterOutput, filterOutput *models.Filter, downloadServiceURL string) {
-
 	if filterOutput.Downloads == nil {
 		filterOutput.Downloads = previousFilterOutput.Downloads
 		return
@@ -365,7 +365,6 @@ func buildDownloadItem(new, old *models.DownloadItem) *models.DownloadItem {
 }
 
 func (api *FilterAPI) addEventHandler(w http.ResponseWriter, r *http.Request) {
-
 	defer dphttp.DrainBody(r)
 
 	vars := mux.Vars(r)
@@ -405,7 +404,6 @@ func (api *FilterAPI) addEventHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (api *FilterAPI) addEvent(filterOutputID string, event *models.Event) error {
-
 	if event.Type == "" {
 		return filters.NewBadRequestErr("event type cannot be empty")
 	}

@@ -553,7 +553,7 @@ func (api *FilterAPI) createFilterOutputResource(ctx context.Context, newFilter 
 	filterOutput.Links.Dimensions = &models.LinkObject{
 		HRef: "",
 	}
-	newFilter.Links.FilterBlueprint = &models.LinkObject{
+	filterOutput.Links.FilterBlueprint = &models.LinkObject{
 		HRef: fmt.Sprintf("%s/filters/%s", api.host, filterBlueprintID),
 		ID:   filterBlueprintID,
 	}
