@@ -111,7 +111,7 @@ func TestSuccessfulAddFilterBlueprint_PublishedDataset(t *testing.T) {
 				filterOutput := mockDatastore.CreateFilterOutputCalls()[0]
 				So(len(filterOutput.Filter.Events), ShouldEqual, 1)
 
-				So(filterOutput.Filter.Events[0].Type, ShouldEqual, eventFilterOutputCreated)
+				So(filterOutput.Filter.Events[0].Type, ShouldEqual, models.EventFilterOutputCreated)
 			})
 
 			Convey("Then the response is 201 created", func() {
@@ -635,7 +635,7 @@ func TestSuccessfulUpdateFilterBlueprint_PublishedDataset(t *testing.T) {
 				filterOutput := mockDatastore.CreateFilterOutputCalls()[0]
 				So(len(filterOutput.Filter.Events), ShouldEqual, 1)
 
-				So(filterOutput.Filter.Events[0].Type, ShouldEqual, eventFilterOutputCreated)
+				So(filterOutput.Filter.Events[0].Type, ShouldEqual, models.EventFilterOutputCreated)
 			})
 
 			Convey("Then the response is 200 OK", func() {

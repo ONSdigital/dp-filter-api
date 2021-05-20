@@ -133,23 +133,13 @@ func (api *FilterAPI) updateFilterOutput(ctx context.Context, filterOutputID str
 	}
 
 	if err = api.dataStore.UpdateFilterOutput(filterOutput, timestamp); err != nil {
-		log.Event(ctx, "unable to update filter output", log.ERROR, log.Error(err), logData)
+		log.Event(ctx, "unable to update filter output body", log.ERROR, log.Error(err), logData)
 		return err
 	}
 
-	// save the completed event after saving the filter output if its now complete
-	if isNowStatusCompleted {
-		log.Event(ctx, "filter output status is now completed, creating completed event", log.INFO, logData)
-
-		completedEvent := &models.Event{
-			Type: eventFilterOutputCompleted,
-			Time: time.Now(),
-		}
-
-		if err = api.dataStore.AddEventToFilterOutput(filterOutput.FilterID, completedEvent); err != nil {
-			log.Event(ctx, "failed to add event to filter output", log.ERROR, log.Error(err), logData)
-			return err
-		}
+	if err = api.addEvents(ctx, filterOutput.Events, filterOutputID, isNowStatusCompleted); err != nil {
+		log.Event(ctx, "unable to add events to filter output", log.ERROR, log.Error(err), logData)
+		return err
 	}
 
 	return nil
@@ -392,7 +382,7 @@ func (api *FilterAPI) addEventHandler(w http.ResponseWriter, r *http.Request) {
 	logData["event"] = event
 	log.Event(ctx, "adding event to filter output", log.INFO, logData)
 
-	err = api.addEvent(filterOutputID, event)
+	err = api.addEvents(ctx, []*models.Event{event}, filterOutputID, false)
 	if err != nil {
 		log.Event(ctx, "failed to add event to filter output", log.ERROR, log.Error(err), logData)
 		setErrorCode(w, err)
@@ -403,10 +393,37 @@ func (api *FilterAPI) addEventHandler(w http.ResponseWriter, r *http.Request) {
 	log.Event(ctx, "added event to filter output", log.INFO, logData)
 }
 
-func (api *FilterAPI) addEvent(filterOutputID string, event *models.Event) error {
-	if event.Type == "" {
-		return filters.NewBadRequestErr("event type cannot be empty")
+func (api *FilterAPI) addEvents(ctx context.Context, events []*models.Event, id string, completed bool) error {
+	logData := log.Data{"filter_output_id": id}
+
+	if len(events) > 0 {
+		for _, e := range events {
+			if err := e.Validate(); err != nil {
+				log.Event(ctx, "filter output event failed validation", log.ERROR, log.Error(err), logData)
+				return filters.NewBadRequestErr(err.Error())
+			}
+
+			if err := api.dataStore.AddEventToFilterOutput(id, e); err != nil {
+				log.Event(ctx, "failed to add event to filter output", log.ERROR, log.Error(err), logData)
+				return err
+			}
+		}
 	}
 
-	return api.dataStore.AddEventToFilterOutput(filterOutputID, event)
+	// save the completed event after saving the filter output if its now complete
+	if completed {
+		log.Event(ctx, "filter output status is now completed, creating completed event", log.INFO, logData)
+
+		completedEvent := &models.Event{
+			Type: models.EventFilterOutputCompleted,
+			Time: time.Now(),
+		}
+
+		if err := api.dataStore.AddEventToFilterOutput(id, completedEvent); err != nil {
+			log.Event(ctx, "failed to add event to filter output", log.ERROR, log.Error(err), logData)
+			return err
+		}
+	}
+
+	return nil
 }

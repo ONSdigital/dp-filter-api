@@ -200,7 +200,7 @@ func TestSuccessfulUpdateFilterOutput_StatusComplete(t *testing.T) {
 			Convey("Then the data store is called to add a completed event", func() {
 				So(len(mockDatastore.AddEventToFilterOutputCalls()), ShouldEqual, 1)
 				filterOutput := mockDatastore.AddEventToFilterOutputCalls()[0]
-				So(filterOutput.Event.Type, ShouldEqual, eventFilterOutputCompleted)
+				So(filterOutput.Event.Type, ShouldEqual, models.EventFilterOutputCompleted)
 			})
 
 			Convey("Then the response code should be 200 OK", func() {
@@ -230,7 +230,7 @@ func TestSuccessfulUpdateFilterOutput_StatusComplete(t *testing.T) {
 			Convey("Then the data store is called to add a completed event", func() {
 				So(len(mockDatastore.AddEventToFilterOutputCalls()), ShouldEqual, 1)
 				filterOutput := mockDatastore.AddEventToFilterOutputCalls()[0]
-				So(filterOutput.Event.Type, ShouldEqual, eventFilterOutputCompleted)
+				So(filterOutput.Event.Type, ShouldEqual, models.EventFilterOutputCompleted)
 			})
 
 			Convey("Then the response code should be 200 OK", func() {

@@ -170,11 +170,6 @@ type DownloadItem struct {
 	Size    string `bson:"size,omitempty"    json:"size,omitempty"`
 }
 
-type Event struct {
-	Type string    `bson:"type,omitempty" json:"type"`
-	Time time.Time `bson:"time,omitempty" json:"time"`
-}
-
 // FilterPreview contains the results of a requested preview
 type FilterPreview struct {
 	Headers         []string   `json:"headers"`
