@@ -662,7 +662,7 @@ func TestSuccessfulAddEventToFilterOutput(t *testing.T) {
 
 		Convey("When a POST request is made to the filter output event endpoint", func() {
 
-			reader := strings.NewReader(`{"type":"CSVCreated","time":"2018-06-10T05:59:05.893629647+01:00"}`)
+			reader := strings.NewReader(`{"type":"` + models.EventFilterOutputCompleted + `","time":"2018-06-10T05:59:05.893629647+01:00"}`)
 			r := createAuthenticatedRequest("POST", "http://localhost:22100/filter-outputs/21312/events", reader)
 
 			w := httptest.NewRecorder()
@@ -671,7 +671,7 @@ func TestSuccessfulAddEventToFilterOutput(t *testing.T) {
 			Convey("Then the data store is called to add the event", func() {
 				So(len(mockDatastore.AddEventToFilterOutputCalls()), ShouldEqual, 1)
 				filterOutput := mockDatastore.AddEventToFilterOutputCalls()[0]
-				So(filterOutput.Event.Type, ShouldEqual, "CSVCreated")
+				So(filterOutput.Event.Type, ShouldEqual, models.EventFilterOutputCompleted)
 			})
 
 			Convey("Then the response is 201 OK", func() {
@@ -765,7 +765,7 @@ func TestFailedAddEventToFilterOutput_DatastoreError(t *testing.T) {
 
 		Convey("When a POST request is made to the filter output event endpoint, and the data store returns an error", func() {
 
-			reader := strings.NewReader(`{"type":"CSVCreated","time":"2018-06-10T05:59:05.893629647+01:00"}`)
+			reader := strings.NewReader(`{"type":"` + models.EventFilterOutputCompleted + `","time":"2018-06-10T05:59:05.893629647+01:00"}`)
 			r := createAuthenticatedRequest("POST", "http://localhost:22100/filter-outputs/21312/events", reader)
 
 			w := httptest.NewRecorder()
@@ -774,7 +774,7 @@ func TestFailedAddEventToFilterOutput_DatastoreError(t *testing.T) {
 			Convey("Then the data store is called to add the event", func() {
 				So(len(mockDatastore.AddEventToFilterOutputCalls()), ShouldEqual, 1)
 				filterOutput := mockDatastore.AddEventToFilterOutputCalls()[0]
-				So(filterOutput.Event.Type, ShouldEqual, "CSVCreated")
+				So(filterOutput.Event.Type, ShouldEqual, models.EventFilterOutputCompleted)
 			})
 
 			Convey("Then the response is 500 internal server error", func() {
