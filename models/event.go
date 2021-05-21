@@ -17,6 +17,7 @@ const (
 	EventFilterOutputCompleted    = "FilterOutputCompleted"
 )
 
+// Event captures the time certain stages of filter response were completed
 type Event struct {
 	Type string    `bson:"type,omitempty" json:"type"`
 	Time time.Time `bson:"time,omitempty" json:"time"`
