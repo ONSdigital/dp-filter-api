@@ -39,6 +39,9 @@ type MongoConfig struct {
 	OutputsCollection string `envconfig:"MONGODB_OUTPUT_COLLECTION"`
 	Limit             int    `envconfig:"MONGODB_LIMIT"`
 	Offset            int    `envconfig:"MONGODB_OFFSET"`
+	Username          string `envconfig:"MONGO_USERNAME"`
+	Password          string `envconfig:"MONGO_PASSWORD" json:"-"`
+	CAFilePath        string `envconfig:"MONGO_CA_FILE_PATH" json:"-"`
 }
 
 var cfg *Config
@@ -71,6 +74,9 @@ func Get() (*Config, error) {
 			OutputsCollection: "filterOutputs",
 			Limit:             20, // Default limit for mongoDB queries that do not provide an explicit limit
 			Offset:            0,  // Default offset for mongoDB queries that do not provide an explicit offset
+			Username:          "",
+			Password:          "",
+			CAFilePath:        "",
 		},
 		ServiceAuthToken:         "FD0108EA-825D-411C-9B1D-41EF7727F465",
 		ZebedeeURL:               "http://localhost:8082",
