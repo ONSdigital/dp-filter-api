@@ -9,45 +9,75 @@ import (
 	"github.com/ONSdigital/dp-filter-api/filters"
 	"github.com/ONSdigital/dp-filter-api/models"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
-	mongolib "github.com/ONSdigital/dp-mongodb"
-	mongohealth "github.com/ONSdigital/dp-mongodb/health"
-	"github.com/globalsign/mgo"
-	"github.com/globalsign/mgo/bson"
+	"go.mongodb.org/mongo-driver/bson"
+	"gopkg.in/mgo.v2"
+
+	dpMongoHealth "github.com/ONSdigital/dp-mongodb/v2/pkg/health"
+	dpMongoDriver "github.com/ONSdigital/dp-mongodb/v2/pkg/mongo-driver"
+)
+
+const (
+	connectTimeoutInSeconds = 5
+	queryTimeoutInSeconds   = 15
 )
 
 // FilterStore containing all filter jobs stored in mongodb
 type FilterStore struct {
-	Session           *mgo.Session
-	host              string
-	db                string
-	filtersCollection string
-	outputsCollection string
-	healthCheckClient *mongohealth.CheckMongoClient
+	URI               string
+	Database          string
+	FiltersCollection string
+	OutputsCollection string
+	Connection        *dpMongoDriver.MongoConnection
+	Username          string
+	Password          string
+	CAFilePath        string
+	healthCheckClient *dpMongoHealth.CheckMongoClient
+}
+
+func (f *FilterStore) getConnectionConfig() *dpMongoDriver.MongoConnectionConfig {
+	return &dpMongoDriver.MongoConnectionConfig{
+		CaFilePath:              f.CAFilePath,
+		ConnectTimeoutInSeconds: connectTimeoutInSeconds,
+		QueryTimeoutInSeconds:   queryTimeoutInSeconds,
+		Username:                f.Username,
+		Password:                f.Password,
+		ClusterEndpoint:         f.URI,
+		Database:                f.Database,
+		SkipCertVerification:    true,
+	}
 }
 
 // CreateFilterStore which can store, update and fetch filter jobs
 func CreateFilterStore(cfg config.MongoConfig, host string) (*FilterStore, error) {
-	session, err := mgo.Dial(cfg.BindAddr)
+	mongoConnection, err := dpMongoDriver.Open(&dpMongoDriver.MongoConnectionConfig{
+		CaFilePath:              cfg.CAFilePath,
+		ConnectTimeoutInSeconds: connectTimeoutInSeconds,
+		QueryTimeoutInSeconds:   queryTimeoutInSeconds,
+
+		Username:             cfg.Username,
+		Password:             cfg.Password,
+		ClusterEndpoint:      cfg.BindAddr,
+		Database:             cfg.Database,
+		SkipCertVerification: true,
+	})
+
 	if err != nil {
 		return nil, err
 	}
 
-	session.EnsureSafe(&mgo.Safe{WMode: "majority"})
-	session.SetMode(mgo.Strong, true)
-
 	filterStore := &FilterStore{
-		Session:           session,
-		host:              host,
-		db:                cfg.Database,
-		filtersCollection: cfg.FiltersCollection,
-		outputsCollection: cfg.OutputsCollection,
+		Connection:        mongoConnection,
+		URI:               host,
+		Database:          cfg.Database,
+		FiltersCollection: cfg.FiltersCollection,
+		OutputsCollection: cfg.OutputsCollection,
 	}
 
-	databaseCollectionBuilder := make(map[mongohealth.Database][]mongohealth.Collection)
-	databaseCollectionBuilder[(mongohealth.Database)(cfg.Database)] = []mongohealth.Collection{(mongohealth.Collection)(cfg.FiltersCollection), (mongohealth.Collection)(cfg.OutputsCollection)}
+	databaseCollectionBuilder := make(map[dpMongoHealth.Database][]dpMongoHealth.Collection)
+	databaseCollectionBuilder[(dpMongoHealth.Database)(cfg.Database)] = []dpMongoHealth.Collection{(dpMongoHealth.Collection)(cfg.FiltersCollection), (dpMongoHealth.Collection)(cfg.OutputsCollection)}
 
-	client := mongohealth.NewClientWithCollections(session, databaseCollectionBuilder)
-	filterStore.healthCheckClient = &mongohealth.CheckMongoClient{
+	client := dpMongoHealth.NewClientWithCollections(mongoConnection, databaseCollectionBuilder)
+	filterStore.healthCheckClient = &dpMongoHealth.CheckMongoClient{
 		Client:      *client,
 		Healthcheck: client.Healthcheck,
 	}
