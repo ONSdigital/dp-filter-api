@@ -41,9 +41,9 @@ type NewFilter struct {
 
 // Filter represents a structure for a filter job
 type Filter struct {
-	UniqueTimestamp bson.MongoTimestamp `bson:"unique_timestamp,omitempty" json:"-"`
-	LastUpdated     time.Time           `bson:"last_updated"               json:"-"`
-	ETag            string              `bson:"e_tag"                      json:"-"`
+	UniqueTimestamp int64     `bson:"unique_timestamp,omitempty" json:"-"`
+	LastUpdated     time.Time `bson:"last_updated"               json:"-"`
+	ETag            string    `bson:"e_tag"                      json:"-"`
 
 	ID         string      `bson:"-"                    json:"id,omitempty"`
 	Dataset    *Dataset    `bson:"dataset"              json:"dataset"`
@@ -185,9 +185,9 @@ type FilterPreview struct {
 
 // A list of errors returned from package
 var (
-	ErrorReadingBody = errors.New("Failed to read message body")
-	ErrorParsingBody = errors.New("Failed to parse json body")
-	ErrorNoData      = errors.New("Bad request - Missing data in body")
+	ErrorReadingBody = errors.New("failed to read message body")
+	ErrorParsingBody = errors.New("failed to parse json body")
+	ErrorNoData      = errors.New("bad request - missing data in body")
 )
 
 // DuplicateDimensionError is returned if a request contains a duplicate dimension
@@ -221,7 +221,7 @@ func (filter *NewFilter) ValidateNewFilter() error {
 	}
 
 	if missingFields != nil {
-		return fmt.Errorf("Missing mandatory fields: %v", missingFields)
+		return fmt.Errorf("missing mandatory fields: %v", missingFields)
 	}
 
 	return nil
@@ -321,7 +321,7 @@ func (filter *Filter) ValidateFilterOutputUpdate(currentFilter *Filter) error {
 	}
 
 	if forbiddenFields != nil {
-		return fmt.Errorf("Forbidden from updating the following fields: %v", forbiddenFields)
+		return fmt.Errorf("forbidden from updating the following fields: %v", forbiddenFields)
 	}
 
 	return nil
@@ -346,7 +346,7 @@ func ValidateFilterBlueprintUpdate(filter *Filter) error {
 		}
 
 		if forbiddenFields != nil {
-			return fmt.Errorf("Forbidden from updating the following fields: %v", forbiddenFields)
+			return fmt.Errorf("forbidden from updating the following fields: %v", forbiddenFields)
 		}
 	}
 
