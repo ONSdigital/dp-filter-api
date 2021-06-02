@@ -548,5 +548,5 @@ func (s *FilterStore) Checker(ctx context.Context, state *healthcheck.CheckState
 
 // Close closes the mongoDB session
 func (s *FilterStore) Close(ctx context.Context) error {
-	return mongolib.Close(ctx, s.Session)
+	return s.Connection.Close(ctx)
 }
