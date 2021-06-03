@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -14,7 +15,6 @@ import (
 	"github.com/ONSdigital/dp-filter-api/mocks"
 	"github.com/ONSdigital/dp-filter-api/models"
 	"github.com/ONSdigital/dp-filter-api/mongo"
-	"github.com/globalsign/mgo/bson"
 	"github.com/gorilla/mux"
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -34,11 +34,11 @@ func TestSuccessfulAddFilterBlueprint_PublishedDataset(t *testing.T) {
 		w := httptest.NewRecorder()
 
 		mockDatastore := &apimocks.DataStoreMock{
-			AddFilterFunc: func(filter *models.Filter) (*models.Filter, error) {
+			AddFilterFunc: func(ctx context.Context, filter *models.Filter) (*models.Filter, error) {
 				filter.ETag = testETag
 				return filter, nil
 			},
-			CreateFilterOutputFunc: func(filter *models.Filter) error {
+			CreateFilterOutputFunc: func(ctx context.Context, filter *models.Filter) error {
 				return nil
 			},
 		}
@@ -542,16 +542,16 @@ func TestSuccessfulUpdateFilterBlueprint_PublishedDataset(t *testing.T) {
 		w := httptest.NewRecorder()
 
 		mockDatastore := &apimocks.DataStoreMock{
-			CreateFilterOutputFunc: func(filter *models.Filter) error {
+			CreateFilterOutputFunc: func(ctx context.Context, filter *models.Filter) error {
 				return nil
 			},
-			GetFilterFunc: func(filterID string, eTagSelector string) (*models.Filter, error) {
+			GetFilterFunc: func(ctx context.Context, filterID string, eTagSelector string) (*models.Filter, error) {
 				if eTagSelector != mongo.AnyETag && eTagSelector != testETag {
 					return nil, filters.ErrFilterBlueprintConflict
 				}
 				return &models.Filter{Dataset: &models.Dataset{ID: "123", Edition: "2017", Version: 1}, InstanceID: "12345678", Published: &models.Published, Dimensions: []models.Dimension{{Name: "time", Options: []string{"2014", "2015"}}, {Name: "1_age"}}, ETag: testETag}, nil
 			},
-			UpdateFilterFunc: func(filter *models.Filter, timestamp bson.MongoTimestamp, eTagSelector string, currentFilter *models.Filter) (string, error) {
+			UpdateFilterFunc: func(ctx context.Context, filter *models.Filter, timestamp int64, eTagSelector string, currentFilter *models.Filter) (string, error) {
 				if eTagSelector != testETag {
 					return "", filters.ErrFilterBlueprintConflict
 				}

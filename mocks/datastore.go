@@ -1,10 +1,9 @@
 package mocks
 
 import (
+	"context"
 	"errors"
 	"fmt"
-
-	"github.com/globalsign/mgo/bson"
 
 	apimocks "github.com/ONSdigital/dp-filter-api/api/mocks"
 	"github.com/ONSdigital/dp-filter-api/filters"
@@ -161,7 +160,7 @@ func (ds *DataStore) AgeDimension() *DataStore {
 }
 
 // AddFilter represents the mocked version of creating a filter blueprint to the datastore
-func (ds *DataStore) AddFilter(filterJob *models.Filter) (*models.Filter, error) {
+func (ds *DataStore) AddFilter(ctx context.Context, filterJob *models.Filter) (*models.Filter, error) {
 	if ds.Cfg.InternalError {
 		return nil, errorInternalServer
 	}
@@ -169,7 +168,7 @@ func (ds *DataStore) AddFilter(filterJob *models.Filter) (*models.Filter, error)
 }
 
 // AddFilterDimension represents the mocked version of creating a filter dimension to the datastore
-func (ds *DataStore) AddFilterDimension(filterID, name string, options []string, dimensions []models.Dimension, timestamp bson.MongoTimestamp, eTagSelector string, currentFilter *models.Filter) (newETag string, err error) {
+func (ds *DataStore) AddFilterDimension(ctx context.Context, filterID, name string, options []string, dimensions []models.Dimension, timestamp int64, eTagSelector string, currentFilter *models.Filter) (newETag string, err error) {
 
 	if ds.Cfg.InternalError {
 		return "", errorInternalServer
@@ -191,7 +190,7 @@ func (ds *DataStore) AddFilterDimension(filterID, name string, options []string,
 }
 
 // AddFilterDimensionOption represents the mocked version of creating a filter dimension option to the datastore
-func (ds *DataStore) AddFilterDimensionOption(filterID, name, option string, timestamp bson.MongoTimestamp, eTagSelector string, currentFilter *models.Filter) (newETag string, err error) {
+func (ds *DataStore) AddFilterDimensionOption(ctx context.Context, filterID, name, option string, timestamp int64, eTagSelector string, currentFilter *models.Filter) (newETag string, err error) {
 
 	if ds.Cfg.InternalError {
 		return "", errorInternalServer
@@ -213,7 +212,7 @@ func (ds *DataStore) AddFilterDimensionOption(filterID, name, option string, tim
 }
 
 // AddFilterDimensionOptions represents the mocked version of adding a list of dimension options to the datastore
-func (ds *DataStore) AddFilterDimensionOptions(filterID, name string, options []string, timestamp bson.MongoTimestamp, eTagSelector string, currentFilter *models.Filter) (newETag string, err error) {
+func (ds *DataStore) AddFilterDimensionOptions(ctx context.Context, filterID, name string, options []string, timestamp int64, eTagSelector string, currentFilter *models.Filter) (newETag string, err error) {
 
 	if ds.Cfg.InternalError {
 		return "", errorInternalServer
@@ -235,7 +234,7 @@ func (ds *DataStore) AddFilterDimensionOptions(filterID, name string, options []
 }
 
 // CreateFilterOutput represents the mocked version of creating a filter output to the datastore
-func (ds *DataStore) CreateFilterOutput(filterJob *models.Filter) error {
+func (ds *DataStore) CreateFilterOutput(ctx context.Context, filterJob *models.Filter) error {
 	if ds.Cfg.InternalError {
 		return errorInternalServer
 	}
@@ -244,7 +243,7 @@ func (ds *DataStore) CreateFilterOutput(filterJob *models.Filter) error {
 }
 
 // GetFilter represents the mocked version of getting a filter blueprint from the datastore
-func (ds *DataStore) GetFilter(filterID, eTagSelector string) (*models.Filter, error) {
+func (ds *DataStore) GetFilter(ctx context.Context, filterID, eTagSelector string) (*models.Filter, error) {
 
 	if ds.Cfg.NotFound {
 		return nil, filters.ErrFilterBlueprintNotFound
@@ -281,7 +280,7 @@ func (ds *DataStore) GetFilter(filterID, eTagSelector string) (*models.Filter, e
 }
 
 // GetFilterDimension represents the mocked version of getting a filter dimension from the datastore
-func (ds *DataStore) GetFilterDimension(filterID string, name, eTagSelector string) (dimension *models.Dimension, err error) {
+func (ds *DataStore) GetFilterDimension(ctx context.Context, filterID string, name, eTagSelector string) (dimension *models.Dimension, err error) {
 	if ds.Cfg.DimensionNotFound {
 		return nil, filters.ErrDimensionNotFound
 	}
@@ -298,7 +297,7 @@ func (ds *DataStore) GetFilterDimension(filterID string, name, eTagSelector stri
 }
 
 // GetFilterOutput represents the mocked version of getting a filter output from the datastore
-func (ds *DataStore) GetFilterOutput(filterID string) (*models.Filter, error) {
+func (ds *DataStore) GetFilterOutput(ctx context.Context, filterID string) (*models.Filter, error) {
 	if ds.Cfg.NotFound {
 		return nil, filters.ErrFilterOutputNotFound
 	}
@@ -339,7 +338,7 @@ func (ds *DataStore) GetFilterOutput(filterID string) (*models.Filter, error) {
 }
 
 // RemoveFilterDimension represents the mocked version of removing a filter dimension from the datastore
-func (ds *DataStore) RemoveFilterDimension(filterID, name string, timestamp bson.MongoTimestamp, eTagSelector string, currentFilter *models.Filter) (newETag string, err error) {
+func (ds *DataStore) RemoveFilterDimension(ctx context.Context, filterID, name string, timestamp int64, eTagSelector string, currentFilter *models.Filter) (newETag string, err error) {
 
 	if ds.Cfg.InternalError {
 		return "", errorInternalServer
@@ -361,7 +360,7 @@ func (ds *DataStore) RemoveFilterDimension(filterID, name string, timestamp bson
 }
 
 // RemoveFilterDimensionOption represents the mocked version of removing a filter dimension option from the datastore
-func (ds *DataStore) RemoveFilterDimensionOption(filterID string, name string, option string, timestamp bson.MongoTimestamp, eTagSelector string, currentFilter *models.Filter) (newETag string, err error) {
+func (ds *DataStore) RemoveFilterDimensionOption(ctx context.Context, filterID string, name string, option string, timestamp int64, eTagSelector string, currentFilter *models.Filter) (newETag string, err error) {
 
 	if ds.Cfg.InternalError {
 		return "", errorInternalServer
@@ -383,7 +382,7 @@ func (ds *DataStore) RemoveFilterDimensionOption(filterID string, name string, o
 }
 
 // RemoveFilterDimensionOptions represents the mocked version of removing a set of filter dimension options from the datastore
-func (ds *DataStore) RemoveFilterDimensionOptions(filterID string, name string, options []string, timestamp bson.MongoTimestamp, eTagSelector string, currentFilter *models.Filter) (newETag string, err error) {
+func (ds *DataStore) RemoveFilterDimensionOptions(ctx context.Context, filterID string, name string, options []string, timestamp int64, eTagSelector string, currentFilter *models.Filter) (newETag string, err error) {
 
 	if ds.Cfg.InternalError {
 		return "", errorInternalServer
@@ -405,7 +404,7 @@ func (ds *DataStore) RemoveFilterDimensionOptions(filterID string, name string, 
 }
 
 // UpdateFilter represents the mocked version of updating a filter blueprint from the datastore
-func (ds *DataStore) UpdateFilter(updatedFilter *models.Filter, timestamp bson.MongoTimestamp, eTagSelector string, currentFilter *models.Filter) (newETag string, err error) {
+func (ds *DataStore) UpdateFilter(ctx context.Context, updatedFilter *models.Filter, timestamp int64, eTagSelector string, currentFilter *models.Filter) (newETag string, err error) {
 
 	if ds.Cfg.InternalError {
 		return "", errorInternalServer
@@ -431,7 +430,7 @@ func (ds *DataStore) UpdateFilter(updatedFilter *models.Filter, timestamp bson.M
 }
 
 // UpdateFilterOutput represents the mocked version of updating a filter output from the datastore
-func (ds *DataStore) UpdateFilterOutput(filterJob *models.Filter, timestamp bson.MongoTimestamp) error {
+func (ds *DataStore) UpdateFilterOutput(ctx context.Context, filterJob *models.Filter, timestamp int64) error {
 	if ds.Cfg.InternalError {
 		return errorInternalServer
 	}
@@ -448,7 +447,7 @@ func (ds *DataStore) UpdateFilterOutput(filterJob *models.Filter, timestamp bson
 }
 
 // AddEventToFilterOutput adds the given event to the filter output of the given ID
-func (ds *DataStore) AddEventToFilterOutput(filterOutputID string, event *models.Event) error {
+func (ds *DataStore) AddEventToFilterOutput(ctx context.Context, filterOutputID string, event *models.Event) error {
 	if ds.Cfg.InternalError {
 		return errorInternalServer
 	}

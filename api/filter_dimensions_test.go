@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -8,7 +9,6 @@ import (
 	"testing"
 
 	"github.com/ONSdigital/dp-filter-api/mocks"
-	"github.com/globalsign/mgo/bson"
 	"github.com/gorilla/mux"
 	. "github.com/smartystreets/goconvey/convey"
 
@@ -471,7 +471,7 @@ func TestFailedToAddFilterBlueprintDimension(t *testing.T) {
 
 		w := httptest.NewRecorder()
 		ds := mocks.NewDataStore()
-		ds.Mock.GetFilterDimensionFunc = func(filterID string, name, eTagSelector string) (dimension *models.Dimension, err error) {
+		ds.Mock.GetFilterDimensionFunc = func(ctx context.Context, filterID string, name, eTagSelector string) (dimension *models.Dimension, err error) {
 			return nil, filters.ErrFilterBlueprintConflict
 		}
 		api := Setup(cfg(), mux.NewRouter(), ds.Mock, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
@@ -608,7 +608,7 @@ func TestFailedToGetFilterBlueprintDimension(t *testing.T) {
 
 		w := httptest.NewRecorder()
 		ds := mocks.NewDataStore().Unpublished().Mock
-		ds.UpdateFilterFunc = func(updatedFilter *models.Filter, timestamp bson.MongoTimestamp, eTagSelector string, currentFilter *models.Filter) (string, error) {
+		ds.UpdateFilterFunc = func(ctx context.Context, updatedFilter *models.Filter, timestamp int64, eTagSelector string, currentFilter *models.Filter) (string, error) {
 			return "", filters.ErrFilterBlueprintConflict
 		}
 		api := Setup(cfg(), mux.NewRouter(), ds, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)

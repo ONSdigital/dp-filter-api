@@ -19,7 +19,7 @@ type MessageData struct {
 // Queue checks whether the filter job has errored
 func (fj *FilterJob) Queue(filter *models.Filter) error {
 	if fj.ReturnError {
-		return fmt.Errorf("No message produced for filter job")
+		return fmt.Errorf("no message produced for filter job")
 	}
 	return nil
 }

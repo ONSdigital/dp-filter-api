@@ -99,7 +99,7 @@ func (api *FilterAPI) updateFilterOutput(ctx context.Context, filterOutputID str
 	}
 
 	// check filter output resource for current downloads and published flag
-	previousFilterOutput, err := api.dataStore.GetFilterOutput(filterOutputID)
+	previousFilterOutput, err := api.dataStore.GetFilterOutput(ctx, filterOutputID)
 	if err != nil {
 		log.Event(ctx, "unable to get current filter output", log.ERROR, log.Error(err), logData)
 		return err
@@ -132,7 +132,7 @@ func (api *FilterAPI) updateFilterOutput(ctx context.Context, filterOutputID str
 		isNowStatusCompleted = true
 	}
 
-	if err = api.dataStore.UpdateFilterOutput(filterOutput, timestamp); err != nil {
+	if err = api.dataStore.UpdateFilterOutput(ctx, filterOutput, timestamp); err != nil {
 		log.Event(ctx, "unable to update filter output", log.ERROR, log.Error(err), logData)
 		return err
 	}
@@ -146,7 +146,7 @@ func (api *FilterAPI) updateFilterOutput(ctx context.Context, filterOutputID str
 			Time: time.Now(),
 		}
 
-		if err = api.dataStore.AddEventToFilterOutput(filterOutput.FilterID, completedEvent); err != nil {
+		if err = api.dataStore.AddEventToFilterOutput(ctx, filterOutput.FilterID, completedEvent); err != nil {
 			log.Event(ctx, "failed to add event to filter output", log.ERROR, log.Error(err), logData)
 			return err
 		}
@@ -254,7 +254,7 @@ func (api *FilterAPI) getFilterOutputPreview(ctx context.Context, filterOutputID
 func (api *FilterAPI) getOutput(ctx context.Context, filterID string, hideS3Links bool) (*models.Filter, error) {
 	logData := log.Data{"filter_output_id": filterID}
 
-	output, err := api.dataStore.GetFilterOutput(filterID)
+	output, err := api.dataStore.GetFilterOutput(ctx, filterID)
 	if err != nil {
 		log.Event(ctx, "error getting filter output", log.ERROR, log.Error(err), logData)
 		return nil, err
@@ -303,7 +303,7 @@ func (api *FilterAPI) getOutput(ctx context.Context, filterID string, hideS3Link
 	//filter has been published since output was last requested, so update output and return
 	if filter.Published != nil && *filter.Published == models.Published {
 		output.Published = &models.Published
-		if err := api.dataStore.UpdateFilterOutput(output, output.UniqueTimestamp); err != nil {
+		if err := api.dataStore.UpdateFilterOutput(ctx, output, output.UniqueTimestamp); err != nil {
 			log.Event(ctx, "error updating filter output", log.ERROR, log.Error(err), logData)
 			return nil, filters.ErrFilterOutputNotFound
 		}
@@ -392,7 +392,7 @@ func (api *FilterAPI) addEventHandler(w http.ResponseWriter, r *http.Request) {
 	logData["event"] = event
 	log.Event(ctx, "adding event to filter output", log.INFO, logData)
 
-	err = api.addEvent(filterOutputID, event)
+	err = api.addEvent(ctx, filterOutputID, event)
 	if err != nil {
 		log.Event(ctx, "failed to add event to filter output", log.ERROR, log.Error(err), logData)
 		setErrorCode(w, err)
@@ -403,10 +403,10 @@ func (api *FilterAPI) addEventHandler(w http.ResponseWriter, r *http.Request) {
 	log.Event(ctx, "added event to filter output", log.INFO, logData)
 }
 
-func (api *FilterAPI) addEvent(filterOutputID string, event *models.Event) error {
+func (api *FilterAPI) addEvent(ctx context.Context, filterOutputID string, event *models.Event) error {
 	if event.Type == "" {
 		return filters.NewBadRequestErr("event type cannot be empty")
 	}
 
-	return api.dataStore.AddEventToFilterOutput(filterOutputID, event)
+	return api.dataStore.AddEventToFilterOutput(ctx, filterOutputID, event)
 }
