@@ -12,7 +12,7 @@ import (
 
 	"github.com/ONSdigital/dp-api-clients-go/dataset"
 	dprequest "github.com/ONSdigital/dp-net/request"
-	"github.com/globalsign/mgo/bson"
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 // A list of states

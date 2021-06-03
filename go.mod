@@ -11,7 +11,7 @@ require (
 	github.com/ONSdigital/dp-net v1.0.10
 	github.com/ONSdigital/go-ns v0.0.0-20200902154605-290c8b5ba5eb
 	github.com/ONSdigital/log.go v1.0.1
-	github.com/globalsign/mgo v0.0.0-20190517090918-73267e130ca1
+	github.com/globalsign/mgo v0.0.0-20190517090918-73267e130ca1 // indirect
 	github.com/gopherjs/gopherjs v0.0.0-20200217142428-fce0ec30dd00 // indirect
 	github.com/gorilla/mux v1.8.0
 	github.com/gorilla/websocket v1.4.2 // indirect
@@ -25,7 +25,6 @@ require (
 	go.mongodb.org/mongo-driver v1.5.2
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
 	gopkg.in/avro.v0 v0.0.0-20171217001914-a730b5802183 // indirect
-	gopkg.in/mgo.v2 v2.0.0-20190816093944-a6b53ec6cb22
 )
 
 replace github.com/ONSdigital/dp-mongodb v1.5.0 => github.com/ONSdigital/dp-mongodb v1.5.1-0.20210526170525-d227b4ed13f5

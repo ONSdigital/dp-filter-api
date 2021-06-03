@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/ONSdigital/dp-filter-api/models"
-	"github.com/globalsign/mgo/bson"
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 // AnyETag represents the wildchar that corresponds to not check the ETag value for update requests
@@ -19,7 +19,7 @@ func newETagForUpdate(currentFilter *models.Filter, update *models.Filter) (eTag
 }
 
 func newETagForAddDimensions(currentFilter *models.Filter, filterID string, dims []models.Dimension) (eTag string, err error) {
-	b, err := bson.Marshal(dims)
+	_, b, err := bson.MarshalValue(dims)
 	if err != nil {
 		return "", err
 	}
