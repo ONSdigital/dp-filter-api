@@ -12,7 +12,7 @@ import (
 	"github.com/ONSdigital/dp-filter-api/models"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 	dpMongoHealth "github.com/ONSdigital/dp-mongodb/v2/pkg/health"
-	dpMongoDriver "github.com/ONSdigital/dp-mongodb/v2/pkg/mongo-driver"
+	dpMongoDriver "github.com/ONSdigital/dp-mongodb/v2/pkg/mongodb"
 	"go.mongodb.org/mongo-driver/bson"
 )
 
@@ -48,15 +48,14 @@ func NewMongoTimestamp(t time.Time, c uint32) (int64, error) {
 // CreateFilterStore which can store, update and fetch filter jobs
 func CreateFilterStore(cfg config.MongoConfig, host string) (*FilterStore, error) {
 	mongoConnection, err := dpMongoDriver.Open(&dpMongoDriver.MongoConnectionConfig{
-		CaFilePath:              cfg.CAFilePath,
 		ConnectTimeoutInSeconds: connectTimeoutInSeconds,
 		QueryTimeoutInSeconds:   queryTimeoutInSeconds,
 
-		Username:             cfg.Username,
-		Password:             cfg.Password,
-		ClusterEndpoint:      cfg.BindAddr,
-		Database:             cfg.Database,
-		SkipCertVerification: true,
+		Username:        cfg.Username,
+		Password:        cfg.Password,
+		ClusterEndpoint: cfg.BindAddr,
+		Database:        cfg.Database,
+		IsSSL:           cfg.IsSSL,
 	})
 
 	if err != nil {
@@ -124,7 +123,7 @@ func (s *FilterStore) getFilterWithSession(ctx context.Context, connection *dpMo
 
 	var result models.Filter
 	if err := connection.C(s.FiltersCollection).Find(query).One(ctx, &result); err != nil {
-		if dpMongoDriver.IsErrCollectionNotFound(err) {
+		if dpMongoDriver.IsErrNoDocumentFound(err) {
 			return nil, filters.ErrFilterBlueprintNotFound
 		}
 		return nil, err
@@ -165,7 +164,7 @@ func (s *FilterStore) UpdateFilter(ctx context.Context, updatedFilter *models.Fi
 
 	// execute the update against MongoDB to atomically check and update the filter
 	if _, err := s.Connection.C(s.FiltersCollection).Update(ctx, selector, update); err != nil {
-		if dpMongoDriver.IsErrCollectionNotFound(err) {
+		if dpMongoDriver.IsErrNoDocumentFound(err) {
 			return "", filters.ErrFilterBlueprintConflict
 		}
 		return "", err
@@ -182,7 +181,7 @@ func (s *FilterStore) GetFilterDimension(ctx context.Context, filterID string, n
 
 	var result models.Filter
 	if err := s.Connection.C(s.FiltersCollection).Find(selector).Select(dimensionSelect).One(ctx, &result); err != nil {
-		if dpMongoDriver.IsErrCollectionNotFound(err) {
+		if dpMongoDriver.IsErrNoDocumentFound(err) {
 			return nil, filters.ErrDimensionNotFound
 		}
 		return nil, err
@@ -229,7 +228,7 @@ func (s *FilterStore) AddFilterDimension(ctx context.Context, filterID, name str
 
 	// run the query
 	if _, err := s.Connection.C(s.FiltersCollection).Update(ctx, selector, update); err != nil {
-		if dpMongoDriver.IsErrCollectionNotFound(err) {
+		if dpMongoDriver.IsErrNoDocumentFound(err) {
 			return "", filters.ErrFilterBlueprintConflict
 		}
 		return "", err
@@ -261,7 +260,7 @@ func (s *FilterStore) RemoveFilterDimension(ctx context.Context, filterID, name 
 	// execute the query
 	info, err := s.Connection.C(s.FiltersCollection).Update(ctx, selector, update)
 	if err != nil {
-		if dpMongoDriver.IsErrCollectionNotFound(err) {
+		if dpMongoDriver.IsErrNoDocumentFound(err) {
 			return "", filters.ErrFilterBlueprintConflict
 		}
 		return "", err
@@ -301,7 +300,7 @@ func (s *FilterStore) AddFilterDimensionOptions(ctx context.Context, filterID, n
 
 	// execute update
 	if _, err := s.Connection.C(s.FiltersCollection).Update(ctx, selector, update); err != nil {
-		if dpMongoDriver.IsErrCollectionNotFound(err) {
+		if dpMongoDriver.IsErrNoDocumentFound(err) {
 			return "", filters.ErrFilterBlueprintConflict
 		}
 		return "", err
@@ -333,7 +332,7 @@ func (s *FilterStore) RemoveFilterDimensionOption(ctx context.Context, filterID 
 	// execute the query
 	info, err := s.Connection.C(s.FiltersCollection).Update(ctx, selector, update)
 	if err != nil {
-		if dpMongoDriver.IsErrCollectionNotFound(err) {
+		if dpMongoDriver.IsErrNoDocumentFound(err) {
 			return "", filters.ErrFilterBlueprintConflict
 		}
 		return "", err
@@ -369,7 +368,7 @@ func (s *FilterStore) RemoveFilterDimensionOptions(ctx context.Context, filterID
 
 	// execute the query
 	if _, err := s.Connection.C(s.FiltersCollection).Update(ctx, selector, update); err != nil {
-		if dpMongoDriver.IsErrCollectionNotFound(err) {
+		if dpMongoDriver.IsErrNoDocumentFound(err) {
 			return "", filters.ErrFilterBlueprintConflict
 		}
 		return "", err
@@ -421,7 +420,7 @@ func (s *FilterStore) GetFilterOutput(ctx context.Context, filterID string) (*mo
 	var result *models.Filter
 
 	if err := s.Connection.C(s.OutputsCollection).Find(query).One(ctx, &result); err != nil {
-		if dpMongoDriver.IsErrCollectionNotFound(err) {
+		if dpMongoDriver.IsErrNoDocumentFound(err) {
 			return nil, filters.ErrFilterOutputNotFound
 		}
 
@@ -440,7 +439,7 @@ func (s *FilterStore) UpdateFilterOutput(ctx context.Context, filter *models.Fil
 
 	if _, err = s.Connection.C(s.OutputsCollection).
 		Update(ctx, bson.M{"filter_id": filter.FilterID, "unique_timestamp": timestamp}, update); err != nil {
-		if dpMongoDriver.IsErrCollectionNotFound(err) {
+		if dpMongoDriver.IsErrNoDocumentFound(err) {
 			return filters.ErrFilterOutputConflict
 		}
 	}

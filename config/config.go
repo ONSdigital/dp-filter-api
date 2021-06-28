@@ -41,7 +41,7 @@ type MongoConfig struct {
 	Offset            int    `envconfig:"MONGODB_OFFSET"`
 	Username          string `envconfig:"MONGO_USERNAME"`
 	Password          string `envconfig:"MONGO_PASSWORD" json:"-"`
-	CAFilePath        string `envconfig:"MONGO_CA_FILE_PATH" json:"-"`
+	IsSSL             bool   `envconfig:"MONGODB_IS_SSL"`
 }
 
 var cfg *Config
@@ -76,7 +76,7 @@ func Get() (*Config, error) {
 			Offset:            0,  // Default offset for mongoDB queries that do not provide an explicit offset
 			Username:          "",
 			Password:          "",
-			CAFilePath:        "",
+			IsSSL:             false,
 		},
 		ServiceAuthToken:         "FD0108EA-825D-411C-9B1D-41EF7727F465",
 		ZebedeeURL:               "http://localhost:8082",

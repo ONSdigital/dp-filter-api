@@ -7,7 +7,7 @@ require (
 	github.com/ONSdigital/dp-graph/v2 v2.3.0
 	github.com/ONSdigital/dp-healthcheck v1.0.5
 	github.com/ONSdigital/dp-kafka/v2 v2.1.2
-	github.com/ONSdigital/dp-mongodb v1.5.0
+	github.com/ONSdigital/dp-mongodb/v2 v2.2.0
 	github.com/ONSdigital/dp-net v1.0.10
 	github.com/ONSdigital/go-ns v0.0.0-20200902154605-290c8b5ba5eb
 	github.com/ONSdigital/log.go v1.0.1
@@ -23,8 +23,5 @@ require (
 	github.com/smartystreets/assertions v1.2.0 // indirect
 	github.com/smartystreets/goconvey v1.6.4
 	go.mongodb.org/mongo-driver v1.5.2
-	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
 	gopkg.in/avro.v0 v0.0.0-20171217001914-a730b5802183 // indirect
 )
-
-replace github.com/ONSdigital/dp-mongodb v1.5.0 => github.com/ONSdigital/dp-mongodb v1.5.1-0.20210526170525-d227b4ed13f5
