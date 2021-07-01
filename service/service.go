@@ -25,6 +25,11 @@ import (
 	"github.com/pkg/errors"
 )
 
+var (
+	EnableStrongReadConcern    = true
+	EnableMajorityWriteConcern = true
+)
+
 // Service contains all the configs, server and clients to run the Dataset API
 type Service struct {
 	cfg                           *config.Config
@@ -41,7 +46,7 @@ type Service struct {
 
 // getFilterStore returns an initialised connection to filter store (mongo database)
 var getFilterStore = func(cfg *config.Config) (datastore MongoDB, err error) {
-	return mongo.CreateFilterStore(cfg.MongoConfig, cfg.Host)
+	return mongo.CreateFilterStore(cfg.MongoConfig, cfg.Host, EnableMajorityWriteConcern, EnableStrongReadConcern)
 }
 
 // getObservationStore returns an initialised connection to observation store (graph database)

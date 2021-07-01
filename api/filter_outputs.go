@@ -287,7 +287,7 @@ func (api *FilterAPI) getOutput(ctx context.Context, filterID string, hideS3Link
 		log.Event(ctx, "a valid download service token has been provided. not hiding private links", log.INFO, logData)
 	}
 
-	//only return the filter if it is for published data or via authenticated request
+	// only return the filter if it is for published data or via authenticated request
 	if output.Published != nil && *output.Published == models.Published || dprequest.IsCallerPresent(ctx) {
 		return output, nil
 	}
@@ -300,7 +300,7 @@ func (api *FilterAPI) getOutput(ctx context.Context, filterID string, hideS3Link
 		return nil, filters.ErrFilterOutputNotFound
 	}
 
-	//filter has been published since output was last requested, so update output and return
+	// filter has been published since output was last requested, so update output and return
 	if filter.Published != nil && *filter.Published == models.Published {
 		output.Published = &models.Published
 		if err := api.dataStore.UpdateFilterOutput(ctx, output, output.UniqueTimestamp); err != nil {

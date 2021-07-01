@@ -363,7 +363,7 @@ func (api *FilterAPI) getFilterBlueprint(ctx context.Context, filterID, eTag str
 		return nil, filters.ErrFilterBlueprintConflict
 	}
 
-	//only return the filter if it is for published data or via authenticated request
+	// only return the filter if it is for published data or via authenticated request
 	if currentFilter.Published != nil && *currentFilter.Published == models.Published || dprequest.IsCallerPresent(ctx) {
 		return currentFilter, nil
 	}
@@ -444,8 +444,7 @@ func (api *FilterAPI) getVersion(ctx context.Context, dataset *models.Dataset) (
 
 	if err != nil {
 		if apiErr, ok := err.(*datasetAPI.ErrInvalidDatasetAPIResponse); ok {
-			switch apiErr.Code() {
-			case http.StatusNotFound:
+			if apiErr.Code() == http.StatusNotFound {
 				return nil, filters.ErrVersionNotFound
 			}
 		}
@@ -488,8 +487,7 @@ func (api *FilterAPI) getDimensions(ctx context.Context, dataset *models.Dataset
 		strconv.Itoa(dataset.Version))
 	if err != nil {
 		if apiErr, ok := err.(*datasetAPI.ErrInvalidDatasetAPIResponse); ok {
-			switch apiErr.Code() {
-			case http.StatusNotFound:
+			if apiErr.Code() == http.StatusNotFound {
 				return nil, filters.ErrDimensionsNotFound
 			}
 		}
@@ -527,8 +525,7 @@ func (api *FilterAPI) getDimensionOptionsBatchProcess(ctx context.Context, dimen
 
 	if err != nil {
 		if apiErr, ok := err.(*datasetAPI.ErrInvalidDatasetAPIResponse); ok {
-			switch apiErr.Code() {
-			case http.StatusNotFound:
+			if apiErr.Code() == http.StatusNotFound {
 				return filters.ErrDimensionOptionsNotFound
 			}
 		}
