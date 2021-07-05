@@ -11,7 +11,6 @@ import (
 	"github.com/gorilla/mux"
 )
 
-//go:generate moq -out mocks/preview.go -pkg mocks . PreviewDataset
 //go:generate moq -out mocks/datasetapi.go -pkg mocks . DatasetAPI
 
 // DatasetAPI - An interface used to access the DatasetAPI
@@ -26,11 +25,6 @@ type OutputQueue interface {
 	Queue(output *models.Filter) error
 }
 
-// PreviewDataset An interface used to generate previews
-type PreviewDataset interface {
-	GetPreview(ctx context.Context, filter *models.Filter, limit int) (*models.FilterPreview, error)
-}
-
 // FilterAPI manages importing filters against a dataset
 type FilterAPI struct {
 	host                 string
@@ -39,7 +33,6 @@ type FilterAPI struct {
 	dataStore            DataStore
 	outputQueue          OutputQueue
 	datasetAPI           DatasetAPI
-	preview              PreviewDataset
 	downloadServiceURL   string
 	downloadServiceToken string
 	serviceAuthToken     string
@@ -56,8 +49,7 @@ func Setup(
 	router *mux.Router,
 	dataStore DataStore,
 	outputQueue OutputQueue,
-	datasetAPI DatasetAPI,
-	preview PreviewDataset) *FilterAPI {
+	datasetAPI DatasetAPI) *FilterAPI {
 
 	api := &FilterAPI{
 		host:                 cfg.Host,
@@ -66,7 +58,6 @@ func Setup(
 		dataStore:            dataStore,
 		outputQueue:          outputQueue,
 		datasetAPI:           datasetAPI,
-		preview:              preview,
 		downloadServiceURL:   cfg.DownloadServiceURL,
 		downloadServiceToken: cfg.DownloadServiceSecretKey,
 		serviceAuthToken:     cfg.ServiceAuthToken,
@@ -91,7 +82,6 @@ func Setup(
 	api.router.HandleFunc("/filters/{filter_blueprint_id}/dimensions/{name}/options/{option}", api.removeFilterBlueprintDimensionOptionHandler).Methods("DELETE")
 
 	api.router.HandleFunc("/filter-outputs/{filter_output_id}", api.getFilterOutputHandler).Methods("GET")
-	api.router.HandleFunc("/filter-outputs/{filter_output_id}/preview", api.getFilterOutputPreviewHandler).Methods("GET")
 
 	if cfg.EnablePrivateEndpoints {
 		api.router.HandleFunc("/filter-outputs/{filter_output_id}", api.updateFilterOutputHandler).Methods("PUT")

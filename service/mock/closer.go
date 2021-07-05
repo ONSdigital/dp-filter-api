@@ -5,12 +5,13 @@ package mock
 
 import (
 	"context"
+	"github.com/ONSdigital/dp-filter-api/service"
 	"sync"
 )
 
-var (
-	lockCloserMockClose sync.RWMutex
-)
+// Ensure, that CloserMock does implement service.Closer.
+// If this is not the case, regenerate this file with moq.
+var _ service.Closer = &CloserMock{}
 
 // CloserMock is a mock implementation of service.Closer.
 //
@@ -39,6 +40,7 @@ type CloserMock struct {
 			Ctx context.Context
 		}
 	}
+	lockClose sync.RWMutex
 }
 
 // Close calls CloseFunc.
@@ -51,9 +53,9 @@ func (mock *CloserMock) Close(ctx context.Context) error {
 	}{
 		Ctx: ctx,
 	}
-	lockCloserMockClose.Lock()
+	mock.lockClose.Lock()
 	mock.calls.Close = append(mock.calls.Close, callInfo)
-	lockCloserMockClose.Unlock()
+	mock.lockClose.Unlock()
 	return mock.CloseFunc(ctx)
 }
 
@@ -66,8 +68,8 @@ func (mock *CloserMock) CloseCalls() []struct {
 	var calls []struct {
 		Ctx context.Context
 	}
-	lockCloserMockClose.RLock()
+	mock.lockClose.RLock()
 	calls = mock.calls.Close
-	lockCloserMockClose.RUnlock()
+	mock.lockClose.RUnlock()
 	return calls
 }

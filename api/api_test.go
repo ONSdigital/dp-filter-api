@@ -4,12 +4,8 @@ import (
 	"io"
 	"net/http"
 
-	"context"
-
-	apimocks "github.com/ONSdigital/dp-filter-api/api/mocks"
 	"github.com/ONSdigital/dp-filter-api/config"
 	"github.com/ONSdigital/dp-filter-api/filters"
-	"github.com/ONSdigital/dp-filter-api/models"
 	dprequest "github.com/ONSdigital/dp-net/request"
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -50,12 +46,6 @@ func cfg() *config.Config {
 			Offset: 0,
 		},
 	}
-}
-
-var previewMock = &apimocks.PreviewDatasetMock{
-	GetPreviewFunc: func(ctx context.Context, filter *models.Filter, limit int) (*models.FilterPreview, error) {
-		return &models.FilterPreview{}, nil
-	},
 }
 
 func createAuthenticatedRequest(method, url string, body io.Reader) *http.Request {

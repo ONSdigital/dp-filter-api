@@ -6,29 +6,15 @@ package mock
 import (
 	"context"
 	"github.com/ONSdigital/dp-filter-api/models"
+	"github.com/ONSdigital/dp-filter-api/service"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 	"github.com/globalsign/mgo/bson"
 	"sync"
 )
 
-var (
-	lockMongoDBMockAddEventToFilterOutput       sync.RWMutex
-	lockMongoDBMockAddFilter                    sync.RWMutex
-	lockMongoDBMockAddFilterDimension           sync.RWMutex
-	lockMongoDBMockAddFilterDimensionOption     sync.RWMutex
-	lockMongoDBMockAddFilterDimensionOptions    sync.RWMutex
-	lockMongoDBMockChecker                      sync.RWMutex
-	lockMongoDBMockClose                        sync.RWMutex
-	lockMongoDBMockCreateFilterOutput           sync.RWMutex
-	lockMongoDBMockGetFilter                    sync.RWMutex
-	lockMongoDBMockGetFilterDimension           sync.RWMutex
-	lockMongoDBMockGetFilterOutput              sync.RWMutex
-	lockMongoDBMockRemoveFilterDimension        sync.RWMutex
-	lockMongoDBMockRemoveFilterDimensionOption  sync.RWMutex
-	lockMongoDBMockRemoveFilterDimensionOptions sync.RWMutex
-	lockMongoDBMockUpdateFilter                 sync.RWMutex
-	lockMongoDBMockUpdateFilterOutput           sync.RWMutex
-)
+// Ensure, that MongoDBMock does implement service.MongoDB.
+// If this is not the case, regenerate this file with moq.
+var _ service.MongoDB = &MongoDBMock{}
 
 // MongoDBMock is a mock implementation of service.MongoDB.
 //
@@ -300,6 +286,22 @@ type MongoDBMock struct {
 			Timestamp bson.MongoTimestamp
 		}
 	}
+	lockAddEventToFilterOutput       sync.RWMutex
+	lockAddFilter                    sync.RWMutex
+	lockAddFilterDimension           sync.RWMutex
+	lockAddFilterDimensionOption     sync.RWMutex
+	lockAddFilterDimensionOptions    sync.RWMutex
+	lockChecker                      sync.RWMutex
+	lockClose                        sync.RWMutex
+	lockCreateFilterOutput           sync.RWMutex
+	lockGetFilter                    sync.RWMutex
+	lockGetFilterDimension           sync.RWMutex
+	lockGetFilterOutput              sync.RWMutex
+	lockRemoveFilterDimension        sync.RWMutex
+	lockRemoveFilterDimensionOption  sync.RWMutex
+	lockRemoveFilterDimensionOptions sync.RWMutex
+	lockUpdateFilter                 sync.RWMutex
+	lockUpdateFilterOutput           sync.RWMutex
 }
 
 // AddEventToFilterOutput calls AddEventToFilterOutputFunc.
@@ -314,9 +316,9 @@ func (mock *MongoDBMock) AddEventToFilterOutput(filterOutputID string, event *mo
 		FilterOutputID: filterOutputID,
 		Event:          event,
 	}
-	lockMongoDBMockAddEventToFilterOutput.Lock()
+	mock.lockAddEventToFilterOutput.Lock()
 	mock.calls.AddEventToFilterOutput = append(mock.calls.AddEventToFilterOutput, callInfo)
-	lockMongoDBMockAddEventToFilterOutput.Unlock()
+	mock.lockAddEventToFilterOutput.Unlock()
 	return mock.AddEventToFilterOutputFunc(filterOutputID, event)
 }
 
@@ -331,9 +333,9 @@ func (mock *MongoDBMock) AddEventToFilterOutputCalls() []struct {
 		FilterOutputID string
 		Event          *models.Event
 	}
-	lockMongoDBMockAddEventToFilterOutput.RLock()
+	mock.lockAddEventToFilterOutput.RLock()
 	calls = mock.calls.AddEventToFilterOutput
-	lockMongoDBMockAddEventToFilterOutput.RUnlock()
+	mock.lockAddEventToFilterOutput.RUnlock()
 	return calls
 }
 
@@ -347,9 +349,9 @@ func (mock *MongoDBMock) AddFilter(filter *models.Filter) (*models.Filter, error
 	}{
 		Filter: filter,
 	}
-	lockMongoDBMockAddFilter.Lock()
+	mock.lockAddFilter.Lock()
 	mock.calls.AddFilter = append(mock.calls.AddFilter, callInfo)
-	lockMongoDBMockAddFilter.Unlock()
+	mock.lockAddFilter.Unlock()
 	return mock.AddFilterFunc(filter)
 }
 
@@ -362,9 +364,9 @@ func (mock *MongoDBMock) AddFilterCalls() []struct {
 	var calls []struct {
 		Filter *models.Filter
 	}
-	lockMongoDBMockAddFilter.RLock()
+	mock.lockAddFilter.RLock()
 	calls = mock.calls.AddFilter
-	lockMongoDBMockAddFilter.RUnlock()
+	mock.lockAddFilter.RUnlock()
 	return calls
 }
 
@@ -390,9 +392,9 @@ func (mock *MongoDBMock) AddFilterDimension(filterID string, name string, option
 		ETagSelector:  eTagSelector,
 		CurrentFilter: currentFilter,
 	}
-	lockMongoDBMockAddFilterDimension.Lock()
+	mock.lockAddFilterDimension.Lock()
 	mock.calls.AddFilterDimension = append(mock.calls.AddFilterDimension, callInfo)
-	lockMongoDBMockAddFilterDimension.Unlock()
+	mock.lockAddFilterDimension.Unlock()
 	return mock.AddFilterDimensionFunc(filterID, name, options, dimensions, timestamp, eTagSelector, currentFilter)
 }
 
@@ -417,9 +419,9 @@ func (mock *MongoDBMock) AddFilterDimensionCalls() []struct {
 		ETagSelector  string
 		CurrentFilter *models.Filter
 	}
-	lockMongoDBMockAddFilterDimension.RLock()
+	mock.lockAddFilterDimension.RLock()
 	calls = mock.calls.AddFilterDimension
-	lockMongoDBMockAddFilterDimension.RUnlock()
+	mock.lockAddFilterDimension.RUnlock()
 	return calls
 }
 
@@ -443,9 +445,9 @@ func (mock *MongoDBMock) AddFilterDimensionOption(filterID string, name string, 
 		ETagSelector:  eTagSelector,
 		CurrentFilter: currentFilter,
 	}
-	lockMongoDBMockAddFilterDimensionOption.Lock()
+	mock.lockAddFilterDimensionOption.Lock()
 	mock.calls.AddFilterDimensionOption = append(mock.calls.AddFilterDimensionOption, callInfo)
-	lockMongoDBMockAddFilterDimensionOption.Unlock()
+	mock.lockAddFilterDimensionOption.Unlock()
 	return mock.AddFilterDimensionOptionFunc(filterID, name, option, timestamp, eTagSelector, currentFilter)
 }
 
@@ -468,9 +470,9 @@ func (mock *MongoDBMock) AddFilterDimensionOptionCalls() []struct {
 		ETagSelector  string
 		CurrentFilter *models.Filter
 	}
-	lockMongoDBMockAddFilterDimensionOption.RLock()
+	mock.lockAddFilterDimensionOption.RLock()
 	calls = mock.calls.AddFilterDimensionOption
-	lockMongoDBMockAddFilterDimensionOption.RUnlock()
+	mock.lockAddFilterDimensionOption.RUnlock()
 	return calls
 }
 
@@ -494,9 +496,9 @@ func (mock *MongoDBMock) AddFilterDimensionOptions(filterID string, name string,
 		ETagSelector:  eTagSelector,
 		CurrentFilter: currentFilter,
 	}
-	lockMongoDBMockAddFilterDimensionOptions.Lock()
+	mock.lockAddFilterDimensionOptions.Lock()
 	mock.calls.AddFilterDimensionOptions = append(mock.calls.AddFilterDimensionOptions, callInfo)
-	lockMongoDBMockAddFilterDimensionOptions.Unlock()
+	mock.lockAddFilterDimensionOptions.Unlock()
 	return mock.AddFilterDimensionOptionsFunc(filterID, name, options, timestamp, eTagSelector, currentFilter)
 }
 
@@ -519,9 +521,9 @@ func (mock *MongoDBMock) AddFilterDimensionOptionsCalls() []struct {
 		ETagSelector  string
 		CurrentFilter *models.Filter
 	}
-	lockMongoDBMockAddFilterDimensionOptions.RLock()
+	mock.lockAddFilterDimensionOptions.RLock()
 	calls = mock.calls.AddFilterDimensionOptions
-	lockMongoDBMockAddFilterDimensionOptions.RUnlock()
+	mock.lockAddFilterDimensionOptions.RUnlock()
 	return calls
 }
 
@@ -537,9 +539,9 @@ func (mock *MongoDBMock) Checker(ctx context.Context, state *healthcheck.CheckSt
 		Ctx:   ctx,
 		State: state,
 	}
-	lockMongoDBMockChecker.Lock()
+	mock.lockChecker.Lock()
 	mock.calls.Checker = append(mock.calls.Checker, callInfo)
-	lockMongoDBMockChecker.Unlock()
+	mock.lockChecker.Unlock()
 	return mock.CheckerFunc(ctx, state)
 }
 
@@ -554,9 +556,9 @@ func (mock *MongoDBMock) CheckerCalls() []struct {
 		Ctx   context.Context
 		State *healthcheck.CheckState
 	}
-	lockMongoDBMockChecker.RLock()
+	mock.lockChecker.RLock()
 	calls = mock.calls.Checker
-	lockMongoDBMockChecker.RUnlock()
+	mock.lockChecker.RUnlock()
 	return calls
 }
 
@@ -570,9 +572,9 @@ func (mock *MongoDBMock) Close(ctx context.Context) error {
 	}{
 		Ctx: ctx,
 	}
-	lockMongoDBMockClose.Lock()
+	mock.lockClose.Lock()
 	mock.calls.Close = append(mock.calls.Close, callInfo)
-	lockMongoDBMockClose.Unlock()
+	mock.lockClose.Unlock()
 	return mock.CloseFunc(ctx)
 }
 
@@ -585,9 +587,9 @@ func (mock *MongoDBMock) CloseCalls() []struct {
 	var calls []struct {
 		Ctx context.Context
 	}
-	lockMongoDBMockClose.RLock()
+	mock.lockClose.RLock()
 	calls = mock.calls.Close
-	lockMongoDBMockClose.RUnlock()
+	mock.lockClose.RUnlock()
 	return calls
 }
 
@@ -601,9 +603,9 @@ func (mock *MongoDBMock) CreateFilterOutput(filter *models.Filter) error {
 	}{
 		Filter: filter,
 	}
-	lockMongoDBMockCreateFilterOutput.Lock()
+	mock.lockCreateFilterOutput.Lock()
 	mock.calls.CreateFilterOutput = append(mock.calls.CreateFilterOutput, callInfo)
-	lockMongoDBMockCreateFilterOutput.Unlock()
+	mock.lockCreateFilterOutput.Unlock()
 	return mock.CreateFilterOutputFunc(filter)
 }
 
@@ -616,9 +618,9 @@ func (mock *MongoDBMock) CreateFilterOutputCalls() []struct {
 	var calls []struct {
 		Filter *models.Filter
 	}
-	lockMongoDBMockCreateFilterOutput.RLock()
+	mock.lockCreateFilterOutput.RLock()
 	calls = mock.calls.CreateFilterOutput
-	lockMongoDBMockCreateFilterOutput.RUnlock()
+	mock.lockCreateFilterOutput.RUnlock()
 	return calls
 }
 
@@ -634,9 +636,9 @@ func (mock *MongoDBMock) GetFilter(filterID string, eTagSelector string) (*model
 		FilterID:     filterID,
 		ETagSelector: eTagSelector,
 	}
-	lockMongoDBMockGetFilter.Lock()
+	mock.lockGetFilter.Lock()
 	mock.calls.GetFilter = append(mock.calls.GetFilter, callInfo)
-	lockMongoDBMockGetFilter.Unlock()
+	mock.lockGetFilter.Unlock()
 	return mock.GetFilterFunc(filterID, eTagSelector)
 }
 
@@ -651,9 +653,9 @@ func (mock *MongoDBMock) GetFilterCalls() []struct {
 		FilterID     string
 		ETagSelector string
 	}
-	lockMongoDBMockGetFilter.RLock()
+	mock.lockGetFilter.RLock()
 	calls = mock.calls.GetFilter
-	lockMongoDBMockGetFilter.RUnlock()
+	mock.lockGetFilter.RUnlock()
 	return calls
 }
 
@@ -671,9 +673,9 @@ func (mock *MongoDBMock) GetFilterDimension(filterID string, name string, eTagSe
 		Name:         name,
 		ETagSelector: eTagSelector,
 	}
-	lockMongoDBMockGetFilterDimension.Lock()
+	mock.lockGetFilterDimension.Lock()
 	mock.calls.GetFilterDimension = append(mock.calls.GetFilterDimension, callInfo)
-	lockMongoDBMockGetFilterDimension.Unlock()
+	mock.lockGetFilterDimension.Unlock()
 	return mock.GetFilterDimensionFunc(filterID, name, eTagSelector)
 }
 
@@ -690,9 +692,9 @@ func (mock *MongoDBMock) GetFilterDimensionCalls() []struct {
 		Name         string
 		ETagSelector string
 	}
-	lockMongoDBMockGetFilterDimension.RLock()
+	mock.lockGetFilterDimension.RLock()
 	calls = mock.calls.GetFilterDimension
-	lockMongoDBMockGetFilterDimension.RUnlock()
+	mock.lockGetFilterDimension.RUnlock()
 	return calls
 }
 
@@ -706,9 +708,9 @@ func (mock *MongoDBMock) GetFilterOutput(filterOutputID string) (*models.Filter,
 	}{
 		FilterOutputID: filterOutputID,
 	}
-	lockMongoDBMockGetFilterOutput.Lock()
+	mock.lockGetFilterOutput.Lock()
 	mock.calls.GetFilterOutput = append(mock.calls.GetFilterOutput, callInfo)
-	lockMongoDBMockGetFilterOutput.Unlock()
+	mock.lockGetFilterOutput.Unlock()
 	return mock.GetFilterOutputFunc(filterOutputID)
 }
 
@@ -721,9 +723,9 @@ func (mock *MongoDBMock) GetFilterOutputCalls() []struct {
 	var calls []struct {
 		FilterOutputID string
 	}
-	lockMongoDBMockGetFilterOutput.RLock()
+	mock.lockGetFilterOutput.RLock()
 	calls = mock.calls.GetFilterOutput
-	lockMongoDBMockGetFilterOutput.RUnlock()
+	mock.lockGetFilterOutput.RUnlock()
 	return calls
 }
 
@@ -745,9 +747,9 @@ func (mock *MongoDBMock) RemoveFilterDimension(filterID string, name string, tim
 		ETagSelector:  eTagSelector,
 		CurrentFilter: currentFilter,
 	}
-	lockMongoDBMockRemoveFilterDimension.Lock()
+	mock.lockRemoveFilterDimension.Lock()
 	mock.calls.RemoveFilterDimension = append(mock.calls.RemoveFilterDimension, callInfo)
-	lockMongoDBMockRemoveFilterDimension.Unlock()
+	mock.lockRemoveFilterDimension.Unlock()
 	return mock.RemoveFilterDimensionFunc(filterID, name, timestamp, eTagSelector, currentFilter)
 }
 
@@ -768,9 +770,9 @@ func (mock *MongoDBMock) RemoveFilterDimensionCalls() []struct {
 		ETagSelector  string
 		CurrentFilter *models.Filter
 	}
-	lockMongoDBMockRemoveFilterDimension.RLock()
+	mock.lockRemoveFilterDimension.RLock()
 	calls = mock.calls.RemoveFilterDimension
-	lockMongoDBMockRemoveFilterDimension.RUnlock()
+	mock.lockRemoveFilterDimension.RUnlock()
 	return calls
 }
 
@@ -794,9 +796,9 @@ func (mock *MongoDBMock) RemoveFilterDimensionOption(filterID string, name strin
 		ETagSelector:  eTagSelector,
 		CurrentFilter: currentFilter,
 	}
-	lockMongoDBMockRemoveFilterDimensionOption.Lock()
+	mock.lockRemoveFilterDimensionOption.Lock()
 	mock.calls.RemoveFilterDimensionOption = append(mock.calls.RemoveFilterDimensionOption, callInfo)
-	lockMongoDBMockRemoveFilterDimensionOption.Unlock()
+	mock.lockRemoveFilterDimensionOption.Unlock()
 	return mock.RemoveFilterDimensionOptionFunc(filterID, name, option, timestamp, eTagSelector, currentFilter)
 }
 
@@ -819,9 +821,9 @@ func (mock *MongoDBMock) RemoveFilterDimensionOptionCalls() []struct {
 		ETagSelector  string
 		CurrentFilter *models.Filter
 	}
-	lockMongoDBMockRemoveFilterDimensionOption.RLock()
+	mock.lockRemoveFilterDimensionOption.RLock()
 	calls = mock.calls.RemoveFilterDimensionOption
-	lockMongoDBMockRemoveFilterDimensionOption.RUnlock()
+	mock.lockRemoveFilterDimensionOption.RUnlock()
 	return calls
 }
 
@@ -845,9 +847,9 @@ func (mock *MongoDBMock) RemoveFilterDimensionOptions(filterID string, name stri
 		ETagSelector:  eTagSelector,
 		CurrentFilter: currentFilter,
 	}
-	lockMongoDBMockRemoveFilterDimensionOptions.Lock()
+	mock.lockRemoveFilterDimensionOptions.Lock()
 	mock.calls.RemoveFilterDimensionOptions = append(mock.calls.RemoveFilterDimensionOptions, callInfo)
-	lockMongoDBMockRemoveFilterDimensionOptions.Unlock()
+	mock.lockRemoveFilterDimensionOptions.Unlock()
 	return mock.RemoveFilterDimensionOptionsFunc(filterID, name, options, timestamp, eTagSelector, currentFilter)
 }
 
@@ -870,9 +872,9 @@ func (mock *MongoDBMock) RemoveFilterDimensionOptionsCalls() []struct {
 		ETagSelector  string
 		CurrentFilter *models.Filter
 	}
-	lockMongoDBMockRemoveFilterDimensionOptions.RLock()
+	mock.lockRemoveFilterDimensionOptions.RLock()
 	calls = mock.calls.RemoveFilterDimensionOptions
-	lockMongoDBMockRemoveFilterDimensionOptions.RUnlock()
+	mock.lockRemoveFilterDimensionOptions.RUnlock()
 	return calls
 }
 
@@ -892,9 +894,9 @@ func (mock *MongoDBMock) UpdateFilter(updatedFilter *models.Filter, timestamp bs
 		ETagSelector:  eTagSelector,
 		CurrentFilter: currentFilter,
 	}
-	lockMongoDBMockUpdateFilter.Lock()
+	mock.lockUpdateFilter.Lock()
 	mock.calls.UpdateFilter = append(mock.calls.UpdateFilter, callInfo)
-	lockMongoDBMockUpdateFilter.Unlock()
+	mock.lockUpdateFilter.Unlock()
 	return mock.UpdateFilterFunc(updatedFilter, timestamp, eTagSelector, currentFilter)
 }
 
@@ -913,9 +915,9 @@ func (mock *MongoDBMock) UpdateFilterCalls() []struct {
 		ETagSelector  string
 		CurrentFilter *models.Filter
 	}
-	lockMongoDBMockUpdateFilter.RLock()
+	mock.lockUpdateFilter.RLock()
 	calls = mock.calls.UpdateFilter
-	lockMongoDBMockUpdateFilter.RUnlock()
+	mock.lockUpdateFilter.RUnlock()
 	return calls
 }
 
@@ -931,9 +933,9 @@ func (mock *MongoDBMock) UpdateFilterOutput(filter *models.Filter, timestamp bso
 		Filter:    filter,
 		Timestamp: timestamp,
 	}
-	lockMongoDBMockUpdateFilterOutput.Lock()
+	mock.lockUpdateFilterOutput.Lock()
 	mock.calls.UpdateFilterOutput = append(mock.calls.UpdateFilterOutput, callInfo)
-	lockMongoDBMockUpdateFilterOutput.Unlock()
+	mock.lockUpdateFilterOutput.Unlock()
 	return mock.UpdateFilterOutputFunc(filter, timestamp)
 }
 
@@ -948,8 +950,8 @@ func (mock *MongoDBMock) UpdateFilterOutputCalls() []struct {
 		Filter    *models.Filter
 		Timestamp bson.MongoTimestamp
 	}
-	lockMongoDBMockUpdateFilterOutput.RLock()
+	mock.lockUpdateFilterOutput.RLock()
 	calls = mock.calls.UpdateFilterOutput
-	lockMongoDBMockUpdateFilterOutput.RUnlock()
+	mock.lockUpdateFilterOutput.RUnlock()
 	return calls
 }
