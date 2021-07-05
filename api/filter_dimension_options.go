@@ -498,7 +498,15 @@ func (api *FilterAPI) patchFilterBlueprintDimensionHandler(w http.ResponseWriter
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-		totalValues += len(patch.Value)
+		v2, ok := patch.Value.([]interface{})
+		if !ok {
+			err = fmt.Errorf("values provided are not strings")
+			log.Event(ctx, "error validating patch operation path, no change has been applied", log.ERROR, log.Error(err), logData)
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		totalValues += len(v2)
 		if totalValues > api.maxRequestOptions {
 			logData["max_options"] = api.maxRequestOptions
 			err = fmt.Errorf("a maximum of %d overall option values can be provied in a set of patch operations, which has been exceeded", api.maxRequestOptions)
@@ -541,7 +549,8 @@ func (api *FilterAPI) patchFilterBlueprintDimension(ctx context.Context, filterB
 
 	// apply patch operations sequentially, stop processing if one patch fails, and return a list of successful patches operations
 	for _, patch := range patches {
-		options := removeDuplicateAndEmptyOptions(patch.Value)
+		allOptions := getStringArrayFromInterface(patch.Value)
+		options := removeDuplicateAndEmptyOptions(allOptions)
 
 		if patch.Op == dprequest.OpAdd.String() {
 			eTag, err = api.addFilterBlueprintDimensionOptions(ctx, filterBlueprintID, dimensionName, options, logData, eTag)

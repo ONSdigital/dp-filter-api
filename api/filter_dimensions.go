@@ -442,13 +442,32 @@ func removeDuplicateAndEmptyOptions(elements []string) []string {
 	encountered := map[string]bool{}
 	result := []string{}
 
-	for v := range elements {
-		if !encountered[elements[v]] {
-			encountered[elements[v]] = true
-			if elements[v] != "" {
-				result = append(result, elements[v])
+	for _, v3 := range elements {
+		if !encountered[v3] {
+			encountered[v3] = true
+			if v3 != "" {
+				result = append(result, v3)
 			}
 		}
+	}
+
+	return result
+}
+
+func getStringArrayFromInterface(elements interface{}) []string {
+	result := []string{}
+
+	v2, ok := elements.([]interface{})
+	if !ok {
+		return result
+	}
+
+	for _, v := range v2 {
+		v3, ok := v.(string)
+		if !ok {
+			return result
+		}
+		result = append(result, v3)
 	}
 
 	return result
