@@ -29,11 +29,6 @@ parameters:
     required: true
     description: "The unique filter output ID for a customised dataset"
     in: path
-  limit:
-    name: limit
-    type: integer
-    description: "Limit the number of rows returned in a preview. Defaults to 20 and capped at 100"
-    in: query
   page_limit:
     name: limit
     description: "Limit the number of items that will be returned. Defaults to 20 and capped at 1000"
@@ -497,28 +492,6 @@ paths:
           $ref: '#/responses/FilterOutputNotFound'
         500:
           $ref: '#/responses/InternalError'
-  /filter-outputs/{filter_output_id}/preview:
-    parameters:
-      - $ref: '#/parameters/filter_output_id'
-      - $ref: '#/parameters/limit'
-    get:
-      tags:
-      - "Public"
-      summary: "Get a preview of the filtered output"
-      description: "Get a preview of up to 100 observations using the state of the filter output job. By default only 20 rows will be returned. To change this use the `limit` query. It could be possible no results are returned due to data sparsity."
-      produces:
-      - "application/json"
-      responses:
-        200:
-          description: "A preview of the current filter state has been returned"
-          schema:
-            $ref: '#/definitions/Preview'
-        400:
-          description: "No dimensions are present in the filter output"
-        404:
-          description: "The filter id was not found"
-        500:
-          $ref: '#/responses/InternalError'
 responses:
   FilterNotFound:
     description: "Filter not found"
@@ -805,33 +778,11 @@ definitions:
             description: "An ID of the version being filtered"
             example: "de3bc0b6-d6c4-4e20-917e-95d7ea8c91dc"
             type: string
+# !!! this 'preview' may need removing
       preview:
         type: object
         properties:
           href:
             description: "A URL to a preview of the filter output"
             example: "http://localhost:8080/filter-outputs/DE3BC0B6-D6C4-4E20-917E-95D7EA8C91DC/preview"
-            type: string
-  Preview:
-    description: "A preview of the current filter state"
-    readOnly: true
-    type: object
-    properties:
-      headers:
-        description: "A list of all headers in the dataset"
-        type: array
-        items:
-          type: string
-      number_of_rows:
-        description: "The number of rows, this can be in the range of 0 - 20"
-        type: integer
-      number_of_columns:
-        description: "The number of columns"
-        type: integer
-      rows:
-        description: "A list of all rows for the preview as a two dimensional array"
-        type: array
-        items:
-          type: array
-          items:
             type: string
