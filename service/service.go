@@ -13,7 +13,6 @@ import (
 	"github.com/ONSdigital/dp-filter-api/config"
 	"github.com/ONSdigital/dp-filter-api/filterOutputQueue"
 	"github.com/ONSdigital/dp-filter-api/mongo"
-	"github.com/ONSdigital/dp-filter-api/preview"
 	"github.com/ONSdigital/dp-graph/v2/graph"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 	kafka "github.com/ONSdigital/dp-kafka/v2"
@@ -136,16 +135,14 @@ func (svc *Service) Init(ctx context.Context, cfg *config.Config, buildTime, git
 	m := svc.createMiddleware(ctx)
 	svc.server = getHTTPServer(svc.cfg.BindAddr, m.Then(r))
 
-	// Create API, with previewDatasets and outputQueue
-	previewDatasets := preview.DatasetStore{Store: svc.observationStore}
+	// Create API, with outputQueue
 	outputQueue := filterOutputQueue.CreateOutputQueue(svc.filterOutputSubmittedProducer.Channels().Output)
 	svc.api = api.Setup(
 		svc.cfg,
 		r,
 		svc.filterStore,
 		&outputQueue,
-		svc.datasetAPI,
-		&previewDatasets)
+		svc.datasetAPI)
 	return nil
 }
 

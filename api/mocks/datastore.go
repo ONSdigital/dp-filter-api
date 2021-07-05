@@ -4,27 +4,15 @@
 package mocks
 
 import (
+	"github.com/ONSdigital/dp-filter-api/api"
 	"github.com/ONSdigital/dp-filter-api/models"
 	"github.com/globalsign/mgo/bson"
 	"sync"
 )
 
-var (
-	lockDataStoreMockAddEventToFilterOutput       sync.RWMutex
-	lockDataStoreMockAddFilter                    sync.RWMutex
-	lockDataStoreMockAddFilterDimension           sync.RWMutex
-	lockDataStoreMockAddFilterDimensionOption     sync.RWMutex
-	lockDataStoreMockAddFilterDimensionOptions    sync.RWMutex
-	lockDataStoreMockCreateFilterOutput           sync.RWMutex
-	lockDataStoreMockGetFilter                    sync.RWMutex
-	lockDataStoreMockGetFilterDimension           sync.RWMutex
-	lockDataStoreMockGetFilterOutput              sync.RWMutex
-	lockDataStoreMockRemoveFilterDimension        sync.RWMutex
-	lockDataStoreMockRemoveFilterDimensionOption  sync.RWMutex
-	lockDataStoreMockRemoveFilterDimensionOptions sync.RWMutex
-	lockDataStoreMockUpdateFilter                 sync.RWMutex
-	lockDataStoreMockUpdateFilterOutput           sync.RWMutex
-)
+// Ensure, that DataStoreMock does implement api.DataStore.
+// If this is not the case, regenerate this file with moq.
+var _ api.DataStore = &DataStoreMock{}
 
 // DataStoreMock is a mock implementation of api.DataStore.
 //
@@ -272,6 +260,20 @@ type DataStoreMock struct {
 			Timestamp bson.MongoTimestamp
 		}
 	}
+	lockAddEventToFilterOutput       sync.RWMutex
+	lockAddFilter                    sync.RWMutex
+	lockAddFilterDimension           sync.RWMutex
+	lockAddFilterDimensionOption     sync.RWMutex
+	lockAddFilterDimensionOptions    sync.RWMutex
+	lockCreateFilterOutput           sync.RWMutex
+	lockGetFilter                    sync.RWMutex
+	lockGetFilterDimension           sync.RWMutex
+	lockGetFilterOutput              sync.RWMutex
+	lockRemoveFilterDimension        sync.RWMutex
+	lockRemoveFilterDimensionOption  sync.RWMutex
+	lockRemoveFilterDimensionOptions sync.RWMutex
+	lockUpdateFilter                 sync.RWMutex
+	lockUpdateFilterOutput           sync.RWMutex
 }
 
 // AddEventToFilterOutput calls AddEventToFilterOutputFunc.
@@ -286,9 +288,9 @@ func (mock *DataStoreMock) AddEventToFilterOutput(filterOutputID string, event *
 		FilterOutputID: filterOutputID,
 		Event:          event,
 	}
-	lockDataStoreMockAddEventToFilterOutput.Lock()
+	mock.lockAddEventToFilterOutput.Lock()
 	mock.calls.AddEventToFilterOutput = append(mock.calls.AddEventToFilterOutput, callInfo)
-	lockDataStoreMockAddEventToFilterOutput.Unlock()
+	mock.lockAddEventToFilterOutput.Unlock()
 	return mock.AddEventToFilterOutputFunc(filterOutputID, event)
 }
 
@@ -303,9 +305,9 @@ func (mock *DataStoreMock) AddEventToFilterOutputCalls() []struct {
 		FilterOutputID string
 		Event          *models.Event
 	}
-	lockDataStoreMockAddEventToFilterOutput.RLock()
+	mock.lockAddEventToFilterOutput.RLock()
 	calls = mock.calls.AddEventToFilterOutput
-	lockDataStoreMockAddEventToFilterOutput.RUnlock()
+	mock.lockAddEventToFilterOutput.RUnlock()
 	return calls
 }
 
@@ -319,9 +321,9 @@ func (mock *DataStoreMock) AddFilter(filter *models.Filter) (*models.Filter, err
 	}{
 		Filter: filter,
 	}
-	lockDataStoreMockAddFilter.Lock()
+	mock.lockAddFilter.Lock()
 	mock.calls.AddFilter = append(mock.calls.AddFilter, callInfo)
-	lockDataStoreMockAddFilter.Unlock()
+	mock.lockAddFilter.Unlock()
 	return mock.AddFilterFunc(filter)
 }
 
@@ -334,9 +336,9 @@ func (mock *DataStoreMock) AddFilterCalls() []struct {
 	var calls []struct {
 		Filter *models.Filter
 	}
-	lockDataStoreMockAddFilter.RLock()
+	mock.lockAddFilter.RLock()
 	calls = mock.calls.AddFilter
-	lockDataStoreMockAddFilter.RUnlock()
+	mock.lockAddFilter.RUnlock()
 	return calls
 }
 
@@ -362,9 +364,9 @@ func (mock *DataStoreMock) AddFilterDimension(filterID string, name string, opti
 		ETagSelector:  eTagSelector,
 		CurrentFilter: currentFilter,
 	}
-	lockDataStoreMockAddFilterDimension.Lock()
+	mock.lockAddFilterDimension.Lock()
 	mock.calls.AddFilterDimension = append(mock.calls.AddFilterDimension, callInfo)
-	lockDataStoreMockAddFilterDimension.Unlock()
+	mock.lockAddFilterDimension.Unlock()
 	return mock.AddFilterDimensionFunc(filterID, name, options, dimensions, timestamp, eTagSelector, currentFilter)
 }
 
@@ -389,9 +391,9 @@ func (mock *DataStoreMock) AddFilterDimensionCalls() []struct {
 		ETagSelector  string
 		CurrentFilter *models.Filter
 	}
-	lockDataStoreMockAddFilterDimension.RLock()
+	mock.lockAddFilterDimension.RLock()
 	calls = mock.calls.AddFilterDimension
-	lockDataStoreMockAddFilterDimension.RUnlock()
+	mock.lockAddFilterDimension.RUnlock()
 	return calls
 }
 
@@ -415,9 +417,9 @@ func (mock *DataStoreMock) AddFilterDimensionOption(filterID string, name string
 		ETagSelector:  eTagSelector,
 		CurrentFilter: currentFilter,
 	}
-	lockDataStoreMockAddFilterDimensionOption.Lock()
+	mock.lockAddFilterDimensionOption.Lock()
 	mock.calls.AddFilterDimensionOption = append(mock.calls.AddFilterDimensionOption, callInfo)
-	lockDataStoreMockAddFilterDimensionOption.Unlock()
+	mock.lockAddFilterDimensionOption.Unlock()
 	return mock.AddFilterDimensionOptionFunc(filterID, name, option, timestamp, eTagSelector, currentFilter)
 }
 
@@ -440,9 +442,9 @@ func (mock *DataStoreMock) AddFilterDimensionOptionCalls() []struct {
 		ETagSelector  string
 		CurrentFilter *models.Filter
 	}
-	lockDataStoreMockAddFilterDimensionOption.RLock()
+	mock.lockAddFilterDimensionOption.RLock()
 	calls = mock.calls.AddFilterDimensionOption
-	lockDataStoreMockAddFilterDimensionOption.RUnlock()
+	mock.lockAddFilterDimensionOption.RUnlock()
 	return calls
 }
 
@@ -466,9 +468,9 @@ func (mock *DataStoreMock) AddFilterDimensionOptions(filterID string, name strin
 		ETagSelector:  eTagSelector,
 		CurrentFilter: currentFilter,
 	}
-	lockDataStoreMockAddFilterDimensionOptions.Lock()
+	mock.lockAddFilterDimensionOptions.Lock()
 	mock.calls.AddFilterDimensionOptions = append(mock.calls.AddFilterDimensionOptions, callInfo)
-	lockDataStoreMockAddFilterDimensionOptions.Unlock()
+	mock.lockAddFilterDimensionOptions.Unlock()
 	return mock.AddFilterDimensionOptionsFunc(filterID, name, options, timestamp, eTagSelector, currentFilter)
 }
 
@@ -491,9 +493,9 @@ func (mock *DataStoreMock) AddFilterDimensionOptionsCalls() []struct {
 		ETagSelector  string
 		CurrentFilter *models.Filter
 	}
-	lockDataStoreMockAddFilterDimensionOptions.RLock()
+	mock.lockAddFilterDimensionOptions.RLock()
 	calls = mock.calls.AddFilterDimensionOptions
-	lockDataStoreMockAddFilterDimensionOptions.RUnlock()
+	mock.lockAddFilterDimensionOptions.RUnlock()
 	return calls
 }
 
@@ -507,9 +509,9 @@ func (mock *DataStoreMock) CreateFilterOutput(filter *models.Filter) error {
 	}{
 		Filter: filter,
 	}
-	lockDataStoreMockCreateFilterOutput.Lock()
+	mock.lockCreateFilterOutput.Lock()
 	mock.calls.CreateFilterOutput = append(mock.calls.CreateFilterOutput, callInfo)
-	lockDataStoreMockCreateFilterOutput.Unlock()
+	mock.lockCreateFilterOutput.Unlock()
 	return mock.CreateFilterOutputFunc(filter)
 }
 
@@ -522,9 +524,9 @@ func (mock *DataStoreMock) CreateFilterOutputCalls() []struct {
 	var calls []struct {
 		Filter *models.Filter
 	}
-	lockDataStoreMockCreateFilterOutput.RLock()
+	mock.lockCreateFilterOutput.RLock()
 	calls = mock.calls.CreateFilterOutput
-	lockDataStoreMockCreateFilterOutput.RUnlock()
+	mock.lockCreateFilterOutput.RUnlock()
 	return calls
 }
 
@@ -540,9 +542,9 @@ func (mock *DataStoreMock) GetFilter(filterID string, eTagSelector string) (*mod
 		FilterID:     filterID,
 		ETagSelector: eTagSelector,
 	}
-	lockDataStoreMockGetFilter.Lock()
+	mock.lockGetFilter.Lock()
 	mock.calls.GetFilter = append(mock.calls.GetFilter, callInfo)
-	lockDataStoreMockGetFilter.Unlock()
+	mock.lockGetFilter.Unlock()
 	return mock.GetFilterFunc(filterID, eTagSelector)
 }
 
@@ -557,9 +559,9 @@ func (mock *DataStoreMock) GetFilterCalls() []struct {
 		FilterID     string
 		ETagSelector string
 	}
-	lockDataStoreMockGetFilter.RLock()
+	mock.lockGetFilter.RLock()
 	calls = mock.calls.GetFilter
-	lockDataStoreMockGetFilter.RUnlock()
+	mock.lockGetFilter.RUnlock()
 	return calls
 }
 
@@ -577,9 +579,9 @@ func (mock *DataStoreMock) GetFilterDimension(filterID string, name string, eTag
 		Name:         name,
 		ETagSelector: eTagSelector,
 	}
-	lockDataStoreMockGetFilterDimension.Lock()
+	mock.lockGetFilterDimension.Lock()
 	mock.calls.GetFilterDimension = append(mock.calls.GetFilterDimension, callInfo)
-	lockDataStoreMockGetFilterDimension.Unlock()
+	mock.lockGetFilterDimension.Unlock()
 	return mock.GetFilterDimensionFunc(filterID, name, eTagSelector)
 }
 
@@ -596,9 +598,9 @@ func (mock *DataStoreMock) GetFilterDimensionCalls() []struct {
 		Name         string
 		ETagSelector string
 	}
-	lockDataStoreMockGetFilterDimension.RLock()
+	mock.lockGetFilterDimension.RLock()
 	calls = mock.calls.GetFilterDimension
-	lockDataStoreMockGetFilterDimension.RUnlock()
+	mock.lockGetFilterDimension.RUnlock()
 	return calls
 }
 
@@ -612,9 +614,9 @@ func (mock *DataStoreMock) GetFilterOutput(filterOutputID string) (*models.Filte
 	}{
 		FilterOutputID: filterOutputID,
 	}
-	lockDataStoreMockGetFilterOutput.Lock()
+	mock.lockGetFilterOutput.Lock()
 	mock.calls.GetFilterOutput = append(mock.calls.GetFilterOutput, callInfo)
-	lockDataStoreMockGetFilterOutput.Unlock()
+	mock.lockGetFilterOutput.Unlock()
 	return mock.GetFilterOutputFunc(filterOutputID)
 }
 
@@ -627,9 +629,9 @@ func (mock *DataStoreMock) GetFilterOutputCalls() []struct {
 	var calls []struct {
 		FilterOutputID string
 	}
-	lockDataStoreMockGetFilterOutput.RLock()
+	mock.lockGetFilterOutput.RLock()
 	calls = mock.calls.GetFilterOutput
-	lockDataStoreMockGetFilterOutput.RUnlock()
+	mock.lockGetFilterOutput.RUnlock()
 	return calls
 }
 
@@ -651,9 +653,9 @@ func (mock *DataStoreMock) RemoveFilterDimension(filterID string, name string, t
 		ETagSelector:  eTagSelector,
 		CurrentFilter: currentFilter,
 	}
-	lockDataStoreMockRemoveFilterDimension.Lock()
+	mock.lockRemoveFilterDimension.Lock()
 	mock.calls.RemoveFilterDimension = append(mock.calls.RemoveFilterDimension, callInfo)
-	lockDataStoreMockRemoveFilterDimension.Unlock()
+	mock.lockRemoveFilterDimension.Unlock()
 	return mock.RemoveFilterDimensionFunc(filterID, name, timestamp, eTagSelector, currentFilter)
 }
 
@@ -674,9 +676,9 @@ func (mock *DataStoreMock) RemoveFilterDimensionCalls() []struct {
 		ETagSelector  string
 		CurrentFilter *models.Filter
 	}
-	lockDataStoreMockRemoveFilterDimension.RLock()
+	mock.lockRemoveFilterDimension.RLock()
 	calls = mock.calls.RemoveFilterDimension
-	lockDataStoreMockRemoveFilterDimension.RUnlock()
+	mock.lockRemoveFilterDimension.RUnlock()
 	return calls
 }
 
@@ -700,9 +702,9 @@ func (mock *DataStoreMock) RemoveFilterDimensionOption(filterID string, name str
 		ETagSelector:  eTagSelector,
 		CurrentFilter: currentFilter,
 	}
-	lockDataStoreMockRemoveFilterDimensionOption.Lock()
+	mock.lockRemoveFilterDimensionOption.Lock()
 	mock.calls.RemoveFilterDimensionOption = append(mock.calls.RemoveFilterDimensionOption, callInfo)
-	lockDataStoreMockRemoveFilterDimensionOption.Unlock()
+	mock.lockRemoveFilterDimensionOption.Unlock()
 	return mock.RemoveFilterDimensionOptionFunc(filterID, name, option, timestamp, eTagSelector, currentFilter)
 }
 
@@ -725,9 +727,9 @@ func (mock *DataStoreMock) RemoveFilterDimensionOptionCalls() []struct {
 		ETagSelector  string
 		CurrentFilter *models.Filter
 	}
-	lockDataStoreMockRemoveFilterDimensionOption.RLock()
+	mock.lockRemoveFilterDimensionOption.RLock()
 	calls = mock.calls.RemoveFilterDimensionOption
-	lockDataStoreMockRemoveFilterDimensionOption.RUnlock()
+	mock.lockRemoveFilterDimensionOption.RUnlock()
 	return calls
 }
 
@@ -751,9 +753,9 @@ func (mock *DataStoreMock) RemoveFilterDimensionOptions(filterID string, name st
 		ETagSelector:  eTagSelector,
 		CurrentFilter: currentFilter,
 	}
-	lockDataStoreMockRemoveFilterDimensionOptions.Lock()
+	mock.lockRemoveFilterDimensionOptions.Lock()
 	mock.calls.RemoveFilterDimensionOptions = append(mock.calls.RemoveFilterDimensionOptions, callInfo)
-	lockDataStoreMockRemoveFilterDimensionOptions.Unlock()
+	mock.lockRemoveFilterDimensionOptions.Unlock()
 	return mock.RemoveFilterDimensionOptionsFunc(filterID, name, options, timestamp, eTagSelector, currentFilter)
 }
 
@@ -776,9 +778,9 @@ func (mock *DataStoreMock) RemoveFilterDimensionOptionsCalls() []struct {
 		ETagSelector  string
 		CurrentFilter *models.Filter
 	}
-	lockDataStoreMockRemoveFilterDimensionOptions.RLock()
+	mock.lockRemoveFilterDimensionOptions.RLock()
 	calls = mock.calls.RemoveFilterDimensionOptions
-	lockDataStoreMockRemoveFilterDimensionOptions.RUnlock()
+	mock.lockRemoveFilterDimensionOptions.RUnlock()
 	return calls
 }
 
@@ -798,9 +800,9 @@ func (mock *DataStoreMock) UpdateFilter(updatedFilter *models.Filter, timestamp 
 		ETagSelector:  eTagSelector,
 		CurrentFilter: currentFilter,
 	}
-	lockDataStoreMockUpdateFilter.Lock()
+	mock.lockUpdateFilter.Lock()
 	mock.calls.UpdateFilter = append(mock.calls.UpdateFilter, callInfo)
-	lockDataStoreMockUpdateFilter.Unlock()
+	mock.lockUpdateFilter.Unlock()
 	return mock.UpdateFilterFunc(updatedFilter, timestamp, eTagSelector, currentFilter)
 }
 
@@ -819,9 +821,9 @@ func (mock *DataStoreMock) UpdateFilterCalls() []struct {
 		ETagSelector  string
 		CurrentFilter *models.Filter
 	}
-	lockDataStoreMockUpdateFilter.RLock()
+	mock.lockUpdateFilter.RLock()
 	calls = mock.calls.UpdateFilter
-	lockDataStoreMockUpdateFilter.RUnlock()
+	mock.lockUpdateFilter.RUnlock()
 	return calls
 }
 
@@ -837,9 +839,9 @@ func (mock *DataStoreMock) UpdateFilterOutput(filter *models.Filter, timestamp b
 		Filter:    filter,
 		Timestamp: timestamp,
 	}
-	lockDataStoreMockUpdateFilterOutput.Lock()
+	mock.lockUpdateFilterOutput.Lock()
 	mock.calls.UpdateFilterOutput = append(mock.calls.UpdateFilterOutput, callInfo)
-	lockDataStoreMockUpdateFilterOutput.Unlock()
+	mock.lockUpdateFilterOutput.Unlock()
 	return mock.UpdateFilterOutputFunc(filter, timestamp)
 }
 
@@ -854,8 +856,8 @@ func (mock *DataStoreMock) UpdateFilterOutputCalls() []struct {
 		Filter    *models.Filter
 		Timestamp bson.MongoTimestamp
 	}
-	lockDataStoreMockUpdateFilterOutput.RLock()
+	mock.lockUpdateFilterOutput.RLock()
 	calls = mock.calls.UpdateFilterOutput
-	lockDataStoreMockUpdateFilterOutput.RUnlock()
+	mock.lockUpdateFilterOutput.RUnlock()
 	return calls
 }

@@ -175,14 +175,6 @@ type Event struct {
 	Time time.Time `bson:"time,omitempty" json:"time"`
 }
 
-// FilterPreview contains the results of a requested preview
-type FilterPreview struct {
-	Headers         []string   `json:"headers"`
-	NumberOfRows    int        `json:"number_of_rows"`
-	NumberOfColumns int        `json:"number_of_columns"`
-	Rows            [][]string `json:"rows"`
-}
-
 // A list of errors returned from package
 var (
 	ErrorReadingBody = errors.New("Failed to read message body")

@@ -5,15 +5,14 @@ package mock
 
 import (
 	"context"
+	"github.com/ONSdigital/dp-filter-api/service"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 	"sync"
 )
 
-var (
-	lockGraphDriverMockChecker     sync.RWMutex
-	lockGraphDriverMockClose       sync.RWMutex
-	lockGraphDriverMockHealthcheck sync.RWMutex
-)
+// Ensure, that GraphDriverMock does implement service.GraphDriver.
+// If this is not the case, regenerate this file with moq.
+var _ service.GraphDriver = &GraphDriverMock{}
 
 // GraphDriverMock is a mock implementation of service.GraphDriver.
 //
@@ -64,6 +63,9 @@ type GraphDriverMock struct {
 		Healthcheck []struct {
 		}
 	}
+	lockChecker     sync.RWMutex
+	lockClose       sync.RWMutex
+	lockHealthcheck sync.RWMutex
 }
 
 // Checker calls CheckerFunc.
@@ -78,9 +80,9 @@ func (mock *GraphDriverMock) Checker(ctx context.Context, state *healthcheck.Che
 		Ctx:   ctx,
 		State: state,
 	}
-	lockGraphDriverMockChecker.Lock()
+	mock.lockChecker.Lock()
 	mock.calls.Checker = append(mock.calls.Checker, callInfo)
-	lockGraphDriverMockChecker.Unlock()
+	mock.lockChecker.Unlock()
 	return mock.CheckerFunc(ctx, state)
 }
 
@@ -95,9 +97,9 @@ func (mock *GraphDriverMock) CheckerCalls() []struct {
 		Ctx   context.Context
 		State *healthcheck.CheckState
 	}
-	lockGraphDriverMockChecker.RLock()
+	mock.lockChecker.RLock()
 	calls = mock.calls.Checker
-	lockGraphDriverMockChecker.RUnlock()
+	mock.lockChecker.RUnlock()
 	return calls
 }
 
@@ -111,9 +113,9 @@ func (mock *GraphDriverMock) Close(ctx context.Context) error {
 	}{
 		Ctx: ctx,
 	}
-	lockGraphDriverMockClose.Lock()
+	mock.lockClose.Lock()
 	mock.calls.Close = append(mock.calls.Close, callInfo)
-	lockGraphDriverMockClose.Unlock()
+	mock.lockClose.Unlock()
 	return mock.CloseFunc(ctx)
 }
 
@@ -126,9 +128,9 @@ func (mock *GraphDriverMock) CloseCalls() []struct {
 	var calls []struct {
 		Ctx context.Context
 	}
-	lockGraphDriverMockClose.RLock()
+	mock.lockClose.RLock()
 	calls = mock.calls.Close
-	lockGraphDriverMockClose.RUnlock()
+	mock.lockClose.RUnlock()
 	return calls
 }
 
@@ -139,9 +141,9 @@ func (mock *GraphDriverMock) Healthcheck() (string, error) {
 	}
 	callInfo := struct {
 	}{}
-	lockGraphDriverMockHealthcheck.Lock()
+	mock.lockHealthcheck.Lock()
 	mock.calls.Healthcheck = append(mock.calls.Healthcheck, callInfo)
-	lockGraphDriverMockHealthcheck.Unlock()
+	mock.lockHealthcheck.Unlock()
 	return mock.HealthcheckFunc()
 }
 
@@ -152,8 +154,8 @@ func (mock *GraphDriverMock) HealthcheckCalls() []struct {
 } {
 	var calls []struct {
 	}
-	lockGraphDriverMockHealthcheck.RLock()
+	mock.lockHealthcheck.RLock()
 	calls = mock.calls.Healthcheck
-	lockGraphDriverMockHealthcheck.RUnlock()
+	mock.lockHealthcheck.RUnlock()
 	return calls
 }

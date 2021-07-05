@@ -6,14 +6,13 @@ package mocks
 import (
 	"context"
 	"github.com/ONSdigital/dp-api-clients-go/dataset"
+	"github.com/ONSdigital/dp-filter-api/api"
 	"sync"
 )
 
-var (
-	lockDatasetAPIMockGetOptionsBatchProcess sync.RWMutex
-	lockDatasetAPIMockGetVersion             sync.RWMutex
-	lockDatasetAPIMockGetVersionDimensions   sync.RWMutex
-)
+// Ensure, that DatasetAPIMock does implement api.DatasetAPI.
+// If this is not the case, regenerate this file with moq.
+var _ api.DatasetAPI = &DatasetAPIMock{}
 
 // DatasetAPIMock is a mock implementation of api.DatasetAPI.
 //
@@ -112,6 +111,9 @@ type DatasetAPIMock struct {
 			Version string
 		}
 	}
+	lockGetOptionsBatchProcess sync.RWMutex
+	lockGetVersion             sync.RWMutex
+	lockGetVersionDimensions   sync.RWMutex
 }
 
 // GetOptionsBatchProcess calls GetOptionsBatchProcessFunc.
@@ -146,9 +148,9 @@ func (mock *DatasetAPIMock) GetOptionsBatchProcess(ctx context.Context, userAuth
 		BatchSize:        batchSize,
 		MaxWorkers:       maxWorkers,
 	}
-	lockDatasetAPIMockGetOptionsBatchProcess.Lock()
+	mock.lockGetOptionsBatchProcess.Lock()
 	mock.calls.GetOptionsBatchProcess = append(mock.calls.GetOptionsBatchProcess, callInfo)
-	lockDatasetAPIMockGetOptionsBatchProcess.Unlock()
+	mock.lockGetOptionsBatchProcess.Unlock()
 	return mock.GetOptionsBatchProcessFunc(ctx, userAuthToken, serviceAuthToken, collectionID, id, edition, version, dimension, optionIDs, processBatch, batchSize, maxWorkers)
 }
 
@@ -183,9 +185,9 @@ func (mock *DatasetAPIMock) GetOptionsBatchProcessCalls() []struct {
 		BatchSize        int
 		MaxWorkers       int
 	}
-	lockDatasetAPIMockGetOptionsBatchProcess.RLock()
+	mock.lockGetOptionsBatchProcess.RLock()
 	calls = mock.calls.GetOptionsBatchProcess
-	lockDatasetAPIMockGetOptionsBatchProcess.RUnlock()
+	mock.lockGetOptionsBatchProcess.RUnlock()
 	return calls
 }
 
@@ -213,9 +215,9 @@ func (mock *DatasetAPIMock) GetVersion(ctx context.Context, userAuthToken string
 		Edition:                  edition,
 		Version:                  version,
 	}
-	lockDatasetAPIMockGetVersion.Lock()
+	mock.lockGetVersion.Lock()
 	mock.calls.GetVersion = append(mock.calls.GetVersion, callInfo)
-	lockDatasetAPIMockGetVersion.Unlock()
+	mock.lockGetVersion.Unlock()
 	return mock.GetVersionFunc(ctx, userAuthToken, serviceAuthToken, downloadServiceAuthToken, collectionID, datasetID, edition, version)
 }
 
@@ -242,9 +244,9 @@ func (mock *DatasetAPIMock) GetVersionCalls() []struct {
 		Edition                  string
 		Version                  string
 	}
-	lockDatasetAPIMockGetVersion.RLock()
+	mock.lockGetVersion.RLock()
 	calls = mock.calls.GetVersion
-	lockDatasetAPIMockGetVersion.RUnlock()
+	mock.lockGetVersion.RUnlock()
 	return calls
 }
 
@@ -270,9 +272,9 @@ func (mock *DatasetAPIMock) GetVersionDimensions(ctx context.Context, userAuthTo
 		Edition:          edition,
 		Version:          version,
 	}
-	lockDatasetAPIMockGetVersionDimensions.Lock()
+	mock.lockGetVersionDimensions.Lock()
 	mock.calls.GetVersionDimensions = append(mock.calls.GetVersionDimensions, callInfo)
-	lockDatasetAPIMockGetVersionDimensions.Unlock()
+	mock.lockGetVersionDimensions.Unlock()
 	return mock.GetVersionDimensionsFunc(ctx, userAuthToken, serviceAuthToken, collectionID, id, edition, version)
 }
 
@@ -297,8 +299,8 @@ func (mock *DatasetAPIMock) GetVersionDimensionsCalls() []struct {
 		Edition          string
 		Version          string
 	}
-	lockDatasetAPIMockGetVersionDimensions.RLock()
+	mock.lockGetVersionDimensions.RLock()
 	calls = mock.calls.GetVersionDimensions
-	lockDatasetAPIMockGetVersionDimensions.RUnlock()
+	mock.lockGetVersionDimensions.RUnlock()
 	return calls
 }
