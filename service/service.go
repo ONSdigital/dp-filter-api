@@ -13,7 +13,6 @@ import (
 	"github.com/ONSdigital/dp-filter-api/config"
 	"github.com/ONSdigital/dp-filter-api/filterOutputQueue"
 	"github.com/ONSdigital/dp-filter-api/mongo"
-	"github.com/ONSdigital/dp-graph/v2/graph"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 	kafka "github.com/ONSdigital/dp-kafka/v2"
 	dphandlers "github.com/ONSdigital/dp-net/handlers"
@@ -28,8 +27,6 @@ import (
 type Service struct {
 	cfg                           *config.Config
 	filterStore                   MongoDB
-	observationStore              *graph.DB
-	graphDBErrorConsumer          Closer
 	filterOutputSubmittedProducer kafka.IProducer
 	identityClient                *identity.Client
 	datasetAPI                    *dataset.Client
@@ -38,21 +35,13 @@ type Service struct {
 	api                           *api.FilterAPI
 }
 
+// Type check to ensure that NeptuneDB implements the driver.CodeList interface
+//var _ driver.CodeList = (*NeptuneDB)(nil)
+//var _ service.HTTPServer = (*HTTPServer)(nil)
+
 // getFilterStore returns an initialised connection to filter store (mongo database)
 var getFilterStore = func(cfg *config.Config) (datastore MongoDB, err error) {
 	return mongo.CreateFilterStore(cfg.MongoConfig, cfg.Host)
-}
-
-// getObservationStore returns an initialised connection to observation store (graph database)
-var getObservationStore = func(ctx context.Context) (observationStore *graph.DB, errorConsumer Closer, err error) {
-	observationStore, err = graph.New(context.Background(), graph.Subsets{Observation: true})
-	if err != nil {
-		return nil, nil, err
-	}
-
-	errorConsumer = graph.NewLoggingErrorConsumer(ctx, observationStore.ErrorChan())
-
-	return observationStore, errorConsumer, nil
 }
 
 // getProducer returns a kafka producer
@@ -95,13 +84,6 @@ func (svc *Service) Init(ctx context.Context, cfg *config.Config, buildTime, git
 		// We don't return 'err' here because we don't want to stop this service
 		// due to a failure in connecting with mongoDB.
 		// A failing healthcheck Checker will be created later in registerCheckers().
-	}
-
-	// Get observation store
-	svc.observationStore, svc.graphDBErrorConsumer, err = getObservationStore(ctx)
-	if err != nil {
-		log.Event(ctx, "could not connect to graph", log.ERROR, log.Error(err))
-		return err
 	}
 
 	// Get kafka producer
@@ -230,21 +212,6 @@ func (svc *Service) Close(ctx context.Context) error {
 			}
 		}
 
-		// Close GraphDB (if it exists)
-		if svc.observationStore != nil {
-			log.Event(ctx, "closing graph DB observation store", log.INFO)
-			if err := svc.observationStore.Close(ctx); err != nil {
-				log.Event(ctx, "unable to close graph DB observation store", log.ERROR)
-				hasShutdownError = true
-			}
-
-			log.Event(ctx, "closing graph DB error consumer", log.INFO)
-			if err := svc.graphDBErrorConsumer.Close(ctx); err != nil {
-				log.Event(ctx, "unable to close graph DB error consumer", log.ERROR)
-				hasShutdownError = true
-			}
-		}
-
 		// Close Kafka Producer (it if exists)
 		if svc.filterOutputSubmittedProducer != nil {
 			log.Event(ctx, "closing filter output submitted producer", log.INFO)
@@ -306,7 +273,6 @@ func (svc *Service) registerCheckers(ctx context.Context) (err error) {
 
 	registerChecker("Dataset API", svc.datasetAPI)
 	registerChecker("Kafka Producer", svc.filterOutputSubmittedProducer)
-	registerChecker("Graph DB", svc.observationStore)
 	registerChecker("Mongo DB", svc.filterStore)
 
 	// zebedee is used only for identity checking if private endpoints are enabled

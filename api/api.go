@@ -11,7 +11,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
-//go:generate moq -out mocks/datasetapi.go -pkg mocks . DatasetAPI
+//go:generate moq -out mock/datasetapi.go -pkg mock . DatasetAPI
 
 // DatasetAPI - An interface used to access the DatasetAPI
 type DatasetAPI interface {

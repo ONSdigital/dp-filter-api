@@ -9,8 +9,7 @@ import (
 	"time"
 
 	"github.com/ONSdigital/dp-filter-api/config"
-	"github.com/ONSdigital/dp-filter-api/service/mock"
-	"github.com/ONSdigital/dp-graph/v2/graph"
+	serviceMock "github.com/ONSdigital/dp-filter-api/service/mock"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 	kafka "github.com/ONSdigital/dp-kafka/v2"
 	"github.com/ONSdigital/dp-kafka/v2/kafkatest"
@@ -47,17 +46,9 @@ func TestInit(t *testing.T) {
 		cfg.EnablePrivateEndpoints = true
 		So(err, ShouldBeNil)
 
-		mongoDBMock := &mock.MongoDBMock{}
+		mongoDBMock := &serviceMock.MongoDBMock{}
 		getFilterStore = func(cfg *config.Config) (datastore MongoDB, err error) {
 			return mongoDBMock, nil
-		}
-
-		graphMock := &graph.DB{Driver: &mock.GraphDriverMock{}}
-		graphErrorConsumerMock := &mock.CloserMock{CloseFunc: func(ctx context.Context) error {
-			return nil
-		}}
-		getObservationStore = func(ctx context.Context) (observationStore *graph.DB, graphDBErrorConsumer Closer, err error) {
-			return graphMock, graphErrorConsumerMock, nil
 		}
 
 		kafkaProducerMock := &kafkatest.IProducerMock{
@@ -69,14 +60,14 @@ func TestInit(t *testing.T) {
 			return kafkaProducerMock, nil
 		}
 
-		hcMock := &mock.HealthCheckerMock{
+		hcMock := &serviceMock.HealthCheckerMock{
 			AddCheckFunc: func(name string, checker healthcheck.Checker) error { return nil },
 		}
 		getHealthCheck = func(version healthcheck.VersionInfo, criticalTimeout, interval time.Duration) HealthChecker {
 			return hcMock
 		}
 
-		serverMock := &mock.HTTPServerMock{}
+		serverMock := &serviceMock.HTTPServerMock{}
 		getHTTPServer = func(bindAddr string, router http.Handler) HTTPServer {
 			return serverMock
 		}
@@ -93,7 +84,6 @@ func TestInit(t *testing.T) {
 				So(err, ShouldBeNil)
 				So(svc.cfg, ShouldResemble, cfg)
 				So(svc.filterStore, ShouldBeNil)
-				So(svc.observationStore, ShouldResemble, graphMock)
 				So(svc.filterOutputSubmittedProducer, ShouldResemble, kafkaProducerMock)
 				So(svc.healthCheck, ShouldResemble, hcMock)
 				So(svc.server, ShouldResemble, serverMock)
@@ -109,23 +99,6 @@ func TestInit(t *testing.T) {
 			})
 		})
 
-		Convey("Given that initialising GraphDB observation store returns an error", func() {
-			getObservationStore = func(ctx context.Context) (observationStore *graph.DB, graphErrorConsumer Closer, err error) {
-				return nil, nil, errGraph
-			}
-
-			Convey("Then service Init fails with the same error and no further initialisations are attempted", func() {
-				err := svc.Init(ctx, cfg, testBuildTime, testGitCommit, testVersion)
-				So(err, ShouldResemble, errGraph)
-				So(svc.cfg, ShouldResemble, cfg)
-				So(svc.filterStore, ShouldResemble, mongoDBMock)
-				So(svc.observationStore, ShouldBeNil)
-				So(svc.filterOutputSubmittedProducer, ShouldBeNil)
-				So(svc.healthCheck, ShouldBeNil)
-				So(svc.server, ShouldBeNil)
-			})
-		})
-
 		Convey("Given that initialising the kafka Producer returns an error", func() {
 			getProducer = func(ctx context.Context, cfg *config.Config, kafkaBrokers []string, topic string) (kafkaProducer kafka.IProducer, err error) {
 				return nil, errKafka
@@ -136,7 +109,6 @@ func TestInit(t *testing.T) {
 				So(err, ShouldResemble, errKafka)
 				So(svc.cfg, ShouldResemble, cfg)
 				So(svc.filterStore, ShouldResemble, mongoDBMock)
-				So(svc.observationStore, ShouldResemble, graphMock)
 				So(svc.filterOutputSubmittedProducer, ShouldBeNil)
 				So(svc.healthCheck, ShouldBeNil)
 				So(svc.server, ShouldBeNil)
@@ -152,7 +124,6 @@ func TestInit(t *testing.T) {
 				So(err.Error(), ShouldResemble, "failed to parse build time")
 				So(svc.cfg, ShouldResemble, cfg)
 				So(svc.filterStore, ShouldResemble, mongoDBMock)
-				So(svc.observationStore, ShouldResemble, graphMock)
 				So(svc.filterOutputSubmittedProducer, ShouldResemble, kafkaProducerMock)
 				So(svc.healthCheck, ShouldBeNil)
 				So(svc.server, ShouldBeNil)
@@ -168,7 +139,6 @@ func TestInit(t *testing.T) {
 				So(err.Error(), ShouldResemble, "unable to register checkers: Error(s) registering checkers for healthcheck")
 				So(svc.cfg, ShouldResemble, cfg)
 				So(svc.filterStore, ShouldResemble, mongoDBMock)
-				So(svc.observationStore, ShouldResemble, graphMock)
 				So(svc.filterOutputSubmittedProducer, ShouldResemble, kafkaProducerMock)
 				So(svc.healthCheck, ShouldResemble, hcMock)
 				So(svc.server, ShouldBeNil)
@@ -191,7 +161,6 @@ func TestInit(t *testing.T) {
 				So(err, ShouldBeNil)
 				So(svc.cfg, ShouldResemble, cfg)
 				So(svc.filterStore, ShouldResemble, mongoDBMock)
-				So(svc.observationStore, ShouldResemble, graphMock)
 				So(svc.filterOutputSubmittedProducer, ShouldResemble, kafkaProducerMock)
 				So(svc.healthCheck, ShouldResemble, hcMock)
 				So(svc.server, ShouldResemble, serverMock)
@@ -215,7 +184,6 @@ func TestInit(t *testing.T) {
 				So(err, ShouldBeNil)
 				So(svc.cfg, ShouldResemble, cfg)
 				So(svc.filterStore, ShouldResemble, mongoDBMock)
-				So(svc.observationStore, ShouldResemble, graphMock)
 				So(svc.filterOutputSubmittedProducer, ShouldResemble, kafkaProducerMock)
 				So(svc.healthCheck, ShouldResemble, hcMock)
 				So(svc.server, ShouldResemble, serverMock)
@@ -247,12 +215,12 @@ func TestStart(t *testing.T) {
 			},
 		}
 
-		hcMock := &mock.HealthCheckerMock{
+		hcMock := &serviceMock.HealthCheckerMock{
 			StartFunc: func(ctx context.Context) {},
 		}
 
 		serverWg := &sync.WaitGroup{}
-		serverMock := &mock.HTTPServerMock{}
+		serverMock := &serviceMock.HTTPServerMock{}
 
 		svc := &Service{
 			cfg:                           cfg,
@@ -303,12 +271,12 @@ func TestClose(t *testing.T) {
 		serverStopped := false
 
 		// healthcheck Stop does not depend on any other service being closed/stopped
-		hcMock := &mock.HealthCheckerMock{
+		hcMock := &serviceMock.HealthCheckerMock{
 			StopFunc: func() { hcStopped = true },
 		}
 
 		// server Shutdown will fail if healthcheck is not stopped
-		serverMock := &mock.HTTPServerMock{
+		serverMock := &serviceMock.HTTPServerMock{
 			ShutdownFunc: func(ctx context.Context) error {
 				if !hcStopped {
 					return errors.New("Server was stopped before healthcheck")
@@ -330,16 +298,7 @@ func TestClose(t *testing.T) {
 		}
 
 		// mongoDB will fail if healthcheck or http server are not stopped
-		mongoMock := &mock.MongoDBMock{
-			CloseFunc: funcClose,
-		}
-
-		// graphDB will fail if healthcheck or http server are not stopped
-		graphDriverMock := &mock.GraphDriverMock{
-			CloseFunc: funcClose,
-		}
-
-		graphErrorConsumerMock := &mock.CloserMock{
+		mongoMock := &serviceMock.MongoDBMock{
 			CloseFunc: funcClose,
 		}
 
@@ -356,8 +315,6 @@ func TestClose(t *testing.T) {
 			healthCheck:                   hcMock,
 			server:                        serverMock,
 			filterStore:                   mongoMock,
-			observationStore:              &graph.DB{Driver: graphDriverMock},
-			graphDBErrorConsumer:          graphErrorConsumerMock,
 			filterOutputSubmittedProducer: kafkaProducerMock,
 		}
 
@@ -368,8 +325,6 @@ func TestClose(t *testing.T) {
 				So(len(hcMock.StopCalls()), ShouldEqual, 1)
 				So(len(serverMock.ShutdownCalls()), ShouldEqual, 1)
 				So(len(mongoMock.CloseCalls()), ShouldEqual, 1)
-				So(len(graphDriverMock.CloseCalls()), ShouldEqual, 1)
-				So(len(graphErrorConsumerMock.CloseCalls()), ShouldEqual, 1)
 				So(len(kafkaProducerMock.CloseCalls()), ShouldEqual, 1)
 			})
 		})
@@ -380,12 +335,6 @@ func TestClose(t *testing.T) {
 			}
 			mongoMock.CloseFunc = func(ctx context.Context) error {
 				return errMongo
-			}
-			graphDriverMock.CloseFunc = func(ctx context.Context) error {
-				return errGraph
-			}
-			graphErrorConsumerMock.CloseFunc = func(ctx context.Context) error {
-				return errGraph
 			}
 			kafkaProducerMock.CloseFunc = func(ctx context.Context) error {
 				return errKafka
@@ -398,8 +347,6 @@ func TestClose(t *testing.T) {
 				So(len(hcMock.StopCalls()), ShouldEqual, 1)
 				So(len(serverMock.ShutdownCalls()), ShouldEqual, 1)
 				So(len(mongoMock.CloseCalls()), ShouldEqual, 1)
-				So(len(graphDriverMock.CloseCalls()), ShouldEqual, 1)
-				So(len(graphErrorConsumerMock.CloseCalls()), ShouldEqual, 1)
 				So(len(kafkaProducerMock.CloseCalls()), ShouldEqual, 1)
 			})
 		})
@@ -417,8 +364,6 @@ func TestClose(t *testing.T) {
 				So(len(hcMock.StopCalls()), ShouldEqual, 1)
 				So(len(serverMock.ShutdownCalls()), ShouldEqual, 1)
 				So(len(mongoMock.CloseCalls()), ShouldEqual, 0)
-				So(len(graphDriverMock.CloseCalls()), ShouldEqual, 0)
-				So(len(graphErrorConsumerMock.CloseCalls()), ShouldEqual, 0)
 				So(len(kafkaProducerMock.CloseCalls()), ShouldEqual, 0)
 			})
 		})
