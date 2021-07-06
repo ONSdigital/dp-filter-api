@@ -1,9 +1,10 @@
-package api
+package api_test
 
 import (
 	"io"
 	"net/http"
 
+	"github.com/ONSdigital/dp-filter-api/api"
 	"github.com/ONSdigital/dp-filter-api/config"
 	"github.com/ONSdigital/dp-filter-api/filters"
 	dprequest "github.com/ONSdigital/dp-net/request"
@@ -26,8 +27,8 @@ var (
 	versionNotFoundResponse        = filters.ErrVersionNotFound.Error() + "\n"
 	optionNotFoundResponse         = filters.ErrDimensionOptionNotFound.Error() + "\n"
 	invalidQueryParameterResponse  = filters.ErrInvalidQueryParameter.Error() + "\n"
-	badRequestResponse             = badRequest + "\n"
-	internalErrResponse            = internalError + "\n"
+	badRequestResponse             = api.BadRequest + "\n"
+	internalErrResponse            = api.InternalError + "\n"
 )
 
 // cfg obtains a new config for testing. Each test will have its own config instance by using this func.

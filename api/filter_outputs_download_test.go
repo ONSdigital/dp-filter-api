@@ -1,8 +1,9 @@
-package api
+package api_test
 
 import (
 	"testing"
 
+	"github.com/ONSdigital/dp-filter-api/api"
 	"github.com/ONSdigital/dp-filter-api/models"
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -105,7 +106,7 @@ func TestBuildDownloadsObject(t *testing.T) {
 
 		for _, option := range testOptions {
 			Convey(option.title, func(c C) {
-				buildDownloadsObject(option.inputPreviousFilterOutput, option.inputFilterOutput, downloadServiceURL)
+				api.BuildDownloadsObject(option.inputPreviousFilterOutput, option.inputFilterOutput, downloadServiceURL)
 				So(option.inputFilterOutput, ShouldResemble, option.expectedOutput)
 			})
 		}

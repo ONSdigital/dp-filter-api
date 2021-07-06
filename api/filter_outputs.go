@@ -42,7 +42,7 @@ func (api *FilterAPI) getFilterOutputHandler(w http.ResponseWriter, r *http.Requ
 	bytes, err := json.Marshal(filterOutput)
 	if err != nil {
 		log.Event(ctx, "failed to marshal filter output into bytes", log.ERROR, log.Error(err), logData)
-		http.Error(w, internalError, http.StatusInternalServerError)
+		http.Error(w, InternalError, http.StatusInternalServerError)
 		return
 	}
 
@@ -71,7 +71,7 @@ func (api *FilterAPI) updateFilterOutputHandler(w http.ResponseWriter, r *http.R
 	filterOutput, err := models.CreateFilter(r.Body)
 	if err != nil {
 		log.Event(ctx, "unable to unmarshal request body", log.ERROR, log.Error(err), logData)
-		http.Error(w, badRequest, http.StatusBadRequest)
+		http.Error(w, BadRequest, http.StatusBadRequest)
 		return
 	}
 	logData["filter_output"] = filterOutput
@@ -120,7 +120,7 @@ func (api *FilterAPI) updateFilterOutput(ctx context.Context, filterOutputID str
 		filterOutput.Published = &models.Published
 	}
 
-	buildDownloadsObject(previousFilterOutput, filterOutput, api.downloadServiceURL)
+	BuildDownloadsObject(previousFilterOutput, filterOutput, api.downloadServiceURL)
 
 	filterOutput.State = previousFilterOutput.State
 
@@ -141,7 +141,7 @@ func (api *FilterAPI) updateFilterOutput(ctx context.Context, filterOutputID str
 		log.Event(ctx, "filter output status is now completed, creating completed event", log.INFO, logData)
 
 		completedEvent := &models.Event{
-			Type: eventFilterOutputCompleted,
+			Type: EventFilterOutputCompleted,
 			Time: time.Now(),
 		}
 
@@ -209,7 +209,7 @@ func (api *FilterAPI) getOutput(ctx context.Context, filterID string, hideS3Link
 		log.Event(ctx, "a valid download service token has been provided. not hiding private links", log.INFO, logData)
 	}
 
-	//only return the filter if it is for published data or via authenticated request
+	// only return the filter if it is for published data or via authenticated request
 	if output.Published != nil && *output.Published == models.Published || dprequest.IsCallerPresent(ctx) {
 		return output, nil
 	}
@@ -222,7 +222,7 @@ func (api *FilterAPI) getOutput(ctx context.Context, filterID string, hideS3Link
 		return nil, filters.ErrFilterOutputNotFound
 	}
 
-	//filter has been published since output was last requested, so update output and return
+	// filter has been published since output was last requested, so update output and return
 	if filter.Published != nil && *filter.Published == models.Published {
 		output.Published = &models.Published
 		if err := api.dataStore.UpdateFilterOutput(output, output.UniqueTimestamp); err != nil {
@@ -236,7 +236,7 @@ func (api *FilterAPI) getOutput(ctx context.Context, filterID string, hideS3Link
 	return nil, filters.ErrFilterOutputNotFound
 }
 
-func buildDownloadsObject(previousFilterOutput, filterOutput *models.Filter, downloadServiceURL string) {
+func BuildDownloadsObject(previousFilterOutput, filterOutput *models.Filter, downloadServiceURL string) {
 	if filterOutput.Downloads == nil {
 		filterOutput.Downloads = previousFilterOutput.Downloads
 		return

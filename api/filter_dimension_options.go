@@ -83,7 +83,7 @@ func (api *FilterAPI) getFilterBlueprintDimensionOptionsHandler(w http.ResponseW
 	b, err := json.Marshal(options)
 	if err != nil {
 		log.Event(ctx, "failed to marshal filter blueprint dimension options into bytes", log.ERROR, log.Error(err), logData)
-		http.Error(w, internalError, http.StatusInternalServerError)
+		http.Error(w, InternalError, http.StatusInternalServerError)
 		return
 	}
 
@@ -185,7 +185,7 @@ func (api *FilterAPI) getFilterBlueprintDimensionOptionHandler(w http.ResponseWr
 	b, err := json.Marshal(dimensionOption)
 	if err != nil {
 		log.Event(ctx, "failed to marshal filter blueprint dimension option into bytes", log.ERROR, log.Error(err), logData)
-		http.Error(w, internalError, http.StatusInternalServerError)
+		http.Error(w, InternalError, http.StatusInternalServerError)
 		return
 	}
 
@@ -305,7 +305,7 @@ func (api *FilterAPI) addFilterBlueprintDimensionOptionHandler(w http.ResponseWr
 	b, err := json.Marshal(dimensionOption)
 	if err != nil {
 		log.Event(ctx, "failed to marshal filter blueprint dimension option into bytes", log.ERROR, log.Error(err), logData)
-		http.Error(w, internalError, http.StatusInternalServerError)
+		http.Error(w, InternalError, http.StatusInternalServerError)
 		return
 	}
 
@@ -550,7 +550,7 @@ func (api *FilterAPI) patchFilterBlueprintDimension(ctx context.Context, filterB
 	// apply patch operations sequentially, stop processing if one patch fails, and return a list of successful patches operations
 	for _, patch := range patches {
 		allOptions := getStringArrayFromInterface(patch.Value)
-		options := removeDuplicateAndEmptyOptions(allOptions)
+		options := RemoveDuplicateAndEmptyOptions(allOptions)
 
 		if patch.Op == dprequest.OpAdd.String() {
 			eTag, err = api.addFilterBlueprintDimensionOptions(ctx, filterBlueprintID, dimensionName, options, logData, eTag)

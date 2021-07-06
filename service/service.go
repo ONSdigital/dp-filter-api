@@ -35,10 +35,6 @@ type Service struct {
 	api                           *api.FilterAPI
 }
 
-// Type check to ensure that NeptuneDB implements the driver.CodeList interface
-//var _ driver.CodeList = (*NeptuneDB)(nil)
-//var _ service.HTTPServer = (*HTTPServer)(nil)
-
 // GetFilterStore returns an initialised connection to filter store (mongo database)
 var GetFilterStore = func(cfg *config.Config) (datastore MongoDB, err error) {
 	return mongo.CreateFilterStore(cfg.MongoConfig, cfg.Host)

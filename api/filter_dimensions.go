@@ -95,7 +95,7 @@ func (api *FilterAPI) getFilterBlueprintDimensionsHandler(w http.ResponseWriter,
 		}
 	}
 
-	items := createPublicDimensions(filterDimensions, api.host, filter.FilterID)
+	items := CreatePublicDimensions(filterDimensions, api.host, filter.FilterID)
 	publicDimensions := models.PublicDimensions{
 		Items:      items,
 		Count:      len(items),
@@ -106,7 +106,7 @@ func (api *FilterAPI) getFilterBlueprintDimensionsHandler(w http.ResponseWriter,
 	b, err := json.Marshal(publicDimensions)
 	if err != nil {
 		log.Event(ctx, "failed to marshal filter blueprint dimensions into bytes", log.ERROR, log.Error(err), logData)
-		http.Error(w, internalError, http.StatusInternalServerError)
+		http.Error(w, InternalError, http.StatusInternalServerError)
 		return
 	}
 
@@ -151,11 +151,11 @@ func (api *FilterAPI) getFilterBlueprintDimensionHandler(w http.ResponseWriter, 
 		return
 	}
 
-	publicDimension := createPublicDimension(*dimension, api.host, filterBlueprintID)
+	publicDimension := CreatePublicDimension(*dimension, api.host, filterBlueprintID)
 	b, err := json.Marshal(publicDimension)
 	if err != nil {
 		log.Event(ctx, "failed to marshal filter blueprint dimensions into bytes", log.ERROR, log.Error(err), logData)
-		http.Error(w, internalError, http.StatusInternalServerError)
+		http.Error(w, InternalError, http.StatusInternalServerError)
 		return
 	}
 
@@ -254,11 +254,11 @@ func (api *FilterAPI) addFilterBlueprintDimensionHandler(w http.ResponseWriter, 
 	options, err := models.CreateDimensionOptions(r.Body)
 	if err != nil {
 		log.Event(ctx, "unable to unmarshal request body", log.ERROR, log.Error(err), logData)
-		http.Error(w, badRequest, http.StatusBadRequest)
+		http.Error(w, BadRequest, http.StatusBadRequest)
 		return
 	}
 
-	options = removeDuplicateAndEmptyOptions(options)
+	options = RemoveDuplicateAndEmptyOptions(options)
 
 	newETag, err := api.addFilterBlueprintDimension(ctx, filterBlueprintID, dimensionName, options, eTag)
 	if err != nil {
@@ -277,11 +277,11 @@ func (api *FilterAPI) addFilterBlueprintDimensionHandler(w http.ResponseWriter, 
 		setErrorCode(w, err)
 		return
 	}
-	publicDimension := createPublicDimension(*dimension, api.host, filterBlueprintID)
+	publicDimension := CreatePublicDimension(*dimension, api.host, filterBlueprintID)
 	b, err := json.Marshal(publicDimension)
 	if err != nil {
 		log.Event(ctx, "failed to marshal filter blueprint dimensions into bytes", log.ERROR, log.Error(err), logData)
-		http.Error(w, internalError, http.StatusInternalServerError)
+		http.Error(w, InternalError, http.StatusInternalServerError)
 		return
 	}
 
@@ -407,21 +407,21 @@ func (api *FilterAPI) checkNewFilterDimensionOptions(ctx context.Context, dimens
 	return nil
 }
 
-// createPublicDimensions wraps createPublicDimension for converting arrays of dimensions
-func createPublicDimensions(inputDimensions []models.Dimension, host, filterID string) []*models.PublicDimension {
+// CreatePublicDimensions wraps CreatePublicDimension for converting arrays of dimensions
+func CreatePublicDimensions(inputDimensions []models.Dimension, host, filterID string) []*models.PublicDimension {
 
 	outputDimensions := make([]*models.PublicDimension, 0)
 	for _, inputDimension := range inputDimensions {
 
-		publicDimension := createPublicDimension(inputDimension, host, filterID)
+		publicDimension := CreatePublicDimension(inputDimension, host, filterID)
 		outputDimensions = append(outputDimensions, publicDimension)
 	}
 
 	return outputDimensions
 }
 
-// createPublicDimension creates a PublicDimension struct from a Dimension struct
-func createPublicDimension(dimension models.Dimension, host, filterID string) *models.PublicDimension {
+// CreatePublicDimension creates a PublicDimension struct from a Dimension struct
+func CreatePublicDimension(dimension models.Dimension, host, filterID string) *models.PublicDimension {
 
 	// split out filterID and URL from dimension.URL
 	filterURL := fmt.Sprintf("%s/filters/%s", host, filterID)
@@ -438,7 +438,7 @@ func createPublicDimension(dimension models.Dimension, host, filterID string) *m
 	return publicDim
 }
 
-func removeDuplicateAndEmptyOptions(elements []string) []string {
+func RemoveDuplicateAndEmptyOptions(elements []string) []string {
 	encountered := map[string]bool{}
 	result := []string{}
 
