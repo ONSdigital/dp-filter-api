@@ -18,64 +18,64 @@ var _ service.MongoDB = &MongoDBMock{}
 
 // MongoDBMock is a mock implementation of service.MongoDB.
 //
-//     func TestSomethingThatUsesMongoDB(t *testing.T) {
+// 	func TestSomethingThatUsesMongoDB(t *testing.T) {
 //
-//         // make and configure a mocked service.MongoDB
-//         mockedMongoDB := &MongoDBMock{
-//             AddEventToFilterOutputFunc: func(filterOutputID string, event *models.Event) error {
-// 	               panic("mock out the AddEventToFilterOutput method")
-//             },
-//             AddFilterFunc: func(filter *models.Filter) (*models.Filter, error) {
-// 	               panic("mock out the AddFilter method")
-//             },
-//             AddFilterDimensionFunc: func(filterID string, name string, options []string, dimensions []models.Dimension, timestamp bson.MongoTimestamp, eTagSelector string, currentFilter *models.Filter) (string, error) {
-// 	               panic("mock out the AddFilterDimension method")
-//             },
-//             AddFilterDimensionOptionFunc: func(filterID string, name string, option string, timestamp bson.MongoTimestamp, eTagSelector string, currentFilter *models.Filter) (string, error) {
-// 	               panic("mock out the AddFilterDimensionOption method")
-//             },
-//             AddFilterDimensionOptionsFunc: func(filterID string, name string, options []string, timestamp bson.MongoTimestamp, eTagSelector string, currentFilter *models.Filter) (string, error) {
-// 	               panic("mock out the AddFilterDimensionOptions method")
-//             },
-//             CheckerFunc: func(ctx context.Context, state *healthcheck.CheckState) error {
-// 	               panic("mock out the Checker method")
-//             },
-//             CloseFunc: func(ctx context.Context) error {
-// 	               panic("mock out the Close method")
-//             },
-//             CreateFilterOutputFunc: func(filter *models.Filter) error {
-// 	               panic("mock out the CreateFilterOutput method")
-//             },
-//             GetFilterFunc: func(filterID string, eTagSelector string) (*models.Filter, error) {
-// 	               panic("mock out the GetFilter method")
-//             },
-//             GetFilterDimensionFunc: func(filterID string, name string, eTagSelector string) (*models.Dimension, error) {
-// 	               panic("mock out the GetFilterDimension method")
-//             },
-//             GetFilterOutputFunc: func(filterOutputID string) (*models.Filter, error) {
-// 	               panic("mock out the GetFilterOutput method")
-//             },
-//             RemoveFilterDimensionFunc: func(filterID string, name string, timestamp bson.MongoTimestamp, eTagSelector string, currentFilter *models.Filter) (string, error) {
-// 	               panic("mock out the RemoveFilterDimension method")
-//             },
-//             RemoveFilterDimensionOptionFunc: func(filterID string, name string, option string, timestamp bson.MongoTimestamp, eTagSelector string, currentFilter *models.Filter) (string, error) {
-// 	               panic("mock out the RemoveFilterDimensionOption method")
-//             },
-//             RemoveFilterDimensionOptionsFunc: func(filterID string, name string, options []string, timestamp bson.MongoTimestamp, eTagSelector string, currentFilter *models.Filter) (string, error) {
-// 	               panic("mock out the RemoveFilterDimensionOptions method")
-//             },
-//             UpdateFilterFunc: func(updatedFilter *models.Filter, timestamp bson.MongoTimestamp, eTagSelector string, currentFilter *models.Filter) (string, error) {
-// 	               panic("mock out the UpdateFilter method")
-//             },
-//             UpdateFilterOutputFunc: func(filter *models.Filter, timestamp bson.MongoTimestamp) error {
-// 	               panic("mock out the UpdateFilterOutput method")
-//             },
-//         }
+// 		// make and configure a mocked service.MongoDB
+// 		mockedMongoDB := &MongoDBMock{
+// 			AddEventToFilterOutputFunc: func(filterOutputID string, event *models.Event) error {
+// 				panic("mock out the AddEventToFilterOutput method")
+// 			},
+// 			AddFilterFunc: func(filter *models.Filter) (*models.Filter, error) {
+// 				panic("mock out the AddFilter method")
+// 			},
+// 			AddFilterDimensionFunc: func(filterID string, name string, options []string, dimensions []models.Dimension, timestamp bson.MongoTimestamp, eTagSelector string, currentFilter *models.Filter) (string, error) {
+// 				panic("mock out the AddFilterDimension method")
+// 			},
+// 			AddFilterDimensionOptionFunc: func(filterID string, name string, option string, timestamp bson.MongoTimestamp, eTagSelector string, currentFilter *models.Filter) (string, error) {
+// 				panic("mock out the AddFilterDimensionOption method")
+// 			},
+// 			AddFilterDimensionOptionsFunc: func(filterID string, name string, options []string, timestamp bson.MongoTimestamp, eTagSelector string, currentFilter *models.Filter) (string, error) {
+// 				panic("mock out the AddFilterDimensionOptions method")
+// 			},
+// 			CheckerFunc: func(ctx context.Context, state *healthcheck.CheckState) error {
+// 				panic("mock out the Checker method")
+// 			},
+// 			CloseFunc: func(ctx context.Context) error {
+// 				panic("mock out the Close method")
+// 			},
+// 			CreateFilterOutputFunc: func(filter *models.Filter) error {
+// 				panic("mock out the CreateFilterOutput method")
+// 			},
+// 			GetFilterFunc: func(filterID string, eTagSelector string) (*models.Filter, error) {
+// 				panic("mock out the GetFilter method")
+// 			},
+// 			GetFilterDimensionFunc: func(filterID string, name string, eTagSelector string) (*models.Dimension, error) {
+// 				panic("mock out the GetFilterDimension method")
+// 			},
+// 			GetFilterOutputFunc: func(filterOutputID string) (*models.Filter, error) {
+// 				panic("mock out the GetFilterOutput method")
+// 			},
+// 			RemoveFilterDimensionFunc: func(filterID string, name string, timestamp bson.MongoTimestamp, eTagSelector string, currentFilter *models.Filter) (string, error) {
+// 				panic("mock out the RemoveFilterDimension method")
+// 			},
+// 			RemoveFilterDimensionOptionFunc: func(filterID string, name string, option string, timestamp bson.MongoTimestamp, eTagSelector string, currentFilter *models.Filter) (string, error) {
+// 				panic("mock out the RemoveFilterDimensionOption method")
+// 			},
+// 			RemoveFilterDimensionOptionsFunc: func(filterID string, name string, options []string, timestamp bson.MongoTimestamp, eTagSelector string, currentFilter *models.Filter) (string, error) {
+// 				panic("mock out the RemoveFilterDimensionOptions method")
+// 			},
+// 			UpdateFilterFunc: func(updatedFilter *models.Filter, timestamp bson.MongoTimestamp, eTagSelector string, currentFilter *models.Filter) (string, error) {
+// 				panic("mock out the UpdateFilter method")
+// 			},
+// 			UpdateFilterOutputFunc: func(filter *models.Filter, timestamp bson.MongoTimestamp) error {
+// 				panic("mock out the UpdateFilterOutput method")
+// 			},
+// 		}
 //
-//         // use mockedMongoDB in code that requires service.MongoDB
-//         // and then make assertions.
+// 		// use mockedMongoDB in code that requires service.MongoDB
+// 		// and then make assertions.
 //
-//     }
+// 	}
 type MongoDBMock struct {
 	// AddEventToFilterOutputFunc mocks the AddEventToFilterOutput method.
 	AddEventToFilterOutputFunc func(filterOutputID string, event *models.Event) error

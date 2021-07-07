@@ -5,7 +5,7 @@ package mock
 
 import (
 	"context"
-	"github.com/ONSdigital/dp-api-clients-go/dataset"
+	datasetAPI "github.com/ONSdigital/dp-api-clients-go/dataset"
 	"github.com/ONSdigital/dp-filter-api/api"
 	"sync"
 )
@@ -16,34 +16,34 @@ var _ api.DatasetAPI = &DatasetAPIMock{}
 
 // DatasetAPIMock is a mock implementation of api.DatasetAPI.
 //
-//     func TestSomethingThatUsesDatasetAPI(t *testing.T) {
+// 	func TestSomethingThatUsesDatasetAPI(t *testing.T) {
 //
-//         // make and configure a mocked api.DatasetAPI
-//         mockedDatasetAPI := &DatasetAPIMock{
-//             GetOptionsBatchProcessFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, collectionID string, id string, edition string, version string, dimension string, optionIDs *[]string, processBatch dataset.OptionsBatchProcessor, batchSize int, maxWorkers int) error {
-// 	               panic("mock out the GetOptionsBatchProcess method")
-//             },
-//             GetVersionFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, downloadServiceAuthToken string, collectionID string, datasetID string, edition string, version string) (dataset.Version, error) {
-// 	               panic("mock out the GetVersion method")
-//             },
-//             GetVersionDimensionsFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, collectionID string, id string, edition string, version string) (dataset.VersionDimensions, error) {
-// 	               panic("mock out the GetVersionDimensions method")
-//             },
-//         }
+// 		// make and configure a mocked api.DatasetAPI
+// 		mockedDatasetAPI := &DatasetAPIMock{
+// 			GetOptionsBatchProcessFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, collectionID string, id string, edition string, version string, dimension string, optionIDs *[]string, processBatch datasetAPI.OptionsBatchProcessor, batchSize int, maxWorkers int) error {
+// 				panic("mock out the GetOptionsBatchProcess method")
+// 			},
+// 			GetVersionFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, downloadServiceAuthToken string, collectionID string, datasetID string, edition string, version string) (datasetAPI.Version, error) {
+// 				panic("mock out the GetVersion method")
+// 			},
+// 			GetVersionDimensionsFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, collectionID string, id string, edition string, version string) (datasetAPI.VersionDimensions, error) {
+// 				panic("mock out the GetVersionDimensions method")
+// 			},
+// 		}
 //
-//         // use mockedDatasetAPI in code that requires api.DatasetAPI
-//         // and then make assertions.
+// 		// use mockedDatasetAPI in code that requires api.DatasetAPI
+// 		// and then make assertions.
 //
-//     }
+// 	}
 type DatasetAPIMock struct {
 	// GetOptionsBatchProcessFunc mocks the GetOptionsBatchProcess method.
-	GetOptionsBatchProcessFunc func(ctx context.Context, userAuthToken string, serviceAuthToken string, collectionID string, id string, edition string, version string, dimension string, optionIDs *[]string, processBatch dataset.OptionsBatchProcessor, batchSize int, maxWorkers int) error
+	GetOptionsBatchProcessFunc func(ctx context.Context, userAuthToken string, serviceAuthToken string, collectionID string, id string, edition string, version string, dimension string, optionIDs *[]string, processBatch datasetAPI.OptionsBatchProcessor, batchSize int, maxWorkers int) error
 
 	// GetVersionFunc mocks the GetVersion method.
-	GetVersionFunc func(ctx context.Context, userAuthToken string, serviceAuthToken string, downloadServiceAuthToken string, collectionID string, datasetID string, edition string, version string) (dataset.Version, error)
+	GetVersionFunc func(ctx context.Context, userAuthToken string, serviceAuthToken string, downloadServiceAuthToken string, collectionID string, datasetID string, edition string, version string) (datasetAPI.Version, error)
 
 	// GetVersionDimensionsFunc mocks the GetVersionDimensions method.
-	GetVersionDimensionsFunc func(ctx context.Context, userAuthToken string, serviceAuthToken string, collectionID string, id string, edition string, version string) (dataset.VersionDimensions, error)
+	GetVersionDimensionsFunc func(ctx context.Context, userAuthToken string, serviceAuthToken string, collectionID string, id string, edition string, version string) (datasetAPI.VersionDimensions, error)
 
 	// calls tracks calls to the methods.
 	calls struct {
@@ -68,7 +68,7 @@ type DatasetAPIMock struct {
 			// OptionIDs is the optionIDs argument value.
 			OptionIDs *[]string
 			// ProcessBatch is the processBatch argument value.
-			ProcessBatch dataset.OptionsBatchProcessor
+			ProcessBatch datasetAPI.OptionsBatchProcessor
 			// BatchSize is the batchSize argument value.
 			BatchSize int
 			// MaxWorkers is the maxWorkers argument value.
@@ -117,7 +117,7 @@ type DatasetAPIMock struct {
 }
 
 // GetOptionsBatchProcess calls GetOptionsBatchProcessFunc.
-func (mock *DatasetAPIMock) GetOptionsBatchProcess(ctx context.Context, userAuthToken string, serviceAuthToken string, collectionID string, id string, edition string, version string, dimension string, optionIDs *[]string, processBatch dataset.OptionsBatchProcessor, batchSize int, maxWorkers int) error {
+func (mock *DatasetAPIMock) GetOptionsBatchProcess(ctx context.Context, userAuthToken string, serviceAuthToken string, collectionID string, id string, edition string, version string, dimension string, optionIDs *[]string, processBatch datasetAPI.OptionsBatchProcessor, batchSize int, maxWorkers int) error {
 	if mock.GetOptionsBatchProcessFunc == nil {
 		panic("DatasetAPIMock.GetOptionsBatchProcessFunc: method is nil but DatasetAPI.GetOptionsBatchProcess was just called")
 	}
@@ -131,7 +131,7 @@ func (mock *DatasetAPIMock) GetOptionsBatchProcess(ctx context.Context, userAuth
 		Version          string
 		Dimension        string
 		OptionIDs        *[]string
-		ProcessBatch     dataset.OptionsBatchProcessor
+		ProcessBatch     datasetAPI.OptionsBatchProcessor
 		BatchSize        int
 		MaxWorkers       int
 	}{
@@ -167,7 +167,7 @@ func (mock *DatasetAPIMock) GetOptionsBatchProcessCalls() []struct {
 	Version          string
 	Dimension        string
 	OptionIDs        *[]string
-	ProcessBatch     dataset.OptionsBatchProcessor
+	ProcessBatch     datasetAPI.OptionsBatchProcessor
 	BatchSize        int
 	MaxWorkers       int
 } {
@@ -181,7 +181,7 @@ func (mock *DatasetAPIMock) GetOptionsBatchProcessCalls() []struct {
 		Version          string
 		Dimension        string
 		OptionIDs        *[]string
-		ProcessBatch     dataset.OptionsBatchProcessor
+		ProcessBatch     datasetAPI.OptionsBatchProcessor
 		BatchSize        int
 		MaxWorkers       int
 	}
@@ -192,7 +192,7 @@ func (mock *DatasetAPIMock) GetOptionsBatchProcessCalls() []struct {
 }
 
 // GetVersion calls GetVersionFunc.
-func (mock *DatasetAPIMock) GetVersion(ctx context.Context, userAuthToken string, serviceAuthToken string, downloadServiceAuthToken string, collectionID string, datasetID string, edition string, version string) (dataset.Version, error) {
+func (mock *DatasetAPIMock) GetVersion(ctx context.Context, userAuthToken string, serviceAuthToken string, downloadServiceAuthToken string, collectionID string, datasetID string, edition string, version string) (datasetAPI.Version, error) {
 	if mock.GetVersionFunc == nil {
 		panic("DatasetAPIMock.GetVersionFunc: method is nil but DatasetAPI.GetVersion was just called")
 	}
@@ -251,7 +251,7 @@ func (mock *DatasetAPIMock) GetVersionCalls() []struct {
 }
 
 // GetVersionDimensions calls GetVersionDimensionsFunc.
-func (mock *DatasetAPIMock) GetVersionDimensions(ctx context.Context, userAuthToken string, serviceAuthToken string, collectionID string, id string, edition string, version string) (dataset.VersionDimensions, error) {
+func (mock *DatasetAPIMock) GetVersionDimensions(ctx context.Context, userAuthToken string, serviceAuthToken string, collectionID string, id string, edition string, version string) (datasetAPI.VersionDimensions, error) {
 	if mock.GetVersionDimensionsFunc == nil {
 		panic("DatasetAPIMock.GetVersionDimensionsFunc: method is nil but DatasetAPI.GetVersionDimensions was just called")
 	}
