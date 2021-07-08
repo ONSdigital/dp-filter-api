@@ -15,6 +15,7 @@ import (
 	dphttp "github.com/ONSdigital/dp-net/http"
 	"github.com/ONSdigital/log.go/log"
 	"github.com/gorilla/mux"
+	"github.com/pkg/errors"
 )
 
 func (api *FilterAPI) getFilterBlueprintDimensionsHandler(w http.ResponseWriter, r *http.Request) {
@@ -454,21 +455,21 @@ func RemoveDuplicateAndEmptyOptions(elements []string) []string {
 	return result
 }
 
-func getStringArrayFromInterface(elements interface{}) []string {
+func getStringArrayFromInterface(elements interface{}) ([]string, error) {
 	result := []string{}
 
 	v2, ok := elements.([]interface{})
 	if !ok {
-		return result
+		return result, errors.New("Missing list of items")
 	}
 
 	for _, v := range v2 {
 		v3, ok := v.(string)
 		if !ok {
-			return result
+			return result, fmt.Errorf("Non string item in list, got: %v", v)
 		}
 		result = append(result, v3)
 	}
 
-	return result
+	return result, nil
 }

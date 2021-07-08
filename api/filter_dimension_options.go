@@ -498,8 +498,8 @@ func (api *FilterAPI) patchFilterBlueprintDimensionHandler(w http.ResponseWriter
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-		v2, ok := patch.Value.([]interface{})
-		if !ok {
+		v2, err := getStringArrayFromInterface(patch.Value)
+		if err != nil {
 			err = fmt.Errorf("values provided are not strings")
 			log.Event(ctx, "error validating patch operation path, no change has been applied", log.ERROR, log.Error(err), logData)
 			http.Error(w, err.Error(), http.StatusBadRequest)
@@ -549,7 +549,10 @@ func (api *FilterAPI) patchFilterBlueprintDimension(ctx context.Context, filterB
 
 	// apply patch operations sequentially, stop processing if one patch fails, and return a list of successful patches operations
 	for _, patch := range patches {
-		allOptions := getStringArrayFromInterface(patch.Value)
+		allOptions, err := getStringArrayFromInterface(patch.Value)
+		if err != nil {
+			return successful, eTag, err
+		}
 		options := RemoveDuplicateAndEmptyOptions(allOptions)
 
 		if patch.Op == dprequest.OpAdd.String() {
