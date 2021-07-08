@@ -1,4 +1,4 @@
-package mocks
+package mock
 
 import (
 	"errors"
@@ -6,7 +6,7 @@ import (
 
 	"github.com/globalsign/mgo/bson"
 
-	apimocks "github.com/ONSdigital/dp-filter-api/api/mocks"
+	apimock "github.com/ONSdigital/dp-filter-api/api/mock"
 	"github.com/ONSdigital/dp-filter-api/filters"
 	"github.com/ONSdigital/dp-filter-api/models"
 )
@@ -59,7 +59,7 @@ type DataStoreConfig struct {
 // or you can use the internal 'moq' Mock if you want ot validate calls, parameters etc.
 type DataStore struct {
 	Cfg             DataStoreConfig
-	Mock            *apimocks.DataStoreMock
+	Mock            *apimock.DataStoreMock
 	eTagUpdateCount int
 }
 
@@ -69,7 +69,7 @@ func NewDataStore() *DataStore {
 		Cfg:             DataStoreConfig{},
 		eTagUpdateCount: 0,
 	}
-	ds.Mock = &apimocks.DataStoreMock{
+	ds.Mock = &apimock.DataStoreMock{
 		AddFilterFunc:                    ds.AddFilter,
 		AddFilterDimensionFunc:           ds.AddFilterDimension,
 		AddFilterDimensionOptionFunc:     ds.AddFilterDimensionOption,
