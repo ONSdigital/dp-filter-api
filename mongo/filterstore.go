@@ -31,6 +31,10 @@ func CreateFilterStore(cfg config.MongoConfig, host string) (*FilterStore, error
 	if err != nil {
 		return nil, err
 	}
+
+	session.EnsureSafe(&mgo.Safe{WMode: "majority"})
+	session.SetMode(mgo.Strong, true)
+
 	filterStore := &FilterStore{
 		Session:           session,
 		host:              host,

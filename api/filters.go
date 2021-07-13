@@ -21,8 +21,8 @@ import (
 )
 
 var (
-	internalError = "Failed to process the request due to an internal error"
-	badRequest    = "Bad request - Invalid request body"
+	InternalError = "Failed to process the request due to an internal error"
+	BadRequest    = "Bad request - Invalid request body"
 
 	statusBadRequest          = "bad request"
 	statusUnprocessableEntity = "unprocessable entity"
@@ -36,8 +36,8 @@ var (
 const (
 	filterSubmitted = "true"
 
-	eventFilterOutputCreated   = "FilterOutputCreated"
-	eventFilterOutputCompleted = "FilterOutputCompleted"
+	EventFilterOutputCreated   = "FilterOutputCreated"
+	EventFilterOutputCompleted = "FilterOutputCompleted"
 )
 
 func (api *FilterAPI) postFilterBlueprintHandler(w http.ResponseWriter, r *http.Request) {
@@ -55,7 +55,7 @@ func (api *FilterAPI) postFilterBlueprintHandler(w http.ResponseWriter, r *http.
 		if err, ok := err.(models.DuplicateDimensionError); ok {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 		} else {
-			http.Error(w, badRequest, http.StatusBadRequest)
+			http.Error(w, BadRequest, http.StatusBadRequest)
 		}
 		return
 	}
@@ -196,7 +196,7 @@ func (api *FilterAPI) getFilterBlueprintHandler(w http.ResponseWriter, r *http.R
 	bytes, err := json.Marshal(filterBlueprint)
 	if err != nil {
 		log.Event(ctx, "failed to marshal filter blueprint into bytes", log.ERROR, log.Error(err), logData)
-		http.Error(w, internalError, http.StatusInternalServerError)
+		http.Error(w, InternalError, http.StatusInternalServerError)
 		return
 	}
 
@@ -237,7 +237,7 @@ func (api *FilterAPI) putFilterBlueprintHandler(w http.ResponseWriter, r *http.R
 		// request can have an empty json in body for this PUT request
 		if submitted != filterSubmitted || err != models.ErrorNoData {
 			log.Event(ctx, "unable to unmarshal request body", log.ERROR, log.Error(err), logData)
-			http.Error(w, badRequest, http.StatusBadRequest)
+			http.Error(w, BadRequest, http.StatusBadRequest)
 			return
 		}
 	}
@@ -363,7 +363,7 @@ func (api *FilterAPI) getFilterBlueprint(ctx context.Context, filterID, eTag str
 		return nil, filters.ErrFilterBlueprintConflict
 	}
 
-	//only return the filter if it is for published data or via authenticated request
+	// only return the filter if it is for published data or via authenticated request
 	if currentFilter.Published != nil && *currentFilter.Published == models.Published || dprequest.IsCallerPresent(ctx) {
 		return currentFilter, nil
 	}
@@ -444,8 +444,7 @@ func (api *FilterAPI) getVersion(ctx context.Context, dataset *models.Dataset) (
 
 	if err != nil {
 		if apiErr, ok := err.(*datasetAPI.ErrInvalidDatasetAPIResponse); ok {
-			switch apiErr.Code() {
-			case http.StatusNotFound:
+			if apiErr.Code() == http.StatusNotFound {
 				return nil, filters.ErrVersionNotFound
 			}
 		}
@@ -488,8 +487,7 @@ func (api *FilterAPI) getDimensions(ctx context.Context, dataset *models.Dataset
 		strconv.Itoa(dataset.Version))
 	if err != nil {
 		if apiErr, ok := err.(*datasetAPI.ErrInvalidDatasetAPIResponse); ok {
-			switch apiErr.Code() {
-			case http.StatusNotFound:
+			if apiErr.Code() == http.StatusNotFound {
 				return nil, filters.ErrDimensionsNotFound
 			}
 		}
@@ -527,8 +525,7 @@ func (api *FilterAPI) getDimensionOptionsBatchProcess(ctx context.Context, dimen
 
 	if err != nil {
 		if apiErr, ok := err.(*datasetAPI.ErrInvalidDatasetAPIResponse); ok {
-			switch apiErr.Code() {
-			case http.StatusNotFound:
+			if apiErr.Code() == http.StatusNotFound {
 				return filters.ErrDimensionOptionsNotFound
 			}
 		}
@@ -562,7 +559,7 @@ func (api *FilterAPI) createFilterOutputResource(ctx context.Context, newFilter 
 	// Clear out any event information to output document
 	filterOutput.Events = []*models.Event{
 		{
-			Type: eventFilterOutputCreated,
+			Type: EventFilterOutputCreated,
 			Time: time.Now(),
 		},
 	}
@@ -678,7 +675,7 @@ func setErrorCode(w http.ResponseWriter, err error, typ ...string) {
 		http.Error(w, filters.ErrInvalidQueryParameter.Error(), http.StatusBadRequest)
 		return
 	case filters.ErrBadRequest:
-		http.Error(w, badRequest, http.StatusBadRequest)
+		http.Error(w, BadRequest, http.StatusBadRequest)
 		return
 	case filters.ErrFilterBlueprintConflict:
 		http.Error(w, err.Error(), http.StatusConflict)
@@ -698,7 +695,7 @@ func setErrorCode(w http.ResponseWriter, err error, typ ...string) {
 			http.Error(w, err.Error(), http.StatusForbidden)
 			return
 		default:
-			http.Error(w, internalError, http.StatusInternalServerError)
+			http.Error(w, InternalError, http.StatusInternalServerError)
 			return
 		}
 	}
