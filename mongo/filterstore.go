@@ -11,8 +11,8 @@ import (
 	"github.com/ONSdigital/dp-filter-api/filters"
 	"github.com/ONSdigital/dp-filter-api/models"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
-	dpMongoHealth "github.com/ONSdigital/dp-mongodb/v2/pkg/health"
-	dpMongoDriver "github.com/ONSdigital/dp-mongodb/v2/pkg/mongodb"
+	dpMongoHealth "github.com/ONSdigital/dp-mongodb/v2/health"
+	dpMongoDriver "github.com/ONSdigital/dp-mongodb/v2/mongodb"
 	"go.mongodb.org/mongo-driver/bson"
 )
 
