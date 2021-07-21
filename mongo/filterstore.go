@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"math"
 	"time"
 
@@ -86,12 +87,9 @@ func CreateFilterStore(cfg config.MongoConfig, host string, shouldEnableMojority
 // AddFilter to the data store.
 func (s *FilterStore) AddFilter(ctx context.Context, filter *models.Filter) (*models.Filter, error) {
 	// Initialise with a timestamp
-	var err error
-	filter.UniqueTimestamp, err = NewMongoTimestamp(time.Now(), 1)
-	if err != nil {
-		return nil, err
-	}
+	filter.UniqueTimestamp = primitive.Timestamp{T: uint32(time.Now().Unix()), I: 1}
 
+	var err error
 	// set eTag value to current hash of the filter
 	filter.ETag, err = filter.Hash(nil)
 	if err != nil {
@@ -113,18 +111,19 @@ func (s *FilterStore) AddFilter(ctx context.Context, filter *models.Filter) (*mo
 // GetFilter returns a single filter, if not found return an error.
 // An optional eTag can be provided to assure that a filter has not been modified since the hash was generated
 func (s *FilterStore) GetFilter(ctx context.Context, filterID, eTagSelector string) (*models.Filter, error) {
-	return s.getFilterWithSession(ctx, s.Connection, filterID, 0, eTagSelector)
+	return s.getFilterWithSession(ctx, s.Connection, filterID, primitive.Timestamp{}, eTagSelector)
 }
 
 // get a filter with the provided session.
 // Optional timestamp and eTag can be provided to assure that a filter has not been modified since expected.
-func (s *FilterStore) getFilterWithSession(ctx context.Context, connection *dpMongoDriver.MongoConnection, filterID string, timestamp int64, eTagSelector string) (*models.Filter, error) {
+func (s *FilterStore) getFilterWithSession(ctx context.Context, connection *dpMongoDriver.MongoConnection, filterID string, timestamp primitive.Timestamp, eTagSelector string) (*models.Filter, error) {
 
 	// ignore eTag for query, so that we can return the correct error if it does not match
 	query := selector(filterID, "", timestamp, AnyETag)
 
 	var result models.Filter
-	if err := connection.C(s.FiltersCollection).Find(query).One(ctx, &result); err != nil {
+
+	if err := connection.C(s.FiltersCollection).FindOne(ctx, query, &result); err != nil {
 		if dpMongoDriver.IsErrNoDocumentFound(err) {
 			return nil, filters.ErrFilterBlueprintNotFound
 		}
@@ -141,7 +140,7 @@ func (s *FilterStore) getFilterWithSession(ctx context.Context, connection *dpMo
 }
 
 // UpdateFilter replaces the stored filter properties.
-func (s *FilterStore) UpdateFilter(ctx context.Context, updatedFilter *models.Filter, timestamp int64, eTagSelector string, currentFilter *models.Filter) (newETag string, err error) {
+func (s *FilterStore) UpdateFilter(ctx context.Context, updatedFilter *models.Filter, timestamp primitive.Timestamp, eTagSelector string, currentFilter *models.Filter) (newETag string, err error) {
 	// calculate the new eTag hash for the filter that would result from applying the update
 	newETag, err = newETagForUpdate(currentFilter, updatedFilter)
 	if err != nil {
@@ -178,7 +177,7 @@ func (s *FilterStore) UpdateFilter(ctx context.Context, updatedFilter *models.Fi
 // GetFilterDimension return a single dimension, along with the filter eTag hash
 func (s *FilterStore) GetFilterDimension(ctx context.Context, filterID string, name, eTagSelector string) (dimension *models.Dimension, err error) {
 	// create selector query
-	selector := selector(filterID, name, 0, eTagSelector)
+	selector := selector(filterID, name, primitive.Timestamp{}, eTagSelector)
 	dimensionSelect := bson.M{"dimensions.$": 1}
 
 	var result models.Filter
@@ -193,7 +192,7 @@ func (s *FilterStore) GetFilterDimension(ctx context.Context, filterID string, n
 }
 
 // AddFilterDimension to a filter
-func (s *FilterStore) AddFilterDimension(ctx context.Context, filterID, name string, options []string, dimensions []models.Dimension, timestamp int64, eTagSelector string, currentFilter *models.Filter) (newETag string, err error) {
+func (s *FilterStore) AddFilterDimension(ctx context.Context, filterID, name string, options []string, dimensions []models.Dimension, timestamp primitive.Timestamp, eTagSelector string, currentFilter *models.Filter) (newETag string, err error) {
 	url := fmt.Sprintf("%s/filters/%s/dimensions/%s", s.URI, filterID, name)
 	d := models.Dimension{Name: name, Options: options, URL: url}
 
@@ -240,7 +239,7 @@ func (s *FilterStore) AddFilterDimension(ctx context.Context, filterID, name str
 }
 
 // RemoveFilterDimension from a filter
-func (s *FilterStore) RemoveFilterDimension(ctx context.Context, filterID, name string, timestamp int64, eTagSelector string, currentFilter *models.Filter) (newETag string, err error) {
+func (s *FilterStore) RemoveFilterDimension(ctx context.Context, filterID, name string, timestamp primitive.Timestamp, eTagSelector string, currentFilter *models.Filter) (newETag string, err error) {
 	// define selector query
 	selector := selector(filterID, "", timestamp, eTagSelector)
 
@@ -276,12 +275,12 @@ func (s *FilterStore) RemoveFilterDimension(ctx context.Context, filterID, name 
 }
 
 // AddFilterDimensionOption to a filter.
-func (s *FilterStore) AddFilterDimensionOption(ctx context.Context, filterID, name, option string, timestamp int64, eTagSelector string, currentFilter *models.Filter) (newETag string, err error) {
+func (s *FilterStore) AddFilterDimensionOption(ctx context.Context, filterID, name, option string, timestamp primitive.Timestamp, eTagSelector string, currentFilter *models.Filter) (newETag string, err error) {
 	return s.AddFilterDimensionOptions(ctx, filterID, name, []string{option}, timestamp, eTagSelector, currentFilter)
 }
 
 // AddFilterDimensionOptions adds the provided options to a filter. The number of successfully added options is returned, along with an error.
-func (s *FilterStore) AddFilterDimensionOptions(ctx context.Context, filterID, name string, options []string, timestamp int64, eTagSelector string, currentFilter *models.Filter) (newETag string, err error) {
+func (s *FilterStore) AddFilterDimensionOptions(ctx context.Context, filterID, name string, options []string, timestamp primitive.Timestamp, eTagSelector string, currentFilter *models.Filter) (newETag string, err error) {
 	// define selector query
 	selector := selector(filterID, name, timestamp, eTagSelector)
 
@@ -312,7 +311,7 @@ func (s *FilterStore) AddFilterDimensionOptions(ctx context.Context, filterID, n
 }
 
 // RemoveFilterDimensionOption from a filter
-func (s *FilterStore) RemoveFilterDimensionOption(ctx context.Context, filterID string, name string, option string, timestamp int64, eTagSelector string, currentFilter *models.Filter) (newETag string, err error) {
+func (s *FilterStore) RemoveFilterDimensionOption(ctx context.Context, filterID string, name string, option string, timestamp primitive.Timestamp, eTagSelector string, currentFilter *models.Filter) (newETag string, err error) {
 	// define selector query
 	selector := selector(filterID, name, timestamp, eTagSelector)
 
@@ -349,7 +348,7 @@ func (s *FilterStore) RemoveFilterDimensionOption(ctx context.Context, filterID 
 }
 
 // RemoveFilterDimensionOptions removes the provided options from a filter. If an error happens, it is returned.
-func (s *FilterStore) RemoveFilterDimensionOptions(ctx context.Context, filterID string, name string, options []string, timestamp int64, eTagSelector string, currentFilter *models.Filter) (newETag string, err error) {
+func (s *FilterStore) RemoveFilterDimensionOptions(ctx context.Context, filterID string, name string, options []string, timestamp primitive.Timestamp, eTagSelector string, currentFilter *models.Filter) (newETag string, err error) {
 	// define selector query
 	selector := selector(filterID, name, timestamp, eTagSelector)
 
@@ -384,12 +383,12 @@ func (s *FilterStore) RemoveFilterDimensionOptions(ctx context.Context, filterID
 // - dimensionName is the name of a dimension that needs to be matched. Optional.
 // - timestamp is a unique MongoDB timestamp to be matched to prevent race conditions. Optional.
 // - eTagselector is a unique hash of a filter document to be matched to prevent race conditions. Optional.
-func selector(filterID, dimensionName string, timestamp int64, eTagSelector string) bson.M {
+func selector(filterID, dimensionName string, timestamp primitive.Timestamp, eTagSelector string) bson.M {
 	selector := bson.M{"filter_id": filterID}
 	if dimensionName != "" {
 		selector["dimensions"] = bson.M{"$elemMatch": bson.M{"name": dimensionName}}
 	}
-	if timestamp > 0 {
+	if !timestamp.IsZero() {
 		selector["unique_timestamp"] = timestamp
 	}
 	if eTagSelector != AnyETag {
@@ -400,7 +399,7 @@ func selector(filterID, dimensionName string, timestamp int64, eTagSelector stri
 
 // CreateFilterOutput creates a filter output resource
 func (s *FilterStore) CreateFilterOutput(ctx context.Context, filter *models.Filter) (err error) {
-	filter.UniqueTimestamp, err = NewMongoTimestamp(time.Now(), 1)
+	filter.UniqueTimestamp = primitive.Timestamp{T: uint32(time.Now().Unix()), I: 1}
 	if err != nil {
 		return
 	}
@@ -421,7 +420,7 @@ func (s *FilterStore) GetFilterOutput(ctx context.Context, filterID string) (*mo
 	query := bson.M{"filter_id": filterID}
 	var result *models.Filter
 
-	if err := s.Connection.C(s.OutputsCollection).Find(query).One(ctx, &result); err != nil {
+	if err := s.Connection.C(s.OutputsCollection).FindOne(ctx, query, &result); err != nil {
 		if dpMongoDriver.IsErrNoDocumentFound(err) {
 			return nil, filters.ErrFilterOutputNotFound
 		}
@@ -433,7 +432,7 @@ func (s *FilterStore) GetFilterOutput(ctx context.Context, filterID string) (*mo
 }
 
 // UpdateFilterOutput updates a filter output resource
-func (s *FilterStore) UpdateFilterOutput(ctx context.Context, filter *models.Filter, timestamp int64) error {
+func (s *FilterStore) UpdateFilterOutput(ctx context.Context, filter *models.Filter, timestamp primitive.Timestamp) error {
 	update, err := dpMongoDriver.WithUpdates(createUpdateFilterOutput(filter))
 	if err != nil {
 		return err

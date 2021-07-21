@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"io"
 	"io/ioutil"
 	"net/url"
@@ -41,9 +42,9 @@ type NewFilter struct {
 
 // Filter represents a structure for a filter job
 type Filter struct {
-	UniqueTimestamp int64     `bson:"unique_timestamp,omitempty" json:"-"`
-	LastUpdated     time.Time `bson:"last_updated"               json:"-"`
-	ETag            string    `bson:"e_tag"                      json:"-"`
+	UniqueTimestamp primitive.Timestamp `bson:"unique_timestamp,omitempty" json:"-"`
+	LastUpdated     time.Time           `bson:"last_updated"               json:"-"`
+	ETag            string              `bson:"e_tag"                      json:"-"`
 
 	ID         string      `bson:"-"                    json:"id,omitempty"`
 	Dataset    *Dataset    `bson:"dataset"              json:"dataset"`

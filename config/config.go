@@ -39,8 +39,8 @@ type MongoConfig struct {
 	OutputsCollection string `envconfig:"MONGODB_OUTPUT_COLLECTION"`
 	Limit             int    `envconfig:"MONGODB_LIMIT"`
 	Offset            int    `envconfig:"MONGODB_OFFSET"`
-	Username          string `envconfig:"MONGO_USERNAME"`
-	Password          string `envconfig:"MONGO_PASSWORD" json:"-"`
+	Username          string `envconfig:"MONGODB_USERNAME"`
+	Password          string `envconfig:"MONGODB_PASSWORD" json:"-"`
 	IsSSL             bool   `envconfig:"MONGODB_IS_SSL"`
 }
 

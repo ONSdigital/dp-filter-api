@@ -26,7 +26,7 @@ import (
 )
 
 var (
-	EnableStrongReadConcern    = true
+	EnableStrongReadConcern    = false
 	EnableMajorityWriteConcern = true
 )
 

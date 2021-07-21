@@ -5,9 +5,15 @@ package mocks
 
 import (
 	"context"
+	"github.com/ONSdigital/dp-filter-api/api"
 	"github.com/ONSdigital/dp-filter-api/models"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"sync"
 )
+
+// Ensure, that DataStoreMock does implement api.DataStore.
+// If this is not the case, regenerate this file with moq.
+var _ api.DataStore = &DataStoreMock{}
 
 // DataStoreMock is a mock implementation of api.DataStore.
 //
@@ -21,13 +27,13 @@ import (
 // 			AddFilterFunc: func(ctx context.Context, filter *models.Filter) (*models.Filter, error) {
 // 				panic("mock out the AddFilter method")
 // 			},
-// 			AddFilterDimensionFunc: func(ctx context.Context, filterID string, name string, options []string, dimensions []models.Dimension, timestamp int64, eTagSelector string, currentFilter *models.Filter) (string, error) {
+// 			AddFilterDimensionFunc: func(ctx context.Context, filterID string, name string, options []string, dimensions []models.Dimension, timestamp primitive.Timestamp, eTagSelector string, currentFilter *models.Filter) (string, error) {
 // 				panic("mock out the AddFilterDimension method")
 // 			},
-// 			AddFilterDimensionOptionFunc: func(ctx context.Context, filterID string, name string, option string, timestamp int64, eTagSelector string, currentFilter *models.Filter) (string, error) {
+// 			AddFilterDimensionOptionFunc: func(ctx context.Context, filterID string, name string, option string, timestamp primitive.Timestamp, eTagSelector string, currentFilter *models.Filter) (string, error) {
 // 				panic("mock out the AddFilterDimensionOption method")
 // 			},
-// 			AddFilterDimensionOptionsFunc: func(ctx context.Context, filterID string, name string, options []string, timestamp int64, eTagSelector string, currentFilter *models.Filter) (string, error) {
+// 			AddFilterDimensionOptionsFunc: func(ctx context.Context, filterID string, name string, options []string, timestamp primitive.Timestamp, eTagSelector string, currentFilter *models.Filter) (string, error) {
 // 				panic("mock out the AddFilterDimensionOptions method")
 // 			},
 // 			CreateFilterOutputFunc: func(ctx context.Context, filter *models.Filter) error {
@@ -42,19 +48,19 @@ import (
 // 			GetFilterOutputFunc: func(ctx context.Context, filterOutputID string) (*models.Filter, error) {
 // 				panic("mock out the GetFilterOutput method")
 // 			},
-// 			RemoveFilterDimensionFunc: func(ctx context.Context, filterID string, name string, timestamp int64, eTagSelector string, currentFilter *models.Filter) (string, error) {
+// 			RemoveFilterDimensionFunc: func(ctx context.Context, filterID string, name string, timestamp primitive.Timestamp, eTagSelector string, currentFilter *models.Filter) (string, error) {
 // 				panic("mock out the RemoveFilterDimension method")
 // 			},
-// 			RemoveFilterDimensionOptionFunc: func(ctx context.Context, filterID string, name string, option string, timestamp int64, eTagSelector string, currentFilter *models.Filter) (string, error) {
+// 			RemoveFilterDimensionOptionFunc: func(ctx context.Context, filterID string, name string, option string, timestamp primitive.Timestamp, eTagSelector string, currentFilter *models.Filter) (string, error) {
 // 				panic("mock out the RemoveFilterDimensionOption method")
 // 			},
-// 			RemoveFilterDimensionOptionsFunc: func(ctx context.Context, filterID string, name string, options []string, timestamp int64, eTagSelector string, currentFilter *models.Filter) (string, error) {
+// 			RemoveFilterDimensionOptionsFunc: func(ctx context.Context, filterID string, name string, options []string, timestamp primitive.Timestamp, eTagSelector string, currentFilter *models.Filter) (string, error) {
 // 				panic("mock out the RemoveFilterDimensionOptions method")
 // 			},
-// 			UpdateFilterFunc: func(updatedFilter *models.Filter, timestamp int64, eTagSelector string, currentFilter *models.Filter) (string, error) {
+// 			UpdateFilterFunc: func(ctx context.Context, updatedFilter *models.Filter, timestamp primitive.Timestamp, eTagSelector string, currentFilter *models.Filter) (string, error) {
 // 				panic("mock out the UpdateFilter method")
 // 			},
-// 			UpdateFilterOutputFunc: func(filter *models.Filter, timestamp int64) error {
+// 			UpdateFilterOutputFunc: func(ctx context.Context, filter *models.Filter, timestamp primitive.Timestamp) error {
 // 				panic("mock out the UpdateFilterOutput method")
 // 			},
 // 		}
@@ -71,13 +77,13 @@ type DataStoreMock struct {
 	AddFilterFunc func(ctx context.Context, filter *models.Filter) (*models.Filter, error)
 
 	// AddFilterDimensionFunc mocks the AddFilterDimension method.
-	AddFilterDimensionFunc func(ctx context.Context, filterID string, name string, options []string, dimensions []models.Dimension, timestamp int64, eTagSelector string, currentFilter *models.Filter) (string, error)
+	AddFilterDimensionFunc func(ctx context.Context, filterID string, name string, options []string, dimensions []models.Dimension, timestamp primitive.Timestamp, eTagSelector string, currentFilter *models.Filter) (string, error)
 
 	// AddFilterDimensionOptionFunc mocks the AddFilterDimensionOption method.
-	AddFilterDimensionOptionFunc func(ctx context.Context, filterID string, name string, option string, timestamp int64, eTagSelector string, currentFilter *models.Filter) (string, error)
+	AddFilterDimensionOptionFunc func(ctx context.Context, filterID string, name string, option string, timestamp primitive.Timestamp, eTagSelector string, currentFilter *models.Filter) (string, error)
 
 	// AddFilterDimensionOptionsFunc mocks the AddFilterDimensionOptions method.
-	AddFilterDimensionOptionsFunc func(ctx context.Context, filterID string, name string, options []string, timestamp int64, eTagSelector string, currentFilter *models.Filter) (string, error)
+	AddFilterDimensionOptionsFunc func(ctx context.Context, filterID string, name string, options []string, timestamp primitive.Timestamp, eTagSelector string, currentFilter *models.Filter) (string, error)
 
 	// CreateFilterOutputFunc mocks the CreateFilterOutput method.
 	CreateFilterOutputFunc func(ctx context.Context, filter *models.Filter) error
@@ -92,19 +98,19 @@ type DataStoreMock struct {
 	GetFilterOutputFunc func(ctx context.Context, filterOutputID string) (*models.Filter, error)
 
 	// RemoveFilterDimensionFunc mocks the RemoveFilterDimension method.
-	RemoveFilterDimensionFunc func(ctx context.Context, filterID string, name string, timestamp int64, eTagSelector string, currentFilter *models.Filter) (string, error)
+	RemoveFilterDimensionFunc func(ctx context.Context, filterID string, name string, timestamp primitive.Timestamp, eTagSelector string, currentFilter *models.Filter) (string, error)
 
 	// RemoveFilterDimensionOptionFunc mocks the RemoveFilterDimensionOption method.
-	RemoveFilterDimensionOptionFunc func(ctx context.Context, filterID string, name string, option string, timestamp int64, eTagSelector string, currentFilter *models.Filter) (string, error)
+	RemoveFilterDimensionOptionFunc func(ctx context.Context, filterID string, name string, option string, timestamp primitive.Timestamp, eTagSelector string, currentFilter *models.Filter) (string, error)
 
 	// RemoveFilterDimensionOptionsFunc mocks the RemoveFilterDimensionOptions method.
-	RemoveFilterDimensionOptionsFunc func(ctx context.Context, filterID string, name string, options []string, timestamp int64, eTagSelector string, currentFilter *models.Filter) (string, error)
+	RemoveFilterDimensionOptionsFunc func(ctx context.Context, filterID string, name string, options []string, timestamp primitive.Timestamp, eTagSelector string, currentFilter *models.Filter) (string, error)
 
 	// UpdateFilterFunc mocks the UpdateFilter method.
-	UpdateFilterFunc func(ctx context.Context, updatedFilter *models.Filter, timestamp int64, eTagSelector string, currentFilter *models.Filter) (string, error)
+	UpdateFilterFunc func(ctx context.Context, updatedFilter *models.Filter, timestamp primitive.Timestamp, eTagSelector string, currentFilter *models.Filter) (string, error)
 
 	// UpdateFilterOutputFunc mocks the UpdateFilterOutput method.
-	UpdateFilterOutputFunc func(ctx context.Context, filter *models.Filter, timestamp int64) error
+	UpdateFilterOutputFunc func(ctx context.Context, filter *models.Filter, timestamp primitive.Timestamp) error
 
 	// calls tracks calls to the methods.
 	calls struct {
@@ -137,7 +143,7 @@ type DataStoreMock struct {
 			// Dimensions is the dimensions argument value.
 			Dimensions []models.Dimension
 			// Timestamp is the timestamp argument value.
-			Timestamp int64
+			Timestamp primitive.Timestamp
 			// ETagSelector is the eTagSelector argument value.
 			ETagSelector string
 			// CurrentFilter is the currentFilter argument value.
@@ -154,7 +160,7 @@ type DataStoreMock struct {
 			// Option is the option argument value.
 			Option string
 			// Timestamp is the timestamp argument value.
-			Timestamp int64
+			Timestamp primitive.Timestamp
 			// ETagSelector is the eTagSelector argument value.
 			ETagSelector string
 			// CurrentFilter is the currentFilter argument value.
@@ -171,7 +177,7 @@ type DataStoreMock struct {
 			// Options is the options argument value.
 			Options []string
 			// Timestamp is the timestamp argument value.
-			Timestamp int64
+			Timestamp primitive.Timestamp
 			// ETagSelector is the eTagSelector argument value.
 			ETagSelector string
 			// CurrentFilter is the currentFilter argument value.
@@ -220,7 +226,7 @@ type DataStoreMock struct {
 			// Name is the name argument value.
 			Name string
 			// Timestamp is the timestamp argument value.
-			Timestamp int64
+			Timestamp primitive.Timestamp
 			// ETagSelector is the eTagSelector argument value.
 			ETagSelector string
 			// CurrentFilter is the currentFilter argument value.
@@ -237,7 +243,7 @@ type DataStoreMock struct {
 			// Option is the option argument value.
 			Option string
 			// Timestamp is the timestamp argument value.
-			Timestamp int64
+			Timestamp primitive.Timestamp
 			// ETagSelector is the eTagSelector argument value.
 			ETagSelector string
 			// CurrentFilter is the currentFilter argument value.
@@ -254,7 +260,7 @@ type DataStoreMock struct {
 			// Options is the options argument value.
 			Options []string
 			// Timestamp is the timestamp argument value.
-			Timestamp int64
+			Timestamp primitive.Timestamp
 			// ETagSelector is the eTagSelector argument value.
 			ETagSelector string
 			// CurrentFilter is the currentFilter argument value.
@@ -262,10 +268,12 @@ type DataStoreMock struct {
 		}
 		// UpdateFilter holds details about calls to the UpdateFilter method.
 		UpdateFilter []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
 			// UpdatedFilter is the updatedFilter argument value.
 			UpdatedFilter *models.Filter
 			// Timestamp is the timestamp argument value.
-			Timestamp int64
+			Timestamp primitive.Timestamp
 			// ETagSelector is the eTagSelector argument value.
 			ETagSelector string
 			// CurrentFilter is the currentFilter argument value.
@@ -273,10 +281,12 @@ type DataStoreMock struct {
 		}
 		// UpdateFilterOutput holds details about calls to the UpdateFilterOutput method.
 		UpdateFilterOutput []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
 			// Filter is the filter argument value.
 			Filter *models.Filter
 			// Timestamp is the timestamp argument value.
-			Timestamp int64
+			Timestamp primitive.Timestamp
 		}
 	}
 	lockAddEventToFilterOutput       sync.RWMutex
@@ -370,7 +380,7 @@ func (mock *DataStoreMock) AddFilterCalls() []struct {
 }
 
 // AddFilterDimension calls AddFilterDimensionFunc.
-func (mock *DataStoreMock) AddFilterDimension(ctx context.Context, filterID string, name string, options []string, dimensions []models.Dimension, timestamp int64, eTagSelector string, currentFilter *models.Filter) (string, error) {
+func (mock *DataStoreMock) AddFilterDimension(ctx context.Context, filterID string, name string, options []string, dimensions []models.Dimension, timestamp primitive.Timestamp, eTagSelector string, currentFilter *models.Filter) (string, error) {
 	if mock.AddFilterDimensionFunc == nil {
 		panic("DataStoreMock.AddFilterDimensionFunc: method is nil but DataStore.AddFilterDimension was just called")
 	}
@@ -380,7 +390,7 @@ func (mock *DataStoreMock) AddFilterDimension(ctx context.Context, filterID stri
 		Name          string
 		Options       []string
 		Dimensions    []models.Dimension
-		Timestamp     int64
+		Timestamp     primitive.Timestamp
 		ETagSelector  string
 		CurrentFilter *models.Filter
 	}{
@@ -408,7 +418,7 @@ func (mock *DataStoreMock) AddFilterDimensionCalls() []struct {
 	Name          string
 	Options       []string
 	Dimensions    []models.Dimension
-	Timestamp     int64
+	Timestamp     primitive.Timestamp
 	ETagSelector  string
 	CurrentFilter *models.Filter
 } {
@@ -418,7 +428,7 @@ func (mock *DataStoreMock) AddFilterDimensionCalls() []struct {
 		Name          string
 		Options       []string
 		Dimensions    []models.Dimension
-		Timestamp     int64
+		Timestamp     primitive.Timestamp
 		ETagSelector  string
 		CurrentFilter *models.Filter
 	}
@@ -429,7 +439,7 @@ func (mock *DataStoreMock) AddFilterDimensionCalls() []struct {
 }
 
 // AddFilterDimensionOption calls AddFilterDimensionOptionFunc.
-func (mock *DataStoreMock) AddFilterDimensionOption(ctx context.Context, filterID string, name string, option string, timestamp int64, eTagSelector string, currentFilter *models.Filter) (string, error) {
+func (mock *DataStoreMock) AddFilterDimensionOption(ctx context.Context, filterID string, name string, option string, timestamp primitive.Timestamp, eTagSelector string, currentFilter *models.Filter) (string, error) {
 	if mock.AddFilterDimensionOptionFunc == nil {
 		panic("DataStoreMock.AddFilterDimensionOptionFunc: method is nil but DataStore.AddFilterDimensionOption was just called")
 	}
@@ -438,7 +448,7 @@ func (mock *DataStoreMock) AddFilterDimensionOption(ctx context.Context, filterI
 		FilterID      string
 		Name          string
 		Option        string
-		Timestamp     int64
+		Timestamp     primitive.Timestamp
 		ETagSelector  string
 		CurrentFilter *models.Filter
 	}{
@@ -464,7 +474,7 @@ func (mock *DataStoreMock) AddFilterDimensionOptionCalls() []struct {
 	FilterID      string
 	Name          string
 	Option        string
-	Timestamp     int64
+	Timestamp     primitive.Timestamp
 	ETagSelector  string
 	CurrentFilter *models.Filter
 } {
@@ -473,7 +483,7 @@ func (mock *DataStoreMock) AddFilterDimensionOptionCalls() []struct {
 		FilterID      string
 		Name          string
 		Option        string
-		Timestamp     int64
+		Timestamp     primitive.Timestamp
 		ETagSelector  string
 		CurrentFilter *models.Filter
 	}
@@ -484,7 +494,7 @@ func (mock *DataStoreMock) AddFilterDimensionOptionCalls() []struct {
 }
 
 // AddFilterDimensionOptions calls AddFilterDimensionOptionsFunc.
-func (mock *DataStoreMock) AddFilterDimensionOptions(ctx context.Context, filterID string, name string, options []string, timestamp int64, eTagSelector string, currentFilter *models.Filter) (string, error) {
+func (mock *DataStoreMock) AddFilterDimensionOptions(ctx context.Context, filterID string, name string, options []string, timestamp primitive.Timestamp, eTagSelector string, currentFilter *models.Filter) (string, error) {
 	if mock.AddFilterDimensionOptionsFunc == nil {
 		panic("DataStoreMock.AddFilterDimensionOptionsFunc: method is nil but DataStore.AddFilterDimensionOptions was just called")
 	}
@@ -493,7 +503,7 @@ func (mock *DataStoreMock) AddFilterDimensionOptions(ctx context.Context, filter
 		FilterID      string
 		Name          string
 		Options       []string
-		Timestamp     int64
+		Timestamp     primitive.Timestamp
 		ETagSelector  string
 		CurrentFilter *models.Filter
 	}{
@@ -519,7 +529,7 @@ func (mock *DataStoreMock) AddFilterDimensionOptionsCalls() []struct {
 	FilterID      string
 	Name          string
 	Options       []string
-	Timestamp     int64
+	Timestamp     primitive.Timestamp
 	ETagSelector  string
 	CurrentFilter *models.Filter
 } {
@@ -528,7 +538,7 @@ func (mock *DataStoreMock) AddFilterDimensionOptionsCalls() []struct {
 		FilterID      string
 		Name          string
 		Options       []string
-		Timestamp     int64
+		Timestamp     primitive.Timestamp
 		ETagSelector  string
 		CurrentFilter *models.Filter
 	}
@@ -691,7 +701,7 @@ func (mock *DataStoreMock) GetFilterOutputCalls() []struct {
 }
 
 // RemoveFilterDimension calls RemoveFilterDimensionFunc.
-func (mock *DataStoreMock) RemoveFilterDimension(ctx context.Context, filterID string, name string, timestamp int64, eTagSelector string, currentFilter *models.Filter) (string, error) {
+func (mock *DataStoreMock) RemoveFilterDimension(ctx context.Context, filterID string, name string, timestamp primitive.Timestamp, eTagSelector string, currentFilter *models.Filter) (string, error) {
 	if mock.RemoveFilterDimensionFunc == nil {
 		panic("DataStoreMock.RemoveFilterDimensionFunc: method is nil but DataStore.RemoveFilterDimension was just called")
 	}
@@ -699,7 +709,7 @@ func (mock *DataStoreMock) RemoveFilterDimension(ctx context.Context, filterID s
 		Ctx           context.Context
 		FilterID      string
 		Name          string
-		Timestamp     int64
+		Timestamp     primitive.Timestamp
 		ETagSelector  string
 		CurrentFilter *models.Filter
 	}{
@@ -723,7 +733,7 @@ func (mock *DataStoreMock) RemoveFilterDimensionCalls() []struct {
 	Ctx           context.Context
 	FilterID      string
 	Name          string
-	Timestamp     int64
+	Timestamp     primitive.Timestamp
 	ETagSelector  string
 	CurrentFilter *models.Filter
 } {
@@ -731,7 +741,7 @@ func (mock *DataStoreMock) RemoveFilterDimensionCalls() []struct {
 		Ctx           context.Context
 		FilterID      string
 		Name          string
-		Timestamp     int64
+		Timestamp     primitive.Timestamp
 		ETagSelector  string
 		CurrentFilter *models.Filter
 	}
@@ -742,7 +752,7 @@ func (mock *DataStoreMock) RemoveFilterDimensionCalls() []struct {
 }
 
 // RemoveFilterDimensionOption calls RemoveFilterDimensionOptionFunc.
-func (mock *DataStoreMock) RemoveFilterDimensionOption(ctx context.Context, filterID string, name string, option string, timestamp int64, eTagSelector string, currentFilter *models.Filter) (string, error) {
+func (mock *DataStoreMock) RemoveFilterDimensionOption(ctx context.Context, filterID string, name string, option string, timestamp primitive.Timestamp, eTagSelector string, currentFilter *models.Filter) (string, error) {
 	if mock.RemoveFilterDimensionOptionFunc == nil {
 		panic("DataStoreMock.RemoveFilterDimensionOptionFunc: method is nil but DataStore.RemoveFilterDimensionOption was just called")
 	}
@@ -751,7 +761,7 @@ func (mock *DataStoreMock) RemoveFilterDimensionOption(ctx context.Context, filt
 		FilterID      string
 		Name          string
 		Option        string
-		Timestamp     int64
+		Timestamp     primitive.Timestamp
 		ETagSelector  string
 		CurrentFilter *models.Filter
 	}{
@@ -777,7 +787,7 @@ func (mock *DataStoreMock) RemoveFilterDimensionOptionCalls() []struct {
 	FilterID      string
 	Name          string
 	Option        string
-	Timestamp     int64
+	Timestamp     primitive.Timestamp
 	ETagSelector  string
 	CurrentFilter *models.Filter
 } {
@@ -786,7 +796,7 @@ func (mock *DataStoreMock) RemoveFilterDimensionOptionCalls() []struct {
 		FilterID      string
 		Name          string
 		Option        string
-		Timestamp     int64
+		Timestamp     primitive.Timestamp
 		ETagSelector  string
 		CurrentFilter *models.Filter
 	}
@@ -797,7 +807,7 @@ func (mock *DataStoreMock) RemoveFilterDimensionOptionCalls() []struct {
 }
 
 // RemoveFilterDimensionOptions calls RemoveFilterDimensionOptionsFunc.
-func (mock *DataStoreMock) RemoveFilterDimensionOptions(ctx context.Context, filterID string, name string, options []string, timestamp int64, eTagSelector string, currentFilter *models.Filter) (string, error) {
+func (mock *DataStoreMock) RemoveFilterDimensionOptions(ctx context.Context, filterID string, name string, options []string, timestamp primitive.Timestamp, eTagSelector string, currentFilter *models.Filter) (string, error) {
 	if mock.RemoveFilterDimensionOptionsFunc == nil {
 		panic("DataStoreMock.RemoveFilterDimensionOptionsFunc: method is nil but DataStore.RemoveFilterDimensionOptions was just called")
 	}
@@ -806,7 +816,7 @@ func (mock *DataStoreMock) RemoveFilterDimensionOptions(ctx context.Context, fil
 		FilterID      string
 		Name          string
 		Options       []string
-		Timestamp     int64
+		Timestamp     primitive.Timestamp
 		ETagSelector  string
 		CurrentFilter *models.Filter
 	}{
@@ -832,7 +842,7 @@ func (mock *DataStoreMock) RemoveFilterDimensionOptionsCalls() []struct {
 	FilterID      string
 	Name          string
 	Options       []string
-	Timestamp     int64
+	Timestamp     primitive.Timestamp
 	ETagSelector  string
 	CurrentFilter *models.Filter
 } {
@@ -841,7 +851,7 @@ func (mock *DataStoreMock) RemoveFilterDimensionOptionsCalls() []struct {
 		FilterID      string
 		Name          string
 		Options       []string
-		Timestamp     int64
+		Timestamp     primitive.Timestamp
 		ETagSelector  string
 		CurrentFilter *models.Filter
 	}
@@ -852,16 +862,18 @@ func (mock *DataStoreMock) RemoveFilterDimensionOptionsCalls() []struct {
 }
 
 // UpdateFilter calls UpdateFilterFunc.
-func (mock *DataStoreMock) UpdateFilter(ctx context.Context, updatedFilter *models.Filter, timestamp int64, eTagSelector string, currentFilter *models.Filter) (string, error) {
+func (mock *DataStoreMock) UpdateFilter(ctx context.Context, updatedFilter *models.Filter, timestamp primitive.Timestamp, eTagSelector string, currentFilter *models.Filter) (string, error) {
 	if mock.UpdateFilterFunc == nil {
 		panic("DataStoreMock.UpdateFilterFunc: method is nil but DataStore.UpdateFilter was just called")
 	}
 	callInfo := struct {
+		Ctx           context.Context
 		UpdatedFilter *models.Filter
-		Timestamp     int64
+		Timestamp     primitive.Timestamp
 		ETagSelector  string
 		CurrentFilter *models.Filter
 	}{
+		Ctx:           ctx,
 		UpdatedFilter: updatedFilter,
 		Timestamp:     timestamp,
 		ETagSelector:  eTagSelector,
@@ -877,14 +889,16 @@ func (mock *DataStoreMock) UpdateFilter(ctx context.Context, updatedFilter *mode
 // Check the length with:
 //     len(mockedDataStore.UpdateFilterCalls())
 func (mock *DataStoreMock) UpdateFilterCalls() []struct {
+	Ctx           context.Context
 	UpdatedFilter *models.Filter
-	Timestamp     int64
+	Timestamp     primitive.Timestamp
 	ETagSelector  string
 	CurrentFilter *models.Filter
 } {
 	var calls []struct {
+		Ctx           context.Context
 		UpdatedFilter *models.Filter
-		Timestamp     int64
+		Timestamp     primitive.Timestamp
 		ETagSelector  string
 		CurrentFilter *models.Filter
 	}
@@ -895,14 +909,16 @@ func (mock *DataStoreMock) UpdateFilterCalls() []struct {
 }
 
 // UpdateFilterOutput calls UpdateFilterOutputFunc.
-func (mock *DataStoreMock) UpdateFilterOutput(ctx context.Context, filter *models.Filter, timestamp int64) error {
+func (mock *DataStoreMock) UpdateFilterOutput(ctx context.Context, filter *models.Filter, timestamp primitive.Timestamp) error {
 	if mock.UpdateFilterOutputFunc == nil {
 		panic("DataStoreMock.UpdateFilterOutputFunc: method is nil but DataStore.UpdateFilterOutput was just called")
 	}
 	callInfo := struct {
+		Ctx       context.Context
 		Filter    *models.Filter
-		Timestamp int64
+		Timestamp primitive.Timestamp
 	}{
+		Ctx:       ctx,
 		Filter:    filter,
 		Timestamp: timestamp,
 	}
@@ -916,12 +932,14 @@ func (mock *DataStoreMock) UpdateFilterOutput(ctx context.Context, filter *model
 // Check the length with:
 //     len(mockedDataStore.UpdateFilterOutputCalls())
 func (mock *DataStoreMock) UpdateFilterOutputCalls() []struct {
+	Ctx       context.Context
 	Filter    *models.Filter
-	Timestamp int64
+	Timestamp primitive.Timestamp
 } {
 	var calls []struct {
+		Ctx       context.Context
 		Filter    *models.Filter
-		Timestamp int64
+		Timestamp primitive.Timestamp
 	}
 	mock.lockUpdateFilterOutput.RLock()
 	calls = mock.calls.UpdateFilterOutput
