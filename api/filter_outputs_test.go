@@ -1,6 +1,7 @@
 package api
 
 import (
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"testing"
 
 	"encoding/json"
@@ -175,7 +176,7 @@ func TestSuccessfulUpdateFilterOutput_StatusComplete(t *testing.T) {
 			GetFilterOutputFunc: func(ctx context.Context, filterOutputID string) (*models.Filter, error) {
 				return createFilter(), nil
 			},
-			UpdateFilterOutputFunc: func(ctx context.Context, filterOutput *models.Filter, timestamp int64) error {
+			UpdateFilterOutputFunc: func(ctx context.Context, filterOutput *models.Filter, timestamp primitive.Timestamp) error {
 				return nil
 			},
 		}

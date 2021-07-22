@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -551,7 +552,7 @@ func TestSuccessfulUpdateFilterBlueprint_PublishedDataset(t *testing.T) {
 				}
 				return &models.Filter{Dataset: &models.Dataset{ID: "123", Edition: "2017", Version: 1}, InstanceID: "12345678", Published: &models.Published, Dimensions: []models.Dimension{{Name: "time", Options: []string{"2014", "2015"}}, {Name: "1_age"}}, ETag: testETag}, nil
 			},
-			UpdateFilterFunc: func(ctx context.Context, filter *models.Filter, timestamp int64, eTagSelector string, currentFilter *models.Filter) (string, error) {
+			UpdateFilterFunc: func(ctx context.Context, filter *models.Filter, timestamp primitive.Timestamp, eTagSelector string, currentFilter *models.Filter) (string, error) {
 				if eTagSelector != testETag {
 					return "", filters.ErrFilterBlueprintConflict
 				}

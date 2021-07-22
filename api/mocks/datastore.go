@@ -5,15 +5,10 @@ package mocks
 
 import (
 	"context"
-	"github.com/ONSdigital/dp-filter-api/api"
 	"github.com/ONSdigital/dp-filter-api/models"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"sync"
 )
-
-// Ensure, that DataStoreMock does implement api.DataStore.
-// If this is not the case, regenerate this file with moq.
-var _ api.DataStore = &DataStoreMock{}
 
 // DataStoreMock is a mock implementation of api.DataStore.
 //

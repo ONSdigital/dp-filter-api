@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -608,7 +609,7 @@ func TestFailedToGetFilterBlueprintDimension(t *testing.T) {
 
 		w := httptest.NewRecorder()
 		ds := mocks.NewDataStore().Unpublished().Mock
-		ds.UpdateFilterFunc = func(ctx context.Context, updatedFilter *models.Filter, timestamp int64, eTagSelector string, currentFilter *models.Filter) (string, error) {
+		ds.UpdateFilterFunc = func(ctx context.Context, updatedFilter *models.Filter, timestamp primitive.Timestamp, eTagSelector string, currentFilter *models.Filter) (string, error) {
 			return "", filters.ErrFilterBlueprintConflict
 		}
 		api := Setup(cfg(), mux.NewRouter(), ds, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)

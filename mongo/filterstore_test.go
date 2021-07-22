@@ -1,6 +1,7 @@
 package mongo
 
 import (
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"testing"
 
 	"github.com/ONSdigital/dp-filter-api/models"
@@ -77,10 +78,10 @@ func TestSelector(t *testing.T) {
 		var testFilterID string = "filterID"
 		var testDimensionName string = "dimensionName"
 		var testETag string = "testETag"
-		var testMongoTimestamp int64 = 1234567890
+		var testMongoTimestamp = primitive.Timestamp{1234567890, 0}
 
 		Convey("Then, providing an empty string dimension, zero timestamp and any eTag generates a selector that only queries by filter_id", func() {
-			s := selector(testFilterID, "", 0, AnyETag)
+			s := selector(testFilterID, "", primitive.Timestamp{}, AnyETag)
 			So(s, ShouldResemble, bson.M{"filter_id": testFilterID})
 		})
 

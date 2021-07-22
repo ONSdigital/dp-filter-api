@@ -456,7 +456,7 @@ func (s *FilterStore) AddEventToFilterOutput(ctx context.Context, filterOutputID
 		return err
 	}
 
-	if info.UpsertedCount == 0 {
+	if info.UpsertedCount == 0 && info.ModifiedCount == 0 {
 		return filters.ErrFilterOutputNotFound
 	}
 
