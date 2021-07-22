@@ -6,10 +6,15 @@ package mock
 import (
 	"context"
 	"github.com/ONSdigital/dp-filter-api/models"
+	"github.com/ONSdigital/dp-filter-api/service"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"sync"
 )
+
+// Ensure, that MongoDBMock does implement service.MongoDB.
+// If this is not the case, regenerate this file with moq.
+var _ service.MongoDB = &MongoDBMock{}
 
 // MongoDBMock is a mock implementation of service.MongoDB.
 //
@@ -67,8 +72,8 @@ import (
 // 			},
 // 		}
 //
-// 		// use mockedMongoDB in code that requires service.MongoDB
-// 		// and then make assertions.
+//         // use mockedMongoDB in code that requires service.MongoDB
+//         // and then make assertions.
 //
 // 	}
 type MongoDBMock struct {

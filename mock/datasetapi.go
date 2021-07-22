@@ -1,10 +1,10 @@
-package mocks
+package mock
 
 import (
 	"context"
 
 	"github.com/ONSdigital/dp-api-clients-go/dataset"
-	apimocks "github.com/ONSdigital/dp-filter-api/api/mocks"
+	apimock "github.com/ONSdigital/dp-filter-api/api/mock"
 	"github.com/ONSdigital/dp-filter-api/filters"
 )
 
@@ -20,7 +20,7 @@ type DatasetAPIConfig struct {
 // or you can use the internal 'moq' Mock if you want ot validate calls, parameters etc.
 type DatasetAPI struct {
 	Cfg  DatasetAPIConfig
-	Mock *apimocks.DatasetAPIMock
+	Mock *apimock.DatasetAPIMock
 }
 
 // NewDatasetAPI creates a new dataset API mock with an empty config
@@ -28,7 +28,7 @@ func NewDatasetAPI() *DatasetAPI {
 	ds := &DatasetAPI{
 		Cfg: DatasetAPIConfig{},
 	}
-	ds.Mock = &apimocks.DatasetAPIMock{
+	ds.Mock = &apimock.DatasetAPIMock{
 		GetVersionFunc:             ds.GetVersion,
 		GetVersionDimensionsFunc:   ds.GetVersionDimensions,
 		GetOptionsBatchProcessFunc: ds.GetOptionsBatchProcess,

@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/ONSdigital/dp-filter-api/filters"
@@ -43,7 +42,7 @@ func (api *FilterAPI) getFilterOutputHandler(w http.ResponseWriter, r *http.Requ
 	bytes, err := json.Marshal(filterOutput)
 	if err != nil {
 		log.Event(ctx, "failed to marshal filter output into bytes", log.ERROR, log.Error(err), logData)
-		http.Error(w, internalError, http.StatusInternalServerError)
+		http.Error(w, InternalError, http.StatusInternalServerError)
 		return
 	}
 
@@ -72,7 +71,7 @@ func (api *FilterAPI) updateFilterOutputHandler(w http.ResponseWriter, r *http.R
 	filterOutput, err := models.CreateFilter(r.Body)
 	if err != nil {
 		log.Event(ctx, "unable to unmarshal request body", log.ERROR, log.Error(err), logData)
-		http.Error(w, badRequest, http.StatusBadRequest)
+		http.Error(w, BadRequest, http.StatusBadRequest)
 		return
 	}
 	logData["filter_output"] = filterOutput
@@ -121,7 +120,7 @@ func (api *FilterAPI) updateFilterOutput(ctx context.Context, filterOutputID str
 		filterOutput.Published = &models.Published
 	}
 
-	buildDownloadsObject(previousFilterOutput, filterOutput, api.downloadServiceURL)
+	BuildDownloadsObject(previousFilterOutput, filterOutput, api.downloadServiceURL)
 
 	filterOutput.State = previousFilterOutput.State
 
@@ -142,7 +141,7 @@ func (api *FilterAPI) updateFilterOutput(ctx context.Context, filterOutputID str
 		log.Event(ctx, "filter output status is now completed, creating completed event", log.INFO, logData)
 
 		completedEvent := &models.Event{
-			Type: eventFilterOutputCompleted,
+			Type: EventFilterOutputCompleted,
 			Time: time.Now(),
 		}
 
@@ -172,83 +171,6 @@ func downloadsAreGenerated(filterOutput *models.Filter) bool {
 	}
 
 	return false
-}
-
-func (api *FilterAPI) getFilterOutputPreviewHandler(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	filterOutputID := vars["filter_output_id"]
-	requestedLimit := r.URL.Query().Get("limit")
-	logData := log.Data{"filter_output_id": filterOutputID}
-	ctx := r.Context()
-
-	var limit = 20 // default if no limit is given
-	var err error
-	if requestedLimit != "" {
-		limit, err = strconv.Atoi(requestedLimit)
-		if err != nil {
-			logData["requested_limit"] = requestedLimit
-			log.Event(ctx, "requested limit is not a number", log.ERROR, log.Error(err), logData)
-			http.Error(w, errRequestLimitNotNumber.Error(), http.StatusBadRequest)
-			return
-		}
-	}
-
-	preview, err := api.getFilterOutputPreview(ctx, filterOutputID, limit)
-	if err != nil {
-		log.Event(ctx, "failed to get filter output preview", log.ERROR, log.Error(err), logData)
-		setErrorCode(w, err)
-		return
-	}
-
-	bytes, err := json.Marshal(preview)
-	if err != nil {
-		log.Event(ctx, "failed to marshal preview of filter ouput into bytes", log.ERROR, log.Error(err), logData)
-		http.Error(w, internalError, http.StatusInternalServerError)
-		return
-	}
-
-	setJSONContentType(w)
-	w.WriteHeader(http.StatusOK)
-	_, err = w.Write(bytes)
-	if err != nil {
-		log.Event(ctx, "failed to write bytes for http response", log.ERROR, log.Error(err), logData)
-		setErrorCode(w, err)
-		return
-	}
-
-	log.Event(ctx, "preview filter output", log.INFO, logData)
-}
-
-func (api *FilterAPI) getFilterOutputPreview(ctx context.Context, filterOutputID string, limit int) (*models.FilterPreview, error) {
-	logData := log.Data{
-		"filter_output_id": filterOutputID,
-		"limit":            limit,
-	}
-
-	log.Event(ctx, "get filter output preview", log.INFO, logData)
-
-	hideS3Links := true // do not require s3 links for preview
-
-	filterOutput, err := api.getOutput(ctx, filterOutputID, hideS3Links)
-	if err != nil {
-		log.Event(ctx, "failed to find filter output", log.ERROR, log.Error(err), logData)
-		return nil, err
-	}
-
-	logData["filter_output_dimensions"] = filterOutput.Dimensions
-
-	if len(filterOutput.Dimensions) == 0 {
-		log.Event(ctx, "no dimensions are present in the filter", log.ERROR, log.Error(errMissingDimensions), logData)
-		return nil, errMissingDimensions
-	}
-
-	filterOutputPreview, err := api.preview.GetPreview(ctx, filterOutput, limit)
-	if err != nil {
-		log.Event(ctx, "failed to query the graph database", log.ERROR, log.Error(err), logData)
-		return nil, filters.ErrInternalError
-	}
-
-	return filterOutputPreview, nil
 }
 
 func (api *FilterAPI) getOutput(ctx context.Context, filterID string, hideS3Links bool) (*models.Filter, error) {
@@ -314,7 +236,7 @@ func (api *FilterAPI) getOutput(ctx context.Context, filterID string, hideS3Link
 	return nil, filters.ErrFilterOutputNotFound
 }
 
-func buildDownloadsObject(previousFilterOutput, filterOutput *models.Filter, downloadServiceURL string) {
+func BuildDownloadsObject(previousFilterOutput, filterOutput *models.Filter, downloadServiceURL string) {
 	if filterOutput.Downloads == nil {
 		filterOutput.Downloads = previousFilterOutput.Downloads
 		return

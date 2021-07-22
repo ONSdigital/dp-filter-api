@@ -7,7 +7,7 @@ import (
 	"github.com/ONSdigital/dp-filter-api/models"
 )
 
-//go:generate moq -out mocks/datastore.go -pkg mocks . DataStore
+//go:generate moq -out mock/datastore.go -pkg mock . DataStore
 
 // DataStore - A interface used to store filters
 type DataStore interface {

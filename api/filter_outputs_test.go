@@ -1,6 +1,7 @@
-package api
+package api_test
 
 import (
+	"context"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"testing"
 
@@ -8,18 +9,18 @@ import (
 	"net/http/httptest"
 	"strings"
 
-	apimocks "github.com/ONSdigital/dp-filter-api/api/mocks"
+	"github.com/ONSdigital/dp-filter-api/api"
+	apimock "github.com/ONSdigital/dp-filter-api/api/mock"
 	"github.com/ONSdigital/dp-filter-api/filters"
 	"github.com/ONSdigital/dp-filter-api/models"
 	"github.com/gorilla/mux"
 	. "github.com/smartystreets/goconvey/convey"
 
-	"context"
 	"errors"
 	"io"
 	"net/http"
 
-	"github.com/ONSdigital/dp-filter-api/mocks"
+	"github.com/ONSdigital/dp-filter-api/mock"
 	dprequest "github.com/ONSdigital/dp-net/request"
 )
 
@@ -37,8 +38,8 @@ func TestSuccessfulGetFilterOutput(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := Setup(cfg(), mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
-		api.router.ServeHTTP(w, r)
+		filterApi := api.Setup(cfg(), mux.NewRouter(), &mock.DataStore{}, &mock.FilterJob{}, &mock.DatasetAPI{})
+		filterApi.Router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusOK)
 
 		// Check private link is hidden for unauthenticated user
@@ -59,8 +60,8 @@ func TestSuccessfulGetFilterOutput(t *testing.T) {
 		r.Header.Add(dprequest.DownloadServiceHeaderKey, downloadServiceToken)
 
 		w := httptest.NewRecorder()
-		api := Setup(cfg(), mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, mocks.NewDatasetAPI().Unpublished(), previewMock)
-		api.router.ServeHTTP(w, r)
+		filterApi := api.Setup(cfg(), mux.NewRouter(), &mock.DataStore{}, &mock.FilterJob{}, mock.NewDatasetAPI().Unpublished())
+		filterApi.Router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusOK)
 
 		// Check private link is NOT hidden from authenticated user
@@ -80,8 +81,8 @@ func TestSuccessfulGetFilterOutput(t *testing.T) {
 		r := createAuthenticatedRequest("GET", "http://localhost:22100/filter-outputs/12345678", nil)
 
 		w := httptest.NewRecorder()
-		api := Setup(cfg(), mux.NewRouter(), mocks.NewDataStore().Unpublished(), &mocks.FilterJob{}, mocks.NewDatasetAPI().Unpublished(), previewMock)
-		api.router.ServeHTTP(w, r)
+		filterApi := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().Unpublished(), &mock.FilterJob{}, mock.NewDatasetAPI().Unpublished())
+		filterApi.Router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusOK)
 	})
 }
@@ -94,8 +95,8 @@ func TestFailedToGetFilterOutput(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := Setup(cfg(), mux.NewRouter(), mocks.NewDataStore().InternalError(), &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
-		api.router.ServeHTTP(w, r)
+		filterApi := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().InternalError(), &mock.FilterJob{}, &mock.DatasetAPI{})
+		filterApi.Router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusInternalServerError)
 
 		response := w.Body.String()
@@ -107,8 +108,8 @@ func TestFailedToGetFilterOutput(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := Setup(cfg(), mux.NewRouter(), mocks.NewDataStore().NotFound(), &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
-		api.router.ServeHTTP(w, r)
+		filterApi := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().NotFound(), &mock.FilterJob{}, &mock.DatasetAPI{})
+		filterApi.Router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
 		response := w.Body.String()
@@ -120,8 +121,8 @@ func TestFailedToGetFilterOutput(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		api := Setup(cfg(), mux.NewRouter(), mocks.NewDataStore().Unpublished(), &mocks.FilterJob{}, mocks.NewDatasetAPI().Unpublished(), previewMock)
-		api.router.ServeHTTP(w, r)
+		filterApi := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().Unpublished(), &mock.FilterJob{}, mock.NewDatasetAPI().Unpublished())
+		filterApi.Router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
 		response := w.Body.String()
@@ -137,8 +138,8 @@ func TestSuccessfulUpdateFilterOutput(t *testing.T) {
 		r := createAuthenticatedRequest("PUT", "http://localhost:22100/filter-outputs/21312", reader)
 
 		w := httptest.NewRecorder()
-		api := Setup(cfg(), mux.NewRouter(), mocks.NewDataStore().MissingPublicLinks(), &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
-		api.router.ServeHTTP(w, r)
+		filterApi := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().MissingPublicLinks(), &mock.FilterJob{}, &mock.DatasetAPI{})
+		filterApi.Router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusOK)
 
 		Convey("Then the request body has been drained", func() {
@@ -153,8 +154,8 @@ func TestSuccessfulUpdateFilterOutput(t *testing.T) {
 		r := createAuthenticatedRequest("PUT", "http://localhost:22100/filter-outputs/21312", reader)
 
 		w := httptest.NewRecorder()
-		api := Setup(cfg(), mux.NewRouter(), mocks.NewDataStore().MissingPublicLinks(), &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
-		api.router.ServeHTTP(w, r)
+		filterApi := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().MissingPublicLinks(), &mock.FilterJob{}, &mock.DatasetAPI{})
+		filterApi.Router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusOK)
 
 		Convey("Then the request body has been drained", func() {
@@ -169,7 +170,7 @@ func TestSuccessfulUpdateFilterOutput_StatusComplete(t *testing.T) {
 	t.Parallel()
 
 	Convey("Given a filter output without downloads", t, func() {
-		mockDatastore := &apimocks.DataStoreMock{
+		mockDatastore := &apimock.DataStoreMock{
 			AddEventToFilterOutputFunc: func(ctx context.Context, filterOutputID string, event *models.Event) error {
 				return nil
 			},
@@ -181,14 +182,14 @@ func TestSuccessfulUpdateFilterOutput_StatusComplete(t *testing.T) {
 			},
 		}
 
-		api := Setup(cfg(), mux.NewRouter(), mockDatastore, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
+		filterApi := api.Setup(cfg(), mux.NewRouter(), mockDatastore, &mock.FilterJob{}, &mock.DatasetAPI{})
 
 		Convey("When the PUT filter output endpoint is called with completed download data", func() {
 			reader := strings.NewReader(`{"downloads":{"csv":{"size":"12mb", "public":"s3-public-csv-location"}, "xls":{"size":"12mb", "public":"s3-public-xls-location"}}}`)
 			r := createAuthenticatedRequest("PUT", "http://localhost:22100/filter-outputs/21312", reader)
 
 			w := httptest.NewRecorder()
-			api.router.ServeHTTP(w, r)
+			filterApi.Router.ServeHTTP(w, r)
 
 			Convey("Then the data store is called to update the event", func() {
 				So(len(mockDatastore.UpdateFilterOutputCalls()), ShouldEqual, 1)
@@ -199,7 +200,7 @@ func TestSuccessfulUpdateFilterOutput_StatusComplete(t *testing.T) {
 			Convey("Then the data store is called to add a completed event", func() {
 				So(len(mockDatastore.AddEventToFilterOutputCalls()), ShouldEqual, 1)
 				filterOutput := mockDatastore.AddEventToFilterOutputCalls()[0]
-				So(filterOutput.Event.Type, ShouldEqual, eventFilterOutputCompleted)
+				So(filterOutput.Event.Type, ShouldEqual, api.EventFilterOutputCompleted)
 			})
 
 			Convey("Then the response code should be 200 OK", func() {
@@ -218,7 +219,7 @@ func TestSuccessfulUpdateFilterOutput_StatusComplete(t *testing.T) {
 			r := createAuthenticatedRequest("PUT", "http://localhost:22100/filter-outputs/21312", reader)
 
 			w := httptest.NewRecorder()
-			api.router.ServeHTTP(w, r)
+			filterApi.Router.ServeHTTP(w, r)
 
 			Convey("Then the data store is called to update the event", func() {
 				So(len(mockDatastore.UpdateFilterOutputCalls()), ShouldEqual, 1)
@@ -229,7 +230,7 @@ func TestSuccessfulUpdateFilterOutput_StatusComplete(t *testing.T) {
 			Convey("Then the data store is called to add a completed event", func() {
 				So(len(mockDatastore.AddEventToFilterOutputCalls()), ShouldEqual, 1)
 				filterOutput := mockDatastore.AddEventToFilterOutputCalls()[0]
-				So(filterOutput.Event.Type, ShouldEqual, eventFilterOutputCompleted)
+				So(filterOutput.Event.Type, ShouldEqual, api.EventFilterOutputCompleted)
 			})
 
 			Convey("Then the response code should be 200 OK", func() {
@@ -253,8 +254,8 @@ func TestSuccessfulUpdateFilterOutputUnpublished(t *testing.T) {
 		r := createAuthenticatedRequest("PUT", "http://localhost:22100/filter-outputs/21312", reader)
 
 		w := httptest.NewRecorder()
-		api := Setup(cfg(), mux.NewRouter(), mocks.NewDataStore().Unpublished(), &mocks.FilterJob{}, mocks.NewDatasetAPI().Unpublished(), previewMock)
-		api.router.ServeHTTP(w, r)
+		filterApi := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().Unpublished(), &mock.FilterJob{}, mock.NewDatasetAPI().Unpublished())
+		filterApi.Router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusOK)
 
 		Convey("Then the request body has been drained", func() {
@@ -269,8 +270,8 @@ func TestSuccessfulUpdateFilterOutputUnpublished(t *testing.T) {
 		r := createAuthenticatedRequest("PUT", "http://localhost:22100/filter-outputs/21312", reader)
 
 		w := httptest.NewRecorder()
-		api := Setup(cfg(), mux.NewRouter(), mocks.NewDataStore().Unpublished(), &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
-		api.router.ServeHTTP(w, r)
+		filterApi := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().Unpublished(), &mock.FilterJob{}, &mock.DatasetAPI{})
+		filterApi.Router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusOK)
 
 		Convey("Then the request body has been drained", func() {
@@ -289,8 +290,8 @@ func TestFailedToUpdateFilterOutput(t *testing.T) {
 		r := createAuthenticatedRequest("PUT", "http://localhost:22100/filter-outputs/21312", reader)
 
 		w := httptest.NewRecorder()
-		api := Setup(cfg(), mux.NewRouter(), mocks.NewDataStore().InternalError(), &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
-		api.router.ServeHTTP(w, r)
+		filterApi := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().InternalError(), &mock.FilterJob{}, &mock.DatasetAPI{})
+		filterApi.Router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusInternalServerError)
 
 		response := w.Body.String()
@@ -308,8 +309,8 @@ func TestFailedToUpdateFilterOutput(t *testing.T) {
 		r := createAuthenticatedRequest("PUT", "http://localhost:22100/filter-outputs/21312", reader)
 
 		w := httptest.NewRecorder()
-		api := Setup(cfg(), mux.NewRouter(), mocks.NewDataStore().NotFound(), &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
-		api.router.ServeHTTP(w, r)
+		filterApi := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().NotFound(), &mock.FilterJob{}, &mock.DatasetAPI{})
+		filterApi.Router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
 		Convey("Then the request body has been drained", func() {
@@ -324,8 +325,8 @@ func TestFailedToUpdateFilterOutput(t *testing.T) {
 		r := createAuthenticatedRequest("PUT", "http://localhost:22100/filter-outputs/21312", reader)
 
 		w := httptest.NewRecorder()
-		api := Setup(cfg(), mux.NewRouter(), mocks.NewDataStore().MissingPublicLinks(), &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
-		api.router.ServeHTTP(w, r)
+		filterApi := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().MissingPublicLinks(), &mock.FilterJob{}, &mock.DatasetAPI{})
+		filterApi.Router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusForbidden)
 
 		response := w.Body.String()
@@ -343,8 +344,8 @@ func TestFailedToUpdateFilterOutput(t *testing.T) {
 		r := createAuthenticatedRequest("PUT", "http://localhost:22100/filter-outputs/21312", reader)
 
 		w := httptest.NewRecorder()
-		api := Setup(cfg(), mux.NewRouter(), mocks.NewDataStore().MissingPublicLinks(), &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
-		api.router.ServeHTTP(w, r)
+		filterApi := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().MissingPublicLinks(), &mock.FilterJob{}, &mock.DatasetAPI{})
+		filterApi.Router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusForbidden)
 
 		response := w.Body.String()
@@ -363,13 +364,13 @@ func TestFailedToUpdateFilterOutput_BadRequest(t *testing.T) {
 
 	Convey("Given an existing filter output with download links", t, func() {
 		w := httptest.NewRecorder()
-		api := Setup(cfg(), mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
+		filterApi := api.Setup(cfg(), mux.NewRouter(), &mock.DataStore{}, &mock.FilterJob{}, &mock.DatasetAPI{})
 
 		Convey("When a PUT request is made to the filter output endpoint with invalid JSON", func() {
 			reader := strings.NewReader("{")
 			r := createAuthenticatedRequest("PUT", "http://localhost:22100/filter-outputs/21312", reader)
 
-			api.router.ServeHTTP(w, r)
+			filterApi.Router.ServeHTTP(w, r)
 
 			Convey("Then the response is 400 bad request", func() {
 				So(w.Code, ShouldEqual, http.StatusBadRequest)
@@ -391,7 +392,7 @@ func TestFailedToUpdateFilterOutput_BadRequest(t *testing.T) {
 			reader := strings.NewReader("{}")
 			r := createAuthenticatedRequest("PUT", "http://localhost:22100/filter-outputs/21312", reader)
 
-			api.router.ServeHTTP(w, r)
+			filterApi.Router.ServeHTTP(w, r)
 
 			Convey("Then the response is 400 bad request", func() {
 				So(w.Code, ShouldEqual, http.StatusBadRequest)
@@ -413,7 +414,7 @@ func TestFailedToUpdateFilterOutput_BadRequest(t *testing.T) {
 			reader := strings.NewReader(`{"dataset":{"version":1, "edition":"1", "id":"1"}}`)
 			r := createAuthenticatedRequest("PUT", "http://localhost:22100/filter-outputs/21312", reader)
 
-			api.router.ServeHTTP(w, r)
+			filterApi.Router.ServeHTTP(w, r)
 
 			Convey("Then the response is 403 forbidden", func() {
 				So(w.Code, ShouldEqual, http.StatusForbidden)
@@ -436,7 +437,7 @@ func TestFailedToUpdateFilterOutput_BadRequest(t *testing.T) {
 			r, err := http.NewRequest("PUT", "http://localhost:22100/filter-outputs/21312", reader)
 			So(err, ShouldBeNil)
 
-			api.router.ServeHTTP(w, r)
+			filterApi.Router.ServeHTTP(w, r)
 
 			Convey("Then the response is 401 unauthorised", func() {
 				So(w.Code, ShouldEqual, http.StatusUnauthorized)
@@ -458,7 +459,7 @@ func TestFailedToUpdateFilterOutput_BadRequest(t *testing.T) {
 			reader := strings.NewReader(`{"downloads":{"csv":{"size":"12mb", "public":"s3-public-csv-location"}}}`)
 			r := createAuthenticatedRequest("PUT", "http://localhost:22100/filter-outputs/21312", reader)
 
-			api.router.ServeHTTP(w, r)
+			filterApi.Router.ServeHTTP(w, r)
 
 			Convey("Then the response is 403 forbidden", func() {
 				So(w.Code, ShouldEqual, http.StatusForbidden)
@@ -480,7 +481,7 @@ func TestFailedToUpdateFilterOutput_BadRequest(t *testing.T) {
 			reader := strings.NewReader(`{"downloads":{"xls":{"href":"s3-xls-location","size":"12mb", "public":"s3-public-xls-location"}}}`)
 			r := createAuthenticatedRequest("PUT", "http://localhost:22100/filter-outputs/21312", reader)
 
-			api.router.ServeHTTP(w, r)
+			filterApi.Router.ServeHTTP(w, r)
 
 			Convey("Then the response is 403 forbidden", func() {
 				So(w.Code, ShouldEqual, http.StatusForbidden)
@@ -509,137 +510,9 @@ func TestUpdateFilterOutput_PrivateEndpointsNotEnabled(t *testing.T) {
 		r := createAuthenticatedRequest("PUT", "http://localhost:22100/filter-outputs/21312", reader)
 
 		w := httptest.NewRecorder()
-		api := Setup(cfg, mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
-		api.router.ServeHTTP(w, r)
+		filterApi := api.Setup(cfg, mux.NewRouter(), &mock.DataStore{}, &mock.FilterJob{}, &mock.DatasetAPI{})
+		filterApi.Router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusMethodNotAllowed)
-	})
-}
-
-func TestSuccessfulGetPreview(t *testing.T) {
-	t.Parallel()
-
-	Convey("Successfully requesting a valid preview", t, func() {
-		r, err := http.NewRequest("GET", "http://localhost:22100/filter-outputs/21312/preview", nil)
-		So(err, ShouldBeNil)
-
-		w := httptest.NewRecorder()
-		api := Setup(cfg(), mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
-		api.router.ServeHTTP(w, r)
-		So(w.Code, ShouldEqual, http.StatusOK)
-		So(previewMock.GetPreviewCalls()[0].Limit, ShouldEqual, 20)
-	})
-
-	Convey("Successfully requesting a valid preview for unpublished version filters", t, func() {
-		r := createAuthenticatedRequest("GET", "http://localhost:22100/filter-outputs/21312/preview", nil)
-
-		w := httptest.NewRecorder()
-		api := Setup(cfg(), mux.NewRouter(), mocks.NewDataStore().Unpublished(), &mocks.FilterJob{}, mocks.NewDatasetAPI().Unpublished(), previewMock)
-		api.router.ServeHTTP(w, r)
-		So(w.Code, ShouldEqual, http.StatusOK)
-		So(previewMock.GetPreviewCalls()[0].Limit, ShouldEqual, 20)
-	})
-
-	Convey("Successfully requesting a valid preview with a new limit", t, func() {
-		r, err := http.NewRequest("GET", "http://localhost:22100/filter-outputs/21312/preview?limit=10", nil)
-		So(err, ShouldBeNil)
-
-		w := httptest.NewRecorder()
-		previewMockForLimit := &apimocks.PreviewDatasetMock{
-			GetPreviewFunc: func(ctx context.Context, filter *models.Filter, limit int) (*models.FilterPreview, error) {
-				return &models.FilterPreview{}, nil
-			},
-		}
-		api := Setup(cfg(), mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMockForLimit)
-		api.router.ServeHTTP(w, r)
-		So(w.Code, ShouldEqual, http.StatusOK)
-		So(previewMockForLimit.GetPreviewCalls()[0].Limit, ShouldEqual, 10)
-	})
-}
-
-func TestFailedGetPreview(t *testing.T) {
-	t.Parallel()
-
-	Convey("Requesting a preview with invalid filter", t, func() {
-		r, err := http.NewRequest("GET", "http://localhost:22100/filter-outputs/21312/preview", nil)
-		So(err, ShouldBeNil)
-
-		w := httptest.NewRecorder()
-		api := Setup(cfg(), mux.NewRouter(), mocks.NewDataStore().NotFound(), &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
-		api.router.ServeHTTP(w, r)
-		So(w.Code, ShouldEqual, http.StatusNotFound)
-
-		response := w.Body.String()
-		So(response, ShouldResemble, filters.ErrFilterOutputNotFound.Error()+"\n")
-	})
-
-	Convey("Requesting a preview with no mongodb database connection", t, func() {
-		r, err := http.NewRequest("GET", "http://localhost:22100/filter-outputs/21312/preview", nil)
-		So(err, ShouldBeNil)
-
-		w := httptest.NewRecorder()
-		api := Setup(cfg(), mux.NewRouter(), mocks.NewDataStore().InternalError(), &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
-		api.router.ServeHTTP(w, r)
-		So(w.Code, ShouldEqual, http.StatusInternalServerError)
-
-		response := w.Body.String()
-		So(response, ShouldResemble, internalErrResponse)
-	})
-
-	Convey("Requesting a preview with no neo4j database connection", t, func() {
-		previewMockInternalError := &apimocks.PreviewDatasetMock{
-			GetPreviewFunc: func(ctx context.Context, filter *models.Filter, limit int) (*models.FilterPreview, error) {
-				return nil, errors.New("internal error")
-			},
-		}
-		r, err := http.NewRequest("GET", "http://localhost:22100/filter-outputs/21312/preview", nil)
-		So(err, ShouldBeNil)
-
-		w := httptest.NewRecorder()
-		api := Setup(cfg(), mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMockInternalError)
-		api.router.ServeHTTP(w, r)
-		So(w.Code, ShouldEqual, http.StatusInternalServerError)
-
-		response := w.Body.String()
-		So(response, ShouldResemble, "internal server error\n")
-	})
-
-	Convey("Requesting a preview with no dimensions", t, func() {
-		r, err := http.NewRequest("GET", "http://localhost:22100/filter-outputs/21312/preview", nil)
-		So(err, ShouldBeNil)
-
-		w := httptest.NewRecorder()
-		api := Setup(cfg(), mux.NewRouter(), mocks.NewDataStore().BadRequest(), &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
-		api.router.ServeHTTP(w, r)
-		So(w.Code, ShouldEqual, http.StatusBadRequest)
-
-		response := w.Body.String()
-		So(response, ShouldResemble, "no dimensions are present in the filter\n")
-	})
-
-	Convey("Requesting a preview with an invalid limit", t, func() {
-		r, err := http.NewRequest("GET", "http://localhost:22100/filter-outputs/21312/preview?limit=a", nil)
-		So(err, ShouldBeNil)
-
-		w := httptest.NewRecorder()
-		api := Setup(cfg(), mux.NewRouter(), &mocks.DataStore{}, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
-		api.router.ServeHTTP(w, r)
-		So(w.Code, ShouldEqual, http.StatusBadRequest)
-
-		response := w.Body.String()
-		So(response, ShouldResemble, "requested limit is not a number\n")
-	})
-
-	Convey("Requesting a preview with no authentication when the version is unpublished", t, func() {
-		r, err := http.NewRequest("GET", "http://localhost:22100/filter-outputs/21312/preview?limit=a", nil)
-		So(err, ShouldBeNil)
-
-		w := httptest.NewRecorder()
-		api := Setup(cfg(), mux.NewRouter(), mocks.NewDataStore().Unpublished(), &mocks.FilterJob{}, mocks.NewDatasetAPI().Unpublished(), previewMock)
-		api.router.ServeHTTP(w, r)
-		So(w.Code, ShouldEqual, http.StatusBadRequest)
-
-		response := w.Body.String()
-		So(response, ShouldResemble, "requested limit is not a number\n")
 	})
 }
 
@@ -648,7 +521,7 @@ func TestSuccessfulAddEventToFilterOutput(t *testing.T) {
 
 	Convey("Given an existing filter output", t, func() {
 
-		mockDatastore := &apimocks.DataStoreMock{
+		mockDatastore := &apimock.DataStoreMock{
 			AddEventToFilterOutputFunc: func(ctx context.Context, filterOutputID string, event *models.Event) error {
 				return nil
 			},
@@ -657,7 +530,7 @@ func TestSuccessfulAddEventToFilterOutput(t *testing.T) {
 			},
 		}
 
-		api := Setup(cfg(), mux.NewRouter(), mockDatastore, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
+		filterApi := api.Setup(cfg(), mux.NewRouter(), mockDatastore, &mock.FilterJob{}, &mock.DatasetAPI{})
 
 		Convey("When a POST request is made to the filter output event endpoint", func() {
 
@@ -665,7 +538,7 @@ func TestSuccessfulAddEventToFilterOutput(t *testing.T) {
 			r := createAuthenticatedRequest("POST", "http://localhost:22100/filter-outputs/21312/events", reader)
 
 			w := httptest.NewRecorder()
-			api.router.ServeHTTP(w, r)
+			filterApi.Router.ServeHTTP(w, r)
 
 			Convey("Then the data store is called to add the event", func() {
 				So(len(mockDatastore.AddEventToFilterOutputCalls()), ShouldEqual, 1)
@@ -691,9 +564,9 @@ func TestFailedAddEventToFilterOutput_InvalidJson(t *testing.T) {
 
 	Convey("Given an existing filter output", t, func() {
 
-		mockDatastore := &apimocks.DataStoreMock{}
+		mockDatastore := &apimock.DataStoreMock{}
 
-		api := Setup(cfg(), mux.NewRouter(), mockDatastore, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
+		filterApi := api.Setup(cfg(), mux.NewRouter(), mockDatastore, &mock.FilterJob{}, &mock.DatasetAPI{})
 
 		Convey("When a POST request is made to the filter output event endpoint with invalid json", func() {
 
@@ -701,7 +574,7 @@ func TestFailedAddEventToFilterOutput_InvalidJson(t *testing.T) {
 			r := createAuthenticatedRequest("POST", "http://localhost:22100/filter-outputs/21312/events", reader)
 
 			w := httptest.NewRecorder()
-			api.router.ServeHTTP(w, r)
+			filterApi.Router.ServeHTTP(w, r)
 
 			Convey("Then the response is 400 bad request", func() {
 				So(w.Code, ShouldEqual, http.StatusBadRequest)
@@ -721,9 +594,9 @@ func TestFailedAddEventToFilterOutput_InvalidEvent(t *testing.T) {
 
 	Convey("Given an existing filter output", t, func() {
 
-		mockDatastore := &apimocks.DataStoreMock{}
+		mockDatastore := &apimock.DataStoreMock{}
 
-		api := Setup(cfg(), mux.NewRouter(), mockDatastore, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
+		filterApi := api.Setup(cfg(), mux.NewRouter(), mockDatastore, &mock.FilterJob{}, &mock.DatasetAPI{})
 
 		Convey("When a POST request is made to the filter output event endpoint with an empty event type", func() {
 
@@ -731,7 +604,7 @@ func TestFailedAddEventToFilterOutput_InvalidEvent(t *testing.T) {
 			r := createAuthenticatedRequest("POST", "http://localhost:22100/filter-outputs/21312/events", reader)
 
 			w := httptest.NewRecorder()
-			api.router.ServeHTTP(w, r)
+			filterApi.Router.ServeHTTP(w, r)
 
 			Convey("Then the response is 400 bad request", func() {
 				So(w.Code, ShouldEqual, http.StatusBadRequest)
@@ -751,7 +624,7 @@ func TestFailedAddEventToFilterOutput_DatastoreError(t *testing.T) {
 
 	Convey("Given an existing filter output", t, func() {
 
-		mockDatastore := &apimocks.DataStoreMock{
+		mockDatastore := &apimock.DataStoreMock{
 			AddEventToFilterOutputFunc: func(ctx context.Context, filterOutputID string, event *models.Event) error {
 				return errors.New("database is broken")
 			},
@@ -760,7 +633,7 @@ func TestFailedAddEventToFilterOutput_DatastoreError(t *testing.T) {
 			},
 		}
 
-		api := Setup(cfg(), mux.NewRouter(), mockDatastore, &mocks.FilterJob{}, &mocks.DatasetAPI{}, previewMock)
+		filterApi := api.Setup(cfg(), mux.NewRouter(), mockDatastore, &mock.FilterJob{}, &mock.DatasetAPI{})
 
 		Convey("When a POST request is made to the filter output event endpoint, and the data store returns an error", func() {
 
@@ -768,7 +641,7 @@ func TestFailedAddEventToFilterOutput_DatastoreError(t *testing.T) {
 			r := createAuthenticatedRequest("POST", "http://localhost:22100/filter-outputs/21312/events", reader)
 
 			w := httptest.NewRecorder()
-			api.router.ServeHTTP(w, r)
+			filterApi.Router.ServeHTTP(w, r)
 
 			Convey("Then the data store is called to add the event", func() {
 				So(len(mockDatastore.AddEventToFilterOutputCalls()), ShouldEqual, 1)

@@ -1,15 +1,12 @@
-package api
+package api_test
 
 import (
 	"io"
 	"net/http"
 
-	"context"
-
-	apimocks "github.com/ONSdigital/dp-filter-api/api/mocks"
+	"github.com/ONSdigital/dp-filter-api/api"
 	"github.com/ONSdigital/dp-filter-api/config"
 	"github.com/ONSdigital/dp-filter-api/filters"
-	"github.com/ONSdigital/dp-filter-api/models"
 	dprequest "github.com/ONSdigital/dp-net/request"
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -30,8 +27,8 @@ var (
 	versionNotFoundResponse        = filters.ErrVersionNotFound.Error() + "\n"
 	optionNotFoundResponse         = filters.ErrDimensionOptionNotFound.Error() + "\n"
 	invalidQueryParameterResponse  = filters.ErrInvalidQueryParameter.Error() + "\n"
-	badRequestResponse             = badRequest + "\n"
-	internalErrResponse            = internalError + "\n"
+	badRequestResponse             = api.BadRequest + "\n"
+	internalErrResponse            = api.InternalError + "\n"
 )
 
 // cfg obtains a new config for testing. Each test will have its own config instance by using this func.
@@ -50,12 +47,6 @@ func cfg() *config.Config {
 			Offset: 0,
 		},
 	}
-}
-
-var previewMock = &apimocks.PreviewDatasetMock{
-	GetPreviewFunc: func(ctx context.Context, filter *models.Filter, limit int) (*models.FilterPreview, error) {
-		return &models.FilterPreview{}, nil
-	},
 }
 
 func createAuthenticatedRequest(method, url string, body io.Reader) *http.Request {

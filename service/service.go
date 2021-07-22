@@ -13,8 +13,6 @@ import (
 	"github.com/ONSdigital/dp-filter-api/config"
 	"github.com/ONSdigital/dp-filter-api/filterOutputQueue"
 	"github.com/ONSdigital/dp-filter-api/mongo"
-	"github.com/ONSdigital/dp-filter-api/preview"
-	"github.com/ONSdigital/dp-graph/v2/graph"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 	kafka "github.com/ONSdigital/dp-kafka/v2"
 	dphandlers "github.com/ONSdigital/dp-net/handlers"
@@ -32,37 +30,23 @@ var (
 
 // Service contains all the configs, server and clients to run the Dataset API
 type Service struct {
-	cfg                           *config.Config
-	filterStore                   MongoDB
-	observationStore              *graph.DB
-	graphDBErrorConsumer          Closer
-	filterOutputSubmittedProducer kafka.IProducer
-	identityClient                *identity.Client
+	Cfg                           *config.Config
+	FilterStore                   MongoDB
+	FilterOutputSubmittedProducer kafka.IProducer
+	IdentityClient                *identity.Client
 	datasetAPI                    *dataset.Client
-	healthCheck                   HealthChecker
-	server                        HTTPServer
+	HealthCheck                   HealthChecker
+	Server                        HTTPServer
 	api                           *api.FilterAPI
 }
 
-// getFilterStore returns an initialised connection to filter store (mongo database)
-var getFilterStore = func(cfg *config.Config) (datastore MongoDB, err error) {
+// GetFilterStore returns an initialised connection to filter store (mongo database)
+var GetFilterStore = func(cfg *config.Config) (datastore MongoDB, err error) {
 	return mongo.CreateFilterStore(cfg.MongoConfig, cfg.Host, EnableMajorityWriteConcern, EnableStrongReadConcern)
 }
 
-// getObservationStore returns an initialised connection to observation store (graph database)
-var getObservationStore = func(ctx context.Context) (observationStore *graph.DB, errorConsumer Closer, err error) {
-	observationStore, err = graph.New(context.Background(), graph.Subsets{Observation: true})
-	if err != nil {
-		return nil, nil, err
-	}
-
-	errorConsumer = graph.NewLoggingErrorConsumer(ctx, observationStore.ErrorChan())
-
-	return observationStore, errorConsumer, nil
-}
-
-// getProducer returns a kafka producer
-var getProducer = func(ctx context.Context, cfg *config.Config, kafkaBrokers []string, topic string) (kafkaProducer kafka.IProducer, err error) {
+// GetProducer returns a kafka producer
+var GetProducer = func(ctx context.Context, cfg *config.Config, kafkaBrokers []string, topic string) (kafkaProducer kafka.IProducer, err error) {
 	pConfig := &kafka.ProducerConfig{
 		KafkaVersion:    &cfg.KafkaVersion,
 		MaxMessageBytes: &cfg.KafkaMaxBytes,
@@ -71,14 +55,14 @@ var getProducer = func(ctx context.Context, cfg *config.Config, kafkaBrokers []s
 	return kafka.NewProducer(ctx, kafkaBrokers, topic, producerChannels, pConfig)
 }
 
-// getHealthCheck returns a healthcheck
-var getHealthCheck = func(version healthcheck.VersionInfo, criticalTimeout, interval time.Duration) HealthChecker {
+// GetHealthCheck returns a healthcheck
+var GetHealthCheck = func(version healthcheck.VersionInfo, criticalTimeout, interval time.Duration) HealthChecker {
 	hc := healthcheck.New(version, criticalTimeout, interval)
 	return &hc
 }
 
-// getHTTPServer returns an http server
-var getHTTPServer = func(bindAddr string, router http.Handler) HTTPServer {
+// GetHTTPServer returns an http server
+var GetHTTPServer = func(bindAddr string, router http.Handler) HTTPServer {
 	s := dphttp.NewServer(bindAddr, router)
 	s.HandleOSSignals = false
 	return s
@@ -92,10 +76,10 @@ func New() *Service {
 // Init initialises all the service dependencies, including healthcheck with checkers, api and middleware
 func (svc *Service) Init(ctx context.Context, cfg *config.Config, buildTime, gitCommit, version string) (err error) {
 
-	svc.cfg = cfg
+	svc.Cfg = cfg
 
 	// Get data store.
-	svc.filterStore, err = getFilterStore(svc.cfg)
+	svc.FilterStore, err = GetFilterStore(svc.Cfg)
 	if err != nil {
 		log.Event(ctx, "could not connect to mongodb", log.ERROR, log.Error(err))
 		// We don't return 'err' here because we don't want to stop this service
@@ -103,27 +87,20 @@ func (svc *Service) Init(ctx context.Context, cfg *config.Config, buildTime, git
 		// A failing healthcheck Checker will be created later in registerCheckers().
 	}
 
-	// Get observation store
-	svc.observationStore, svc.graphDBErrorConsumer, err = getObservationStore(ctx)
-	if err != nil {
-		log.Event(ctx, "could not connect to graph", log.ERROR, log.Error(err))
-		return err
-	}
-
 	// Get kafka producer
-	svc.filterOutputSubmittedProducer, err = getProducer(ctx, cfg, svc.cfg.Brokers, svc.cfg.FilterOutputSubmittedTopic)
+	svc.FilterOutputSubmittedProducer, err = GetProducer(ctx, cfg, svc.Cfg.Brokers, svc.Cfg.FilterOutputSubmittedTopic)
 	if err != nil {
 		log.Event(ctx, "error creating kafka filter output submitted producer", log.ERROR, log.Error(err))
 		return err
 	}
 
 	// Create Identity Client
-	if svc.cfg.EnablePrivateEndpoints {
-		svc.identityClient = identity.New(svc.cfg.ZebedeeURL)
+	if svc.Cfg.EnablePrivateEndpoints {
+		svc.IdentityClient = identity.New(svc.Cfg.ZebedeeURL)
 	}
 
 	// Create Dataset API client.
-	svc.datasetAPI = dataset.NewAPIClient(svc.cfg.DatasetAPIURL)
+	svc.datasetAPI = dataset.NewAPIClient(svc.Cfg.DatasetAPIURL)
 
 	// Get HealthCheck and register checkers
 	versionInfo, err := healthcheck.NewVersionInfo(buildTime, gitCommit, version)
@@ -131,7 +108,7 @@ func (svc *Service) Init(ctx context.Context, cfg *config.Config, buildTime, git
 		log.Event(ctx, "error creating version info", log.FATAL, log.Error(err))
 		return err
 	}
-	svc.healthCheck = getHealthCheck(versionInfo, svc.cfg.HealthCheckCriticalTimeout, svc.cfg.HealthCheckInterval)
+	svc.HealthCheck = GetHealthCheck(versionInfo, svc.Cfg.HealthCheckCriticalTimeout, svc.Cfg.HealthCheckInterval)
 	if err := svc.registerCheckers(ctx); err != nil {
 		return errors.Wrap(err, "unable to register checkers")
 	}
@@ -139,18 +116,16 @@ func (svc *Service) Init(ctx context.Context, cfg *config.Config, buildTime, git
 	// Get HTTP router and server with middleware
 	r := mux.NewRouter()
 	m := svc.createMiddleware(ctx)
-	svc.server = getHTTPServer(svc.cfg.BindAddr, m.Then(r))
+	svc.Server = GetHTTPServer(svc.Cfg.BindAddr, m.Then(r))
 
-	// Create API, with previewDatasets and outputQueue
-	previewDatasets := preview.DatasetStore{Store: svc.observationStore}
-	outputQueue := filterOutputQueue.CreateOutputQueue(svc.filterOutputSubmittedProducer.Channels().Output)
+	// Create API, with outputQueue
+	outputQueue := filterOutputQueue.CreateOutputQueue(svc.FilterOutputSubmittedProducer.Channels().Output)
 	svc.api = api.Setup(
-		svc.cfg,
+		svc.Cfg,
 		r,
-		svc.filterStore,
+		svc.FilterStore,
 		&outputQueue,
-		svc.datasetAPI,
-		&previewDatasets)
+		svc.datasetAPI)
 	return nil
 }
 
@@ -158,15 +133,15 @@ func (svc *Service) Init(ctx context.Context, cfg *config.Config, buildTime, git
 func (svc *Service) Start(ctx context.Context, svcErrors chan error) {
 
 	// Start kafka logging
-	svc.filterOutputSubmittedProducer.Channels().LogErrors(ctx, "error received from kafka producer, topic: "+svc.cfg.FilterOutputSubmittedTopic)
+	svc.FilterOutputSubmittedProducer.Channels().LogErrors(ctx, "error received from kafka producer, topic: "+svc.Cfg.FilterOutputSubmittedTopic)
 
 	// Start healthcheck
-	svc.healthCheck.Start(ctx)
+	svc.HealthCheck.Start(ctx)
 
 	// Run the http server in a new go-routine
 	go func() {
 		log.Event(ctx, "Starting api...", log.INFO)
-		if err := svc.server.ListenAndServe(); err != nil {
+		if err := svc.Server.ListenAndServe(); err != nil {
 			svcErrors <- errors.Wrap(err, "failure in http listen and serve")
 		}
 	}()
@@ -174,14 +149,14 @@ func (svc *Service) Start(ctx context.Context, svcErrors chan error) {
 
 // CreateMiddleware creates an Alice middleware chain of handlers
 func (svc *Service) createMiddleware(ctx context.Context) alice.Chain {
-	healthCheckHandler := newMiddleware(svc.healthCheck.Handler, "/health")
+	healthCheckHandler := newMiddleware(svc.HealthCheck.Handler, "/health")
 	middlewareChain := alice.New(
 		healthCheckHandler,
 		dphandlers.CheckHeader(dphandlers.CollectionID))
 
-	if svc.cfg.EnablePrivateEndpoints {
+	if svc.Cfg.EnablePrivateEndpoints {
 		log.Event(ctx, "private endpoints are enabled. using identity middleware", log.INFO)
-		identityHandler := dphandlers.IdentityWithHTTPClient(svc.identityClient)
+		identityHandler := dphandlers.IdentityWithHTTPClient(svc.IdentityClient)
 		middlewareChain = middlewareChain.Append(identityHandler)
 	}
 
@@ -206,7 +181,7 @@ func newMiddleware(healthcheckHandler func(http.ResponseWriter, *http.Request), 
 
 // Close gracefully shuts the service down in the required order, with timeout
 func (svc *Service) Close(ctx context.Context) error {
-	timeout := svc.cfg.ShutdownTimeout
+	timeout := svc.Cfg.ShutdownTimeout
 	log.Event(ctx, "commencing graceful shutdown", log.Data{"graceful_shutdown_timeout": timeout}, log.INFO)
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	hasShutdownError := false
@@ -216,47 +191,32 @@ func (svc *Service) Close(ctx context.Context) error {
 		defer cancel()
 
 		// stop healthcheck, as it depends on everything else
-		if svc.healthCheck != nil {
-			svc.healthCheck.Stop()
+		if svc.HealthCheck != nil {
+			svc.HealthCheck.Stop()
 		}
 
 		// stop any incoming requests
-		if svc.server != nil {
-			if err := svc.server.Shutdown(ctx); err != nil {
+		if svc.Server != nil {
+			if err := svc.Server.Shutdown(ctx); err != nil {
 				log.Event(ctx, "failed to shutdown http server", log.ERROR)
 				hasShutdownError = true
 			}
 		}
 
 		// Close MongoDB (if it exists)
-		if svc.filterStore != nil {
+		if svc.FilterStore != nil {
 			log.Event(ctx, "closing mongoDB filter data store", log.INFO)
-			if err := svc.filterStore.Close(ctx); err != nil {
+			if err := svc.FilterStore.Close(ctx); err != nil {
 				// if err := mongolib.Close(ctx, svc.filterStore.Session); err != nil {
 				log.Event(ctx, "unable to close mongo filter data store", log.ERROR)
 				hasShutdownError = true
 			}
 		}
 
-		// Close GraphDB (if it exists)
-		if svc.observationStore != nil {
-			log.Event(ctx, "closing graph DB observation store", log.INFO)
-			if err := svc.observationStore.Close(ctx); err != nil {
-				log.Event(ctx, "unable to close graph DB observation store", log.ERROR)
-				hasShutdownError = true
-			}
-
-			log.Event(ctx, "closing graph DB error consumer", log.INFO)
-			if err := svc.graphDBErrorConsumer.Close(ctx); err != nil {
-				log.Event(ctx, "unable to close graph DB error consumer", log.ERROR)
-				hasShutdownError = true
-			}
-		}
-
 		// Close Kafka Producer (it if exists)
-		if svc.filterOutputSubmittedProducer != nil {
+		if svc.FilterOutputSubmittedProducer != nil {
 			log.Event(ctx, "closing filter output submitted producer", log.INFO)
-			if err := svc.filterOutputSubmittedProducer.Close(ctx); err != nil {
+			if err := svc.FilterOutputSubmittedProducer.Close(ctx); err != nil {
 				log.Event(ctx, "unable to close filter output submitted producer", log.ERROR)
 				hasShutdownError = true
 			}
@@ -306,20 +266,19 @@ func (svc *Service) registerCheckers(ctx context.Context) (err error) {
 			// we have a dependency so instead register its Checker
 			handler = dependency.Checker
 		}
-		if err = svc.healthCheck.AddCheck(name, handler); err != nil {
+		if err = svc.HealthCheck.AddCheck(name, handler); err != nil {
 			log.Event(ctx, fmt.Sprintf("error creating %s health check", strings.ToLower(name)), log.ERROR, log.Error(err))
 			hasErrors = true
 		}
 	}
 
 	registerChecker("Dataset API", svc.datasetAPI)
-	registerChecker("Kafka Producer", svc.filterOutputSubmittedProducer)
-	registerChecker("Graph DB", svc.observationStore)
-	registerChecker("Mongo DB", svc.filterStore)
+	registerChecker("Kafka Producer", svc.FilterOutputSubmittedProducer)
+	registerChecker("Mongo DB", svc.FilterStore)
 
 	// zebedee is used only for identity checking if private endpoints are enabled
-	if svc.cfg.EnablePrivateEndpoints {
-		registerChecker("Zebedee", svc.identityClient)
+	if svc.Cfg.EnablePrivateEndpoints {
+		registerChecker("Zebedee", svc.IdentityClient)
 	}
 
 	if hasErrors {
