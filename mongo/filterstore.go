@@ -47,7 +47,7 @@ func NewMongoTimestamp(t time.Time, c uint32) (int64, error) {
 }
 
 // CreateFilterStore which can store, update and fetch filter jobs
-func CreateFilterStore(cfg config.MongoConfig, host string, shouldEnableMojorityWriteConcern, shouldEnableStrongReadConcern bool) (*FilterStore, error) {
+func CreateFilterStore(cfg config.MongoConfig, host string) (*FilterStore, error) {
 	mongoConnection, err := dpMongoDriver.Open(&dpMongoDriver.MongoConnectionConfig{
 		ConnectTimeoutInSeconds: connectTimeoutInSeconds,
 		QueryTimeoutInSeconds:   queryTimeoutInSeconds,
@@ -57,8 +57,8 @@ func CreateFilterStore(cfg config.MongoConfig, host string, shouldEnableMojority
 		ClusterEndpoint:               cfg.BindAddr,
 		Database:                      cfg.Database,
 		IsSSL:                         cfg.IsSSL,
-		IsStrongReadConcernEnabled:    shouldEnableStrongReadConcern,
-		IsWriteConcernMajorityEnabled: shouldEnableMojorityWriteConcern,
+		IsStrongReadConcernEnabled:    cfg.EnableStrongReadConcern,
+		IsWriteConcernMajorityEnabled: cfg.EnableMajorityWriteConcern,
 	})
 
 	if err != nil {

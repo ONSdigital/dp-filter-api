@@ -23,11 +23,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-var (
-	EnableStrongReadConcern    = false
-	EnableMajorityWriteConcern = true
-)
-
 // Service contains all the configs, server and clients to run the Dataset API
 type Service struct {
 	Cfg                           *config.Config
@@ -42,7 +37,7 @@ type Service struct {
 
 // GetFilterStore returns an initialised connection to filter store (mongo database)
 var GetFilterStore = func(cfg *config.Config) (datastore MongoDB, err error) {
-	return mongo.CreateFilterStore(cfg.MongoConfig, cfg.Host, EnableMajorityWriteConcern, EnableStrongReadConcern)
+	return mongo.CreateFilterStore(cfg.MongoConfig, cfg.Host)
 }
 
 // GetProducer returns a kafka producer
