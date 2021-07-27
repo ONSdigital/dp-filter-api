@@ -28,6 +28,10 @@ build:
 debug:
 	HUMAN_LOG=1 go run $(LDFLAGS) -race cmd/$(MAIN)/main.go
 
+.PHONY: lint
+lint:
+	exit
+
 .PHONY: acceptance-publishing
 acceptance-publishing:
 	MONGODB_FILTERS_DATABASE=test HUMAN_LOG=1 go run $(LDFLAGS) -race cmd/$(MAIN)/main.go

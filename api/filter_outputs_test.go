@@ -1,9 +1,9 @@
 package api_test
 
 import (
+	"context"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"testing"
-
-	"github.com/globalsign/mgo/bson"
 
 	"encoding/json"
 	"net/http/httptest"
@@ -171,13 +171,13 @@ func TestSuccessfulUpdateFilterOutput_StatusComplete(t *testing.T) {
 
 	Convey("Given a filter output without downloads", t, func() {
 		mockDatastore := &apimock.DataStoreMock{
-			AddEventToFilterOutputFunc: func(filterOutputID string, event *models.Event) error {
+			AddEventToFilterOutputFunc: func(ctx context.Context, filterOutputID string, event *models.Event) error {
 				return nil
 			},
-			GetFilterOutputFunc: func(filterOutputID string) (*models.Filter, error) {
+			GetFilterOutputFunc: func(ctx context.Context, filterOutputID string) (*models.Filter, error) {
 				return createFilter(), nil
 			},
-			UpdateFilterOutputFunc: func(filterOutput *models.Filter, timestamp bson.MongoTimestamp) error {
+			UpdateFilterOutputFunc: func(ctx context.Context, filterOutput *models.Filter, timestamp primitive.Timestamp) error {
 				return nil
 			},
 		}
@@ -330,7 +330,7 @@ func TestFailedToUpdateFilterOutput(t *testing.T) {
 		So(w.Code, ShouldEqual, http.StatusForbidden)
 
 		response := w.Body.String()
-		So(response, ShouldResemble, "Forbidden from updating the following fields: [downloads.csv.private]\n")
+		So(response, ShouldResemble, "forbidden from updating the following fields: [downloads.csv.private]\n")
 
 		Convey("Then the request body has been drained", func() {
 			bytesRead, err := r.Body.Read(make([]byte, 1))
@@ -349,7 +349,7 @@ func TestFailedToUpdateFilterOutput(t *testing.T) {
 		So(w.Code, ShouldEqual, http.StatusForbidden)
 
 		response := w.Body.String()
-		So(response, ShouldResemble, "Forbidden from updating the following fields: [downloads.xls.private]\n")
+		So(response, ShouldResemble, "forbidden from updating the following fields: [downloads.xls.private]\n")
 
 		Convey("Then the request body has been drained", func() {
 			bytesRead, err := r.Body.Read(make([]byte, 1))
@@ -422,7 +422,7 @@ func TestFailedToUpdateFilterOutput_BadRequest(t *testing.T) {
 
 			Convey("Then the response contains the expected content", func() {
 				response := w.Body.String()
-				So(response, ShouldResemble, "Forbidden from updating the following fields: [dataset.id dataset.edition dataset.version]\n")
+				So(response, ShouldResemble, "forbidden from updating the following fields: [dataset.id dataset.edition dataset.version]\n")
 			})
 
 			Convey("Then the request body has been drained", func() {
@@ -467,7 +467,7 @@ func TestFailedToUpdateFilterOutput_BadRequest(t *testing.T) {
 
 			Convey("Then the response contains the expected content", func() {
 				response := w.Body.String()
-				So(response, ShouldResemble, "Forbidden from updating the following fields: [downloads.csv]\n")
+				So(response, ShouldResemble, "forbidden from updating the following fields: [downloads.csv]\n")
 			})
 
 			Convey("Then the request body has been drained", func() {
@@ -489,7 +489,7 @@ func TestFailedToUpdateFilterOutput_BadRequest(t *testing.T) {
 
 			Convey("Then the response contains the expected content", func() {
 				response := w.Body.String()
-				So(response, ShouldResemble, "Forbidden from updating the following fields: [downloads.xls]\n")
+				So(response, ShouldResemble, "forbidden from updating the following fields: [downloads.xls]\n")
 			})
 
 			Convey("Then the request body has been drained", func() {
@@ -522,10 +522,10 @@ func TestSuccessfulAddEventToFilterOutput(t *testing.T) {
 	Convey("Given an existing filter output", t, func() {
 
 		mockDatastore := &apimock.DataStoreMock{
-			AddEventToFilterOutputFunc: func(filterOutputID string, event *models.Event) error {
+			AddEventToFilterOutputFunc: func(ctx context.Context, filterOutputID string, event *models.Event) error {
 				return nil
 			},
-			GetFilterOutputFunc: func(filterOutputID string) (*models.Filter, error) {
+			GetFilterOutputFunc: func(ctx context.Context, filterOutputID string) (*models.Filter, error) {
 				return createFilter(), nil
 			},
 		}
@@ -625,10 +625,10 @@ func TestFailedAddEventToFilterOutput_DatastoreError(t *testing.T) {
 	Convey("Given an existing filter output", t, func() {
 
 		mockDatastore := &apimock.DataStoreMock{
-			AddEventToFilterOutputFunc: func(filterOutputID string, event *models.Event) error {
+			AddEventToFilterOutputFunc: func(ctx context.Context, filterOutputID string, event *models.Event) error {
 				return errors.New("database is broken")
 			},
-			GetFilterOutputFunc: func(filterOutputID string) (*models.Filter, error) {
+			GetFilterOutputFunc: func(ctx context.Context, filterOutputID string) (*models.Filter, error) {
 				return createFilter(), nil
 			},
 		}

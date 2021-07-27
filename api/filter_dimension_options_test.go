@@ -1070,7 +1070,7 @@ func TestFailedPatchBlueprintDimension(t *testing.T) {
 		So(w.HeaderMap.Get("ETag"), ShouldEqual, "")
 
 		response := w.Body.String()
-		So(response, ShouldResemble, "Failed to parse json body\n")
+		So(response, ShouldResemble, "failed to parse json body\n")
 	})
 
 	Convey("When a valid patch with an operation that is not supported is provided, a 400 BadRequest is returned", t, func() {

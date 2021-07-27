@@ -33,12 +33,17 @@ type Config struct {
 
 // MongoConfig contains the config required to connect to MongoDB.
 type MongoConfig struct {
-	BindAddr          string `envconfig:"MONGODB_BIND_ADDR"           json:"-"`
-	Database          string `envconfig:"MONGODB_FILTERS_DATABASE"`
-	FiltersCollection string `envconfig:"MONGODB_FILTERS_COLLECTION"`
-	OutputsCollection string `envconfig:"MONGODB_OUTPUT_COLLECTION"`
-	Limit             int    `envconfig:"MONGODB_LIMIT"`
-	Offset            int    `envconfig:"MONGODB_OFFSET"`
+	BindAddr                   string `envconfig:"MONGODB_BIND_ADDR"           json:"-"`
+	Database                   string `envconfig:"MONGODB_FILTERS_DATABASE"`
+	FiltersCollection          string `envconfig:"MONGODB_FILTERS_COLLECTION"`
+	OutputsCollection          string `envconfig:"MONGODB_OUTPUT_COLLECTION"`
+	Limit                      int    `envconfig:"MONGODB_LIMIT"`
+	Offset                     int    `envconfig:"MONGODB_OFFSET"`
+	Username                   string `envconfig:"MONGODB_USERNAME"`
+	Password                   string `envconfig:"MONGODB_PASSWORD" json:"-"`
+	IsSSL                      bool   `envconfig:"MONGODB_IS_SSL"`
+	EnableStrongReadConcern    bool   `envconfig:"MONGODB_ENABLE_STRONG_READ_CONCERN"`
+	EnableMajorityWriteConcern bool   `envconfig:"MONGODB_ENABLE_MAJORITY_WRITE_CONCERN"`
 }
 
 var cfg *Config
@@ -71,6 +76,11 @@ func Get() (*Config, error) {
 			OutputsCollection: "filterOutputs",
 			Limit:             20, // Default limit for mongoDB queries that do not provide an explicit limit
 			Offset:            0,  // Default offset for mongoDB queries that do not provide an explicit offset
+			Username:          "",
+			Password:          "",
+			IsSSL:             false,
+			EnableStrongReadConcern: false,
+			EnableMajorityWriteConcern: true,
 		},
 		ServiceAuthToken:         "FD0108EA-825D-411C-9B1D-41EF7727F465",
 		ZebedeeURL:               "http://localhost:8082",
