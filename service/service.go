@@ -17,7 +17,7 @@ import (
 	kafka "github.com/ONSdigital/dp-kafka/v2"
 	dphandlers "github.com/ONSdigital/dp-net/handlers"
 	dphttp "github.com/ONSdigital/dp-net/http"
-	"github.com/ONSdigital/log.go/log"
+	"github.com/ONSdigital/log.go/v2/log"
 	"github.com/gorilla/mux"
 	"github.com/justinas/alice"
 	"github.com/pkg/errors"
@@ -84,7 +84,7 @@ func (svc *Service) Init(ctx context.Context, cfg *config.Config, buildTime, git
 	// Get data store.
 	svc.FilterStore, err = GetFilterStore(svc.Cfg)
 	if err != nil {
-		log.Event(ctx, "could not connect to mongodb", log.ERROR, log.Error(err))
+		log.Error(ctx, "could not connect to mongodb", err)
 		// We don't return 'err' here because we don't want to stop this service
 		// due to a failure in connecting with mongoDB.
 		// A failing healthcheck Checker will be created later in registerCheckers().
@@ -93,7 +93,7 @@ func (svc *Service) Init(ctx context.Context, cfg *config.Config, buildTime, git
 	// Get kafka producer
 	svc.FilterOutputSubmittedProducer, err = GetProducer(ctx, cfg, svc.Cfg.Brokers, svc.Cfg.FilterOutputSubmittedTopic)
 	if err != nil {
-		log.Event(ctx, "error creating kafka filter output submitted producer", log.ERROR, log.Error(err))
+		log.Error(ctx, "error creating kafka filter output submitted producer", err)
 		return err
 	}
 
@@ -108,7 +108,7 @@ func (svc *Service) Init(ctx context.Context, cfg *config.Config, buildTime, git
 	// Get HealthCheck and register checkers
 	versionInfo, err := healthcheck.NewVersionInfo(buildTime, gitCommit, version)
 	if err != nil {
-		log.Event(ctx, "error creating version info", log.FATAL, log.Error(err))
+		log.Fatal(ctx, "error creating version info", err)
 		return err
 	}
 	svc.HealthCheck = GetHealthCheck(versionInfo, svc.Cfg.HealthCheckCriticalTimeout, svc.Cfg.HealthCheckInterval)
@@ -143,7 +143,7 @@ func (svc *Service) Start(ctx context.Context, svcErrors chan error) {
 
 	// Run the http server in a new go-routine
 	go func() {
-		log.Event(ctx, "Starting api...", log.INFO)
+		log.Info(ctx, "Starting api...")
 		if err := svc.Server.ListenAndServe(); err != nil {
 			svcErrors <- errors.Wrap(err, "failure in http listen and serve")
 		}
@@ -158,7 +158,7 @@ func (svc *Service) createMiddleware(ctx context.Context) alice.Chain {
 		dphandlers.CheckHeader(dphandlers.CollectionID))
 
 	if svc.Cfg.EnablePrivateEndpoints {
-		log.Event(ctx, "private endpoints are enabled. using identity middleware", log.INFO)
+		log.Info(ctx, "private endpoints are enabled. using identity middleware")
 		identityHandler := dphandlers.IdentityWithHTTPClient(svc.IdentityClient)
 		middlewareChain = middlewareChain.Append(identityHandler)
 	}
@@ -185,7 +185,7 @@ func newMiddleware(healthcheckHandler func(http.ResponseWriter, *http.Request), 
 // Close gracefully shuts the service down in the required order, with timeout
 func (svc *Service) Close(ctx context.Context) error {
 	timeout := svc.Cfg.ShutdownTimeout
-	log.Event(ctx, "commencing graceful shutdown", log.Data{"graceful_shutdown_timeout": timeout}, log.INFO)
+	log.Info(ctx, "commencing graceful shutdown", log.Data{"graceful_shutdown_timeout": timeout})
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	hasShutdownError := false
 
@@ -201,26 +201,26 @@ func (svc *Service) Close(ctx context.Context) error {
 		// stop any incoming requests
 		if svc.Server != nil {
 			if err := svc.Server.Shutdown(ctx); err != nil {
-				log.Event(ctx, "failed to shutdown http server", log.ERROR)
+				log.Error(ctx, "failed to shutdown http server", err)
 				hasShutdownError = true
 			}
 		}
 
 		// Close MongoDB (if it exists)
 		if svc.FilterStore != nil {
-			log.Event(ctx, "closing mongoDB filter data store", log.INFO)
+			log.Info(ctx, "closing mongoDB filter data store")
 			if err := svc.FilterStore.Close(ctx); err != nil {
 				// if err := mongolib.Close(ctx, svc.filterStore.Session); err != nil {
-				log.Event(ctx, "unable to close mongo filter data store", log.ERROR)
+				log.Error(ctx, "unable to close mongo filter data store", err)
 				hasShutdownError = true
 			}
 		}
 
 		// Close Kafka Producer (it if exists)
 		if svc.FilterOutputSubmittedProducer != nil {
-			log.Event(ctx, "closing filter output submitted producer", log.INFO)
+			log.Info(ctx, "closing filter output submitted producer")
 			if err := svc.FilterOutputSubmittedProducer.Close(ctx); err != nil {
-				log.Event(ctx, "unable to close filter output submitted producer", log.ERROR)
+				log.Error(ctx, "unable to close filter output submitted producer", err)
 				hasShutdownError = true
 			}
 		}
@@ -231,18 +231,18 @@ func (svc *Service) Close(ctx context.Context) error {
 
 	// timeout expired
 	if ctx.Err() == context.DeadlineExceeded {
-		log.Event(ctx, "shutdown timed out", log.ERROR, log.Error(ctx.Err()))
+		log.Error(ctx, "shutdown timed out", ctx.Err())
 		return ctx.Err()
 	}
 
 	// other error
 	if hasShutdownError {
 		err := errors.New("failed to shutdown gracefully")
-		log.Event(ctx, "failed to shutdown gracefully ", log.ERROR, log.Error(err))
+		log.Error(ctx, "failed to shutdown gracefully ", err)
 		return err
 	}
 
-	log.Event(ctx, "graceful shutdown was successful", log.INFO)
+	log.Info(ctx, "graceful shutdown was successful")
 	return nil
 }
 
@@ -270,7 +270,7 @@ func (svc *Service) registerCheckers(ctx context.Context) (err error) {
 			handler = dependency.Checker
 		}
 		if err = svc.HealthCheck.AddCheck(name, handler); err != nil {
-			log.Event(ctx, fmt.Sprintf("error creating %s health check", strings.ToLower(name)), log.ERROR, log.Error(err))
+			log.Error(ctx, fmt.Sprintf("error creating %s health check", strings.ToLower(name)), err)
 			hasErrors = true
 		}
 	}

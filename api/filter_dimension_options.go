@@ -9,7 +9,7 @@ import (
 	"github.com/ONSdigital/dp-filter-api/mongo"
 	"github.com/ONSdigital/dp-filter-api/utils"
 	dprequest "github.com/ONSdigital/dp-net/request"
-	"github.com/ONSdigital/log.go/log"
+	"github.com/ONSdigital/log.go/v2/log"
 	"github.com/gorilla/mux"
 
 	"context"
@@ -30,7 +30,7 @@ func (api *FilterAPI) getFilterBlueprintDimensionOptionsHandler(w http.ResponseW
 	limitParameter := r.URL.Query().Get("limit")
 
 	ctx := r.Context()
-	log.Event(ctx, "get filter blueprint dimension options", log.INFO, logData)
+	log.Info(ctx, "get filter blueprint dimension options", logData)
 
 	offset := api.defaultOffset
 	limit := api.defaultLimit
@@ -40,7 +40,7 @@ func (api *FilterAPI) getFilterBlueprintDimensionOptionsHandler(w http.ResponseW
 		logData["offset"] = offsetParameter
 		offset, err = validatePositiveInt(offsetParameter)
 		if err != nil {
-			log.Event(ctx, "failed to obtain offset from request query parameters", log.ERROR, logData)
+			log.Error(ctx, "failed to obtain offset from request query parameters", err, logData)
 			setErrorCode(w, err)
 			return
 		}
@@ -50,7 +50,7 @@ func (api *FilterAPI) getFilterBlueprintDimensionOptionsHandler(w http.ResponseW
 		logData["limit"] = limitParameter
 		limit, err = validatePositiveInt(limitParameter)
 		if err != nil {
-			log.Event(ctx, "failed to obtain limit from request query parameters", log.ERROR, logData)
+			log.Error(ctx, "failed to obtain limit from request query parameters", err, logData)
 			setErrorCode(w, err)
 			return
 		}
@@ -59,21 +59,21 @@ func (api *FilterAPI) getFilterBlueprintDimensionOptionsHandler(w http.ResponseW
 	if limit > api.maxLimit {
 		logData["max_limit"] = api.maxLimit
 		err = filters.ErrInvalidQueryParameter
-		log.Event(ctx, "limit is greater than the maximum allowed", log.ERROR, logData)
+		log.Error(ctx, "limit is greater than the maximum allowed", err, logData)
 		setErrorCode(w, err)
 		return
 	}
 
 	filter, err := api.getFilterBlueprint(ctx, filterBlueprintID, mongo.AnyETag)
 	if err != nil {
-		log.Event(ctx, "failed to get dimension options for filter blueprint", log.ERROR, log.Error(err), logData)
+		log.Error(ctx, "failed to get dimension options for filter blueprint", err, logData)
 		setErrorCode(w, err)
 		return
 	}
 
 	options, err := api.getFilterBlueprintDimensionOptions(ctx, filter, dimensionName, offset, limit)
 	if err != nil {
-		log.Event(ctx, "failed to get dimension options for filter blueprint", log.ERROR, log.Error(err), logData)
+		log.Error(ctx, "failed to get dimension options for filter blueprint", err, logData)
 		setErrorCode(w, err)
 		return
 	}
@@ -82,7 +82,7 @@ func (api *FilterAPI) getFilterBlueprintDimensionOptionsHandler(w http.ResponseW
 
 	b, err := json.Marshal(options)
 	if err != nil {
-		log.Event(ctx, "failed to marshal filter blueprint dimension options into bytes", log.ERROR, log.Error(err), logData)
+		log.Error(ctx, "failed to marshal filter blueprint dimension options into bytes", err, logData)
 		http.Error(w, InternalError, http.StatusInternalServerError)
 		return
 	}
@@ -91,12 +91,12 @@ func (api *FilterAPI) getFilterBlueprintDimensionOptionsHandler(w http.ResponseW
 	setETag(w, filter.ETag)
 	_, err = w.Write(b)
 	if err != nil {
-		log.Event(ctx, "failed to write bytes for http response", log.ERROR, log.Error(err), logData)
+		log.Error(ctx, "failed to write bytes for http response", err, logData)
 		setErrorCode(w, err)
 		return
 	}
 
-	log.Event(ctx, "got dimension options for filter blueprint", log.INFO, logData)
+	log.Info(ctx, "got dimension options for filter blueprint", logData)
 }
 
 // utility function to cut a slice according to the provided offset and limit.
@@ -166,25 +166,25 @@ func (api *FilterAPI) getFilterBlueprintDimensionOptionHandler(w http.ResponseWr
 	}
 
 	ctx := r.Context()
-	log.Event(ctx, "get filter blueprint dimension option", log.INFO, logData)
+	log.Info(ctx, "get filter blueprint dimension option", logData)
 
 	filter, err := api.getFilterBlueprint(ctx, filterBlueprintID, mongo.AnyETag)
 	if err != nil {
-		log.Event(ctx, "unable to get dimension option for filter blueprint", log.ERROR, log.Error(err), logData)
+		log.Error(ctx, "unable to get dimension option for filter blueprint", err, logData)
 		setErrorCodeFromError(w, err)
 		return
 	}
 
 	dimensionOption, err := api.getFilterBlueprintDimensionOption(ctx, filter, dimensionName, option)
 	if err != nil {
-		log.Event(ctx, "unable to get dimension option for filter blueprint", log.ERROR, log.Error(err), logData)
+		log.Error(ctx, "unable to get dimension option for filter blueprint", err, logData)
 		setErrorCodeFromError(w, err)
 		return
 	}
 
 	b, err := json.Marshal(dimensionOption)
 	if err != nil {
-		log.Event(ctx, "failed to marshal filter blueprint dimension option into bytes", log.ERROR, log.Error(err), logData)
+		log.Error(ctx, "failed to marshal filter blueprint dimension option into bytes", err, logData)
 		http.Error(w, InternalError, http.StatusInternalServerError)
 		return
 	}
@@ -193,12 +193,12 @@ func (api *FilterAPI) getFilterBlueprintDimensionOptionHandler(w http.ResponseWr
 	setETag(w, filter.ETag)
 	_, err = w.Write(b)
 	if err != nil {
-		log.Event(ctx, "failed to write bytes for http response", log.ERROR, log.Error(err), logData)
+		log.Error(ctx, "failed to write bytes for http response", err, logData)
 		setErrorCode(w, err)
 		return
 	}
 
-	log.Event(ctx, "got dimension option for filter blueprint", log.INFO, logData)
+	log.Info(ctx, "got dimension option for filter blueprint", logData)
 }
 
 // obtain the dimension from the provided filter model with name == dimensionName
@@ -273,7 +273,7 @@ func (api *FilterAPI) addFilterBlueprintDimensionOptionHandler(w http.ResponseWr
 	// eTag value must be present in If-Match header
 	eTag, err := getIfMatchForce(r)
 	if err != nil {
-		log.Event(ctx, "missing header", log.ERROR, log.Data{"error": err.Error()})
+		log.Error(ctx, "missing header", err, log.Data{"error": err.Error()})
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -281,7 +281,7 @@ func (api *FilterAPI) addFilterBlueprintDimensionOptionHandler(w http.ResponseWr
 	// add the dimension options, if valid
 	newETag, err := api.addFilterBlueprintDimensionOptions(ctx, filterBlueprintID, dimensionName, []string{option}, logData, eTag)
 	if err != nil {
-		log.Event(ctx, "error adding filter blueprint dimension option", log.ERROR, log.Error(err), logData)
+		log.Error(ctx, "error adding filter blueprint dimension option", err, logData)
 		setErrorCodeFromErrorExpectDimension(w, err)
 		return
 	}
@@ -289,7 +289,7 @@ func (api *FilterAPI) addFilterBlueprintDimensionOptionHandler(w http.ResponseWr
 	// request filterBlueprint again in order to construct the response from the updated filter (if a new option was added)
 	filterBlueprint, err := api.getFilterBlueprint(ctx, filterBlueprintID, newETag)
 	if err != nil {
-		log.Event(ctx, "error getting filter blueprint dimension option after the dimension option has been successfully added", log.ERROR, log.Error(err), logData)
+		log.Error(ctx, "error getting filter blueprint dimension option after the dimension option has been successfully added", err, logData)
 		setErrorCodeFromErrorExpectDimension(w, err)
 		return
 	}
@@ -297,14 +297,14 @@ func (api *FilterAPI) addFilterBlueprintDimensionOptionHandler(w http.ResponseWr
 	// get the options from the new filterBlueprint
 	dimensionOption, err := api.getFilterBlueprintDimensionOption(ctx, filterBlueprint, dimensionName, option)
 	if err != nil {
-		log.Event(ctx, "unable to get dimension option for filter blueprint", log.ERROR, log.Error(err), logData)
+		log.Error(ctx, "unable to get dimension option for filter blueprint", err, logData)
 		setErrorCodeFromErrorExpectDimension(w, err)
 		return
 	}
 
 	b, err := json.Marshal(dimensionOption)
 	if err != nil {
-		log.Event(ctx, "failed to marshal filter blueprint dimension option into bytes", log.ERROR, log.Error(err), logData)
+		log.Error(ctx, "failed to marshal filter blueprint dimension option into bytes", err, logData)
 		http.Error(w, InternalError, http.StatusInternalServerError)
 		return
 	}
@@ -314,12 +314,12 @@ func (api *FilterAPI) addFilterBlueprintDimensionOptionHandler(w http.ResponseWr
 	w.WriteHeader(http.StatusCreated)
 	_, err = w.Write(b)
 	if err != nil {
-		log.Event(ctx, "failed to write bytes for http response", log.ERROR, log.Error(err), logData)
+		log.Error(ctx, "failed to write bytes for http response", err, logData)
 		setErrorCode(w, err)
 		return
 	}
 
-	log.Event(ctx, "created new dimension option for filter blueprint", log.INFO, logData)
+	log.Info(ctx, "created new dimension option for filter blueprint", logData)
 }
 
 // addFilterBlueprintDimensionOptions adds the provided options to the filter dimension, only if the options are available for the dimension.
@@ -370,19 +370,19 @@ func (api *FilterAPI) removeFilterBlueprintDimensionOptionHandler(w http.Respons
 		"option":              option,
 	}
 	ctx := r.Context()
-	log.Event(ctx, "remove filter blueprint dimension option", log.INFO, logData)
+	log.Info(ctx, "remove filter blueprint dimension option", logData)
 
 	// eTag value must be present in If-Match header
 	eTag, err := getIfMatchForce(r)
 	if err != nil {
-		log.Event(ctx, "missing header", log.ERROR, log.Data{"error": err.Error()})
+		log.Error(ctx, "missing header", err, log.Data{"error": err.Error()})
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	newETag, err := api.removeFilterBlueprintDimensionOption(ctx, filterBlueprintID, dimensionName, option, eTag)
 	if err != nil {
-		log.Event(ctx, "error removing filter blueprint dimension option", log.ERROR, log.Error(err), logData)
+		log.Error(ctx, "error removing filter blueprint dimension option", err, logData)
 		setErrorCodeFromError(w, err)
 		return
 	}
@@ -391,7 +391,7 @@ func (api *FilterAPI) removeFilterBlueprintDimensionOptionHandler(w http.Respons
 	setETag(w, newETag)
 	w.WriteHeader(http.StatusNoContent)
 
-	log.Event(ctx, "delete dimension option on filter blueprint", log.INFO, logData)
+	log.Info(ctx, "delete dimension option on filter blueprint", logData)
 }
 
 // removeFilterBlueprintDimensionOption removes a single dimension option, failing if the option did not exist
@@ -451,7 +451,7 @@ func (api *FilterAPI) removeFilterBlueprintDimensionOptions(ctx context.Context,
 
 	// if none of the provided options were present, we don't need to remove anything
 	if len(optionsToRemove) == 0 {
-		log.Event(ctx, "options do not exist in the dimension, nothing to remove", log.INFO)
+		log.Info(ctx, "options do not exist in the dimension, nothing to remove")
 		return eTag, nil
 	}
 
@@ -470,12 +470,12 @@ func (api *FilterAPI) patchFilterBlueprintDimensionHandler(w http.ResponseWriter
 		"dimension":           dimensionName,
 	}
 	ctx := r.Context()
-	log.Event(ctx, "patch filter blueprint dimension", log.INFO, logData)
+	log.Info(ctx, "patch filter blueprint dimension", logData)
 
 	// eTag value must be present in If-Match header
 	eTag, err := getIfMatchForce(r)
 	if err != nil {
-		log.Event(ctx, "missing header", log.ERROR, log.Data{"error": err.Error()})
+		log.Error(ctx, "missing header", err, log.Data{"error": err.Error()})
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -483,7 +483,7 @@ func (api *FilterAPI) patchFilterBlueprintDimensionHandler(w http.ResponseWriter
 	// unmarshal and validate the patch array
 	patches, err := models.CreatePatches(r.Body)
 	if err != nil {
-		log.Event(ctx, "error obtaining patch from request body", log.ERROR, log.Error(err), logData)
+		log.Error(ctx, "error obtaining patch from request body", err, logData)
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -494,14 +494,14 @@ func (api *FilterAPI) patchFilterBlueprintDimensionHandler(w http.ResponseWriter
 	for _, patch := range patches {
 		if patch.Path != "/options/-" {
 			err = fmt.Errorf("provided path '%s' not supported. Supported paths: '/options/-'", patch.Path)
-			log.Event(ctx, "error validating patch operation path, no change has been applied", log.ERROR, log.Error(err), logData)
+			log.Error(ctx, "error validating patch operation path, no change has been applied", err, logData)
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 		v2, err := getStringArrayFromInterface(patch.Value)
 		if err != nil {
 			err = fmt.Errorf("values provided are not strings")
-			log.Event(ctx, "error validating patch operation path, no change has been applied", log.ERROR, log.Error(err), logData)
+			log.Error(ctx, "error validating patch operation path, no change has been applied", err, logData)
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
@@ -510,7 +510,7 @@ func (api *FilterAPI) patchFilterBlueprintDimensionHandler(w http.ResponseWriter
 		if totalValues > api.maxRequestOptions {
 			logData["max_options"] = api.maxRequestOptions
 			err = fmt.Errorf("a maximum of %d overall option values can be provied in a set of patch operations, which has been exceeded", api.maxRequestOptions)
-			log.Event(ctx, "error validating patch operation values size, no change has been applied", log.ERROR, log.Error(err), logData)
+			log.Error(ctx, "error validating patch operation values size, no change has been applied", err, logData)
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
@@ -520,11 +520,11 @@ func (api *FilterAPI) patchFilterBlueprintDimensionHandler(w http.ResponseWriter
 	successfulPatches, newETag, err := api.patchFilterBlueprintDimension(ctx, filterBlueprintID, dimensionName, patches, logData, eTag)
 	if err != nil {
 		logData["successful_patches"] = successfulPatches
-		log.Event(ctx, "error patching filter blueprint dimension options", log.ERROR, log.Error(err), logData)
+		log.Error(ctx, "error patching filter blueprint dimension options", err, logData)
 		setErrorCodeFromError(w, err)
 		if len(successfulPatches) > 0 {
 			if err := WriteJSONBody(ctx, successfulPatches, w, logData); err != nil {
-				log.Event(ctx, "error writing JSON body during filter blueprint patch error handling", log.ERROR, log.Error(err), logData)
+				log.Error(ctx, "error writing JSON body during filter blueprint patch error handling", err, logData)
 			}
 		}
 		return
@@ -534,12 +534,12 @@ func (api *FilterAPI) patchFilterBlueprintDimensionHandler(w http.ResponseWriter
 	setJSONPatchContentType(w)
 	setETag(w, newETag)
 	if err := WriteJSONBody(ctx, successfulPatches, w, logData); err != nil {
-		log.Event(ctx, "error writing JSON body after a successful filter blueprint patch", log.ERROR, log.Error(err), logData)
+		log.Error(ctx, "error writing JSON body after a successful filter blueprint patch", err, logData)
 		setErrorCodeFromError(w, err)
 		return
 	}
 
-	log.Event(ctx, "successfully patched filter dimension options on filter blueprint", log.INFO, logData)
+	log.Info(ctx, "successfully patched filter dimension options on filter blueprint", logData)
 }
 
 // patchFilterBlueprintDimension applies the patches by calling add or remove filter dimension options. It keeps track of a list of successful patches
