@@ -355,7 +355,7 @@ func (api *FilterAPI) addFilterBlueprintDimensionOptions(ctx context.Context, fi
 	}
 
 	// All validations succeeded - add dimension options that do not already exist
-	return api.dataStore.AddFilterDimensionOptions(filterBlueprintID, dimensionName, utils.CreateArray(missingOptions), filterBlueprint.UniqueTimestamp, filterBlueprint.ETag, filterBlueprint)
+	return api.dataStore.AddFilterDimensionOptions(ctx, filterBlueprintID, dimensionName, utils.CreateArray(missingOptions), filterBlueprint.UniqueTimestamp, filterBlueprint.ETag, filterBlueprint)
 }
 
 func (api *FilterAPI) removeFilterBlueprintDimensionOptionHandler(w http.ResponseWriter, r *http.Request) {
@@ -414,7 +414,7 @@ func (api *FilterAPI) removeFilterBlueprintDimensionOption(ctx context.Context, 
 		return "", filters.ErrDimensionOptionNotFound
 	}
 
-	return api.dataStore.RemoveFilterDimensionOption(filterBlueprint.FilterID, dimensionName, option, filterBlueprint.UniqueTimestamp, filterBlueprint.ETag, filterBlueprint)
+	return api.dataStore.RemoveFilterDimensionOption(ctx, filterBlueprint.FilterID, dimensionName, option, filterBlueprint.UniqueTimestamp, filterBlueprint.ETag, filterBlueprint)
 }
 
 // removeFilterBlueprintDimensionOption removes all provided options.
@@ -456,7 +456,7 @@ func (api *FilterAPI) removeFilterBlueprintDimensionOptions(ctx context.Context,
 	}
 
 	// remove necessary options from DB
-	return api.dataStore.RemoveFilterDimensionOptions(filterBlueprintID, dimensionName, optionsToRemove, filterBlueprint.UniqueTimestamp, eTag, filterBlueprint)
+	return api.dataStore.RemoveFilterDimensionOptions(ctx, filterBlueprintID, dimensionName, optionsToRemove, filterBlueprint.UniqueTimestamp, eTag, filterBlueprint)
 }
 
 // Handler for a list of patch operations against the dimension options

@@ -46,6 +46,14 @@ var GetProducer = func(ctx context.Context, cfg *config.Config, kafkaBrokers []s
 		KafkaVersion:    &cfg.KafkaVersion,
 		MaxMessageBytes: &cfg.KafkaMaxBytes,
 	}
+	if cfg.KafkaSecProtocol == "TLS" {
+		pConfig.SecurityConfig = kafka.GetSecurityConfig(
+			cfg.KafkaSecCACerts,
+			cfg.KafkaSecClientCert,
+			cfg.KafkaSecClientKey,
+			cfg.KafkaSecSkipVerify,
+		)
+	}
 	producerChannels := kafka.CreateProducerChannels()
 	return kafka.NewProducer(ctx, kafkaBrokers, topic, producerChannels, pConfig)
 }

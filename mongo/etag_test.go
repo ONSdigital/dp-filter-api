@@ -15,10 +15,10 @@ const (
 
 func testStore() *FilterStore {
 	return &FilterStore{
-		host:              "testHost",
-		db:                "filters",
-		filtersCollection: "filters",
-		outputsCollection: "filterOutputs",
+		URI:               "testHost",
+		Database:          "filters",
+		FiltersCollection: "filters",
+		OutputsCollection: "filterOutputs",
 	}
 }
 

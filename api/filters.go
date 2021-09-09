@@ -146,7 +146,7 @@ func (api *FilterAPI) createFilterBlueprint(ctx context.Context, filter *models.
 		return nil, filters.NewBadRequestErr(err.Error())
 	}
 
-	newFilter, err = api.dataStore.AddFilter(newFilter)
+	newFilter, err = api.dataStore.AddFilter(ctx, newFilter)
 	if err != nil {
 		log.Event(ctx, "failed to create new filter blueprint", log.ERROR, log.Error(err), logData)
 		return nil, err
@@ -320,7 +320,7 @@ func (api *FilterAPI) updateFilterBlueprint(ctx context.Context, filter *models.
 		}
 	}
 
-	newFilter.ETag, err = api.dataStore.UpdateFilter(newFilter, timestamp, eTag, currentFilter)
+	newFilter.ETag, err = api.dataStore.UpdateFilter(ctx, newFilter, timestamp, eTag, currentFilter)
 	if err != nil {
 		log.Event(ctx, "unable to update filter blueprint", log.ERROR, log.Error(err), logData)
 		return nil, err
@@ -353,7 +353,7 @@ func (api *FilterAPI) getFilterBlueprint(ctx context.Context, filterID, eTag str
 
 	logData := log.Data{"filter_blueprint_id": filterID}
 
-	currentFilter, err := api.dataStore.GetFilter(filterID, mongo.AnyETag)
+	currentFilter, err := api.dataStore.GetFilter(ctx, filterID, mongo.AnyETag)
 	if err != nil {
 		log.Event(ctx, "error getting filter", log.ERROR, log.Error(err), logData)
 		return nil, err
@@ -380,7 +380,7 @@ func (api *FilterAPI) getFilterBlueprint(ctx context.Context, filterID, eTag str
 	if version.State == publishedState {
 		filter := currentFilter
 		filter.Published = &models.Published
-		filter.ETag, err = api.dataStore.UpdateFilter(filter, filter.UniqueTimestamp, currentFilter.ETag, currentFilter)
+		filter.ETag, err = api.dataStore.UpdateFilter(ctx, filter, filter.UniqueTimestamp, currentFilter.ETag, currentFilter)
 		if err != nil {
 			log.Event(ctx, "error updating filter", log.ERROR, log.Error(err), logData)
 			if err == filters.ErrFilterBlueprintConflict {
@@ -580,7 +580,7 @@ func (api *FilterAPI) createFilterOutputResource(ctx context.Context, newFilter 
 		filterOutput.Published = &models.Published
 	}
 
-	if err := api.dataStore.CreateFilterOutput(&filterOutput); err != nil {
+	if err := api.dataStore.CreateFilterOutput(ctx, &filterOutput); err != nil {
 		log.Event(ctx, "unable to create filter output", log.ERROR, log.Error(err), log.Data{"filter_output": filterOutput})
 		return models.Filter{}, err
 	}

@@ -14,7 +14,7 @@ type reader struct {
 }
 
 func (f reader) Read(bytes []byte) (int, error) {
-	return 0, fmt.Errorf("Reader failed")
+	return 0, fmt.Errorf("reader failed")
 }
 
 func TestCreateFilterBlueprintWithValidJSON(t *testing.T) {
@@ -53,7 +53,7 @@ func TestCreateFilterBlueprintWithInvalidJson(t *testing.T) {
 		err = filter.ValidateNewFilter()
 		missingFields := []string{"dataset.edition", "dataset.id"}
 		So(err, ShouldNotBeNil)
-		So(err, ShouldResemble, fmt.Errorf("Missing mandatory fields: %v", missingFields))
+		So(err, ShouldResemble, fmt.Errorf("missing mandatory fields: %v", missingFields))
 	})
 
 	Convey("When a filter blueprint message has an empty json body, an error is returned", t, func() {
@@ -63,7 +63,7 @@ func TestCreateFilterBlueprintWithInvalidJson(t *testing.T) {
 		err = filter.ValidateNewFilter()
 		missingFields := []string{"dataset.version", "dataset.edition", "dataset.id"}
 		So(err, ShouldNotBeNil)
-		So(err, ShouldResemble, fmt.Errorf("Missing mandatory fields: %v", missingFields))
+		So(err, ShouldResemble, fmt.Errorf("missing mandatory fields: %v", missingFields))
 	})
 }
 
@@ -102,7 +102,7 @@ func TestValidateFilterOutputUpdate(t *testing.T) {
 
 			err = filter.ValidateFilterOutputUpdate(currentFilter)
 			So(err, ShouldNotBeNil)
-			So(err, ShouldResemble, errors.New("Forbidden from updating the following fields: [dimensions]"))
+			So(err, ShouldResemble, errors.New("forbidden from updating the following fields: [dimensions]"))
 		})
 	})
 
@@ -117,7 +117,7 @@ func TestValidateFilterOutputUpdate(t *testing.T) {
 
 			err = filter.ValidateFilterOutputUpdate(currentFilter)
 			So(err, ShouldNotBeNil)
-			So(err, ShouldResemble, errors.New("Forbidden from updating the following fields: [instance_id]"))
+			So(err, ShouldResemble, errors.New("forbidden from updating the following fields: [instance_id]"))
 		})
 	})
 
@@ -132,7 +132,7 @@ func TestValidateFilterOutputUpdate(t *testing.T) {
 
 			err = filter.ValidateFilterOutputUpdate(currentFilter)
 			So(err, ShouldNotBeNil)
-			So(err, ShouldResemble, errors.New("Forbidden from updating the following fields: [filter_id]"))
+			So(err, ShouldResemble, errors.New("forbidden from updating the following fields: [filter_id]"))
 		})
 	})
 
@@ -147,7 +147,7 @@ func TestValidateFilterOutputUpdate(t *testing.T) {
 
 			err = filter.ValidateFilterOutputUpdate(currentFilter)
 			So(err, ShouldNotBeNil)
-			So(err, ShouldResemble, errors.New("Forbidden from updating the following fields: [instance_id dimensions filter_id]"))
+			So(err, ShouldResemble, errors.New("forbidden from updating the following fields: [instance_id dimensions filter_id]"))
 		})
 	})
 }
@@ -178,7 +178,7 @@ func TestValidateFilterOutputDownloadsUpdate(t *testing.T) {
 			Convey("Then on validation an error is returned", func() {
 				err = filter.ValidateFilterOutputUpdate(currentFilter)
 				So(err, ShouldNotBeNil)
-				So(err, ShouldResemble, errors.New("Forbidden from updating the following fields: [downloads.csv.private]"))
+				So(err, ShouldResemble, errors.New("forbidden from updating the following fields: [downloads.csv.private]"))
 			})
 		})
 
@@ -190,7 +190,7 @@ func TestValidateFilterOutputDownloadsUpdate(t *testing.T) {
 			Convey("Then on validation an error is returned", func() {
 				err = filter.ValidateFilterOutputUpdate(currentFilter)
 				So(err, ShouldNotBeNil)
-				So(err, ShouldResemble, errors.New("Forbidden from updating the following fields: [downloads.xls.private]"))
+				So(err, ShouldResemble, errors.New("forbidden from updating the following fields: [downloads.xls.private]"))
 			})
 		})
 
@@ -202,7 +202,7 @@ func TestValidateFilterOutputDownloadsUpdate(t *testing.T) {
 			Convey("Then on validation an error is returned", func() {
 				err = filter.ValidateFilterOutputUpdate(currentFilter)
 				So(err, ShouldNotBeNil)
-				So(err, ShouldResemble, errors.New("Forbidden from updating the following fields: [downloads.csv.private downloads.xls.private]"))
+				So(err, ShouldResemble, errors.New("forbidden from updating the following fields: [downloads.csv.private downloads.xls.private]"))
 			})
 		})
 
@@ -254,7 +254,7 @@ func TestValidateFilterOutputDownloadsUpdate(t *testing.T) {
 			Convey("Then on validation an error is returned", func() {
 				err = filter.ValidateFilterOutputUpdate(currentFilter)
 				So(err, ShouldNotBeNil)
-				So(err, ShouldResemble, errors.New("Forbidden from updating the following fields: [downloads.csv]"))
+				So(err, ShouldResemble, errors.New("forbidden from updating the following fields: [downloads.csv]"))
 			})
 		})
 
@@ -266,7 +266,7 @@ func TestValidateFilterOutputDownloadsUpdate(t *testing.T) {
 			Convey("Then on validation an error is returned", func() {
 				err = filter.ValidateFilterOutputUpdate(currentFilter)
 				So(err, ShouldNotBeNil)
-				So(err, ShouldResemble, errors.New("Forbidden from updating the following fields: [downloads.xls]"))
+				So(err, ShouldResemble, errors.New("forbidden from updating the following fields: [downloads.xls]"))
 			})
 		})
 
@@ -278,7 +278,7 @@ func TestValidateFilterOutputDownloadsUpdate(t *testing.T) {
 			Convey("Then on validation an error is returned", func() {
 				err = filter.ValidateFilterOutputUpdate(currentFilter)
 				So(err, ShouldNotBeNil)
-				So(err, ShouldResemble, errors.New("Forbidden from updating the following fields: [downloads.csv downloads.xls]"))
+				So(err, ShouldResemble, errors.New("forbidden from updating the following fields: [downloads.csv downloads.xls]"))
 			})
 		})
 	})
@@ -308,7 +308,7 @@ func TestValidateFilterBlueprintUpdate(t *testing.T) {
 
 			err = ValidateFilterBlueprintUpdate(filter)
 			So(err, ShouldNotBeNil)
-			So(err, ShouldResemble, errors.New("Forbidden from updating the following fields: [dataset.id]"))
+			So(err, ShouldResemble, errors.New("forbidden from updating the following fields: [dataset.id]"))
 		})
 	})
 
@@ -322,7 +322,7 @@ func TestValidateFilterBlueprintUpdate(t *testing.T) {
 
 			err = ValidateFilterBlueprintUpdate(filter)
 			So(err, ShouldNotBeNil)
-			So(err, ShouldResemble, errors.New("Forbidden from updating the following fields: [dataset.edition]"))
+			So(err, ShouldResemble, errors.New("forbidden from updating the following fields: [dataset.edition]"))
 		})
 	})
 
@@ -337,7 +337,7 @@ func TestValidateFilterBlueprintUpdate(t *testing.T) {
 
 			err = ValidateFilterBlueprintUpdate(filter)
 			So(err, ShouldNotBeNil)
-			So(err, ShouldResemble, errors.New("Forbidden from updating the following fields: [dataset.id dataset.edition]"))
+			So(err, ShouldResemble, errors.New("forbidden from updating the following fields: [dataset.id dataset.edition]"))
 		})
 	})
 }
