@@ -4,16 +4,17 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"math"
 	"time"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
 
 	"github.com/ONSdigital/dp-filter-api/config"
 	"github.com/ONSdigital/dp-filter-api/filters"
 	"github.com/ONSdigital/dp-filter-api/models"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
-	dpMongoHealth "github.com/ONSdigital/dp-mongodb/v2/health"
-	dpMongoDriver "github.com/ONSdigital/dp-mongodb/v2/mongodb"
+	dpMongoHealth "github.com/ONSdigital/dp-mongodb/v3/health"
+	dpMongoDriver "github.com/ONSdigital/dp-mongodb/v3/mongodb"
 	"go.mongodb.org/mongo-driver/bson"
 )
 
@@ -100,7 +101,7 @@ func (s *FilterStore) AddFilter(ctx context.Context, filter *models.Filter) (*mo
 	documents = append(documents, filter)
 
 	// Insert filter to database
-	if _, err = s.Connection.C(s.FiltersCollection).Insert(ctx, documents); err != nil {
+	if _, err = s.Connection.C(s.FiltersCollection).InsertMany(ctx, documents); err != nil {
 		return nil, err
 	}
 
