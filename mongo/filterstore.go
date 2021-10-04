@@ -97,11 +97,8 @@ func (s *FilterStore) AddFilter(ctx context.Context, filter *models.Filter) (*mo
 		return nil, err
 	}
 
-	var documents []interface{}
-	documents = append(documents, filter)
-
 	// Insert filter to database
-	if _, err = s.Connection.C(s.FiltersCollection).InsertMany(ctx, documents); err != nil {
+	if _, err = s.Connection.C(s.FiltersCollection).Insert(ctx, filter); err != nil {
 		return nil, err
 	}
 
