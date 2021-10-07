@@ -402,10 +402,7 @@ func (s *FilterStore) CreateFilterOutput(ctx context.Context, filter *models.Fil
 		return
 	}
 
-	var documents []interface{}
-	documents = append(documents, filter)
-
-	_, err = s.Connection.C(s.OutputsCollection).Insert(ctx, documents)
+	_, err = s.Connection.C(s.OutputsCollection).Insert(ctx, filter)
 	if err != nil {
 		return err
 	}
