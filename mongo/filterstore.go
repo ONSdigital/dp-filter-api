@@ -57,9 +57,11 @@ func CreateFilterStore(cfg config.MongoConfig, host string) (*FilterStore, error
 		Password:                      cfg.Password,
 		ClusterEndpoint:               cfg.BindAddr,
 		Database:                      cfg.Database,
-		IsSSL:                         cfg.IsSSL,
 		IsStrongReadConcernEnabled:    cfg.EnableStrongReadConcern,
 		IsWriteConcernMajorityEnabled: cfg.EnableMajorityWriteConcern,
+		TLSConnectionConfig: dpMongoDriver.TLSConnectionConfig{
+			IsSSL: cfg.IsSSL,
+		},
 	})
 
 	if err != nil {
@@ -77,11 +79,7 @@ func CreateFilterStore(cfg config.MongoConfig, host string) (*FilterStore, error
 	databaseCollectionBuilder := make(map[dpMongoHealth.Database][]dpMongoHealth.Collection)
 	databaseCollectionBuilder[(dpMongoHealth.Database)(cfg.Database)] = []dpMongoHealth.Collection{(dpMongoHealth.Collection)(cfg.FiltersCollection), (dpMongoHealth.Collection)(cfg.OutputsCollection)}
 
-	client := dpMongoHealth.NewClientWithCollections(mongoConnection, databaseCollectionBuilder)
-	filterStore.healthCheckClient = &dpMongoHealth.CheckMongoClient{
-		Client:      *client,
-		Healthcheck: client.Healthcheck,
-	}
+	filterStore.healthCheckClient = dpMongoHealth.NewClientWithCollections(mongoConnection, databaseCollectionBuilder)
 	return filterStore, nil
 }
 
