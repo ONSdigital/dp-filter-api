@@ -2,9 +2,7 @@ package mongo
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"math"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -16,11 +14,6 @@ import (
 	dpMongoHealth "github.com/ONSdigital/dp-mongodb/v3/health"
 	dpMongoDriver "github.com/ONSdigital/dp-mongodb/v3/mongodb"
 	"go.mongodb.org/mongo-driver/bson"
-)
-
-const (
-	connectTimeoutInSeconds = 5
-	queryTimeoutInSeconds   = 15
 )
 
 // FilterStore containing all filter jobs stored in mongodb
@@ -36,34 +29,10 @@ type FilterStore struct {
 	healthCheckClient *dpMongoHealth.CheckMongoClient
 }
 
-func NewMongoTimestamp(t time.Time, c uint32) (int64, error) {
-	u := t.Unix()
-	if u < 0 || u > math.MaxUint32 {
-		return -1, errors.New("invalid value for time")
-	}
-
-	i := int64(u<<32 | int64(c))
-
-	return int64(i), nil
-}
-
 // CreateFilterStore which can store, update and fetch filter jobs
 func CreateFilterStore(cfg config.MongoConfig, host string) (*FilterStore, error) {
-	mongoConnection, err := dpMongoDriver.Open(&dpMongoDriver.MongoConnectionConfig{
-		ConnectTimeoutInSeconds: connectTimeoutInSeconds,
-		QueryTimeoutInSeconds:   queryTimeoutInSeconds,
 
-		Username:                      cfg.Username,
-		Password:                      cfg.Password,
-		ClusterEndpoint:               cfg.BindAddr,
-		Database:                      cfg.Database,
-		IsStrongReadConcernEnabled:    cfg.EnableStrongReadConcern,
-		IsWriteConcernMajorityEnabled: cfg.EnableMajorityWriteConcern,
-		TLSConnectionConfig: dpMongoDriver.TLSConnectionConfig{
-			IsSSL: cfg.IsSSL,
-		},
-	})
-
+	mongoConnection, err := dpMongoDriver.Open(&cfg.MongoConnectionConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -72,14 +41,14 @@ func CreateFilterStore(cfg config.MongoConfig, host string) (*FilterStore, error
 		Connection:        mongoConnection,
 		URI:               host,
 		Database:          cfg.Database,
-		FiltersCollection: cfg.FiltersCollection,
+		FiltersCollection: cfg.Collection,
 		OutputsCollection: cfg.OutputsCollection,
 	}
 
-	databaseCollectionBuilder := make(map[dpMongoHealth.Database][]dpMongoHealth.Collection)
-	databaseCollectionBuilder[(dpMongoHealth.Database)(cfg.Database)] = []dpMongoHealth.Collection{(dpMongoHealth.Collection)(cfg.FiltersCollection), (dpMongoHealth.Collection)(cfg.OutputsCollection)}
-
+	databaseCollectionBuilder := map[dpMongoHealth.Database][]dpMongoHealth.Collection{
+		(dpMongoHealth.Database)(cfg.Database): {(dpMongoHealth.Collection)(cfg.Collection), (dpMongoHealth.Collection)(cfg.OutputsCollection)}}
 	filterStore.healthCheckClient = dpMongoHealth.NewClientWithCollections(mongoConnection, databaseCollectionBuilder)
+
 	return filterStore, nil
 }
 
