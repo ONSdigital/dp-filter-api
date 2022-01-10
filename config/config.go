@@ -3,7 +3,7 @@ package config
 import (
 	"time"
 
-	"github.com/ONSdigital/dp-mongodb/v3/mongodb"
+	mongodriver "github.com/ONSdigital/dp-mongodb/v3/mongodb"
 
 	"github.com/kelseyhightower/envconfig"
 )
@@ -39,14 +39,18 @@ type Config struct {
 }
 
 type MongoConfig struct {
-	mongodb.MongoConnectionConfig
+	mongodriver.MongoDriverConfig
 
-	OutputsCollection string `envconfig:"MONGODB_OUTPUT_COLLECTION"`
-	Limit             int    `envconfig:"MONGODB_LIMIT"`
-	Offset            int    `envconfig:"MONGODB_OFFSET"`
+	Limit  int `envconfig:"MONGODB_LIMIT"`
+	Offset int `envconfig:"MONGODB_OFFSET"`
 }
 
 var cfg *Config
+
+const (
+	FiltersCollection = "FiltersCollection"
+	OutputsCollection = "OutputsCollection"
+)
 
 // Get configures the application and returns the configuration
 func Get() (*Config, error) {
@@ -76,24 +80,23 @@ func Get() (*Config, error) {
 		DownloadServiceURL:         "http://localhost:23600",
 		DownloadServiceSecretKey:   "QB0108EZ-825D-412C-9B1D-41EF7747F462",
 		MongoConfig: MongoConfig{
-			MongoConnectionConfig: mongodb.MongoConnectionConfig{
+			MongoDriverConfig: mongodriver.MongoDriverConfig{
 				ClusterEndpoint:               "localhost:27017",
 				Username:                      "",
 				Password:                      "",
 				Database:                      "filters",
-				Collection:                    "filters",
+				Collections:                   map[string]string{FiltersCollection: "filters", OutputsCollection: "filterOutputs"},
 				ReplicaSet:                    "",
 				IsStrongReadConcernEnabled:    false,
 				IsWriteConcernMajorityEnabled: true,
-				ConnectTimeoutInSeconds:       5 * time.Second,
-				QueryTimeoutInSeconds:         15 * time.Second,
-				TLSConnectionConfig: mongodb.TLSConnectionConfig{
+				ConnectTimeout:                5 * time.Second,
+				QueryTimeout:                  15 * time.Second,
+				TLSConnectionConfig: mongodriver.TLSConnectionConfig{
 					IsSSL: false,
 				},
 			},
-			OutputsCollection: "filterOutputs",
-			Limit:             20, // Default limit for mongoDB queries that do not provide an explicit limit
-			Offset:            0,  // Default offset for mongoDB queries that do not provide an explicit offset
+			Limit:  20, // Default limit for mongoDB queries that do not provide an explicit limit
+			Offset: 0,  // Default offset for mongoDB queries that do not provide an explicit offset
 		},
 	}
 
