@@ -62,7 +62,7 @@ func Get() (*Config, error) {
 	cfg = &Config{
 		Host:                       "http://localhost:22100",
 		BindAddr:                   ":22100",
-		Brokers:                    []string{"localhost:9092"},
+		Brokers:                    []string{"localhost:9092", "localhost:9093", "localhost:9094"},
 		KafkaVersion:               "1.0.2",
 		FilterOutputSubmittedTopic: "filter-job-submitted",
 		KafkaMaxBytes:              2000000,

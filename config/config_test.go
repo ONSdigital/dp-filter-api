@@ -24,7 +24,7 @@ func TestSpec(t *testing.T) {
 				So(cfg.BindAddr, ShouldEqual, ":22100")
 				So(cfg.Host, ShouldEqual, "http://localhost:22100")
 				So(cfg.MaxRequestOptions, ShouldEqual, 1000)
-				So(cfg.Brokers, ShouldResemble, []string{"localhost:9092"})
+				So(cfg.Brokers, ShouldResemble, []string{"localhost:9092", "localhost:9093", "localhost:9094"})
 				So(cfg.KafkaVersion, ShouldEqual, "1.0.2")
 				So(cfg.KafkaSecProtocol, ShouldEqual, "")
 				So(cfg.FilterOutputSubmittedTopic, ShouldEqual, "filter-job-submitted")
