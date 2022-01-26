@@ -15,14 +15,14 @@ import (
 	"github.com/ONSdigital/dp-filter-api/mongo"
 	dphttp "github.com/ONSdigital/dp-net/http"
 	dprequest "github.com/ONSdigital/dp-net/request"
-	"github.com/ONSdigital/log.go/log"
+	"github.com/ONSdigital/log.go/v2/log"
 	"github.com/gorilla/mux"
 	uuid "github.com/satori/go.uuid"
 )
 
 var (
-	internalError = "Failed to process the request due to an internal error"
-	badRequest    = "Bad request - Invalid request body"
+	InternalError = "Failed to process the request due to an internal error"
+	BadRequest    = "Bad request - Invalid request body"
 
 	statusBadRequest          = "bad request"
 	statusUnprocessableEntity = "unprocessable entity"
@@ -44,30 +44,30 @@ func (api *FilterAPI) postFilterBlueprintHandler(w http.ResponseWriter, r *http.
 	submitted := r.FormValue("submitted")
 	logData := log.Data{"submitted": submitted}
 	ctx := r.Context()
-	log.Event(ctx, "create filter blueprint", log.INFO, logData)
+	log.Info(ctx, "create filter blueprint", logData)
 
 	filter, err := models.CreateNewFilter(r.Body)
 	if err != nil {
-		log.Event(ctx, "unable to unmarshal request body", log.ERROR, log.Error(err), logData)
+		log.Error(ctx, "unable to unmarshal request body", err, logData)
 		if err, ok := err.(models.DuplicateDimensionError); ok {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 		} else {
-			http.Error(w, badRequest, http.StatusBadRequest)
+			http.Error(w, BadRequest, http.StatusBadRequest)
 		}
 		return
 	}
 
 	newFilter, err := api.createFilterBlueprint(ctx, filter, submitted)
 	if err != nil {
-		log.Event(ctx, "failed to create new filter", log.ERROR, log.Error(err), logData)
+		log.Error(ctx, "failed to create new filter", err, logData)
 		setErrorCode(w, err)
 		return
 	}
-	log.Event(ctx, "created filter blueprint", log.INFO, logData)
+	log.Info(ctx, "created filter blueprint", logData)
 
 	bytes, err := json.Marshal(newFilter)
 	if err != nil {
-		log.Event(ctx, "failed to marshal filter blueprint into bytes", log.ERROR, log.Error(err), logData)
+		log.Error(ctx, "failed to marshal filter blueprint into bytes", err, logData)
 		setErrorCode(w, err)
 		return
 	}
@@ -77,7 +77,7 @@ func (api *FilterAPI) postFilterBlueprintHandler(w http.ResponseWriter, r *http.
 	w.WriteHeader(http.StatusCreated)
 	_, err = w.Write(bytes)
 	if err != nil {
-		log.Event(ctx, "failed to write bytes for http response", log.ERROR, log.Error(err), logData)
+		log.Error(ctx, "failed to write bytes for http response", err, logData)
 		setErrorCode(w, err)
 		return
 	}
@@ -90,14 +90,14 @@ func (api *FilterAPI) createFilterBlueprint(ctx context.Context, filter *models.
 
 	if err := filter.ValidateNewFilter(); err != nil {
 		logData["filter_parameters"] = filter
-		log.Event(ctx, "filter parameters failed validation", log.ERROR, log.Error(err), logData)
+		log.Error(ctx, "filter parameters failed validation", err, logData)
 		return nil, filters.ErrBadRequest
 	}
 
 	// Create unique id
 	u, err := uuid.NewV4()
 	if err != nil {
-		log.Event(ctx, "failed to create a new UUID for filter blueprint", log.ERROR, log.Error(err), logData)
+		log.Error(ctx, "failed to create a new UUID for filter blueprint", err, logData)
 		return nil, err
 	}
 	newFilter.FilterID = u.String()
@@ -107,12 +107,12 @@ func (api *FilterAPI) createFilterBlueprint(ctx context.Context, filter *models.
 	// add version information from datasetAPI
 	version, err := api.getVersion(ctx, filter.Dataset)
 	if err != nil {
-		log.Event(ctx, "unable to retrieve version document", log.ERROR, log.Error(err), logData)
+		log.Error(ctx, "unable to retrieve version document", err, logData)
 		return nil, err
 	}
 
 	if version.State != publishedState && !dprequest.IsCallerPresent(ctx) {
-		log.Event(ctx, "unauthenticated request to filter unpublished version", log.INFO, log.Data{"dataset": *filter.Dataset, "state": version.State})
+		log.Info(ctx, "unauthenticated request to filter unpublished version", log.Data{"dataset": *filter.Dataset, "state": version.State})
 		return nil, filters.ErrVersionNotFound
 	}
 
@@ -139,13 +139,13 @@ func (api *FilterAPI) createFilterBlueprint(ctx context.Context, filter *models.
 	logData["new_filter"] = newFilter
 
 	if err = api.checkFilterOptions(ctx, newFilter, version); err != nil {
-		log.Event(ctx, "failed to select valid filter options", log.ERROR, log.Error(err), logData)
+		log.Error(ctx, "failed to select valid filter options", err, logData)
 		return nil, filters.NewBadRequestErr(err.Error())
 	}
 
-	newFilter, err = api.dataStore.AddFilter(newFilter)
+	newFilter, err = api.dataStore.AddFilter(ctx, newFilter)
 	if err != nil {
-		log.Event(ctx, "failed to create new filter blueprint", log.ERROR, log.Error(err), logData)
+		log.Error(ctx, "failed to create new filter blueprint", err, logData)
 		return nil, err
 	}
 
@@ -154,7 +154,7 @@ func (api *FilterAPI) createFilterBlueprint(ctx context.Context, filter *models.
 		// Create filter output resource and use filter id, dataset, edition and version to pass into kafka
 		filterOutput, err = api.createFilterOutputResource(ctx, newFilter, newFilter.FilterID)
 		if err != nil {
-			log.Event(ctx, "failed to create new filter output", log.ERROR, log.Error(err), logData)
+			log.Error(ctx, "failed to create new filter output", err, logData)
 			return nil, err
 		}
 		logData["filter_output_id"] = filterOutput.FilterID
@@ -166,7 +166,7 @@ func (api *FilterAPI) createFilterBlueprint(ctx context.Context, filter *models.
 		}
 
 		logData["new_filter"] = newFilter
-		log.Event(ctx, "filter output id sent in message to kafka", log.INFO, logData)
+		log.Info(ctx, "filter output id sent in message to kafka", logData)
 	}
 
 	return newFilter, nil
@@ -177,11 +177,11 @@ func (api *FilterAPI) getFilterBlueprintHandler(w http.ResponseWriter, r *http.R
 	filterID := vars["filter_blueprint_id"]
 	logData := log.Data{"filter_blueprint_id": filterID}
 	ctx := r.Context()
-	log.Event(ctx, "getting filter blueprint", log.INFO, logData)
+	log.Info(ctx, "getting filter blueprint", logData)
 
 	filterBlueprint, err := api.getFilterBlueprint(ctx, filterID, mongo.AnyETag)
 	if err != nil {
-		log.Event(ctx, "unable to get filter blueprint", log.ERROR, log.Error(err), logData)
+		log.Error(ctx, "unable to get filter blueprint", err, logData)
 		setErrorCode(w, err)
 		return
 	}
@@ -192,8 +192,8 @@ func (api *FilterAPI) getFilterBlueprintHandler(w http.ResponseWriter, r *http.R
 
 	bytes, err := json.Marshal(filterBlueprint)
 	if err != nil {
-		log.Event(ctx, "failed to marshal filter blueprint into bytes", log.ERROR, log.Error(err), logData)
-		http.Error(w, internalError, http.StatusInternalServerError)
+		log.Error(ctx, "failed to marshal filter blueprint into bytes", err, logData)
+		http.Error(w, InternalError, http.StatusInternalServerError)
 		return
 	}
 
@@ -202,11 +202,11 @@ func (api *FilterAPI) getFilterBlueprintHandler(w http.ResponseWriter, r *http.R
 	w.WriteHeader(http.StatusOK)
 	_, err = w.Write(bytes)
 	if err != nil {
-		log.Event(ctx, "failed to write bytes for http response", log.ERROR, log.Error(err), logData)
+		log.Error(ctx, "failed to write bytes for http response", err, logData)
 		setErrorCode(w, err)
 	}
 
-	log.Event(ctx, "got filter blueprint", log.INFO, logData)
+	log.Info(ctx, "got filter blueprint", logData)
 }
 
 func (api *FilterAPI) putFilterBlueprintHandler(w http.ResponseWriter, r *http.Request) {
@@ -218,12 +218,12 @@ func (api *FilterAPI) putFilterBlueprintHandler(w http.ResponseWriter, r *http.R
 	submitted := r.URL.Query().Get("submitted")
 	logData := log.Data{"filter_blueprint_id": filterID, "submitted": submitted}
 	ctx := r.Context()
-	log.Event(ctx, "updating filter blueprint", log.INFO, logData)
+	log.Info(ctx, "updating filter blueprint", logData)
 
 	// eTag value must be present in If-Match header
 	eTag, err := getIfMatchForce(r)
 	if err != nil {
-		log.Event(ctx, "missing header", log.ERROR, log.Data{"error": err.Error()})
+		log.Error(ctx, "missing header", err, log.Data{"error": err.Error()})
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -233,8 +233,8 @@ func (api *FilterAPI) putFilterBlueprintHandler(w http.ResponseWriter, r *http.R
 		// When filter blueprint has query parameter `submitted` set to true then
 		// request can have an empty json in body for this PUT request
 		if submitted != filterSubmitted || err != models.ErrorNoData {
-			log.Event(ctx, "unable to unmarshal request body", log.ERROR, log.Error(err), logData)
-			http.Error(w, badRequest, http.StatusBadRequest)
+			log.Error(ctx, "unable to unmarshal request body", err, logData)
+			http.Error(w, BadRequest, http.StatusBadRequest)
 			return
 		}
 	}
@@ -242,15 +242,15 @@ func (api *FilterAPI) putFilterBlueprintHandler(w http.ResponseWriter, r *http.R
 
 	newFilter, err := api.updateFilterBlueprint(ctx, filter, submitted, eTag)
 	if err != nil {
-		log.Event(ctx, "failed to update filter blueprint", log.ERROR, log.Error(err), logData)
+		log.Error(ctx, "failed to update filter blueprint", err, logData)
 		setErrorCode(w, err)
 		return
 	}
-	log.Event(ctx, "filter blueprint updated", log.INFO, logData)
+	log.Info(ctx, "filter blueprint updated", logData)
 
 	bytes, err := json.Marshal(newFilter)
 	if err != nil {
-		log.Event(ctx, "failed to marshal updated filter blueprint into bytes", log.ERROR, log.Error(err), logData)
+		log.Error(ctx, "failed to marshal updated filter blueprint into bytes", err, logData)
 		setErrorCode(w, err)
 		return
 	}
@@ -260,7 +260,7 @@ func (api *FilterAPI) putFilterBlueprintHandler(w http.ResponseWriter, r *http.R
 	w.WriteHeader(http.StatusOK)
 	_, err = w.Write(bytes)
 	if err != nil {
-		log.Event(ctx, "failed to write bytes for http response", log.ERROR, log.Error(err), logData)
+		log.Error(ctx, "failed to write bytes for http response", err, logData)
 		setErrorCode(w, err)
 		return
 	}
@@ -269,17 +269,17 @@ func (api *FilterAPI) putFilterBlueprintHandler(w http.ResponseWriter, r *http.R
 func (api *FilterAPI) updateFilterBlueprint(ctx context.Context, filter *models.Filter, submitted, eTag string) (*models.Filter, error) {
 
 	logData := log.Data{"filter_blueprint_id": filter.FilterID, "submitted": submitted}
-	log.Event(ctx, "updating filter blueprint", log.INFO, logData)
+	log.Info(ctx, "updating filter blueprint", logData)
 	logData["filter_update"] = filter
 
 	if err := models.ValidateFilterBlueprintUpdate(filter); err != nil {
-		log.Event(ctx, "filter blueprint failed validation", log.ERROR, log.Error(err), logData)
+		log.Error(ctx, "filter blueprint failed validation", err, logData)
 		return nil, filters.ErrBadRequest
 	}
 
 	currentFilter, err := api.getFilterBlueprint(ctx, filter.FilterID, eTag)
 	if err != nil {
-		log.Event(ctx, "unable to get filter blueprint", log.ERROR, log.Error(err), logData)
+		log.Error(ctx, "unable to get filter blueprint", err, logData)
 		return nil, err
 	}
 
@@ -292,11 +292,11 @@ func (api *FilterAPI) updateFilterBlueprint(ctx context.Context, filter *models.
 	logData["new_filter"] = newFilter
 
 	if versionHasChanged {
-		log.Event(ctx, "finding new version details for filter after version change", log.INFO, logData)
+		log.Info(ctx, "finding new version details for filter after version change", logData)
 
 		version, err := api.getVersion(ctx, newFilter.Dataset)
 		if err != nil {
-			log.Event(ctx, "unable to retrieve version document", log.ERROR, log.Error(err), logData)
+			log.Error(ctx, "unable to retrieve version document", err, logData)
 			return nil, filters.NewBadRequestErr(err.Error())
 		}
 
@@ -312,14 +312,14 @@ func (api *FilterAPI) updateFilterBlueprint(ctx context.Context, filter *models.
 
 		// Check existing dimensions work for new version
 		if err = api.checkFilterOptions(ctx, newFilter, version); err != nil {
-			log.Event(ctx, "failed to select valid filter options", log.ERROR, log.Error(err), logData)
+			log.Error(ctx, "failed to select valid filter options", err, logData)
 			return nil, filters.NewBadRequestErr(err.Error())
 		}
 	}
 
-	newFilter.ETag, err = api.dataStore.UpdateFilter(newFilter, timestamp, eTag, currentFilter)
+	newFilter.ETag, err = api.dataStore.UpdateFilter(ctx, newFilter, timestamp, eTag, currentFilter)
 	if err != nil {
-		log.Event(ctx, "unable to update filter blueprint", log.ERROR, log.Error(err), logData)
+		log.Error(ctx, "unable to update filter blueprint", err, logData)
 		return nil, err
 	}
 
@@ -330,12 +330,12 @@ func (api *FilterAPI) updateFilterBlueprint(ctx context.Context, filter *models.
 		// Create filter output resource and use id to pass into kafka
 		filterOutput, err = api.createFilterOutputResource(ctx, outputFilter, filter.FilterID)
 		if err != nil {
-			log.Event(ctx, "failed to create new filter output", log.ERROR, log.Error(err), logData)
+			log.Error(ctx, "failed to create new filter output", err, logData)
 			return nil, err
 		}
 		logData["filter_output_id"] = filterOutput.FilterID
 
-		log.Event(ctx, "filter output id sent in message to kafka", log.INFO, logData)
+		log.Info(ctx, "filter output id sent in message to kafka", logData)
 
 		newFilter.Links.FilterOutput = &models.LinkObject{
 			HRef: filterOutput.Links.Self.HRef,
@@ -350,9 +350,9 @@ func (api *FilterAPI) getFilterBlueprint(ctx context.Context, filterID, eTag str
 
 	logData := log.Data{"filter_blueprint_id": filterID}
 
-	currentFilter, err := api.dataStore.GetFilter(filterID, mongo.AnyETag)
+	currentFilter, err := api.dataStore.GetFilter(ctx, filterID, mongo.AnyETag)
 	if err != nil {
-		log.Event(ctx, "error getting filter", log.ERROR, log.Error(err), logData)
+		log.Error(ctx, "error getting filter", err, logData)
 		return nil, err
 	}
 
@@ -360,16 +360,16 @@ func (api *FilterAPI) getFilterBlueprint(ctx context.Context, filterID, eTag str
 		return nil, filters.ErrFilterBlueprintConflict
 	}
 
-	//only return the filter if it is for published data or via authenticated request
+	// only return the filter if it is for published data or via authenticated request
 	if currentFilter.Published != nil && *currentFilter.Published == models.Published || dprequest.IsCallerPresent(ctx) {
 		return currentFilter, nil
 	}
 
-	log.Event(ctx, "unauthenticated request to access unpublished filter", log.INFO, logData)
+	log.Info(ctx, "unauthenticated request to access unpublished filter", logData)
 
 	version, err := api.getVersion(ctx, currentFilter.Dataset)
 	if err != nil {
-		log.Event(ctx, "failed to retrieve version from dataset api", log.ERROR, log.Error(err), logData)
+		log.Error(ctx, "failed to retrieve version from dataset api", err, logData)
 		return nil, err
 	}
 
@@ -377,9 +377,9 @@ func (api *FilterAPI) getFilterBlueprint(ctx context.Context, filterID, eTag str
 	if version.State == publishedState {
 		filter := currentFilter
 		filter.Published = &models.Published
-		filter.ETag, err = api.dataStore.UpdateFilter(filter, filter.UniqueTimestamp, currentFilter.ETag, currentFilter)
+		filter.ETag, err = api.dataStore.UpdateFilter(ctx, filter, filter.UniqueTimestamp, currentFilter.ETag, currentFilter)
 		if err != nil {
-			log.Event(ctx, "error updating filter", log.ERROR, log.Error(err), logData)
+			log.Error(ctx, "error updating filter", err, logData)
 			if err == filters.ErrFilterBlueprintConflict {
 				return nil, filters.ErrFilterBlueprintConflict
 			}
@@ -395,12 +395,12 @@ func (api *FilterAPI) getFilterBlueprint(ctx context.Context, filterID, eTag str
 
 func (api *FilterAPI) checkFilterOptions(ctx context.Context, newFilter *models.Filter, version *datasetAPI.Version) error {
 	logData := log.Data{"new_filter": newFilter, "version": version.Version}
-	log.Event(ctx, "check filter dimension options before calling dataset api", log.INFO, logData)
+	log.Info(ctx, "check filter dimension options before calling dataset api", logData)
 
 	// Call dimensions list endpoint
 	datasetDimensions, err := api.getDimensions(ctx, newFilter.Dataset)
 	if err != nil {
-		log.Event(ctx, "failed to retrieve a list of dimensions from the dataset API", log.ERROR, log.Error(err), logData)
+		log.Error(ctx, "failed to retrieve a list of dimensions from the dataset API", err, logData)
 		return err
 	}
 
@@ -411,13 +411,13 @@ func (api *FilterAPI) checkFilterOptions(ctx context.Context, newFilter *models.
 		logData["dataset_dimensions"] = datasetDimensions
 	}
 
-	log.Event(ctx, "dimensions retrieved from dataset API", log.INFO, logData)
+	log.Info(ctx, "dimensions retrieved from dataset API", logData)
 
 	if err = models.ValidateFilterDimensions(newFilter.Dimensions, datasetDimensions); err != nil {
-		log.Event(ctx, "filter dimensions failed validation", log.ERROR, log.Error(err), logData)
+		log.Error(ctx, "filter dimensions failed validation", err, logData)
 		return err
 	}
-	log.Event(ctx, "successfully validated filter dimensions", log.INFO, logData)
+	log.Info(ctx, "successfully validated filter dimensions", logData)
 
 	// check options for all dimensions in the filter
 	for _, filterDimension := range newFilter.Dimensions {
@@ -441,8 +441,7 @@ func (api *FilterAPI) getVersion(ctx context.Context, dataset *models.Dataset) (
 
 	if err != nil {
 		if apiErr, ok := err.(*datasetAPI.ErrInvalidDatasetAPIResponse); ok {
-			switch apiErr.Code() {
-			case http.StatusNotFound:
+			if apiErr.Code() == http.StatusNotFound {
 				return nil, filters.ErrVersionNotFound
 			}
 		}
@@ -485,8 +484,7 @@ func (api *FilterAPI) getDimensions(ctx context.Context, dataset *models.Dataset
 		strconv.Itoa(dataset.Version))
 	if err != nil {
 		if apiErr, ok := err.(*datasetAPI.ErrInvalidDatasetAPIResponse); ok {
-			switch apiErr.Code() {
-			case http.StatusNotFound:
+			if apiErr.Code() == http.StatusNotFound {
 				return nil, filters.ErrDimensionsNotFound
 			}
 		}
@@ -524,8 +522,7 @@ func (api *FilterAPI) getDimensionOptionsBatchProcess(ctx context.Context, dimen
 
 	if err != nil {
 		if apiErr, ok := err.(*datasetAPI.ErrInvalidDatasetAPIResponse); ok {
-			switch apiErr.Code() {
-			case http.StatusNotFound:
+			if apiErr.Code() == http.StatusNotFound {
 				return filters.ErrDimensionOptionsNotFound
 			}
 		}
@@ -539,7 +536,7 @@ func (api *FilterAPI) createFilterOutputResource(ctx context.Context, newFilter 
 	filterOutput := *newFilter
 	u, err := uuid.NewV4()
 	if err != nil {
-		log.Event(ctx, "failed to create a new UUID for i", log.ERROR, log.Error(err))
+		log.Error(ctx, "failed to create a new UUID for i", err)
 		return models.Filter{}, err
 	}
 	filterOutput.FilterID = u.String()
@@ -580,12 +577,12 @@ func (api *FilterAPI) createFilterOutputResource(ctx context.Context, newFilter 
 		filterOutput.Published = &models.Published
 	}
 
-	if err := api.dataStore.CreateFilterOutput(&filterOutput); err != nil {
-		log.Event(ctx, "unable to create filter output", log.ERROR, log.Error(err), log.Data{"filter_output": filterOutput})
+	if err := api.dataStore.CreateFilterOutput(ctx, &filterOutput); err != nil {
+		log.Error(ctx, "unable to create filter output", err, log.Data{"filter_output": filterOutput})
 		return models.Filter{}, err
 	}
 
-	log.Event(ctx, "submitting filter job", log.INFO, log.Data{"filter_id": filterOutput.FilterID})
+	log.Info(ctx, "submitting filter job", log.Data{"filter_id": filterOutput.FilterID})
 	return filterOutput, api.outputQueue.Queue(&filterOutput)
 }
 
@@ -675,7 +672,7 @@ func setErrorCode(w http.ResponseWriter, err error, typ ...string) {
 		http.Error(w, filters.ErrInvalidQueryParameter.Error(), http.StatusBadRequest)
 		return
 	case filters.ErrBadRequest:
-		http.Error(w, badRequest, http.StatusBadRequest)
+		http.Error(w, BadRequest, http.StatusBadRequest)
 		return
 	case filters.ErrFilterBlueprintConflict:
 		http.Error(w, err.Error(), http.StatusConflict)
@@ -695,7 +692,7 @@ func setErrorCode(w http.ResponseWriter, err error, typ ...string) {
 			http.Error(w, err.Error(), http.StatusForbidden)
 			return
 		default:
-			http.Error(w, internalError, http.StatusInternalServerError)
+			http.Error(w, InternalError, http.StatusInternalServerError)
 			return
 		}
 	}

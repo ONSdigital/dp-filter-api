@@ -8,7 +8,7 @@ import (
 
 	"github.com/ONSdigital/dp-filter-api/config"
 	"github.com/ONSdigital/dp-filter-api/service"
-	"github.com/ONSdigital/log.go/log"
+	"github.com/ONSdigital/log.go/v2/log"
 	"github.com/pkg/errors"
 )
 
@@ -21,6 +21,13 @@ var (
 	GitCommit string
 	// Version represents the version of the service that is running
 	Version string
+
+	/* NOTE: replace the above with the below to run code with for example vscode debugger.
+	BuildTime string = "1601119818"
+	GitCommit string = "6584b786caac36b6214ffe04bf62f058d4021538"
+	Version   string = "v0.1.0"
+
+	*/
 )
 
 func main() {
@@ -28,7 +35,7 @@ func main() {
 	ctx := context.Background()
 
 	if err := run(ctx); err != nil {
-		log.Event(ctx, "application unexpectedly failed", log.ERROR, log.Error(err))
+		log.Error(ctx, "application unexpectedly failed", err)
 		os.Exit(1)
 	}
 }
@@ -41,12 +48,12 @@ func run(ctx context.Context) error {
 	// Read config
 	cfg, err := config.Get()
 	if err != nil {
-		log.Event(ctx, "unable to retrieve configuration", log.FATAL, log.Error(err))
+		log.Fatal(ctx, "unable to retrieve configuration", err)
 		return err
 	}
 
 	// sensitive fields are omitted from config.String()
-	log.Event(ctx, "loaded config", log.INFO, log.Data{"config": cfg})
+	log.Info(ctx, "loaded config", log.Data{"config": cfg})
 
 	// Run the service
 	svc := service.New()
@@ -58,17 +65,17 @@ func run(ctx context.Context) error {
 	// Blocks until an os interrupt or a fatal error occurs
 	select {
 	case err := <-svcErrors:
-		log.Event(ctx, "service error received", log.ERROR, log.Error(err))
+		log.Error(ctx, "service error received", err)
 		svc.Close(ctx)
 		return err
 	case sig := <-signals:
-		log.Event(ctx, "os signal received", log.Data{"signal": sig}, log.INFO)
+		log.Info(ctx, "os signal received", log.Data{"signal": sig})
 	}
 	return svc.Close(ctx)
 }
 
 func logIfError(ctx context.Context, err error, message string) {
 	if err != nil {
-		log.Event(ctx, message, log.Error(err), log.ERROR)
+		log.Error(ctx, message, err)
 	}
 }

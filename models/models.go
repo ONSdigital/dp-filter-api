@@ -10,9 +10,11 @@ import (
 	"net/url"
 	"time"
 
+	"go.mongodb.org/mongo-driver/bson/primitive"
+
 	"github.com/ONSdigital/dp-api-clients-go/dataset"
 	dprequest "github.com/ONSdigital/dp-net/request"
-	"github.com/globalsign/mgo/bson"
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 // A list of states
@@ -41,7 +43,7 @@ type NewFilter struct {
 
 // Filter represents a structure for a filter job
 type Filter struct {
-	UniqueTimestamp bson.MongoTimestamp `bson:"unique_timestamp,omitempty" json:"-"`
+	UniqueTimestamp primitive.Timestamp `bson:"unique_timestamp,omitempty" json:"-"`
 	LastUpdated     time.Time           `bson:"last_updated"               json:"-"`
 	ETag            string              `bson:"e_tag"                      json:"-"`
 
@@ -100,7 +102,7 @@ type LinkObject struct {
 type Dimension struct {
 	URL     string   `bson:"dimension_url,omitempty" json:"dimension_url,omitempty"`
 	Name    string   `bson:"name"                    json:"name"`
-	Options []string `bson:"options"                 json:"options"`
+	Options []string `bson:"options,omitempty"                 json:"options"`
 }
 
 // EncodedOptions returns the list of options for this dimension after escaping the values for URL query paramters
@@ -170,19 +172,11 @@ type DownloadItem struct {
 	Size    string `bson:"size,omitempty"    json:"size,omitempty"`
 }
 
-// FilterPreview contains the results of a requested preview
-type FilterPreview struct {
-	Headers         []string   `json:"headers"`
-	NumberOfRows    int        `json:"number_of_rows"`
-	NumberOfColumns int        `json:"number_of_columns"`
-	Rows            [][]string `json:"rows"`
-}
-
 // A list of errors returned from package
 var (
-	ErrorReadingBody = errors.New("Failed to read message body")
-	ErrorParsingBody = errors.New("Failed to parse json body")
-	ErrorNoData      = errors.New("Bad request - Missing data in body")
+	ErrorReadingBody = errors.New("failed to read message body")
+	ErrorParsingBody = errors.New("failed to parse json body")
+	ErrorNoData      = errors.New("bad request - missing data in body")
 )
 
 // DuplicateDimensionError is returned if a request contains a duplicate dimension
@@ -216,7 +210,7 @@ func (filter *NewFilter) ValidateNewFilter() error {
 	}
 
 	if missingFields != nil {
-		return fmt.Errorf("Missing mandatory fields: %v", missingFields)
+		return fmt.Errorf("missing mandatory fields: %v", missingFields)
 	}
 
 	return nil
@@ -316,7 +310,7 @@ func (filter *Filter) ValidateFilterOutputUpdate(currentFilter *Filter) error {
 	}
 
 	if forbiddenFields != nil {
-		return fmt.Errorf("Forbidden from updating the following fields: %v", forbiddenFields)
+		return fmt.Errorf("forbidden from updating the following fields: %v", forbiddenFields)
 	}
 
 	return nil
@@ -341,7 +335,7 @@ func ValidateFilterBlueprintUpdate(filter *Filter) error {
 		}
 
 		if forbiddenFields != nil {
-			return fmt.Errorf("Forbidden from updating the following fields: %v", forbiddenFields)
+			return fmt.Errorf("forbidden from updating the following fields: %v", forbiddenFields)
 		}
 	}
 

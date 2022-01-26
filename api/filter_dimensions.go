@@ -13,8 +13,9 @@ import (
 	"github.com/ONSdigital/dp-filter-api/mongo"
 	"github.com/ONSdigital/dp-filter-api/utils"
 	dphttp "github.com/ONSdigital/dp-net/http"
-	"github.com/ONSdigital/log.go/log"
+	"github.com/ONSdigital/log.go/v2/log"
 	"github.com/gorilla/mux"
+	"github.com/pkg/errors"
 )
 
 func (api *FilterAPI) getFilterBlueprintDimensionsHandler(w http.ResponseWriter, r *http.Request) {
@@ -26,7 +27,7 @@ func (api *FilterAPI) getFilterBlueprintDimensionsHandler(w http.ResponseWriter,
 	offsetParameter := r.URL.Query().Get("offset")
 	limitParameter := r.URL.Query().Get("limit")
 
-	log.Event(ctx, "getting filter blueprint dimensions", log.INFO, logData)
+	log.Info(ctx, "getting filter blueprint dimensions", logData)
 
 	offset := api.defaultOffset
 	limit := api.defaultLimit
@@ -36,7 +37,7 @@ func (api *FilterAPI) getFilterBlueprintDimensionsHandler(w http.ResponseWriter,
 		logData["offset"] = offsetParameter
 		offset, err = validatePositiveInt(offsetParameter)
 		if err != nil {
-			log.Event(ctx, "failed to obtain offset from request query parameters", log.ERROR, logData)
+			log.Error(ctx, "failed to obtain offset from request query parameters", err, logData)
 			setErrorCode(w, err)
 			return
 		}
@@ -46,7 +47,7 @@ func (api *FilterAPI) getFilterBlueprintDimensionsHandler(w http.ResponseWriter,
 		logData["limit"] = limitParameter
 		limit, err = validatePositiveInt(limitParameter)
 		if err != nil {
-			log.Event(ctx, "failed to obtain limit from request query parameters", log.ERROR, logData)
+			log.Error(ctx, "failed to obtain limit from request query parameters", err, logData)
 			setErrorCode(w, err)
 			return
 		}
@@ -55,14 +56,14 @@ func (api *FilterAPI) getFilterBlueprintDimensionsHandler(w http.ResponseWriter,
 	if limit > api.maxLimit {
 		logData["max_limit"] = api.maxLimit
 		err = filters.ErrInvalidQueryParameter
-		log.Event(ctx, "limit is greater than the maximum allowed", log.ERROR, logData)
+		log.Error(ctx, "limit is greater than the maximum allowed", err, logData)
 		setErrorCode(w, err)
 		return
 	}
 
 	filter, err := api.getFilterBlueprint(ctx, filterBlueprintID, mongo.AnyETag)
 	if err != nil {
-		log.Event(ctx, "unable to get dimensions for filter blueprint", log.ERROR, log.Error(err), logData)
+		log.Error(ctx, "unable to get dimensions for filter blueprint", err, logData)
 		setErrorCode(w, err)
 		return
 	}
@@ -70,7 +71,7 @@ func (api *FilterAPI) getFilterBlueprintDimensionsHandler(w http.ResponseWriter,
 	logData["dimensions"] = filter.Dimensions
 
 	if len(filter.Dimensions) == 0 {
-		log.Event(ctx, "dimension not found", log.ERROR, log.Error(filters.ErrDimensionNotFound), logData)
+		log.Error(ctx, "dimension not found", filters.ErrDimensionNotFound, logData)
 		setErrorCode(w, filters.ErrDimensionNotFound)
 		return
 	}
@@ -95,7 +96,7 @@ func (api *FilterAPI) getFilterBlueprintDimensionsHandler(w http.ResponseWriter,
 		}
 	}
 
-	items := createPublicDimensions(filterDimensions, api.host, filter.FilterID)
+	items := CreatePublicDimensions(filterDimensions, api.host, filter.FilterID)
 	publicDimensions := models.PublicDimensions{
 		Items:      items,
 		Count:      len(items),
@@ -105,8 +106,8 @@ func (api *FilterAPI) getFilterBlueprintDimensionsHandler(w http.ResponseWriter,
 	}
 	b, err := json.Marshal(publicDimensions)
 	if err != nil {
-		log.Event(ctx, "failed to marshal filter blueprint dimensions into bytes", log.ERROR, log.Error(err), logData)
-		http.Error(w, internalError, http.StatusInternalServerError)
+		log.Error(ctx, "failed to marshal filter blueprint dimensions into bytes", err, logData)
+		http.Error(w, InternalError, http.StatusInternalServerError)
 		return
 	}
 
@@ -114,12 +115,12 @@ func (api *FilterAPI) getFilterBlueprintDimensionsHandler(w http.ResponseWriter,
 	setETag(w, filter.ETag)
 	_, err = w.Write(b)
 	if err != nil {
-		log.Event(ctx, "failed to write bytes for http response", log.ERROR, log.Error(err), logData)
+		log.Error(ctx, "failed to write bytes for http response", err, logData)
 		setErrorCode(w, err)
 		return
 	}
 
-	log.Event(ctx, "got dimensions for filter blueprint", log.INFO, logData)
+	log.Info(ctx, "got dimensions for filter blueprint", logData)
 }
 
 func (api *FilterAPI) getFilterBlueprintDimensionHandler(w http.ResponseWriter, r *http.Request) {
@@ -131,11 +132,11 @@ func (api *FilterAPI) getFilterBlueprintDimensionHandler(w http.ResponseWriter, 
 		"dimension":           name,
 	}
 	ctx := r.Context()
-	log.Event(ctx, "getting filter blueprint dimension", log.INFO, logData)
+	log.Info(ctx, "getting filter blueprint dimension", logData)
 
 	filter, err := api.getFilterBlueprint(ctx, filterBlueprintID, mongo.AnyETag)
 	if err != nil {
-		log.Event(ctx, "error getting filter blueprint", log.ERROR, log.Error(err), logData)
+		log.Error(ctx, "error getting filter blueprint", err, logData)
 		if err == filters.ErrFilterBlueprintNotFound {
 			setErrorCode(w, err, statusBadRequest)
 			return
@@ -144,18 +145,18 @@ func (api *FilterAPI) getFilterBlueprintDimensionHandler(w http.ResponseWriter, 
 		return
 	}
 
-	dimension, err := api.dataStore.GetFilterDimension(filterBlueprintID, name, filter.ETag)
+	dimension, err := api.dataStore.GetFilterDimension(ctx, filterBlueprintID, name, filter.ETag)
 	if err != nil {
-		log.Event(ctx, "error getting filter dimension", log.ERROR, log.Error(err), logData)
+		log.Error(ctx, "error getting filter dimension", err, logData)
 		setErrorCode(w, err)
 		return
 	}
 
-	publicDimension := createPublicDimension(*dimension, api.host, filterBlueprintID)
+	publicDimension := CreatePublicDimension(*dimension, api.host, filterBlueprintID)
 	b, err := json.Marshal(publicDimension)
 	if err != nil {
-		log.Event(ctx, "failed to marshal filter blueprint dimensions into bytes", log.ERROR, log.Error(err), logData)
-		http.Error(w, internalError, http.StatusInternalServerError)
+		log.Error(ctx, "failed to marshal filter blueprint dimensions into bytes", err, logData)
+		http.Error(w, InternalError, http.StatusInternalServerError)
 		return
 	}
 
@@ -163,12 +164,12 @@ func (api *FilterAPI) getFilterBlueprintDimensionHandler(w http.ResponseWriter, 
 	setETag(w, filter.ETag)
 	_, err = w.Write(b)
 	if err != nil {
-		log.Event(ctx, "failed to write bytes for http response", log.ERROR, log.Error(err), logData)
+		log.Error(ctx, "failed to write bytes for http response", err, logData)
 		setErrorCode(w, err)
 		return
 	}
 
-	log.Event(ctx, "got filtered blueprint dimension", log.INFO, logData)
+	log.Info(ctx, "got filtered blueprint dimension", logData)
 }
 
 func (api *FilterAPI) removeFilterBlueprintDimensionHandler(w http.ResponseWriter, r *http.Request) {
@@ -180,19 +181,19 @@ func (api *FilterAPI) removeFilterBlueprintDimensionHandler(w http.ResponseWrite
 		"dimension":           dimensionName,
 	}
 	ctx := r.Context()
-	log.Event(ctx, "removing filter blueprint dimension", log.INFO, logData)
+	log.Info(ctx, "removing filter blueprint dimension", logData)
 
 	// eTag value must be present in If-Match header
 	eTag, err := getIfMatchForce(r)
 	if err != nil {
-		log.Event(ctx, "missing header", log.ERROR, log.Data{"error": err.Error()})
+		log.Error(ctx, "missing header", err, log.Data{"error": err.Error()})
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	newETag, err := api.removeFilterBlueprintDimension(r.Context(), filterBlueprintID, dimensionName, eTag)
 	if err != nil {
-		log.Event(r.Context(), "failed to remove dimension from filter blueprint", log.ERROR, log.Error(err), logData)
+		log.Error(r.Context(), "failed to remove dimension from filter blueprint", err, logData)
 		if err == filters.ErrFilterBlueprintNotFound {
 			setErrorCode(w, err, statusBadRequest)
 			return
@@ -205,7 +206,7 @@ func (api *FilterAPI) removeFilterBlueprintDimensionHandler(w http.ResponseWrite
 	setETag(w, newETag)
 	w.WriteHeader(http.StatusNoContent)
 
-	log.Event(r.Context(), "delete dimension from filter blueprint", log.INFO, logData)
+	log.Info(r.Context(), "delete dimension from filter blueprint", logData)
 }
 
 func (api *FilterAPI) removeFilterBlueprintDimension(ctx context.Context, filterBlueprintID, dimensionName, eTag string) (newETag string, err error) {
@@ -226,7 +227,7 @@ func (api *FilterAPI) removeFilterBlueprintDimension(ctx context.Context, filter
 		return "", filters.ErrDimensionNotFound
 	}
 
-	return api.dataStore.RemoveFilterDimension(filterBlueprintID, dimensionName, filter.UniqueTimestamp, eTag, filter)
+	return api.dataStore.RemoveFilterDimension(ctx, filterBlueprintID, dimensionName, filter.UniqueTimestamp, eTag, filter)
 }
 
 func (api *FilterAPI) addFilterBlueprintDimensionHandler(w http.ResponseWriter, r *http.Request) {
@@ -241,28 +242,28 @@ func (api *FilterAPI) addFilterBlueprintDimensionHandler(w http.ResponseWriter, 
 		"dimension":           dimensionName,
 	}
 	ctx := r.Context()
-	log.Event(ctx, "add filter blueprint dimension", log.INFO, logData)
+	log.Info(ctx, "add filter blueprint dimension", logData)
 
 	// eTag value must be present in If-Match header
 	eTag, err := getIfMatchForce(r)
 	if err != nil {
-		log.Event(ctx, "missing header", log.ERROR, log.Data{"error": err.Error()})
+		log.Error(ctx, "missing header", err, log.Data{"error": err.Error()})
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	options, err := models.CreateDimensionOptions(r.Body)
 	if err != nil {
-		log.Event(ctx, "unable to unmarshal request body", log.ERROR, log.Error(err), logData)
-		http.Error(w, badRequest, http.StatusBadRequest)
+		log.Error(ctx, "unable to unmarshal request body", err, logData)
+		http.Error(w, BadRequest, http.StatusBadRequest)
 		return
 	}
 
-	options = removeDuplicateAndEmptyOptions(options)
+	options = RemoveDuplicateAndEmptyOptions(options)
 
 	newETag, err := api.addFilterBlueprintDimension(ctx, filterBlueprintID, dimensionName, options, eTag)
 	if err != nil {
-		log.Event(ctx, "error adding filter blueprint dimension", log.ERROR, log.Error(err), logData)
+		log.Error(ctx, "error adding filter blueprint dimension", err, logData)
 		if err == filters.ErrVersionNotFound || err == filters.ErrDimensionsNotFound {
 			setErrorCode(w, err, statusUnprocessableEntity)
 			return
@@ -271,17 +272,17 @@ func (api *FilterAPI) addFilterBlueprintDimensionHandler(w http.ResponseWriter, 
 		return
 	}
 
-	dimension, err := api.dataStore.GetFilterDimension(filterBlueprintID, dimensionName, newETag)
+	dimension, err := api.dataStore.GetFilterDimension(ctx, filterBlueprintID, dimensionName, newETag)
 	if err != nil {
-		log.Event(ctx, "error getting filter dimension", log.ERROR, log.Error(err), logData)
+		log.Error(ctx, "error getting filter dimension", err, logData)
 		setErrorCode(w, err)
 		return
 	}
-	publicDimension := createPublicDimension(*dimension, api.host, filterBlueprintID)
+	publicDimension := CreatePublicDimension(*dimension, api.host, filterBlueprintID)
 	b, err := json.Marshal(publicDimension)
 	if err != nil {
-		log.Event(ctx, "failed to marshal filter blueprint dimensions into bytes", log.ERROR, log.Error(err), logData)
-		http.Error(w, internalError, http.StatusInternalServerError)
+		log.Error(ctx, "failed to marshal filter blueprint dimensions into bytes", err, logData)
+		http.Error(w, InternalError, http.StatusInternalServerError)
 		return
 	}
 
@@ -290,12 +291,12 @@ func (api *FilterAPI) addFilterBlueprintDimensionHandler(w http.ResponseWriter, 
 	w.WriteHeader(http.StatusCreated)
 	_, err = w.Write(b)
 	if err != nil {
-		log.Event(ctx, "failed to write bytes for http response", log.ERROR, log.Error(err), logData)
+		log.Error(ctx, "failed to write bytes for http response", err, logData)
 		setErrorCode(w, err)
 		return
 	}
 
-	log.Event(ctx, "created new dimension for filter blueprint", log.INFO, logData)
+	log.Info(ctx, "created new dimension for filter blueprint", logData)
 }
 
 func (api *FilterAPI) addFilterBlueprintDimension(ctx context.Context, filterBlueprintID, dimensionName string, options []string, eTag string) (newETag string, err error) {
@@ -314,7 +315,7 @@ func (api *FilterAPI) addFilterBlueprintDimension(ctx context.Context, filterBlu
 		return "", filters.NewBadRequestErr(err.Error())
 	}
 
-	return api.dataStore.AddFilterDimension(filterBlueprintID, dimensionName, options, filterBlueprint.Dimensions, timestamp, eTag, filterBlueprint)
+	return api.dataStore.AddFilterDimension(ctx, filterBlueprintID, dimensionName, options, filterBlueprint.Dimensions, timestamp, eTag, filterBlueprint)
 }
 
 // checkNewFilterDimension validates that the dimension with the provided name is valid, by calling GetDimensions in Dataset API.
@@ -322,14 +323,14 @@ func (api *FilterAPI) addFilterBlueprintDimension(ctx context.Context, filterBlu
 func (api *FilterAPI) checkNewFilterDimension(ctx context.Context, name string, options []string, dataset *models.Dataset) error {
 
 	logData := log.Data{"dimension_name": name, "dimension_options": options, "dataset": dataset}
-	log.Event(ctx, "check filter dimensions and dimension options before calling api, see version number", log.INFO, logData)
+	log.Info(ctx, "check filter dimensions and dimension options before calling api, see version number", logData)
 
 	// FIXME - We should be calling dimension endpoint on dataset API to check if
 	// dimension exists but this endpoint doesn't exist yet so call dimension
 	// list endpoint and iterate over items to find if dimension exists
 	datasetDimensions, err := api.getDimensions(ctx, dataset)
 	if err != nil {
-		log.Event(ctx, "failed to retrieve a list of dimensions from the dataset API", log.ERROR, log.Error(err), logData)
+		log.Error(ctx, "failed to retrieve a list of dimensions from the dataset API", err, logData)
 		return err
 	}
 
@@ -339,7 +340,7 @@ func (api *FilterAPI) checkNewFilterDimension(ctx context.Context, name string, 
 	}
 
 	if err = models.ValidateFilterDimensions([]models.Dimension{dimension}, datasetDimensions); err != nil {
-		log.Event(ctx, "filter dimensions failed validation", log.ERROR, log.Error(err), logData)
+		log.Error(ctx, "filter dimensions failed validation", err, logData)
 		return err
 	}
 
@@ -393,35 +394,35 @@ func (api *FilterAPI) checkNewFilterDimensionOptions(ctx context.Context, dimens
 		return err
 	}
 
-	log.Event(ctx, "dimension options successfully retrieved from dataset API", log.INFO, logData)
+	log.Info(ctx, "dimension options successfully retrieved from dataset API", logData)
 
 	// if there is any dimension that is not found, error
 	if optionsNotFound != nil && len(optionsNotFound) > 0 {
 		incorrectDimensionOptions := utils.CreateArray(optionsNotFound)
 		logData["incorrect_dimension_options"] = incorrectDimensionOptions
 		err := fmt.Errorf("incorrect dimension options chosen: %v", incorrectDimensionOptions)
-		log.Event(ctx, "incorrect dimension options chosen", log.ERROR, log.Error(err), logData)
+		log.Error(ctx, "incorrect dimension options chosen", err, logData)
 		return err
 	}
 
 	return nil
 }
 
-// createPublicDimensions wraps createPublicDimension for converting arrays of dimensions
-func createPublicDimensions(inputDimensions []models.Dimension, host, filterID string) []*models.PublicDimension {
+// CreatePublicDimensions wraps CreatePublicDimension for converting arrays of dimensions
+func CreatePublicDimensions(inputDimensions []models.Dimension, host, filterID string) []*models.PublicDimension {
 
 	outputDimensions := make([]*models.PublicDimension, 0)
 	for _, inputDimension := range inputDimensions {
 
-		publicDimension := createPublicDimension(inputDimension, host, filterID)
+		publicDimension := CreatePublicDimension(inputDimension, host, filterID)
 		outputDimensions = append(outputDimensions, publicDimension)
 	}
 
 	return outputDimensions
 }
 
-// createPublicDimension creates a PublicDimension struct from a Dimension struct
-func createPublicDimension(dimension models.Dimension, host, filterID string) *models.PublicDimension {
+// CreatePublicDimension creates a PublicDimension struct from a Dimension struct
+func CreatePublicDimension(dimension models.Dimension, host, filterID string) *models.PublicDimension {
 
 	// split out filterID and URL from dimension.URL
 	filterURL := fmt.Sprintf("%s/filters/%s", host, filterID)
@@ -438,18 +439,37 @@ func createPublicDimension(dimension models.Dimension, host, filterID string) *m
 	return publicDim
 }
 
-func removeDuplicateAndEmptyOptions(elements []string) []string {
+func RemoveDuplicateAndEmptyOptions(elements []string) []string {
 	encountered := map[string]bool{}
 	result := []string{}
 
-	for v := range elements {
-		if !encountered[elements[v]] {
-			encountered[elements[v]] = true
-			if elements[v] != "" {
-				result = append(result, elements[v])
+	for _, v3 := range elements {
+		if !encountered[v3] {
+			encountered[v3] = true
+			if v3 != "" {
+				result = append(result, v3)
 			}
 		}
 	}
 
 	return result
+}
+
+func getStringArrayFromInterface(elements interface{}) ([]string, error) {
+	result := []string{}
+
+	v2, ok := elements.([]interface{})
+	if !ok {
+		return result, errors.New("Missing list of items")
+	}
+
+	for _, v := range v2 {
+		v3, ok := v.(string)
+		if !ok {
+			return result, fmt.Errorf("Non string item in list, got: %v", v)
+		}
+		result = append(result, v3)
+	}
+
+	return result, nil
 }
