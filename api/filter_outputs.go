@@ -136,6 +136,7 @@ func (api *FilterAPI) updateFilterOutput(ctx context.Context, filterOutputID str
 		return err
 	}
 
+	filterOutput.RemoveDuplicateEvents(previousFilterOutput)
 	if err = api.addEvents(ctx, filterOutput.Events, filterOutputID, isNowStatusCompleted); err != nil {
 		log.Error(ctx, "unable to add events to filter output", err, logData)
 		return err
@@ -316,25 +317,18 @@ func (api *FilterAPI) addEventHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (api *FilterAPI) addEvents(ctx context.Context, events []*models.Event, id string, completed bool) error {
-	logData := log.Data{"filter_output_id": id}
+	for _, e := range events {
+		if err := e.Validate(); err != nil {
+			return filters.NewBadRequestErr(err.Error())
+		}
 
-	if len(events) > 0 {
-		for _, e := range events {
-			if err := e.Validate(); err != nil {
-				log.Error(ctx, "filter output event failed validation", err, logData)
-				return filters.NewBadRequestErr(err.Error())
-			}
-
-			if err := api.dataStore.AddEventToFilterOutput(ctx, id, e); err != nil {
-				log.Error(ctx, "failed to add event to filter output", err, logData)
-				return err
-			}
+		if err := api.dataStore.AddEventToFilterOutput(ctx, id, e); err != nil {
+			return err
 		}
 	}
 
 	// save the completed event after saving the filter output if its now complete
 	if completed {
-		log.Info(ctx, "filter output status is now completed, creating completed event", logData)
 
 		completedEvent := &models.Event{
 			Type: models.EventFilterOutputCompleted,
@@ -342,7 +336,6 @@ func (api *FilterAPI) addEvents(ctx context.Context, events []*models.Event, id 
 		}
 
 		if err := api.dataStore.AddEventToFilterOutput(ctx, id, completedEvent); err != nil {
-			log.Error(ctx, "failed to add event to filter output", err, logData)
 			return err
 		}
 	}
