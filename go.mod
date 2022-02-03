@@ -2,6 +2,8 @@ module github.com/ONSdigital/dp-filter-api
 
 go 1.17
 
+replace github.com/ONSdigital/dp-api-clients-go => /home/jpm/go-modules/onsdigital/dp-api-clients-go
+
 require (
 	github.com/ONSdigital/dp-api-clients-go v1.43.0
 	github.com/ONSdigital/dp-healthcheck v1.2.3
@@ -20,6 +22,7 @@ require (
 )
 
 require (
+	github.com/ONSdigital/dp-api-clients-go/v2 v2.9.1 // indirect
 	github.com/Shopify/sarama v1.30.1 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/eapache/go-resiliency v1.2.0 // indirect

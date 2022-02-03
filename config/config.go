@@ -2,6 +2,7 @@ package config
 
 import (
 	"time"
+	"fmt"
 
 	mongodriver "github.com/ONSdigital/dp-mongodb/v3/mongodb"
 
@@ -35,6 +36,7 @@ type Config struct {
 	MaxDatasetOptions          int           `envconfig:"MAX_DATASET_OPTIONS"`
 	BatchMaxWorkers            int           `envconfig:"BATCH_MAX_WORKERS"`
 	DefaultMaxLimit            int           `envconfig:"DEFAULT_MAXIMUM_LIMIT"`
+	AssertDatasetType          bool          `envconfig:"ASSERT_DATASET_TYPE"`
 	MongoConfig
 }
 
@@ -79,6 +81,7 @@ func Get() (*Config, error) {
 		EnablePrivateEndpoints:     true,
 		DownloadServiceURL:         "http://localhost:23600",
 		DownloadServiceSecretKey:   "QB0108EZ-825D-412C-9B1D-41EF7747F462",
+		AssertDatasetType:          false,
 		MongoConfig: MongoConfig{
 			MongoDriverConfig: mongodriver.MongoDriverConfig{
 				ClusterEndpoint:               "localhost:27017",
@@ -102,7 +105,7 @@ func Get() (*Config, error) {
 
 	err := envconfig.Process("", cfg)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed tp pas: %w", err)
 	}
 
 	return cfg, nil

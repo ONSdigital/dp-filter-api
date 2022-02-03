@@ -72,8 +72,8 @@ var _ service.MongoDB = &MongoDBMock{}
 // 			},
 // 		}
 //
-//         // use mockedMongoDB in code that requires service.MongoDB
-//         // and then make assertions.
+// 		// use mockedMongoDB in code that requires service.MongoDB
+// 		// and then make assertions.
 //
 // 	}
 type MongoDBMock struct {

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/ONSdigital/dp-api-clients-go/dataset"
+	"github.com/ONSdigital/dp-api-clients-go/filterflex"
 	"github.com/ONSdigital/dp-api-clients-go/identity"
 	"github.com/ONSdigital/dp-filter-api/api"
 	"github.com/ONSdigital/dp-filter-api/config"
@@ -30,6 +31,7 @@ type Service struct {
 	FilterOutputSubmittedProducer kafka.IProducer
 	IdentityClient                *identity.Client
 	datasetAPI                    *dataset.Client
+	filterFlexAPI                 *filterflex.Client
 	HealthCheck                   HealthChecker
 	Server                        HTTPServer
 	api                           *api.FilterAPI
@@ -63,6 +65,7 @@ var GetHealthCheck = func(version healthcheck.VersionInfo, criticalTimeout, inte
 	hc := healthcheck.New(version, criticalTimeout, interval)
 	return &hc
 }
+
 
 // GetHTTPServer returns an http server
 var GetHTTPServer = func(bindAddr string, router http.Handler) HTTPServer {
@@ -104,6 +107,9 @@ func (svc *Service) Init(ctx context.Context, cfg *config.Config, buildTime, git
 
 	// Create Dataset API client.
 	svc.datasetAPI = dataset.NewAPIClient(svc.Cfg.DatasetAPIURL)
+	svc.filterFlexAPI = filterflex.New(filterflex.Config{
+		HostURL: "http://dp-cantabular-filter-flex-api:27100",
+	})
 
 	// Get HealthCheck and register checkers
 	versionInfo, err := healthcheck.NewVersionInfo(buildTime, gitCommit, version)
@@ -128,7 +134,9 @@ func (svc *Service) Init(ctx context.Context, cfg *config.Config, buildTime, git
 		r,
 		svc.FilterStore,
 		&outputQueue,
-		svc.datasetAPI)
+		svc.datasetAPI,
+		svc.filterFlexAPI,
+	)
 	return nil
 }
 

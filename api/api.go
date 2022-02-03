@@ -2,22 +2,30 @@ package api
 
 import (
 	"context"
+	"net/http"
 	"strconv"
 
 	"github.com/ONSdigital/dp-api-clients-go/dataset"
 	"github.com/ONSdigital/dp-filter-api/config"
 	"github.com/ONSdigital/dp-filter-api/filters"
+	"github.com/ONSdigital/dp-filter-api/middleware"
 	"github.com/ONSdigital/dp-filter-api/models"
 	"github.com/gorilla/mux"
 )
 
 //go:generate moq -out mock/datasetapi.go -pkg mock . DatasetAPI
+//go:generate moq -out mock/filterflexapi.go -pkg mock . FilterFlexAPI
 
 // DatasetAPI - An interface used to access the DatasetAPI
 type DatasetAPI interface {
+	Get(ctx context.Context, userToken, svcToken, collectionID, datasetID string) (dataset.DatasetDetails, error)
 	GetVersion(ctx context.Context, userAuthToken, serviceAuthToken, downloadServiceAuthToken, collectionID, datasetID, edition, version string) (m dataset.Version, err error)
 	GetVersionDimensions(ctx context.Context, userAuthToken, serviceAuthToken, collectionID, id, edition, version string) (m dataset.VersionDimensions, err error)
 	GetOptionsBatchProcess(ctx context.Context, userAuthToken, serviceAuthToken, collectionID, id, edition, version, dimension string, optionIDs *[]string, processBatch dataset.OptionsBatchProcessor, batchSize, maxWorkers int) (err error)
+}
+
+type FilterFlexAPI interface {
+	ForwardRequest(*http.Request) (*http.Response, error)
 }
 
 // OutputQueue - An interface used to queue filter outputs
@@ -33,6 +41,7 @@ type FilterAPI struct {
 	dataStore            DataStore
 	outputQueue          OutputQueue
 	datasetAPI           DatasetAPI
+	FilterFlexAPI        FilterFlexAPI
 	downloadServiceURL   string
 	downloadServiceToken string
 	serviceAuthToken     string
@@ -49,7 +58,8 @@ func Setup(
 	router *mux.Router,
 	dataStore DataStore,
 	outputQueue OutputQueue,
-	datasetAPI DatasetAPI) *FilterAPI {
+	datasetAPI DatasetAPI,
+	filterFlexAPI FilterFlexAPI) *FilterAPI {
 
 	api := &FilterAPI{
 		host:                 cfg.Host,
@@ -68,7 +78,12 @@ func Setup(
 		BatchMaxWorkers:      cfg.BatchMaxWorkers,
 	}
 
-	api.Router.HandleFunc("/filters", api.postFilterBlueprintHandler).Methods("POST")
+	// middleware
+	assert := middleware.NewAssert(datasetAPI, filterFlexAPI, cfg.ServiceAuthToken, cfg.AssertDatasetType)
+
+	// routes
+	api.Router.Handle("/filters", assert.DatasetType(http.HandlerFunc(api.postFilterBlueprintHandler)))
+
 	api.Router.HandleFunc("/filters/{filter_blueprint_id}", api.getFilterBlueprintHandler).Methods("GET")
 	api.Router.HandleFunc("/filters/{filter_blueprint_id}", api.putFilterBlueprintHandler).Methods("PUT")
 	api.Router.HandleFunc("/filters/{filter_blueprint_id}/dimensions", api.getFilterBlueprintDimensionsHandler).Methods("GET")

@@ -20,6 +20,9 @@ var _ api.DatasetAPI = &DatasetAPIMock{}
 //
 // 		// make and configure a mocked api.DatasetAPI
 // 		mockedDatasetAPI := &DatasetAPIMock{
+// 			GetFunc: func(ctx context.Context, userToken string, svcToken string, collectionID string, datasetID string) (datasetAPI.DatasetDetails, error) {
+// 				panic("mock out the Get method")
+// 			},
 // 			GetOptionsBatchProcessFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, collectionID string, id string, edition string, version string, dimension string, optionIDs *[]string, processBatch datasetAPI.OptionsBatchProcessor, batchSize int, maxWorkers int) error {
 // 				panic("mock out the GetOptionsBatchProcess method")
 // 			},
@@ -36,6 +39,9 @@ var _ api.DatasetAPI = &DatasetAPIMock{}
 //
 // 	}
 type DatasetAPIMock struct {
+	// GetFunc mocks the Get method.
+	GetFunc func(ctx context.Context, userToken string, svcToken string, collectionID string, datasetID string) (datasetAPI.DatasetDetails, error)
+
 	// GetOptionsBatchProcessFunc mocks the GetOptionsBatchProcess method.
 	GetOptionsBatchProcessFunc func(ctx context.Context, userAuthToken string, serviceAuthToken string, collectionID string, id string, edition string, version string, dimension string, optionIDs *[]string, processBatch datasetAPI.OptionsBatchProcessor, batchSize int, maxWorkers int) error
 
@@ -47,6 +53,19 @@ type DatasetAPIMock struct {
 
 	// calls tracks calls to the methods.
 	calls struct {
+		// Get holds details about calls to the Get method.
+		Get []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// UserToken is the userToken argument value.
+			UserToken string
+			// SvcToken is the svcToken argument value.
+			SvcToken string
+			// CollectionID is the collectionID argument value.
+			CollectionID string
+			// DatasetID is the datasetID argument value.
+			DatasetID string
+		}
 		// GetOptionsBatchProcess holds details about calls to the GetOptionsBatchProcess method.
 		GetOptionsBatchProcess []struct {
 			// Ctx is the ctx argument value.
@@ -111,9 +130,57 @@ type DatasetAPIMock struct {
 			Version string
 		}
 	}
+	lockGet                    sync.RWMutex
 	lockGetOptionsBatchProcess sync.RWMutex
 	lockGetVersion             sync.RWMutex
 	lockGetVersionDimensions   sync.RWMutex
+}
+
+// Get calls GetFunc.
+func (mock *DatasetAPIMock) Get(ctx context.Context, userToken string, svcToken string, collectionID string, datasetID string) (datasetAPI.DatasetDetails, error) {
+	if mock.GetFunc == nil {
+		panic("DatasetAPIMock.GetFunc: method is nil but DatasetAPI.Get was just called")
+	}
+	callInfo := struct {
+		Ctx          context.Context
+		UserToken    string
+		SvcToken     string
+		CollectionID string
+		DatasetID    string
+	}{
+		Ctx:          ctx,
+		UserToken:    userToken,
+		SvcToken:     svcToken,
+		CollectionID: collectionID,
+		DatasetID:    datasetID,
+	}
+	mock.lockGet.Lock()
+	mock.calls.Get = append(mock.calls.Get, callInfo)
+	mock.lockGet.Unlock()
+	return mock.GetFunc(ctx, userToken, svcToken, collectionID, datasetID)
+}
+
+// GetCalls gets all the calls that were made to Get.
+// Check the length with:
+//     len(mockedDatasetAPI.GetCalls())
+func (mock *DatasetAPIMock) GetCalls() []struct {
+	Ctx          context.Context
+	UserToken    string
+	SvcToken     string
+	CollectionID string
+	DatasetID    string
+} {
+	var calls []struct {
+		Ctx          context.Context
+		UserToken    string
+		SvcToken     string
+		CollectionID string
+		DatasetID    string
+	}
+	mock.lockGet.RLock()
+	calls = mock.calls.Get
+	mock.lockGet.RUnlock()
+	return calls
 }
 
 // GetOptionsBatchProcess calls GetOptionsBatchProcessFunc.

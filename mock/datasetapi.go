@@ -54,6 +54,10 @@ func (ds *DatasetAPI) Unpublished() *DatasetAPI {
 	return ds
 }
 
+func (ds *DatasetAPI) Get(ctx context.Context, userToken, svcToken, collectionID, datasetID string) (dataset.DatasetDetails, error){
+	return dataset.DatasetDetails{}, nil
+}
+
 // GetVersion represents the mocked version of getting an version document from dataset API
 func (ds *DatasetAPI) GetVersion(ctx context.Context, userAuthToken, serviceAuthToken, downloadServiceAuthToken, collectionID, datasetID, edition, version string) (m dataset.Version, err error) {
 	if ds.Cfg.InternalServerError {
