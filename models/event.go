@@ -36,6 +36,7 @@ func (filter *Filter) RemoveDuplicateEvents(currentFilter *Filter) {
 			//compare the values not the pointers
 			if *e == *ce {
 				found = true
+				break
 			}
 		}
 
