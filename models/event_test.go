@@ -45,13 +45,18 @@ func TestRemoveDuplicateEvents(t *testing.T) {
 	})
 
 	Convey("Given the stored filter output does contain events", t, func() {
-		e := &Event{
+		e1 := &Event{
 			Type: "Event1",
 			Time: time.Now(),
 		}
 
+		e2 := &Event{
+			Type: "Event2",
+			Time: time.Now(),
+		}
+
 		current := &Filter{
-			Events: []*Event{e},
+			Events: []*Event{e1, e2},
 		}
 
 		Convey("When filter a new filter provides no events", func() {
@@ -67,24 +72,24 @@ func TestRemoveDuplicateEvents(t *testing.T) {
 		})
 
 		Convey("When filter a new filter provides a new event", func() {
+			newE := &Event{
+				Type: "New Event",
+				Time: time.Now(),
+			}
 			new := &Filter{
-				Events: []*Event{
-					{
-						Type: "Event2",
-						Time: time.Now(),
-					},
-				},
+				Events: []*Event{newE},
 			}
 
 			Convey("Then the new event should be kept", func() {
 				new.RemoveDuplicateEvents(current)
 				So(len(new.Events), ShouldEqual, 1)
+				So(new.Events[0], ShouldEqual, newE)
 			})
 		})
 
 		Convey("When filter a new filter provides an existing event", func() {
 			new := &Filter{
-				Events: []*Event{e},
+				Events: []*Event{e1},
 			}
 
 			Convey("Then the result should be empty", func() {

@@ -28,31 +28,23 @@ func (filter *Filter) RemoveDuplicateEvents(currentFilter *Filter) {
 		return
 	}
 
-	updatedEvents := filter.Events
-	for i, event := range updatedEvents {
+	events := []*Event{}
+
+	for _, e := range filter.Events {
+		found := false
 		for _, ce := range currentFilter.Events {
-			if event == ce {
-				//remove duplicate events from the new filter array
-				updatedEvents = removeEvents(updatedEvents, i)
+			//compare the values not the pointers
+			if *e == *ce {
+				found = true
 			}
+		}
+
+		if !found {
+			events = append(events, e)
 		}
 	}
 
-	filter.Events = updatedEvents
-}
-
-//remove event at index from the list or return the full list if the index is out of bounds
-func removeEvents(list []*Event, i int) []*Event {
-	if i >= len(list) {
-		return list
-	}
-
-	if i == 0 {
-		return list[1:]
-	}
-
-	return append(list[:i], list[i+1:]...)
-
+	filter.Events = events
 }
 
 // Validate the content of the event structure are
