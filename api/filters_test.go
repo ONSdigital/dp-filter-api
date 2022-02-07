@@ -4,12 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
 
 	"github.com/ONSdigital/dp-filter-api/api"
 	apimock "github.com/ONSdigital/dp-filter-api/api/mock"
@@ -113,7 +114,7 @@ func TestSuccessfulAddFilterBlueprint_PublishedDataset(t *testing.T) {
 				filterOutput := mockDatastore.CreateFilterOutputCalls()[0]
 				So(len(filterOutput.Filter.Events), ShouldEqual, 1)
 
-				So(filterOutput.Filter.Events[0].Type, ShouldEqual, api.EventFilterOutputCreated)
+				So(filterOutput.Filter.Events[0].Type, ShouldEqual, models.EventFilterOutputCreated)
 			})
 
 			Convey("Then the response is 201 created", func() {
@@ -637,7 +638,7 @@ func TestSuccessfulUpdateFilterBlueprint_PublishedDataset(t *testing.T) {
 				filterOutput := mockDatastore.CreateFilterOutputCalls()[0]
 				So(len(filterOutput.Filter.Events), ShouldEqual, 1)
 
-				So(filterOutput.Filter.Events[0].Type, ShouldEqual, api.EventFilterOutputCreated)
+				So(filterOutput.Filter.Events[0].Type, ShouldEqual, models.EventFilterOutputCreated)
 			})
 
 			Convey("Then the response is 200 OK", func() {

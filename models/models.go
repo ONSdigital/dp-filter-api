@@ -5,11 +5,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"io"
 	"io/ioutil"
 	"net/url"
 	"time"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
 
 	"github.com/ONSdigital/dp-api-clients-go/dataset"
 	dprequest "github.com/ONSdigital/dp-net/request"
@@ -169,11 +170,6 @@ type DownloadItem struct {
 	Private string `bson:"private,omitempty" json:"private,omitempty"`
 	Public  string `bson:"public,omitempty"  json:"public,omitempty"`
 	Size    string `bson:"size,omitempty"    json:"size,omitempty"`
-}
-
-type Event struct {
-	Type string    `bson:"type,omitempty" json:"type"`
-	Time time.Time `bson:"time,omitempty" json:"time"`
 }
 
 // A list of errors returned from package

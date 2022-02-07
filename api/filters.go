@@ -35,9 +35,6 @@ var (
 
 const (
 	filterSubmitted = "true"
-
-	EventFilterOutputCreated   = "FilterOutputCreated"
-	EventFilterOutputCompleted = "FilterOutputCompleted"
 )
 
 func (api *FilterAPI) postFilterBlueprintHandler(w http.ResponseWriter, r *http.Request) {
@@ -559,7 +556,7 @@ func (api *FilterAPI) createFilterOutputResource(ctx context.Context, newFilter 
 	// Clear out any event information to output document
 	filterOutput.Events = []*models.Event{
 		{
-			Type: EventFilterOutputCreated,
+			Type: models.EventFilterOutputCreated,
 			Time: time.Now(),
 		},
 	}
