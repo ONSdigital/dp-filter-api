@@ -5,6 +5,8 @@ import (
 	"net/http"
 
 	"github.com/ONSdigital/dp-api-clients-go/dataset"
+
+	"github.com/pkg/errors"
 )
 
 type datasetAPIClient interface{
@@ -13,4 +15,20 @@ type datasetAPIClient interface{
 
 type filterFlexAPIClient interface{
 	ForwardRequest(*http.Request) (*http.Response, error)
+}
+
+type dataLogger interface {
+	LogData() map[string]interface{}
+}
+
+type coder interface {
+	Code() int
+}
+
+type messager interface {
+	Message() string
+}
+
+type stacktracer interface {
+	StackTrace() errors.StackTrace
 }
