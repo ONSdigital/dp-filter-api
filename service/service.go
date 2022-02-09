@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/ONSdigital/dp-api-clients-go/dataset"
-	"github.com/ONSdigital/dp-api-clients-go/filterflex"
+	"github.com/ONSdigital/dp-api-clients-go/v2/filterflex"
 	"github.com/ONSdigital/dp-api-clients-go/identity"
 	"github.com/ONSdigital/dp-filter-api/api"
 	"github.com/ONSdigital/dp-filter-api/config"

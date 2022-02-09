@@ -111,11 +111,13 @@ func (a *Assert) DatasetType(next http.Handler) http.Handler {
 		r.Body = io.NopCloser(buf)
 
 		if d.Type == cantabularFlexibleTable {
-			a.errorResponse(ctx, w, er{
-				err:    errors.Wrap(err, "failed to do proxy request"),
-				msg:    fmt.Sprintf("failed to get dataset"),
-				status: statusCode(err),
-			})
+			if err := a.doProxyRequest(w, r); err != nil{
+				a.errorResponse(ctx, w, er{
+					err:    errors.Wrap(err, "failed to do proxy request"),
+					msg:    fmt.Sprintf("failed to get dataset"),
+					status: statusCode(err),
+				})
+			}
 			return
 		}
 
