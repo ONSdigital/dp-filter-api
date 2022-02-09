@@ -2,8 +2,6 @@ module github.com/ONSdigital/dp-filter-api
 
 go 1.17
 
-replace github.com/ONSdigital/dp-api-clients-go => /home/jpm/go-modules/onsdigital/dp-api-clients-go
-
 require (
 	github.com/ONSdigital/dp-api-clients-go v1.43.0
 	github.com/ONSdigital/dp-healthcheck v1.2.3
