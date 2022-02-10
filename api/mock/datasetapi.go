@@ -5,7 +5,7 @@ package mock
 
 import (
 	"context"
-	datasetAPI "github.com/ONSdigital/dp-api-clients-go/dataset"
+	datasetAPI "github.com/ONSdigital/dp-api-clients-go/v2/dataset"
 	"github.com/ONSdigital/dp-filter-api/api"
 	"sync"
 )

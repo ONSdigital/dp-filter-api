@@ -12,7 +12,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
 
-	"github.com/ONSdigital/dp-api-clients-go/dataset"
+	"github.com/ONSdigital/dp-api-clients-go/v2/dataset"
 	dprequest "github.com/ONSdigital/dp-net/request"
 	"go.mongodb.org/mongo-driver/bson"
 )

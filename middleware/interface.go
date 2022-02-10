@@ -4,7 +4,7 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/ONSdigital/dp-api-clients-go/dataset"
+	"github.com/ONSdigital/dp-api-clients-go/v2/dataset"
 
 	"github.com/pkg/errors"
 )

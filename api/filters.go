@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"time"
 
-	datasetAPI "github.com/ONSdigital/dp-api-clients-go/dataset"
+	datasetAPI "github.com/ONSdigital/dp-api-clients-go/v2/dataset"
 	"github.com/ONSdigital/dp-filter-api/filters"
 	"github.com/ONSdigital/dp-filter-api/models"
 	"github.com/ONSdigital/dp-filter-api/mongo"
