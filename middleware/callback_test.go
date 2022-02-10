@@ -165,22 +165,22 @@ func TestUnwrapLogDataHappy(t *testing.T) {
 	})
 }
 
-func TestStackTraceHappy(t *testing.T){
+func TestStackTraceHappy(t *testing.T) {
 	Convey("Given an error with embedded stack trace from pkg/errors", t, func() {
 		err := testCallStackFunc1()
 		Convey("When stackTrace(err) is called", func() {
 			st := stackTrace(err)
 			So(len(st), ShouldEqual, 19)
-			
-			So(st[0].File, ShouldContainSubstring, packagePath + "/callback_test.go")
+
+			So(st[0].File, ShouldContainSubstring, packagePath+"/callback_test.go")
 			So(st[0].Line, ShouldEqual, 216)
 			So(st[0].Function, ShouldEqual, "testCallStackFunc3")
 
-			So(st[1].File, ShouldContainSubstring, packagePath + "/callback_test.go")
+			So(st[1].File, ShouldContainSubstring, packagePath+"/callback_test.go")
 			So(st[1].Line, ShouldEqual, 212)
 			So(st[1].Function, ShouldEqual, "testCallStackFunc2")
 
-			So(st[2].File, ShouldContainSubstring, packagePath + "/callback_test.go")
+			So(st[2].File, ShouldContainSubstring, packagePath+"/callback_test.go")
 			So(st[2].Line, ShouldEqual, 208)
 			So(st[2].Function, ShouldEqual, "testCallStackFunc1")
 		})
@@ -191,12 +191,12 @@ func TestStackTraceHappy(t *testing.T){
 		Convey("When stackTrace(err) is called", func() {
 			st := stackTrace(err)
 			So(len(st), ShouldEqual, 18)
-			
-			So(st[0].File, ShouldContainSubstring, packagePath + "/callback_test.go")
+
+			So(st[0].File, ShouldContainSubstring, packagePath+"/callback_test.go")
 			So(st[0].Line, ShouldEqual, 216)
 			So(st[0].Function, ShouldEqual, "testCallStackFunc3")
 
-			So(st[1].File, ShouldContainSubstring, packagePath + "/callback_test.go")
+			So(st[1].File, ShouldContainSubstring, packagePath+"/callback_test.go")
 			So(st[1].Line, ShouldEqual, 221)
 			So(st[1].Function, ShouldEqual, "testCallStackFunc4")
 
@@ -204,21 +204,21 @@ func TestStackTraceHappy(t *testing.T){
 	})
 }
 
-func testCallStackFunc1() error{
+func testCallStackFunc1() error {
 	return testCallStackFunc2()
 }
 
-func testCallStackFunc2() error{
+func testCallStackFunc2() error {
 	return testCallStackFunc3()
 }
 
-func testCallStackFunc3() error{
+func testCallStackFunc3() error {
 	cause := errors.New("I am the cause")
 	return errors.Wrap(cause, "I am the context")
 }
 
-func testCallStackFunc4() error{
-	if err := testCallStackFunc3(); err != nil{
+func testCallStackFunc4() error {
+	if err := testCallStackFunc3(); err != nil {
 		return fmt.Errorf("I do not have embedded stack trace, but this cause does: %w", err)
 	}
 	return nil

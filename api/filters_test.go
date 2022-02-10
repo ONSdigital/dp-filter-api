@@ -13,13 +13,13 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
 
+	"github.com/ONSdigital/dp-api-clients-go/dataset"
 	"github.com/ONSdigital/dp-filter-api/api"
 	apimock "github.com/ONSdigital/dp-filter-api/api/mock"
 	"github.com/ONSdigital/dp-filter-api/filters"
 	"github.com/ONSdigital/dp-filter-api/mock"
 	"github.com/ONSdigital/dp-filter-api/models"
 	"github.com/ONSdigital/dp-filter-api/mongo"
-	"github.com/ONSdigital/dp-api-clients-go/dataset"
 	"github.com/gorilla/mux"
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -911,127 +911,126 @@ func TestRemoveDuplicatesAndEmptyOptions(t *testing.T) {
 	})
 }
 
-func TestRequestForwardingMiddleware(t *testing.T){
+func TestRequestForwardingMiddleware(t *testing.T) {
 
-		Convey("Given the assert dataset feature flag is toggled on", t, func() {
+	Convey("Given the assert dataset feature flag is toggled on", t, func() {
 
-			conf := cfg()
-			conf.AssertDatasetType = true
+		conf := cfg()
+		conf.AssertDatasetType = true
 
-			w := httptest.NewRecorder()
+		w := httptest.NewRecorder()
 
-			Convey("When a POST request is made to the filters endpoint and the dataset type is cantabular_flexible_table", func() {
+		Convey("When a POST request is made to the filters endpoint and the dataset type is cantabular_flexible_table", func() {
 
-				filterFlexAPIMock := &apimock.FilterFlexAPIMock{
-					ForwardRequestFunc: func(r *http.Request) (*http.Response, error){
-						return &http.Response{
-							Body:       io.NopCloser(bytes.NewReader([]byte("test body"))),
-							StatusCode: 200,
-						}, nil
-					},
-				}
-
-				datasetAPIMock := mock.NewDatasetAPI().Mock
-
-				datasetAPIMock.GetFunc = func(ctx context.Context, ut, st, cid, dsid string) (dataset.DatasetDetails, error){
-					return dataset.DatasetDetails{
-						Type: "cantabular_flexible_table",
+			filterFlexAPIMock := &apimock.FilterFlexAPIMock{
+				ForwardRequestFunc: func(r *http.Request) (*http.Response, error) {
+					return &http.Response{
+						Body:       io.NopCloser(bytes.NewReader([]byte("test body"))),
+						StatusCode: 200,
 					}, nil
-				}
+				},
+			}
 
-				filterApi := api.Setup(conf, mux.NewRouter(), &mock.DataStore{}, &mock.FilterJob{}, datasetAPIMock, filterFlexAPIMock)
+			datasetAPIMock := mock.NewDatasetAPI().Mock
 
-				reader := strings.NewReader(`{"dataset":{"version":1, "edition":"1", "id":"1", "type": "cantabular_flexible_table"} }`)
-				r, err := http.NewRequest("POST", "http://localhost:22100/filters", reader)
-				So(err, ShouldBeNil)
-				filterApi.Router.ServeHTTP(w, r)
+			datasetAPIMock.GetFunc = func(ctx context.Context, ut, st, cid, dsid string) (dataset.DatasetDetails, error) {
+				return dataset.DatasetDetails{
+					Type: "cantabular_flexible_table",
+				}, nil
+			}
 
-				Convey("A call to dataset-api is made to check the dataset type", func() {
-					So(len(datasetAPIMock.GetCalls()), ShouldEqual, 1)
-				})
+			filterApi := api.Setup(conf, mux.NewRouter(), &mock.DataStore{}, &mock.FilterJob{}, datasetAPIMock, filterFlexAPIMock)
 
-				Convey("The request is forwarded to dp-cantabular-filter-flex-api", func() {
-					So(len(filterFlexAPIMock.ForwardRequestCalls()), ShouldEqual, 1)
-				})
+			reader := strings.NewReader(`{"dataset":{"version":1, "edition":"1", "id":"1", "type": "cantabular_flexible_table"} }`)
+			r, err := http.NewRequest("POST", "http://localhost:22100/filters", reader)
+			So(err, ShouldBeNil)
+			filterApi.Router.ServeHTTP(w, r)
+
+			Convey("A call to dataset-api is made to check the dataset type", func() {
+				So(len(datasetAPIMock.GetCalls()), ShouldEqual, 1)
 			})
 
-			Convey("When a POST request is made to the filters endpoint and the dataset type is not cantabular_flexible_table", func() {
-
-				filterFlexAPIMock := &apimock.FilterFlexAPIMock{
-					ForwardRequestFunc: func(r *http.Request) (*http.Response, error){
-						return &http.Response{
-							Body:       io.NopCloser(bytes.NewReader([]byte("test body"))),
-							StatusCode: 200,
-						}, nil
-					},
-				}
-
-				datasetAPIMock := mock.NewDatasetAPI().Mock
-
-				datasetAPIMock.GetFunc = func(ctx context.Context, ut, st, cid, dsid string) (dataset.DatasetDetails, error){
-					return dataset.DatasetDetails{
-						Type: "other",
-					}, nil
-				}
-
-				filterApi := api.Setup(conf, mux.NewRouter(), &mock.DataStore{}, &mock.FilterJob{}, datasetAPIMock, filterFlexAPIMock)
-
-				reader := strings.NewReader(`{"dataset":{"version":1, "edition":"1", "id":"1", "type": "other"} }`)
-				r, err := http.NewRequest("POST", "http://localhost:22100/filters", reader)
-				So(err, ShouldBeNil)
-				filterApi.Router.ServeHTTP(w, r)
-
-				Convey("A call to dataset-api is made to check the dataset type", func() {
-					So(len(datasetAPIMock.GetCalls()), ShouldEqual, 1)
-				})
-
-				Convey("The request is not forwarded to dp-cantabular-filter-flex-api", func() {
-					So(len(filterFlexAPIMock.ForwardRequestCalls()), ShouldEqual, 0)
-				})
+			Convey("The request is forwarded to dp-cantabular-filter-flex-api", func() {
+				So(len(filterFlexAPIMock.ForwardRequestCalls()), ShouldEqual, 1)
 			})
 		})
 
-		Convey("Given the assert dataset feature flag is toggled off", t, func() {
+		Convey("When a POST request is made to the filters endpoint and the dataset type is not cantabular_flexible_table", func() {
 
-			conf := cfg()
-			conf.AssertDatasetType = false
-
-			w := httptest.NewRecorder()
-
-
-			Convey("When a POST request is made to the filters endpoint and the dataset type is cantabular_flexible_table", func() {
-
-				filterFlexAPIMock := &apimock.FilterFlexAPIMock{
-					ForwardRequestFunc: func(r *http.Request) (*http.Response, error){
-						return &http.Response{
-							Body:       io.NopCloser(bytes.NewReader([]byte("test body"))),
-							StatusCode: 200,
-						}, nil
-					},
-				}
-
-				datasetAPIMock := mock.NewDatasetAPI().Mock
-
-				datasetAPIMock.GetFunc = func(ctx context.Context, ut, st, cid, dsid string) (dataset.DatasetDetails, error){
-					return dataset.DatasetDetails{
-						Type: "cantabular_flexible_table",
+			filterFlexAPIMock := &apimock.FilterFlexAPIMock{
+				ForwardRequestFunc: func(r *http.Request) (*http.Response, error) {
+					return &http.Response{
+						Body:       io.NopCloser(bytes.NewReader([]byte("test body"))),
+						StatusCode: 200,
 					}, nil
-				}
+				},
+			}
 
-				filterApi := api.Setup(conf, mux.NewRouter(), &mock.DataStore{}, &mock.FilterJob{}, datasetAPIMock, filterFlexAPIMock)
+			datasetAPIMock := mock.NewDatasetAPI().Mock
 
-				reader := strings.NewReader(`{"dataset":{"version":1, "edition":"1", "id":"1", "type": "cantabular_flexible_table"} }`)
-				r, err := http.NewRequest("POST", "http://localhost:22100/filters", reader)
-				So(err, ShouldBeNil)
-				filterApi.Router.ServeHTTP(w, r)
+			datasetAPIMock.GetFunc = func(ctx context.Context, ut, st, cid, dsid string) (dataset.DatasetDetails, error) {
+				return dataset.DatasetDetails{
+					Type: "other",
+				}, nil
+			}
 
-				Convey("A call to dataset-api is not made", func() {
-					So(len(datasetAPIMock.GetCalls()), ShouldEqual, 0)
-				})
+			filterApi := api.Setup(conf, mux.NewRouter(), &mock.DataStore{}, &mock.FilterJob{}, datasetAPIMock, filterFlexAPIMock)
 
-				Convey("The request is not forwarded to dp-cantabular-filter-flex-api", func() {
-					So(len(filterFlexAPIMock.ForwardRequestCalls()), ShouldEqual, 0)
-				})
+			reader := strings.NewReader(`{"dataset":{"version":1, "edition":"1", "id":"1", "type": "other"} }`)
+			r, err := http.NewRequest("POST", "http://localhost:22100/filters", reader)
+			So(err, ShouldBeNil)
+			filterApi.Router.ServeHTTP(w, r)
+
+			Convey("A call to dataset-api is made to check the dataset type", func() {
+				So(len(datasetAPIMock.GetCalls()), ShouldEqual, 1)
+			})
+
+			Convey("The request is not forwarded to dp-cantabular-filter-flex-api", func() {
+				So(len(filterFlexAPIMock.ForwardRequestCalls()), ShouldEqual, 0)
 			})
 		})
+	})
+
+	Convey("Given the assert dataset feature flag is toggled off", t, func() {
+
+		conf := cfg()
+		conf.AssertDatasetType = false
+
+		w := httptest.NewRecorder()
+
+		Convey("When a POST request is made to the filters endpoint and the dataset type is cantabular_flexible_table", func() {
+
+			filterFlexAPIMock := &apimock.FilterFlexAPIMock{
+				ForwardRequestFunc: func(r *http.Request) (*http.Response, error) {
+					return &http.Response{
+						Body:       io.NopCloser(bytes.NewReader([]byte("test body"))),
+						StatusCode: 200,
+					}, nil
+				},
+			}
+
+			datasetAPIMock := mock.NewDatasetAPI().Mock
+
+			datasetAPIMock.GetFunc = func(ctx context.Context, ut, st, cid, dsid string) (dataset.DatasetDetails, error) {
+				return dataset.DatasetDetails{
+					Type: "cantabular_flexible_table",
+				}, nil
+			}
+
+			filterApi := api.Setup(conf, mux.NewRouter(), &mock.DataStore{}, &mock.FilterJob{}, datasetAPIMock, filterFlexAPIMock)
+
+			reader := strings.NewReader(`{"dataset":{"version":1, "edition":"1", "id":"1", "type": "cantabular_flexible_table"} }`)
+			r, err := http.NewRequest("POST", "http://localhost:22100/filters", reader)
+			So(err, ShouldBeNil)
+			filterApi.Router.ServeHTTP(w, r)
+
+			Convey("A call to dataset-api is not made", func() {
+				So(len(datasetAPIMock.GetCalls()), ShouldEqual, 0)
+			})
+
+			Convey("The request is not forwarded to dp-cantabular-filter-flex-api", func() {
+				So(len(filterFlexAPIMock.ForwardRequestCalls()), ShouldEqual, 0)
+			})
+		})
+	})
 }

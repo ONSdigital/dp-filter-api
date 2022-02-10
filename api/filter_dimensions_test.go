@@ -10,8 +10,8 @@ import (
 	"testing"
 
 	"github.com/ONSdigital/dp-filter-api/api"
-	"github.com/ONSdigital/dp-filter-api/mock"
 	apimock "github.com/ONSdigital/dp-filter-api/api/mock"
+	"github.com/ONSdigital/dp-filter-api/mock"
 	"github.com/gorilla/mux"
 	. "github.com/smartystreets/goconvey/convey"
 

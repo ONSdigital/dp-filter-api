@@ -8,11 +8,11 @@ import (
 	"testing"
 
 	"github.com/ONSdigital/dp-filter-api/api"
+	apimock "github.com/ONSdigital/dp-filter-api/api/mock"
 	"github.com/ONSdigital/dp-filter-api/mock"
 	"github.com/ONSdigital/dp-filter-api/models"
 	"github.com/ONSdigital/dp-filter-api/mongo"
-	apimock "github.com/ONSdigital/dp-filter-api/api/mock"
-	
+
 	"github.com/gorilla/mux"
 	. "github.com/smartystreets/goconvey/convey"
 

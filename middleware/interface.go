@@ -9,11 +9,11 @@ import (
 	"github.com/pkg/errors"
 )
 
-type datasetAPIClient interface{
+type datasetAPIClient interface {
 	Get(ctx context.Context, userToken, svcToken, collectionID, datasetID string) (dataset.DatasetDetails, error)
 }
 
-type filterFlexAPIClient interface{
+type filterFlexAPIClient interface {
 	ForwardRequest(*http.Request) (*http.Response, error)
 }
 
