@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/ONSdigital/dp-api-clients-go/dataset"
-	"github.com/ONSdigital/dp-api-clients-go/v2/filterflex"
 	"github.com/ONSdigital/dp-api-clients-go/identity"
+	"github.com/ONSdigital/dp-api-clients-go/v2/filterflex"
 	"github.com/ONSdigital/dp-filter-api/api"
 	"github.com/ONSdigital/dp-filter-api/config"
 	"github.com/ONSdigital/dp-filter-api/filterOutputQueue"
@@ -65,7 +65,6 @@ var GetHealthCheck = func(version healthcheck.VersionInfo, criticalTimeout, inte
 	hc := healthcheck.New(version, criticalTimeout, interval)
 	return &hc
 }
-
 
 // GetHTTPServer returns an http server
 var GetHTTPServer = func(bindAddr string, router http.Handler) HTTPServer {
