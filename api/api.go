@@ -82,7 +82,7 @@ func Setup(
 	assert := middleware.NewAssert(datasetAPI, filterFlexAPI, cfg.ServiceAuthToken, cfg.AssertDatasetType)
 
 	// routes
-	api.Router.Handle("/filters", assert.DatasetType(http.HandlerFunc(api.postFilterBlueprintHandler)))
+	api.Router.Handle("/filters", assert.DatasetType(http.HandlerFunc(api.postFilterBlueprintHandler))).Methods("POST")
 
 	api.Router.HandleFunc("/filters/{filter_blueprint_id}", api.getFilterBlueprintHandler).Methods("GET")
 	api.Router.HandleFunc("/filters/{filter_blueprint_id}", api.putFilterBlueprintHandler).Methods("PUT")
