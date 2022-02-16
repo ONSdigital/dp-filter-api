@@ -10,6 +10,7 @@ import (
 	"github.com/ONSdigital/dp-filter-api/filters"
 	"github.com/ONSdigital/dp-filter-api/middleware"
 	"github.com/ONSdigital/dp-filter-api/models"
+	"github.com/ONSdigital/dp-net/v2/responder"
 	"github.com/gorilla/mux"
 )
 
@@ -79,7 +80,13 @@ func Setup(
 	}
 
 	// middleware
-	assert := middleware.NewAssert(datasetAPI, filterFlexAPI, cfg.ServiceAuthToken, cfg.AssertDatasetType)
+	assert := middleware.NewAssert(
+		responder.New(),
+		datasetAPI,
+		filterFlexAPI,
+		cfg.ServiceAuthToken,
+		cfg.AssertDatasetType,
+	)
 
 	// routes
 	api.Router.Handle("/filters", assert.DatasetType(http.HandlerFunc(api.postFilterBlueprintHandler))).Methods("POST")

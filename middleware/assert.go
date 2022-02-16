@@ -2,7 +2,6 @@ package middleware
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -18,54 +17,20 @@ const (
 )
 
 type Assert struct {
+	respond       responder
 	DatasetAPI    datasetAPIClient
 	FilterFlexAPI filterFlexAPIClient
 	svcAuthToken  string
 	enabled       bool
 }
 
-func NewAssert(d datasetAPIClient, f filterFlexAPIClient, t string, e bool) *Assert {
+func NewAssert(r responder, d datasetAPIClient, f filterFlexAPIClient, t string, e bool) *Assert {
 	return &Assert{
 		svcAuthToken:  t,
 		DatasetAPI:    d,
 		FilterFlexAPI: f,
 		enabled:       e,
-	}
-}
-
-func (a *Assert) errorResponse(ctx context.Context, w http.ResponseWriter, err error) {
-	log.Info(ctx, "error responding to HTTP request", log.ERROR, &log.EventErrors{{
-		Message:    err.Error(),
-		StackTrace: stackTrace(err),
-		Data:       unwrapLogData(err),
-	}},
-	)
-
-	status := unwrapStatusCode(err)
-	msg := errorMessage(err)
-	resp := erResponse{
-		Errors: []string{msg},
-	}
-
-	logData := log.Data{
-		"error":       err.Error(),
-		"response":    msg,
-		"status_code": status,
-	}
-
-	b, err := json.Marshal(resp)
-	if err != nil {
-		log.Error(ctx, "badly formed error response", err, logData)
-		http.Error(w, msg, status)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	w.WriteHeader(status)
-
-	if _, err := w.Write(b); err != nil {
-		log.Error(ctx, "failed to write error response", err, logData)
-		return
+		respond:       r,
 	}
 }
 
@@ -89,10 +54,9 @@ func (a *Assert) DatasetType(next http.Handler) http.Handler {
 		}
 
 		if err := json.NewDecoder(rdr).Decode(&req); err != nil {
-			a.errorResponse(ctx, w, er{
+			a.respond.Error(ctx, w, http.StatusBadRequest, er{
 				err:    errors.Wrap(err, "failed to decode json"),
 				msg:    fmt.Sprintf("badly formed request: %s", err),
-				status: http.StatusBadRequest,
 			})
 			return
 		}
@@ -100,10 +64,9 @@ func (a *Assert) DatasetType(next http.Handler) http.Handler {
 		// TODO: Probably better to create a new GetDatasetType function in dataset api-client
 		d, err := a.DatasetAPI.Get(ctx, "", a.svcAuthToken, "", req.Dataset.ID)
 		if err != nil {
-			a.errorResponse(ctx, w, er{
+			a.respond.Error(ctx, w, statusCode(err), er{
 				err:    errors.Wrap(err, "failed to get dataset"),
 				msg:    fmt.Sprintf("failed to get dataset"),
-				status: statusCode(err),
 			})
 			return
 		}
@@ -112,10 +75,9 @@ func (a *Assert) DatasetType(next http.Handler) http.Handler {
 
 		if d.Type == cantabularFlexibleTable {
 			if err := a.doProxyRequest(w, r); err != nil {
-				a.errorResponse(ctx, w, er{
+				a.respond.Error(ctx, w, statusCode(err), er{
 					err:    errors.Wrap(err, "failed to do proxy request"),
 					msg:    fmt.Sprintf("failed to get dataset"),
-					status: statusCode(err),
 				})
 			}
 			return

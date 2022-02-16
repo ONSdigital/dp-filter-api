@@ -32,3 +32,8 @@ type messager interface {
 type stacktracer interface {
 	StackTrace() errors.StackTrace
 }
+
+type responder interface {
+	JSON(context.Context, http.ResponseWriter, int, interface{})
+	Error(context.Context, http.ResponseWriter, int, error)
+}
