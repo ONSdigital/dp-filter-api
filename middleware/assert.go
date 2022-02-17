@@ -10,6 +10,7 @@ import (
 	"github.com/ONSdigital/log.go/v2/log"
 
 	"github.com/pkg/errors"
+	"github.com/gorilla/mux"
 )
 
 const (
@@ -103,21 +104,30 @@ func (a *Assert) FilterType(next http.Handler) http.Handler {
 		buf := bytes.NewBuffer(make([]byte, 0))
 		rdr := io.TeeReader(r.Body, buf)
 
-		// Accept any request with 'filter_id' field
-		var req struct {
-			FilterID string `json: "filter_id"`
-		}
+		var filterID string
 
-		if err := json.NewDecoder(rdr).Decode(&req); err != nil {
-			a.respond.Error(ctx, w, http.StatusBadRequest, er{
-				err:    errors.Wrap(err, "failed to decode json"),
-				msg:    fmt.Sprintf("badly formed request: %s", err),
-			})
-			return
+		switch r.Method {
+		case http.MethodGet:
+			vars := mux.Vars(r)
+			filterID = vars["filter_blueprint_id"]
+		default:
+			// Accept any request with 'filter_id' field
+			var req struct {
+				FilterID string `json: "filter_id"`
+			}
+
+			if err := json.NewDecoder(rdr).Decode(&req); err != nil {
+				a.respond.Error(ctx, w, http.StatusBadRequest, er{
+					err:    errors.Wrap(err, "failed to decode json"),
+					msg:    fmt.Sprintf("badly formed request: %s", err),
+				})
+				return
+			}
+			filterID = req.FilterID
 		}
 
 		// TODO: Better to add GetFilterType query to mongo?
-		f, err := a.store.GetFilter(ctx, req.FilterID, anyEtagSelector,)
+		f, err := a.store.GetFilter(ctx, filterID, anyEtagSelector,)
 		if err != nil {
 			a.respond.Error(ctx, w, statusCode(err), er{
 				err:    errors.Wrap(err, "failed to get dataset"),
