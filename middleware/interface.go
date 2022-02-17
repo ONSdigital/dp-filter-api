@@ -4,6 +4,8 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/ONSdigital/dp-filter-api/models"
+
 	"github.com/ONSdigital/dp-api-clients-go/v2/dataset"
 
 	"github.com/pkg/errors"
@@ -15,6 +17,10 @@ type datasetAPIClient interface {
 
 type filterFlexAPIClient interface {
 	ForwardRequest(*http.Request) (*http.Response, error)
+}
+
+type datastore interface {
+	GetFilter(ctx context.Context, filterID, eTagSelector string) (*models.Filter, error)
 }
 
 type dataLogger interface {

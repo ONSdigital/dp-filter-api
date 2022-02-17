@@ -14,21 +14,25 @@ import (
 
 const (
 	cantabularFlexibleTable = "cantabular_flexible_table"
+	flexible                = "flexible"
+	anyEtagSelector         = "*"
 )
 
 type Assert struct {
 	respond       responder
 	DatasetAPI    datasetAPIClient
 	FilterFlexAPI filterFlexAPIClient
+	store         datastore
 	svcAuthToken  string
 	enabled       bool
 }
 
-func NewAssert(r responder, d datasetAPIClient, f filterFlexAPIClient, t string, e bool) *Assert {
+func NewAssert(r responder, d datasetAPIClient, f filterFlexAPIClient, ds datastore, t string, e bool) *Assert {
 	return &Assert{
 		svcAuthToken:  t,
 		DatasetAPI:    d,
 		FilterFlexAPI: f,
+		store:         ds,
 		enabled:       e,
 		respond:       r,
 	}
@@ -74,6 +78,57 @@ func (a *Assert) DatasetType(next http.Handler) http.Handler {
 		r.Body = io.NopCloser(buf)
 
 		if d.Type == cantabularFlexibleTable {
+			if err := a.doProxyRequest(w, r); err != nil {
+				a.respond.Error(ctx, w, statusCode(err), er{
+					err:    errors.Wrap(err, "failed to do proxy request"),
+					msg:    fmt.Sprintf("failed to get dataset"),
+				})
+			}
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
+
+func (a *Assert) FilterType(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !a.enabled {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		ctx := r.Context()
+
+		buf := bytes.NewBuffer(make([]byte, 0))
+		rdr := io.TeeReader(r.Body, buf)
+
+		// Accept any request with 'filter_id' field
+		var req struct {
+			FilterID string `json: "filter_id"`
+		}
+
+		if err := json.NewDecoder(rdr).Decode(&req); err != nil {
+			a.respond.Error(ctx, w, http.StatusBadRequest, er{
+				err:    errors.Wrap(err, "failed to decode json"),
+				msg:    fmt.Sprintf("badly formed request: %s", err),
+			})
+			return
+		}
+
+		// TODO: Better to add GetFilterType query to mongo?
+		f, err := a.store.GetFilter(ctx, req.FilterID, anyEtagSelector,)
+		if err != nil {
+			a.respond.Error(ctx, w, statusCode(err), er{
+				err:    errors.Wrap(err, "failed to get dataset"),
+				msg:    fmt.Sprintf("failed to get dataset"),
+			})
+			return
+		}
+
+		r.Body = io.NopCloser(buf)
+
+		if f.Type == flexible {
 			if err := a.doProxyRequest(w, r); err != nil {
 				a.respond.Error(ctx, w, statusCode(err), er{
 					err:    errors.Wrap(err, "failed to do proxy request"),

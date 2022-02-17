@@ -57,6 +57,7 @@ type Filter struct {
 	State      string      `bson:"state,omitempty"      json:"state,omitempty"`
 	Published  *bool       `bson:"published,omitempty"  json:"published,omitempty"`
 	Links      LinkMap     `bson:"links"                json:"links,omitempty"`
+	Type       string      `bson:"type,omitempty"       json:"type,omitempty"`
 }
 
 // Hash generates a SHA-1 hash of the filter struct. SHA-1 is not cryptographically safe,
