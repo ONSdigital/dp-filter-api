@@ -1055,7 +1055,7 @@ func TestRequestForwardingMiddleware(t *testing.T) {
 				So(len(datastoreMock.GetFilterCalls()), ShouldEqual, 2)
 			})
 
-			Convey("The request is forwarded to dp-cantabular-filter-flex-api", func() {
+			Convey("The request is not forwarded to dp-cantabular-filter-flex-api", func() {
 				So(len(filterFlexAPIMock.ForwardRequestCalls()), ShouldEqual, 0)
 			})
 		})
@@ -1135,7 +1135,7 @@ func TestRequestForwardingMiddleware(t *testing.T) {
 				So(len(datastoreMock.GetFilterCalls()), ShouldEqual, 0)
 			})
 
-			Convey("The request is forwarded to dp-cantabular-filter-flex-api", func() {
+			Convey("The request is not forwarded to dp-cantabular-filter-flex-api", func() {
 				So(len(filterFlexAPIMock.ForwardRequestCalls()), ShouldEqual, 0)
 			})
 		})

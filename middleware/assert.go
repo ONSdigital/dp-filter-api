@@ -127,7 +127,7 @@ func (a *Assert) FilterType(next http.Handler) http.Handler {
 		}
 
 		// TODO: Better to add GetFilterType query to mongo?
-		f, err := a.store.GetFilter(ctx, filterID, anyEtagSelector,)
+		f, err := a.store.GetFilter(ctx, filterID, anyEtagSelector)
 		if err != nil {
 			a.respond.Error(ctx, w, statusCode(err), er{
 				err:    errors.Wrap(err, "failed to get dataset"),
