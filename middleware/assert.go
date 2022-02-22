@@ -101,30 +101,8 @@ func (a *Assert) FilterType(next http.Handler) http.Handler {
 
 		ctx := r.Context()
 
-		buf := bytes.NewBuffer(make([]byte, 0))
-		rdr := io.TeeReader(r.Body, buf)
-
-		var filterID string
-
-		switch r.Method {
-		case http.MethodGet:
-			vars := mux.Vars(r)
-			filterID = vars["filter_blueprint_id"]
-		default:
-			// Accept any request with 'filter_id' field
-			var req struct {
-				FilterID string `json: "filter_id"`
-			}
-
-			if err := json.NewDecoder(rdr).Decode(&req); err != nil {
-				a.respond.Error(ctx, w, http.StatusBadRequest, er{
-					err:    errors.Wrap(err, "failed to decode json"),
-					msg:    fmt.Sprintf("badly formed request: %s", err),
-				})
-				return
-			}
-			filterID = req.FilterID
-		}
+		vars := mux.Vars(r)
+		filterID := vars["filter_blueprint_id"]
 
 		// TODO: Better to add GetFilterType query to mongo?
 		f, err := a.store.GetFilter(ctx, filterID, anyEtagSelector)
@@ -135,8 +113,6 @@ func (a *Assert) FilterType(next http.Handler) http.Handler {
 			})
 			return
 		}
-
-		r.Body = io.NopCloser(buf)
 
 		if f.Type == flexible {
 			if err := a.doProxyRequest(w, r); err != nil {
