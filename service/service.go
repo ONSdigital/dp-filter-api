@@ -107,7 +107,7 @@ func (svc *Service) Init(ctx context.Context, cfg *config.Config, buildTime, git
 	// Create Dataset API client.
 	svc.datasetAPI = dataset.NewAPIClient(svc.Cfg.DatasetAPIURL)
 	svc.filterFlexAPI = filterflex.New(filterflex.Config{
-		HostURL: "http://dp-cantabular-filter-flex-api:27100",
+		HostURL: svc.Cfg.FilterFlexAPIURL,
 	})
 
 	// Get HealthCheck and register checkers

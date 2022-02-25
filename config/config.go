@@ -37,6 +37,7 @@ type Config struct {
 	BatchMaxWorkers            int           `envconfig:"BATCH_MAX_WORKERS"`
 	DefaultMaxLimit            int           `envconfig:"DEFAULT_MAXIMUM_LIMIT"`
 	AssertDatasetType          bool          `envconfig:"ASSERT_DATASET_TYPE"`
+	FilterFlexAPIURL           string        `envconfig:"FILTER_FLEX_API_URL"`
 	MongoConfig
 }
 
@@ -82,6 +83,7 @@ func Get() (*Config, error) {
 		DownloadServiceURL:         "http://localhost:23600",
 		DownloadServiceSecretKey:   "QB0108EZ-825D-412C-9B1D-41EF7747F462",
 		AssertDatasetType:          false,
+		FilterFlexAPIURL:           "http://localhost:27100",
 		MongoConfig: MongoConfig{
 			MongoDriverConfig: mongodriver.MongoDriverConfig{
 				ClusterEndpoint:               "localhost:27017",
