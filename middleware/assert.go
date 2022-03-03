@@ -71,7 +71,7 @@ func (a *Assert) DatasetType(next http.Handler) http.Handler {
 		if err != nil {
 			a.respond.Error(ctx, w, statusCode(err), er{
 				err:    errors.Wrap(err, "failed to get dataset"),
-				msg:    fmt.Sprintf("failed to get dataset"),
+				msg:    "failed to get dataset",
 			})
 			return
 		}
@@ -82,7 +82,7 @@ func (a *Assert) DatasetType(next http.Handler) http.Handler {
 			if err := a.doProxyRequest(w, r); err != nil {
 				a.respond.Error(ctx, w, statusCode(err), er{
 					err:    errors.Wrap(err, "failed to do proxy request"),
-					msg:    fmt.Sprintf("failed to get dataset"),
+					msg:    "unable to fulfil request",
 				})
 			}
 			return
@@ -108,8 +108,8 @@ func (a *Assert) FilterType(next http.Handler) http.Handler {
 		f, err := a.store.GetFilter(ctx, filterID, anyEtagSelector)
 		if err != nil {
 			a.respond.Error(ctx, w, statusCode(err), er{
-				err:    errors.Wrap(err, "failed to get dataset"),
-				msg:    fmt.Sprintf("failed to get dataset"),
+				err:    errors.Wrap(err, "failed to get filter"),
+				msg:    "failed to get filter",
 			})
 			return
 		}
@@ -118,7 +118,7 @@ func (a *Assert) FilterType(next http.Handler) http.Handler {
 			if err := a.doProxyRequest(w, r); err != nil {
 				a.respond.Error(ctx, w, statusCode(err), er{
 					err:    errors.Wrap(err, "failed to do proxy request"),
-					msg:    fmt.Sprintf("failed to get dataset"),
+					msg:    "unable to fulfil request",
 				})
 			}
 			return
