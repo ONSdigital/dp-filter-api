@@ -37,9 +37,7 @@ parameters:
     type: integer
   offset:
     name: offset
-    description: "Starting index of the items array that will be returned. By default it is zero, meaning that the returned items will start from the beginning."
-    in: query
-    required: false
+    description: "remove description as a bad idea"
     type: integer
   name:
     name: name
