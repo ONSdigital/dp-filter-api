@@ -1,13 +1,15 @@
 package api_test
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
 
 	"github.com/ONSdigital/dp-filter-api/api"
 	apimock "github.com/ONSdigital/dp-filter-api/api/mock"
@@ -799,5 +801,165 @@ func TestCreatePublicDimensionsSucceeds(t *testing.T) {
 		So(publicDims[1].Links.Filter.HRef, ShouldEqual, "/filters/5678")
 		So(publicDims[0].Links.Options.HRef, ShouldEqual, "/filters/5678/dimensions/testDim1/options")
 		So(publicDims[1].Links.Options.HRef, ShouldEqual, "/filters/5678/dimensions/testDim2/options")
+	})
+}
+
+func TestPutFilterBlueprintDimension(t *testing.T) {
+	stubBody := `{
+		"name":"Test dimension",
+		"dimension_url":"http://localhost:22000/datasets/cantabular-flexible-example/editions/2021/versions/1/dimensions/city/options",
+		"is_area_type":true
+	}`
+	reader := strings.NewReader(stubBody)
+
+	Convey("Given the assert dataset feature flag is toggled off", t, func() {
+		conf := cfg()
+		conf.AssertDatasetType = false
+
+		Convey("When the filter is flexible", func() {
+			w := httptest.NewRecorder()
+			filterFlexAPIMock := &apimock.FilterFlexAPIMock{
+				ForwardRequestFunc: func(r *http.Request) (*http.Response, error) {
+					return &http.Response{
+						Body:       io.NopCloser(bytes.NewReader([]byte("test body"))),
+						StatusCode: http.StatusOK,
+					}, nil
+				},
+			}
+			datastoreMock := mock.NewDataStore().Mock
+			datastoreMock.GetFilterFunc = func(ctx context.Context, filterID, etag string) (*models.Filter, error) {
+				return &models.Filter{
+					Type: "flexible",
+				}, nil
+			}
+
+			filterApi := api.Setup(conf, mux.NewRouter(), datastoreMock, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
+
+			r, err := http.NewRequest("PUT", "http://localhost:22100/filters/12345678/dimensions/1_age", reader)
+			So(err, ShouldBeNil)
+			filterApi.Router.ServeHTTP(w, r)
+
+			Convey("An error is returned", func() {
+				So(w.Code, ShouldEqual, http.StatusBadRequest)
+			})
+
+			Convey("The request is not forwarded to dp-cantabular-filter-flex-api", func() {
+				So(filterFlexAPIMock.ForwardRequestCalls(), ShouldHaveLength, 0)
+			})
+		})
+
+		Convey("When the filter not flexible", func() {
+			w := httptest.NewRecorder()
+			filterFlexAPIMock := &apimock.FilterFlexAPIMock{
+				ForwardRequestFunc: func(r *http.Request) (*http.Response, error) {
+					return &http.Response{
+						Body:       io.NopCloser(bytes.NewReader([]byte("test body"))),
+						StatusCode: http.StatusOK,
+					}, nil
+				},
+			}
+			datastoreMock := mock.NewDataStore().Mock
+			datastoreMock.GetFilterFunc = func(ctx context.Context, filterID, etag string) (*models.Filter, error) {
+				return &models.Filter{
+					Dataset: &models.Dataset{
+						Version: 1,
+					},
+				}, nil
+			}
+
+			filterApi := api.Setup(conf, mux.NewRouter(), datastoreMock, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
+
+			r, err := http.NewRequest("PUT", "http://localhost:22100/filters/12345678/dimensions/1_age", reader)
+			So(err, ShouldBeNil)
+			filterApi.Router.ServeHTTP(w, r)
+
+			Convey("An error is returned", func() {
+				So(w.Code, ShouldEqual, http.StatusBadRequest)
+			})
+
+			Convey("The request is not forwarded to dp-cantabular-filter-flex-api", func() {
+				So(filterFlexAPIMock.ForwardRequestCalls(), ShouldHaveLength, 0)
+			})
+		})
+	})
+
+	Convey("Given the assert dataset feature flag is toggled on", t, func() {
+
+		conf := cfg()
+		conf.AssertDatasetType = true
+
+		Convey("When the filter is flexible", func() {
+			w := httptest.NewRecorder()
+			filterFlexAPIMock := &apimock.FilterFlexAPIMock{
+				ForwardRequestFunc: func(r *http.Request) (*http.Response, error) {
+					return &http.Response{
+						Body:       io.NopCloser(bytes.NewReader([]byte("test body"))),
+						StatusCode: http.StatusOK,
+					}, nil
+				},
+			}
+			datastoreMock := mock.NewDataStore().Mock
+			datastoreMock.GetFilterFunc = func(ctx context.Context, filterID, etag string) (*models.Filter, error) {
+				return &models.Filter{
+					Type: "flexible",
+				}, nil
+			}
+
+			filterApi := api.Setup(conf, mux.NewRouter(), datastoreMock, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
+
+			r, err := http.NewRequest("PUT", "http://localhost:22100/filters/12345678/dimensions/1_age", reader)
+			So(err, ShouldBeNil)
+			filterApi.Router.ServeHTTP(w, r)
+
+			Convey("A call to datastore is made to check the dataset type", func() {
+				So(datastoreMock.GetFilterCalls(), ShouldHaveLength, 1)
+			})
+
+			Convey("The request is forwarded to dp-cantabular-filter-flex-api", func() {
+				So(filterFlexAPIMock.ForwardRequestCalls(), ShouldHaveLength, 1)
+
+				Convey("The request body is forwarded on", func() {
+					call := filterFlexAPIMock.ForwardRequestCalls()[0]
+					reqBody, err := io.ReadAll(call.Request.Body)
+					So(err, ShouldBeNil)
+					So(string(reqBody), ShouldEqual, stubBody)
+				})
+			})
+
+		})
+
+		Convey("When the filter not flexible", func() {
+			w := httptest.NewRecorder()
+			filterFlexAPIMock := &apimock.FilterFlexAPIMock{
+				ForwardRequestFunc: func(r *http.Request) (*http.Response, error) {
+					return &http.Response{
+						Body:       io.NopCloser(bytes.NewReader([]byte("test body"))),
+						StatusCode: http.StatusOK,
+					}, nil
+				},
+			}
+			datastoreMock := mock.NewDataStore().Mock
+			datastoreMock.GetFilterFunc = func(ctx context.Context, filterID, etag string) (*models.Filter, error) {
+				return &models.Filter{
+					Dataset: &models.Dataset{
+						Version: 1,
+					},
+				}, nil
+			}
+
+			filterApi := api.Setup(conf, mux.NewRouter(), datastoreMock, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
+
+			r, err := http.NewRequest("PUT", "http://localhost:22100/filters/12345678/dimensions/1_age", reader)
+			So(err, ShouldBeNil)
+			filterApi.Router.ServeHTTP(w, r)
+
+			Convey("An error is returned", func() {
+				So(w.Code, ShouldEqual, http.StatusBadRequest)
+			})
+
+			Convey("The request is not forwarded to dp-cantabular-filter-flex-api", func() {
+				So(filterFlexAPIMock.ForwardRequestCalls(), ShouldHaveLength, 0)
+			})
+		})
 	})
 }
