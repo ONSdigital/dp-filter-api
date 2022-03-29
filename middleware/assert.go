@@ -39,6 +39,44 @@ func NewAssert(r responder, d datasetAPIClient, f filterFlexAPIClient, ds datast
 	}
 }
 
+// Filter Flex Forwarder that checks for dataset ID in the route, not in the body as below.
+// Used for GET and some PUT routes
+func (a *Assert) DatasetTypeFromRoute(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+		vars := mux.Vars(r)
+		filterID := vars["filter_blueprint_id"]
+
+		ctx := r.Context()
+		if !a.enabled {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		// Get the dataset
+		d, err := a.DatasetAPI.Get(ctx, "", a.svcAuthToken, "", filterID)
+		if err != nil {
+			a.respond.Error(ctx, w, statusCode(err), er{
+				err: errors.Wrap(err, "failed to get dataset"),
+				msg: fmt.Sprintf("failed to get dataset"),
+			})
+			return
+		}
+
+		if d.Type == cantabularFlexibleTable {
+			if err := a.doProxyRequest(w, r); err != nil {
+				a.respond.Error(ctx, w, statusCode(err), er{
+					err: errors.Wrap(err, "failed to do proxy request"),
+					msg: fmt.Sprintf("failed to get dataset"),
+				})
+			}
+			return
+		}
+
+		next.ServeHTTP(w, r)
+
+	})
+}
 func (a *Assert) DatasetType(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !a.enabled {
