@@ -14,6 +14,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 
 	"github.com/ONSdigital/dp-api-clients-go/v2/dataset"
+	datasetAPI "github.com/ONSdigital/dp-api-clients-go/v2/dataset"
 	"github.com/ONSdigital/dp-filter-api/api"
 	apimock "github.com/ONSdigital/dp-filter-api/api/mock"
 	"github.com/ONSdigital/dp-filter-api/filters"
@@ -990,7 +991,15 @@ func TestRequestForwardingMiddleware(t *testing.T) {
 			})
 		})
 
-		Convey("When a GET request is made to the filters/id endpoint and the filter type is flexible", func() {
+		Convey("When a GET request is made to the filters/id endpoint and the filter type is flexible &*&*", func() {
+
+			datasetAPIMock := mock.NewDatasetAPI().Mock
+
+			datasetAPIMock.GetFunc = func(ctx context.Context, ut, st, cid, dsid string) (dataset.DatasetDetails, error) {
+				return dataset.DatasetDetails{
+					Type: "other",
+				}, nil
+			}
 
 			filterFlexAPIMock := &apimock.FilterFlexAPIMock{
 				ForwardRequestFunc: func(r *http.Request) (*http.Response, error) {
@@ -1009,7 +1018,7 @@ func TestRequestForwardingMiddleware(t *testing.T) {
 				}, nil
 			}
 
-			filterApi := api.Setup(conf, mux.NewRouter(), datastoreMock, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
+			filterApi := api.Setup(conf, mux.NewRouter(), datastoreMock, &mock.FilterJob{}, datasetAPIMock, filterFlexAPIMock)
 
 			r, err := http.NewRequest("GET", "http://localhost:22100/filters/foo", nil)
 			So(err, ShouldBeNil)
@@ -1024,7 +1033,7 @@ func TestRequestForwardingMiddleware(t *testing.T) {
 			})
 		})
 
-		Convey("When a GET request is made to the filters/id endpoint and the filter type is not flexible", func() {
+		Convey("When a GET request is made to the filters/id endpoint, the dataset is not cantabular and the filter type is not flexible &*&*", func() {
 
 			filterFlexAPIMock := &apimock.FilterFlexAPIMock{
 				ForwardRequestFunc: func(r *http.Request) (*http.Response, error) {
@@ -1033,6 +1042,14 @@ func TestRequestForwardingMiddleware(t *testing.T) {
 						StatusCode: 200,
 					}, nil
 				},
+			}
+
+			datasetAPIMock := mock.NewDatasetAPI().Mock
+
+			datasetAPIMock.GetFunc = func(ctx context.Context, ut, st, cid, dsid string) (dataset.DatasetDetails, error) {
+				return dataset.DatasetDetails{
+					Type: "other",
+				}, nil
 			}
 
 			datastoreMock := mock.NewDataStore().Mock
@@ -1045,7 +1062,7 @@ func TestRequestForwardingMiddleware(t *testing.T) {
 				}, nil
 			}
 
-			filterApi := api.Setup(conf, mux.NewRouter(), datastoreMock, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
+			filterApi := api.Setup(conf, mux.NewRouter(), datastoreMock, &mock.FilterJob{}, datasetAPIMock, filterFlexAPIMock)
 
 			r, err := http.NewRequest("GET", "http://localhost:22100/filters/foo", nil)
 			So(err, ShouldBeNil)
@@ -1060,7 +1077,15 @@ func TestRequestForwardingMiddleware(t *testing.T) {
 			})
 		})
 
-		Convey("When a GET request is made to the filters/id/dimensions endpoint and the filter type is flexible", func() {
+		Convey("When a GET request is made to the filters/id/dimensions endpoint and the filter type is flexible and the dataset is not cantabular &*&*", func() {
+
+			datasetAPIMock := mock.NewDatasetAPI().Mock
+
+			datasetAPIMock.GetFunc = func(ctx context.Context, ut, st, cid, dsid string) (dataset.DatasetDetails, error) {
+				return dataset.DatasetDetails{
+					Type: "other",
+				}, nil
+			}
 
 			filterFlexAPIMock := &apimock.FilterFlexAPIMock{
 				ForwardRequestFunc: func(r *http.Request) (*http.Response, error) {
@@ -1079,7 +1104,7 @@ func TestRequestForwardingMiddleware(t *testing.T) {
 				}, nil
 			}
 
-			filterApi := api.Setup(conf, mux.NewRouter(), datastoreMock, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
+			filterApi := api.Setup(conf, mux.NewRouter(), datastoreMock, &mock.FilterJob{}, datasetAPIMock, filterFlexAPIMock)
 
 			r, err := http.NewRequest("GET", "http://localhost:22100/filters/foo/dimensions", nil)
 			So(err, ShouldBeNil)
@@ -1094,7 +1119,12 @@ func TestRequestForwardingMiddleware(t *testing.T) {
 			})
 		})
 
-		Convey("When a GET request is made to the filters/id/dimensions endpoint and the filter type is not flexible", func() {
+		Convey("When a GET request is made to the filters/id/dimensions endpoint and the filter type is not flexible and the dataset is not cantabular &*&*", func() {
+			datasetAPIMock := &apimock.DatasetAPIMock{
+				GetFunc: func(ctx context.Context, userToken string, svcToken string, collectionID string, datasetID string) (datasetAPI.DatasetDetails, error) {
+					return datasetAPI.DatasetDetails{Type: "cantabular-api-dataset"}, nil
+				},
+			}
 
 			filterFlexAPIMock := &apimock.FilterFlexAPIMock{
 				ForwardRequestFunc: func(r *http.Request) (*http.Response, error) {
@@ -1115,7 +1145,7 @@ func TestRequestForwardingMiddleware(t *testing.T) {
 				}, nil
 			}
 
-			filterApi := api.Setup(conf, mux.NewRouter(), datastoreMock, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
+			filterApi := api.Setup(conf, mux.NewRouter(), datastoreMock, &mock.FilterJob{}, datasetAPIMock, filterFlexAPIMock)
 
 			r, err := http.NewRequest("GET", "http://localhost:22100/filters/foo/dimensions", nil)
 			So(err, ShouldBeNil)
@@ -1165,10 +1195,13 @@ func TestRequestForwardingMiddleware(t *testing.T) {
 			filterApi.Router.ServeHTTP(w, r)
 
 			Convey("A call to dataset-api is not made", func() {
+				// NOTE: not my test.
+				// TODO: Check if is this a broken test?  the datasetAPIMock never makes it to the Setup, so would always be 0?!
 				So(len(datasetAPIMock.GetCalls()), ShouldEqual, 0)
 			})
 
 			Convey("The request is not forwarded to dp-cantabular-filter-flex-api", func() {
+				// This should make it however
 				So(len(filterFlexAPIMock.ForwardRequestCalls()), ShouldEqual, 0)
 			})
 		})
@@ -1202,6 +1235,8 @@ func TestRequestForwardingMiddleware(t *testing.T) {
 			filterApi.Router.ServeHTTP(w, r)
 
 			Convey("A call to dataset-api is not made", func() {
+				// TODO: again here, can we validate that this is a meaningful test, if you initialise a datastore Mock and then dont use it in setup
+				// then what does this test really mean?
 				So(len(datastoreMock.GetFilterCalls()), ShouldEqual, 0)
 			})
 
