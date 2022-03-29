@@ -89,12 +89,33 @@ func Setup(
 		cfg.AssertDatasetType,
 	)
 
+	/*
+	   There is an assumption with the middleware that the datset handler
+	   only deals with incoming dataset bodies that have some kind of
+	   body. This is not the case for the GET and PUT
+
+	*/
 	// routes
 	api.Router.Handle("/filters", assert.DatasetType(http.HandlerFunc(api.postFilterBlueprintHandler))).Methods("POST")
-	api.Router.Handle("/filters/{filter_blueprint_id}", assert.FilterType(http.HandlerFunc(api.getFilterBlueprintHandler))).Methods("GET")
-	api.Router.Handle("/filters/{filter_blueprint_id}/dimensions", assert.FilterType(http.HandlerFunc(api.getFilterBlueprintDimensionsHandler))).Methods("GET")
 
-	api.Router.HandleFunc("/filters/{filter_blueprint_id}", api.putFilterBlueprintHandler).Methods("PUT")
+	/*
+	   you should be able to use the same assertion to
+	*/
+	// NEW
+	// And the dataset type is "Cantabular_flexible_table"
+	// GET /filters/{id} endpoint in dp-cantabular-filter-flex-api
+	api.Router.Handle("/filters/{filter_blueprint_id}", assert.DatasetType(assert.FilterType(http.HandlerFunc(api.getFilterBlueprintHandler)))).Methods("GET")
+
+	// NEW
+	// And the dataset type is "Cantabular_flexible_table"
+	// GET /filters/{id}/dimensions endpoint in dp-cantabular-filter-flex-api
+	api.Router.Handle("/filters/{filter_blueprint_id}/dimensions", assert.DatasetType(assert.FilterType(http.HandlerFunc(api.getFilterBlueprintDimensionsHandler)))).Methods("GET")
+
+	// NEW
+	// And the dataset type is "Cantabular_flexible_table"
+	// PUT /filters/{id} endpoint in dp-cantabular-filter-flex-api
+	api.Router.Handle("/filters/{filter_blueprint_id}", assert.DatasetType(http.HandlerFunc(api.putFilterBlueprintHandler))).Methods("PUT")
+
 	api.Router.HandleFunc("/filters/{filter_blueprint_id}/dimensions/{name}", api.getFilterBlueprintDimensionHandler).Methods("GET")
 	api.Router.HandleFunc("/filters/{filter_blueprint_id}/dimensions/{name}", api.addFilterBlueprintDimensionHandler).Methods("POST")
 	api.Router.HandleFunc("/filters/{filter_blueprint_id}/dimensions/{name}", api.patchFilterBlueprintDimensionHandler).Methods("PATCH")
@@ -104,10 +125,13 @@ func Setup(
 	api.Router.HandleFunc("/filters/{filter_blueprint_id}/dimensions/{name}/options/{option}", api.addFilterBlueprintDimensionOptionHandler).Methods("POST")
 	api.Router.HandleFunc("/filters/{filter_blueprint_id}/dimensions/{name}/options/{option}", api.removeFilterBlueprintDimensionOptionHandler).Methods("DELETE")
 
-	api.Router.HandleFunc("/filter-outputs/{filter_output_id}", api.getFilterOutputHandler).Methods("GET")
+	api.Router.HandleFunc("/filter-outputs/{filter_outputl_id}", api.getFilterOutputHandler).Methods("GET")
 
 	if cfg.EnablePrivateEndpoints {
-		api.Router.HandleFunc("/filter-outputs/{filter_output_id}", api.updateFilterOutputHandler).Methods("PUT")
+		// NEW -> cantabular flexible table -> PUT /filter-outputs/{filter-output-id} endpoint in dp-cantabular-filter-flex-api
+		// dataset type is "Cantabular_flexible_table"
+		// PUT /filter-outputs/{filter-output-id}
+		api.Router.Handle("/filter-outputs/{filter_output_id}", assert.DatasetType(http.HandlerFunc(api.updateFilterOutputHandler))).Methods("PUT")
 		api.Router.HandleFunc("/filter-outputs/{filter_output_id}/events", api.addEventHandler).Methods("POST")
 	}
 
