@@ -9,8 +9,8 @@ import (
 
 	"github.com/ONSdigital/log.go/v2/log"
 
-	"github.com/pkg/errors"
 	"github.com/gorilla/mux"
+	"github.com/pkg/errors"
 )
 
 const (
@@ -28,6 +28,13 @@ type Assert struct {
 	enabled       bool
 }
 
+/*
+   Work to be done is Forward the request on to the correct server.
+   - GET /filters/{filter_blueprint_id}
+   - PUT **
+   - GET /filters/{filter_blueprint_id}/dimensions
+   - PUT **
+*/
 func NewAssert(r responder, d datasetAPIClient, f filterFlexAPIClient, ds datastore, t string, e bool) *Assert {
 	return &Assert{
 		svcAuthToken:  t,
@@ -98,8 +105,8 @@ func (a *Assert) DatasetType(next http.Handler) http.Handler {
 
 		if err := json.NewDecoder(rdr).Decode(&req); err != nil {
 			a.respond.Error(ctx, w, http.StatusBadRequest, er{
-				err:    errors.Wrap(err, "failed to decode json"),
-				msg:    fmt.Sprintf("badly formed request: %s", err),
+				err: errors.Wrap(err, "failed to decode json"),
+				msg: fmt.Sprintf("badly formed request: %s", err),
 			})
 			return
 		}
@@ -108,8 +115,8 @@ func (a *Assert) DatasetType(next http.Handler) http.Handler {
 		d, err := a.DatasetAPI.Get(ctx, "", a.svcAuthToken, "", req.Dataset.ID)
 		if err != nil {
 			a.respond.Error(ctx, w, statusCode(err), er{
-				err:    errors.Wrap(err, "failed to get dataset"),
-				msg:    fmt.Sprintf("failed to get dataset"),
+				err: errors.Wrap(err, "failed to get dataset"),
+				msg: fmt.Sprintf("failed to get dataset"),
 			})
 			return
 		}
@@ -119,8 +126,8 @@ func (a *Assert) DatasetType(next http.Handler) http.Handler {
 		if d.Type == cantabularFlexibleTable {
 			if err := a.doProxyRequest(w, r); err != nil {
 				a.respond.Error(ctx, w, statusCode(err), er{
-					err:    errors.Wrap(err, "failed to do proxy request"),
-					msg:    fmt.Sprintf("failed to get dataset"),
+					err: errors.Wrap(err, "failed to do proxy request"),
+					msg: fmt.Sprintf("failed to get dataset"),
 				})
 			}
 			return
@@ -146,8 +153,8 @@ func (a *Assert) FilterType(next http.Handler) http.Handler {
 		f, err := a.store.GetFilter(ctx, filterID, anyEtagSelector)
 		if err != nil {
 			a.respond.Error(ctx, w, statusCode(err), er{
-				err:    errors.Wrap(err, "failed to get dataset"),
-				msg:    fmt.Sprintf("failed to get dataset"),
+				err: errors.Wrap(err, "failed to get dataset"),
+				msg: fmt.Sprintf("failed to get dataset"),
 			})
 			return
 		}
@@ -155,8 +162,8 @@ func (a *Assert) FilterType(next http.Handler) http.Handler {
 		if f.Type == flexible {
 			if err := a.doProxyRequest(w, r); err != nil {
 				a.respond.Error(ctx, w, statusCode(err), er{
-					err:    errors.Wrap(err, "failed to do proxy request"),
-					msg:    fmt.Sprintf("failed to get dataset"),
+					err: errors.Wrap(err, "failed to do proxy request"),
+					msg: fmt.Sprintf("failed to get dataset"),
 				})
 			}
 			return
