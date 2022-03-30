@@ -43,6 +43,10 @@ func NewAssert(r responder, d datasetAPIClient, f filterFlexAPIClient, ds datast
 // Used for GET and some PUT routes
 func (a *Assert) DatasetTypeFromRoute(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !a.enabled {
+			next.ServeHTTP(w, r)
+			return
+		}
 
 		vars := mux.Vars(r)
 		filterID := vars["filter_blueprint_id"]
