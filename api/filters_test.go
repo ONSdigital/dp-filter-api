@@ -1270,8 +1270,6 @@ func TestRequestForwardingMiddleware(t *testing.T) {
 			filterApi.Router.ServeHTTP(w, r)
 
 			Convey("A call to dataset-api is not made", func() {
-				// NOTE: not my test.
-				// TODO: Check if is this a broken test?  the datasetAPIMock never makes it to the Setup, so would always be 0?!
 				So(len(datasetAPIMock.GetCalls()), ShouldEqual, 0)
 			})
 
@@ -1310,8 +1308,6 @@ func TestRequestForwardingMiddleware(t *testing.T) {
 			filterApi.Router.ServeHTTP(w, r)
 
 			Convey("A call to dataset-api is not made", func() {
-				// TODO: again here, can we validate that this is a meaningful test, if you initialise a datastore Mock and then dont use it in setup
-				// then what does this test really mean?
 				So(len(datastoreMock.GetFilterCalls()), ShouldEqual, 0)
 			})
 
