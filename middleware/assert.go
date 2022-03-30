@@ -61,7 +61,7 @@ func (a *Assert) DatasetTypeFromRoute(next http.Handler) http.Handler {
 		}
 
 		// Get the dataset
-		d, err := a.DatasetAPI.Get(ctx, "", a.svcAuthToken, "", filterID)
+		dataset, err := a.DatasetAPI.Get(ctx, "", a.svcAuthToken, "", filterID)
 		if err != nil {
 			a.respond.Error(ctx, w, statusCode(err), er{
 				err: errors.Wrap(err, "failed to get dataset"),
@@ -70,7 +70,7 @@ func (a *Assert) DatasetTypeFromRoute(next http.Handler) http.Handler {
 			return
 		}
 
-		if d.Type == cantabularFlexibleTable {
+		if dataset.Type == cantabularFlexibleTable {
 			if err := a.doProxyRequest(w, r); err != nil {
 				a.respond.Error(ctx, w, statusCode(err), er{
 					err: errors.Wrap(err, "failed to do proxy request"),
