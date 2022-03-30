@@ -28,13 +28,6 @@ type Assert struct {
 	enabled       bool
 }
 
-/*
-   Work to be done is Forward the request on to the correct server.
-   - GET /filters/{filter_blueprint_id}
-   - PUT **
-   - GET /filters/{filter_blueprint_id}/dimensions
-   - PUT **
-*/
 func NewAssert(r responder, d datasetAPIClient, f filterFlexAPIClient, ds datastore, t string, e bool) *Assert {
 	return &Assert{
 		svcAuthToken:  t,
