@@ -39,17 +39,13 @@ func NewAssert(r responder, d datasetAPIClient, f filterFlexAPIClient, ds datast
 	}
 }
 
-// Filter Flex Forwarder that checks for dataset ID in the route, not in the body as below.
-// Used for GET and some PUT routes
-func (a *Assert) DatasetTypeFromRoute(next http.Handler) http.Handler {
+// Filter Flex Forwarder that checks for filter in the route, not in the body as below.
+// Used for PUT filter-output/{filter-output-id}
+func (a *Assert) FilterOutputDatasetType(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !a.enabled {
-			next.ServeHTTP(w, r)
-			return
-		}
 
 		vars := mux.Vars(r)
-		filterID := vars["filter_blueprint_id"]
+		filterOutputID := vars["filter_output_id"]
 
 		ctx := r.Context()
 		if !a.enabled {
@@ -58,7 +54,12 @@ func (a *Assert) DatasetTypeFromRoute(next http.Handler) http.Handler {
 		}
 
 		// Get the dataset
-		dataset, err := a.DatasetAPI.Get(ctx, "", a.svcAuthToken, "", filterID)
+		// double check that the filter
+		// make sure that the services are being
+
+		// get dp-compose up and running properly - test that way
+		// FILTER TYPE
+		filterOutput, err := a.store.GetFilterOutput(ctx, filterOutputID)
 		if err != nil {
 			a.respond.Error(ctx, w, statusCode(err), er{
 				err: errors.Wrap(err, "failed to get dataset"),
@@ -67,7 +68,7 @@ func (a *Assert) DatasetTypeFromRoute(next http.Handler) http.Handler {
 			return
 		}
 
-		if dataset.Type == cantabularFlexibleTable {
+		if filterOutput.Type == flexible {
 			if err := a.doProxyRequest(w, r); err != nil {
 				a.respond.Error(ctx, w, statusCode(err), er{
 					err: errors.Wrap(err, "failed to do proxy request"),
