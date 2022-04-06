@@ -14,7 +14,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 
 	"github.com/ONSdigital/dp-api-clients-go/v2/dataset"
-	datasetAPI "github.com/ONSdigital/dp-api-clients-go/v2/dataset"
 	"github.com/ONSdigital/dp-filter-api/api"
 	apimock "github.com/ONSdigital/dp-filter-api/api/mock"
 	"github.com/ONSdigital/dp-filter-api/filters"
@@ -943,9 +942,6 @@ func TestRequestForwardingMiddleware(t *testing.T) {
 					Type: "cantabular_flexible_table",
 				}, nil
 			}
-			datasetAPIMock.GetVersionFunc = func(ctx context.Context, userAuthToken, serviceAuthToken, downloadServiceAuthToken, collectionID, datasetID, edition, version string) (datasetAPI.Version, error) {
-				return datasetAPI.Version{Version: 1}, nil
-			}
 
 			filterApi := api.Setup(conf, mux.NewRouter(), &mock.DataStore{}, &mock.FilterJob{}, datasetAPIMock, filterFlexAPIMock)
 
@@ -963,7 +959,7 @@ func TestRequestForwardingMiddleware(t *testing.T) {
 			})
 		})
 
-		Convey("When a POST request is made to the filters endpoint and the dataset type is not cantabular", func() {
+		Convey("When a POST request is made to the filters endpoint and the dataset type is not cantabular_flexible_table", func() {
 
 			filterFlexAPIMock := &apimock.FilterFlexAPIMock{
 				ForwardRequestFunc: func(r *http.Request) (*http.Response, error) {
@@ -998,15 +994,7 @@ func TestRequestForwardingMiddleware(t *testing.T) {
 			})
 		})
 
-		Convey("When a GET request is made to the filters/id endpoint and the filter type is flexible and the dataset is not cantabular", func() {
-
-			datasetAPIMock := mock.NewDatasetAPI().Mock
-
-			datasetAPIMock.GetFunc = func(ctx context.Context, ut, st, cid, dsid string) (dataset.DatasetDetails, error) {
-				return dataset.DatasetDetails{
-					Type: "other",
-				}, nil
-			}
+		Convey("When a GET request is made to the filters/id endpoint and the filter type is flexible", func() {
 
 			filterFlexAPIMock := &apimock.FilterFlexAPIMock{
 				ForwardRequestFunc: func(r *http.Request) (*http.Response, error) {
@@ -1025,98 +1013,9 @@ func TestRequestForwardingMiddleware(t *testing.T) {
 				}, nil
 			}
 
-			filterApi := api.Setup(conf, mux.NewRouter(), datastoreMock, &mock.FilterJob{}, datasetAPIMock, filterFlexAPIMock)
+			filterApi := api.Setup(conf, mux.NewRouter(), datastoreMock, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
 
 			r, err := http.NewRequest("GET", "http://localhost:22100/filters/foo", nil)
-			So(err, ShouldBeNil)
-			filterApi.Router.ServeHTTP(w, r)
-
-			Convey("A call to datastore is made to check the filter type", func() {
-				So(len(datastoreMock.GetFilterCalls()), ShouldEqual, 1)
-			})
-			Convey("A call to datasetAPI is made to check the dataset type", func() {
-				So(len(datasetAPIMock.GetCalls()), ShouldEqual, 1)
-			})
-
-			Convey("The request is forwarded to dp-cantabular-filter-flex-api", func() {
-				So(len(filterFlexAPIMock.ForwardRequestCalls()), ShouldEqual, 1)
-			})
-		})
-
-		Convey("When a GET request is made to the filters/id endpoint, the dataset is not cantabular and the filter type is not flexible", func() {
-
-			filterFlexAPIMock := &apimock.FilterFlexAPIMock{
-				ForwardRequestFunc: func(r *http.Request) (*http.Response, error) {
-					return &http.Response{
-						Body:       io.NopCloser(bytes.NewReader([]byte("test body"))),
-						StatusCode: 200,
-					}, nil
-				},
-			}
-
-			datasetAPIMock := mock.NewDatasetAPI().Mock
-
-			datasetAPIMock.GetFunc = func(ctx context.Context, ut, st, cid, dsid string) (dataset.DatasetDetails, error) {
-				return dataset.DatasetDetails{
-					Type: "other",
-				}, nil
-			}
-
-			datastoreMock := mock.NewDataStore().Mock
-
-			datastoreMock.GetFilterFunc = func(ctx context.Context, filterID, etag string) (*models.Filter, error) {
-				return &models.Filter{
-					Dataset: &models.Dataset{
-						Version: 1,
-					},
-				}, nil
-			}
-
-			filterApi := api.Setup(conf, mux.NewRouter(), datastoreMock, &mock.FilterJob{}, datasetAPIMock, filterFlexAPIMock)
-
-			r, err := http.NewRequest("GET", "http://localhost:22100/filters/foo", nil)
-			So(err, ShouldBeNil)
-			filterApi.Router.ServeHTTP(w, r)
-
-			Convey("A call to datastore is made to check the filter type", func() {
-				So(len(datastoreMock.GetFilterCalls()), ShouldEqual, 2)
-			})
-
-			Convey("The request is not forwarded to dp-cantabular-filter-flex-api", func() {
-				So(len(filterFlexAPIMock.ForwardRequestCalls()), ShouldEqual, 0)
-			})
-		})
-
-		Convey("When a GET request is made to the filters/id/dimensions endpoint and the filter type is flexible and the dataset is not cantabular", func() {
-
-			datasetAPIMock := mock.NewDatasetAPI().Mock
-
-			datasetAPIMock.GetFunc = func(ctx context.Context, ut, st, cid, dsid string) (dataset.DatasetDetails, error) {
-				return dataset.DatasetDetails{
-					Type: "other",
-				}, nil
-			}
-
-			filterFlexAPIMock := &apimock.FilterFlexAPIMock{
-				ForwardRequestFunc: func(r *http.Request) (*http.Response, error) {
-					return &http.Response{
-						Body:       io.NopCloser(bytes.NewReader([]byte("test body"))),
-						StatusCode: 200,
-					}, nil
-				},
-			}
-
-			datastoreMock := mock.NewDataStore().Mock
-
-			datastoreMock.GetFilterFunc = func(ctx context.Context, filterID, etag string) (*models.Filter, error) {
-				return &models.Filter{
-					Type: "flexible",
-				}, nil
-			}
-
-			filterApi := api.Setup(conf, mux.NewRouter(), datastoreMock, &mock.FilterJob{}, datasetAPIMock, filterFlexAPIMock)
-
-			r, err := http.NewRequest("GET", "http://localhost:22100/filters/foo/dimensions", nil)
 			So(err, ShouldBeNil)
 			filterApi.Router.ServeHTTP(w, r)
 
@@ -1129,12 +1028,7 @@ func TestRequestForwardingMiddleware(t *testing.T) {
 			})
 		})
 
-		Convey("When a GET request is made to the filters/id/dimensions endpoint and the filter type is not flexible and the dataset is not cantabular", func() {
-			datasetAPIMock := &apimock.DatasetAPIMock{
-				GetFunc: func(ctx context.Context, userToken string, svcToken string, collectionID string, datasetID string) (datasetAPI.DatasetDetails, error) {
-					return datasetAPI.DatasetDetails{Type: "other"}, nil
-				},
-			}
+		Convey("When a GET request is made to the filters/id endpoint and the filter type is not flexible", func() {
 
 			filterFlexAPIMock := &apimock.FilterFlexAPIMock{
 				ForwardRequestFunc: func(r *http.Request) (*http.Response, error) {
@@ -1154,11 +1048,78 @@ func TestRequestForwardingMiddleware(t *testing.T) {
 					},
 				}, nil
 			}
-			datasetAPIMock.GetVersionFunc = func(ctx context.Context, userAuthToken, serviceAuthToken, downloadServiceAuthToken, collectionID, datasetID, edition, version string) (datasetAPI.Version, error) {
-				return datasetAPI.Version{Version: 1}, nil
+
+			filterApi := api.Setup(conf, mux.NewRouter(), datastoreMock, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
+
+			r, err := http.NewRequest("GET", "http://localhost:22100/filters/foo", nil)
+			So(err, ShouldBeNil)
+			filterApi.Router.ServeHTTP(w, r)
+
+			Convey("A call to datastore is made to check the filter type", func() {
+				So(len(datastoreMock.GetFilterCalls()), ShouldEqual, 2)
+			})
+
+			Convey("The request is not forwarded to dp-cantabular-filter-flex-api", func() {
+				So(len(filterFlexAPIMock.ForwardRequestCalls()), ShouldEqual, 0)
+			})
+		})
+
+		Convey("When a GET request is made to the filters/id/dimensions endpoint and the filter type is flexible", func() {
+
+			filterFlexAPIMock := &apimock.FilterFlexAPIMock{
+				ForwardRequestFunc: func(r *http.Request) (*http.Response, error) {
+					return &http.Response{
+						Body:       io.NopCloser(bytes.NewReader([]byte("test body"))),
+						StatusCode: 200,
+					}, nil
+				},
 			}
 
-			filterApi := api.Setup(conf, mux.NewRouter(), datastoreMock, &mock.FilterJob{}, datasetAPIMock, filterFlexAPIMock)
+			datastoreMock := mock.NewDataStore().Mock
+
+			datastoreMock.GetFilterFunc = func(ctx context.Context, filterID, etag string) (*models.Filter, error) {
+				return &models.Filter{
+					Type: "flexible",
+				}, nil
+			}
+
+			filterApi := api.Setup(conf, mux.NewRouter(), datastoreMock, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
+
+			r, err := http.NewRequest("GET", "http://localhost:22100/filters/foo/dimensions", nil)
+			So(err, ShouldBeNil)
+			filterApi.Router.ServeHTTP(w, r)
+
+			Convey("A call to datastore is made to check the filter type", func() {
+				So(len(datastoreMock.GetFilterCalls()), ShouldEqual, 1)
+			})
+
+			Convey("The request is forwarded to dp-cantabular-filter-flex-api", func() {
+				So(len(filterFlexAPIMock.ForwardRequestCalls()), ShouldEqual, 1)
+			})
+		})
+
+		Convey("When a GET request is made to the filters/id/dimensions endpoint and the filter type is not flexible", func() {
+
+			filterFlexAPIMock := &apimock.FilterFlexAPIMock{
+				ForwardRequestFunc: func(r *http.Request) (*http.Response, error) {
+					return &http.Response{
+						Body:       io.NopCloser(bytes.NewReader([]byte("test body"))),
+						StatusCode: 200,
+					}, nil
+				},
+			}
+
+			datastoreMock := mock.NewDataStore().Mock
+
+			datastoreMock.GetFilterFunc = func(ctx context.Context, filterID, etag string) (*models.Filter, error) {
+				return &models.Filter{
+					Dataset: &models.Dataset{
+						Version: 1,
+					},
+				}, nil
+			}
+
+			filterApi := api.Setup(conf, mux.NewRouter(), datastoreMock, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
 
 			r, err := http.NewRequest("GET", "http://localhost:22100/filters/foo/dimensions", nil)
 			So(err, ShouldBeNil)
@@ -1173,59 +1134,77 @@ func TestRequestForwardingMiddleware(t *testing.T) {
 			})
 		})
 
-		Convey("When there is a PUT request to /filter-outputs/test-output-id and the dataset type is cantabular", func() {
-			filterFlexMock, datasetAPIMock, datastoreMock := mock.GenerateMocksForMiddleware(200, cantabularFlexibleTable, 1, "not-applicable")
+		Convey("When there is a PUT request to /filter-outputs/test-output-id and the filter type is flexible", func() {
+			filterFlexMock, datastoreMock := mock.GenerateMocksForMiddleware(200, 1, "flexible")
 
-			filterApi := api.Setup(conf, mux.NewRouter(), datastoreMock, &mock.FilterJob{}, datasetAPIMock, filterFlexMock)
+			filterApi := api.Setup(conf, mux.NewRouter(), datastoreMock, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexMock)
 
 			r, err := http.NewRequest("PUT", "http://localhost:22100/filter-outputs/test-output-id", nil)
 			So(err, ShouldBeNil)
 
 			filterApi.Router.ServeHTTP(w, r)
-			Convey("A call is made to datastore to check the dataset type", func() {
-				So(len(datasetAPIMock.GetCalls()), ShouldEqual, 1)
-			})
 
-			// only need to test once as if it works once, works for all other routes
 			Convey("A call is not made to datastore to check the filter type", func() {
-				So(len(datastoreMock.GetFilterCalls()), ShouldEqual, 0)
+				So(len(datastoreMock.GetFilterOutputCalls()), ShouldEqual, 1)
 			})
 			Convey("The request is forwarded to dp-cantabular-filter-flex-api", func() {
 				So(len(filterFlexMock.ForwardRequestCalls()), ShouldEqual, 1)
 			})
 		})
 
-		Convey("When there is a GET request to /filters/{filter_blueprint_id}/dimensions and the dataset type is cantabular", func() {
-			filterFlexMock, datasetAPIMock, datastoreMock := mock.GenerateMocksForMiddleware(200, cantabularFlexibleTable, 1, "not-applicable")
+		Convey("When there is a GET request to /filters/{filter_blueprint_id}/dimensions and the filter type is not flexible", func() {
 
-			filterApi := api.Setup(conf, mux.NewRouter(), datastoreMock, &mock.FilterJob{}, datasetAPIMock, filterFlexMock)
+			// set the Filter flex Call
+			filterFlexMock := &apimock.FilterFlexAPIMock{
+				ForwardRequestFunc: func(r *http.Request) (*http.Response, error) { //
+					return &http.Response{
+						Body:       io.NopCloser(bytes.NewReader([]byte("test body"))),
+						StatusCode: 200,
+					}, nil
+				},
+			}
+
+			datastoreMock := mock.NewDataStore().Mock
+
+			datastoreMock.GetFilterFunc = func(ctx context.Context, filterID, etag string) (*models.Filter, error) {
+				return &models.Filter{
+					Dataset: &models.Dataset{
+						Version: 1,
+					},
+					Type: "not-flexible",
+				}, nil
+			}
+
+			filterApi := api.Setup(conf, mux.NewRouter(), datastoreMock, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexMock)
 
 			r, err := http.NewRequest("GET", "http://localhost:22100/filters/test-output-id/dimensions", nil)
 			So(err, ShouldBeNil)
 
 			filterApi.Router.ServeHTTP(w, r)
 
+			// If not flexible, should hit twice as hits get filter again later on
 			Convey("A call is made to datastore to check the dataset type", func() {
-				So(len(datasetAPIMock.GetCalls()), ShouldEqual, 1)
+				So(len(datastoreMock.GetFilterCalls()), ShouldEqual, 2)
 			})
 
 			Convey("The request is forwarded to dp-cantabular-filter-flex-api", func() {
-				So(len(filterFlexMock.ForwardRequestCalls()), ShouldEqual, 1)
+				So(len(filterFlexMock.ForwardRequestCalls()), ShouldEqual, 0)
 			})
 
 		})
 
-		Convey("When there is a PUT request to /filters/{id} and the dataset type is cantabular", func() {
-			filterFlexMock, datasetAPIMock, datastoreMock := mock.GenerateMocksForMiddleware(200, cantabularFlexibleTable, 1, "not-applicable")
+		Convey("When there is a PUT request to /filters/{id} and the filter type is flexible", func() {
 
-			filterApi := api.Setup(conf, mux.NewRouter(), datastoreMock, &mock.FilterJob{}, datasetAPIMock, filterFlexMock)
+			filterFlexMock, datastoreMock := mock.GenerateMocksForMiddleware(200, 1, "flexible")
+
+			filterApi := api.Setup(conf, mux.NewRouter(), datastoreMock, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexMock)
 
 			r, err := http.NewRequest("PUT", "http://localhost:22100/filters/test-output-id", nil)
 			So(err, ShouldBeNil)
 			filterApi.Router.ServeHTTP(w, r)
 
-			Convey("A call is made to datastore to check the dataset type", func() {
-				So(len(datasetAPIMock.GetCalls()), ShouldEqual, 1)
+			Convey("A call is made to datastore to check its filter type", func() {
+				So(len(datastoreMock.GetFilterCalls()), ShouldEqual, 1)
 			})
 
 			Convey("The request is forwarded to dp-cantabular-filter-flex-api", func() {
