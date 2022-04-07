@@ -1144,7 +1144,7 @@ func TestRequestForwardingMiddleware(t *testing.T) {
 
 			filterApi.Router.ServeHTTP(w, r)
 
-			Convey("A call is not made to datastore to check the filter type", func() {
+			Convey("A call is made to datastore to check the filter type", func() {
 				So(len(datastoreMock.GetFilterOutputCalls()), ShouldEqual, 1)
 			})
 			Convey("The request is forwarded to dp-cantabular-filter-flex-api", func() {
