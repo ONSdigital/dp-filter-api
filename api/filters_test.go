@@ -1135,6 +1135,7 @@ func TestRequestForwardingMiddleware(t *testing.T) {
 		})
 
 		Convey("When there is a PUT request to /filter-outputs/test-output-id and the filter type is flexible", func() {
+
 			filterFlexMock, datastoreMock := mock.GenerateMocksForMiddleware(http.StatusOK, 1, "flexible")
 
 			filterApi := api.Setup(conf, mux.NewRouter(), datastoreMock, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexMock)
@@ -1154,7 +1155,6 @@ func TestRequestForwardingMiddleware(t *testing.T) {
 
 		Convey("When there is a GET request to /filters/{filter_blueprint_id}/dimensions and the filter type is not flexible", func() {
 
-			// set the Filter flex Call
 			filterFlexMock := &apimock.FilterFlexAPIMock{
 				ForwardRequestFunc: func(r *http.Request) (*http.Response, error) { //
 					return &http.Response{
