@@ -101,9 +101,10 @@ type LinkObject struct {
 
 // Dimension represents an object containing a list of dimension values and the dimension name
 type Dimension struct {
-	URL     string   `bson:"dimension_url,omitempty" json:"dimension_url,omitempty"`
-	Name    string   `bson:"name"                    json:"name"`
-	Options []string `bson:"options,omitempty"                 json:"options"`
+	URL        string   `bson:"dimension_url,omitempty" json:"dimension_url,omitempty"`
+	Name       string   `bson:"name"                    json:"name"`
+	Options    []string `bson:"options,omitempty"       json:"options"`
+	IsAreaType *bool    `bson:"is_area_type,omitempty"  json:"is_area_type,omitempty"`
 }
 
 // EncodedOptions returns the list of options for this dimension after escaping the values for URL query paramters

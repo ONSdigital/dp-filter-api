@@ -299,6 +299,24 @@ func (api *FilterAPI) addFilterBlueprintDimensionHandler(w http.ResponseWriter, 
 	log.Info(ctx, "created new dimension for filter blueprint", logData)
 }
 
+// Handler for a list of put operations against the filter dimensions
+func (api *FilterAPI) putFilterBlueprintDimensionHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	filterBlueprintID := vars["filter_blueprint_id"]
+	dimensionName := vars["name"]
+
+	logData := log.Data{
+		"filter_blueprint_id": filterBlueprintID,
+		"dimension":           dimensionName,
+	}
+	ctx := r.Context()
+	log.Info(ctx, "put filter blueprint dimension", logData)
+
+	err := errors.New("filter not of type flexible")
+	log.Error(ctx, "invalid filter type", err, logData)
+	http.Error(w, BadRequest, http.StatusBadRequest)
+}
+
 func (api *FilterAPI) addFilterBlueprintDimension(ctx context.Context, filterBlueprintID, dimensionName string, options []string, eTag string) (newETag string, err error) {
 
 	filterBlueprint, err := api.getFilterBlueprint(ctx, filterBlueprintID, eTag)
