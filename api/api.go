@@ -91,9 +91,9 @@ func Setup(
 
 	// routes
 	api.Router.Handle("/filters", assert.DatasetType(http.HandlerFunc(api.postFilterBlueprintHandler))).Methods("POST")
-	api.Router.Handle("/filters/{filter_blueprint_id}", assert.DatasetTypeFromRoute(assert.FilterType(http.HandlerFunc(api.getFilterBlueprintHandler)))).Methods("GET")
-	api.Router.Handle("/filters/{filter_blueprint_id}/dimensions", assert.DatasetTypeFromRoute(assert.FilterType(http.HandlerFunc(api.getFilterBlueprintDimensionsHandler)))).Methods("GET")
-	api.Router.Handle("/filters/{filter_blueprint_id}", assert.DatasetTypeFromRoute(http.HandlerFunc(api.putFilterBlueprintHandler))).Methods("PUT")
+	api.Router.Handle("/filters/{filter_blueprint_id}", assert.FilterType(http.HandlerFunc(api.getFilterBlueprintHandler))).Methods("GET")
+	api.Router.Handle("/filters/{filter_blueprint_id}/dimensions", assert.FilterType(http.HandlerFunc(api.getFilterBlueprintDimensionsHandler))).Methods("GET")
+	api.Router.Handle("/filters/{filter_blueprint_id}", assert.FilterType(http.HandlerFunc(api.putFilterBlueprintHandler))).Methods("PUT")
 
 	api.Router.HandleFunc("/filters/{filter_blueprint_id}/dimensions/{name}", api.getFilterBlueprintDimensionHandler).Methods("GET")
 	api.Router.HandleFunc("/filters/{filter_blueprint_id}/dimensions/{name}", api.addFilterBlueprintDimensionHandler).Methods("POST")
@@ -106,7 +106,7 @@ func Setup(
 	api.Router.HandleFunc("/filter-outputs/{filter_output_id}", api.getFilterOutputHandler).Methods("GET")
 
 	if cfg.EnablePrivateEndpoints {
-		api.Router.Handle("/filter-outputs/{filter_output_id}", assert.DatasetTypeFromRoute(http.HandlerFunc(api.updateFilterOutputHandler))).Methods("PUT")
+		api.Router.Handle("/filter-outputs/{filter_output_id}", assert.FilterOutputDatasetType(http.HandlerFunc(api.updateFilterOutputHandler))).Methods("PUT")
 		api.Router.HandleFunc("/filter-outputs/{filter_output_id}/events", api.addEventHandler).Methods("POST")
 	}
 
