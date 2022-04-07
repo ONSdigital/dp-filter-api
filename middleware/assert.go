@@ -53,12 +53,6 @@ func (a *Assert) FilterOutputDatasetType(next http.Handler) http.Handler {
 			return
 		}
 
-		// Get the dataset
-		// double check that the filter
-		// make sure that the services are being
-
-		// get dp-compose up and running properly - test that way
-		// FILTER TYPE
 		filterOutput, err := a.store.GetFilterOutput(ctx, filterOutputID)
 		if err != nil {
 			a.respond.Error(ctx, w, statusCode(err), er{

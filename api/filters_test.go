@@ -1253,7 +1253,6 @@ func TestRequestForwardingMiddleware(t *testing.T) {
 			})
 
 			Convey("The request is not forwarded to dp-cantabular-filter-flex-api", func() {
-				// This should make it however
 				So(len(filterFlexAPIMock.ForwardRequestCalls()), ShouldEqual, 0)
 			})
 		})
