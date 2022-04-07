@@ -1135,7 +1135,7 @@ func TestRequestForwardingMiddleware(t *testing.T) {
 		})
 
 		Convey("When there is a PUT request to /filter-outputs/test-output-id and the filter type is flexible", func() {
-			filterFlexMock, datastoreMock := mock.GenerateMocksForMiddleware(200, 1, "flexible")
+			filterFlexMock, datastoreMock := mock.GenerateMocksForMiddleware(http.StatusOK, 1, "flexible")
 
 			filterApi := api.Setup(conf, mux.NewRouter(), datastoreMock, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexMock)
 
@@ -1195,7 +1195,7 @@ func TestRequestForwardingMiddleware(t *testing.T) {
 
 		Convey("When there is a PUT request to /filters/{id} and the filter type is flexible", func() {
 
-			filterFlexMock, datastoreMock := mock.GenerateMocksForMiddleware(200, 1, "flexible")
+			filterFlexMock, datastoreMock := mock.GenerateMocksForMiddleware(http.StatusOK, 1, "flexible")
 
 			filterApi := api.Setup(conf, mux.NewRouter(), datastoreMock, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexMock)
 
@@ -1329,6 +1329,26 @@ func TestRequestForwardingMiddleware(t *testing.T) {
 			Convey("The request is not forwarded to dp-cantabular-filter-flex-api", func() {
 				So(len(filterFlexAPIMock.ForwardRequestCalls()), ShouldEqual, 0)
 			})
+		})
+
+		Convey("When a PUT request is made to the filter-outputs/id and the filter type is flexible", func() {
+			filterFlexMock, datastoreMock := mock.GenerateMocksForMiddleware(http.StatusOK, 1, "flexible")
+
+			filterApi := api.Setup(conf, mux.NewRouter(), datastoreMock, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexMock)
+
+			reader := strings.NewReader(`{"dataset":{"version":1, "edition":"1", "id":"1", "type": "cantabular_flexible_table"} }`)
+			r, err := http.NewRequest("PUT", "http://localhost:22100/filter-outputs/test-output-id", reader)
+			So(err, ShouldBeNil)
+
+			filterApi.Router.ServeHTTP(w, r)
+
+			Convey("A call is not made to datastore to check the filter type", func() {
+				So(len(datastoreMock.GetFilterOutputCalls()), ShouldEqual, 0)
+			})
+			Convey("The request is not  forwarded to dp-cantabular-filter-flex-api", func() {
+				So(len(filterFlexMock.ForwardRequestCalls()), ShouldEqual, 0)
+			})
+
 		})
 	})
 }
