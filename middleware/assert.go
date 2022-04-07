@@ -41,7 +41,7 @@ func NewAssert(r responder, d datasetAPIClient, f filterFlexAPIClient, ds datast
 
 // Filter Flex Forwarder that checks for filter in the route, not in the body as below.
 // Used for PUT filter-output/{filter-output-id}
-func (a *Assert) FilterOutputDatasetType(next http.Handler) http.Handler {
+func (a *Assert) FilterOutputFilterType(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 		vars := mux.Vars(r)

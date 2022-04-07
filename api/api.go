@@ -106,7 +106,7 @@ func Setup(
 	api.Router.HandleFunc("/filter-outputs/{filter_output_id}", api.getFilterOutputHandler).Methods("GET")
 
 	if cfg.EnablePrivateEndpoints {
-		api.Router.Handle("/filter-outputs/{filter_output_id}", assert.FilterOutputDatasetType(http.HandlerFunc(api.updateFilterOutputHandler))).Methods("PUT")
+		api.Router.Handle("/filter-outputs/{filter_output_id}", assert.FilterOutputFilterType(http.HandlerFunc(api.updateFilterOutputHandler))).Methods("PUT")
 		api.Router.HandleFunc("/filter-outputs/{filter_output_id}/events", api.addEventHandler).Methods("POST")
 	}
 
