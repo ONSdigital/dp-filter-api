@@ -271,6 +271,31 @@ paths:
           description: "Unprocessable entity - instance has been removed"
         500:
           $ref: '#/responses/InternalError'
+    put:
+      tags:
+      - "Public"
+      summary: "Update a dimension"
+      description: "Update the filter by updating a selected dimension"
+      parameters:
+      - $ref: '#/parameters/dimension'
+      - $ref: '#/parameters/if_match'
+      responses:
+        200:
+          description: "The dimension has been updated"
+          schema:
+            $ref: '#/definitions/Dimension'
+          headers:
+            ETag:
+              type: string
+              description: "Defines a unique filter resource version"
+        400:
+          description: "Invalid request body, filter does not exist, or If-Match header not provided"
+        404:
+          description: "Dimension was not found"
+        409:
+          description: '#/responses/FilterConflict'
+        500:
+          $ref: '#/responses/InternalError'
     patch:
       tags:
       - "Public"
@@ -663,6 +688,9 @@ definitions:
         items:
           type: string
           example: "/filters/00001/dimensions/age"
+      is_area_type:
+        type: boolean
+        description: Indicates if the dimension is an area type
   DimensionOptions:
     type: object
     description: "A dimension to filter on a dataset. Information on a dimension can be gathered using the `Dataset API`"

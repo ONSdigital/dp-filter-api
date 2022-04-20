@@ -93,9 +93,14 @@ func Setup(
 	api.Router.Handle("/filters", assert.DatasetType(http.HandlerFunc(api.postFilterBlueprintHandler))).Methods("POST")
 	api.Router.Handle("/filters/{filter_blueprint_id}", assert.FilterType(http.HandlerFunc(api.getFilterBlueprintHandler))).Methods("GET")
 	api.Router.Handle("/filters/{filter_blueprint_id}/dimensions", assert.FilterType(http.HandlerFunc(api.getFilterBlueprintDimensionsHandler))).Methods("GET")
+
 	api.Router.Handle("/filters/{filter_blueprint_id}", assert.FilterType(http.HandlerFunc(api.putFilterBlueprintHandler))).Methods("PUT")
 
-	api.Router.HandleFunc("/filters/{filter_blueprint_id}/dimensions/{name}", api.getFilterBlueprintDimensionHandler).Methods("GET")
+	api.Router.Handle("/filters/{filter_blueprint_id}/dimensions/{name}", assert.FilterType(http.HandlerFunc(api.putFilterBlueprintDimensionHandler))).Methods("PUT")
+	api.Router.Handle("/filters/{filter_blueprint_id}/dimensions/{name}", assert.FilterType(http.HandlerFunc(api.getFilterBlueprintDimensionHandler))).Methods("GET")
+
+	api.Router.HandleFunc("/filters/{filter_blueprint_id}", api.putFilterBlueprintHandler).Methods("PUT")
+
 	api.Router.HandleFunc("/filters/{filter_blueprint_id}/dimensions/{name}", api.addFilterBlueprintDimensionHandler).Methods("POST")
 	api.Router.HandleFunc("/filters/{filter_blueprint_id}/dimensions/{name}", api.patchFilterBlueprintDimensionHandler).Methods("PATCH")
 	api.Router.HandleFunc("/filters/{filter_blueprint_id}/dimensions/{name}", api.removeFilterBlueprintDimensionHandler).Methods("DELETE")
@@ -103,7 +108,7 @@ func Setup(
 	api.Router.HandleFunc("/filters/{filter_blueprint_id}/dimensions/{name}/options/{option}", api.getFilterBlueprintDimensionOptionHandler).Methods("GET")
 	api.Router.HandleFunc("/filters/{filter_blueprint_id}/dimensions/{name}/options/{option}", api.addFilterBlueprintDimensionOptionHandler).Methods("POST")
 	api.Router.HandleFunc("/filters/{filter_blueprint_id}/dimensions/{name}/options/{option}", api.removeFilterBlueprintDimensionOptionHandler).Methods("DELETE")
-	api.Router.HandleFunc("/filter-outputs/{filter_output_id}", api.getFilterOutputHandler).Methods("GET")
+	api.Router.Handle("/filter-outputs/{filter_output_id}", assert.FilterType(http.HandlerFunc(api.getFilterOutputHandler))).Methods("GET")
 
 	if cfg.EnablePrivateEndpoints {
 		api.Router.Handle("/filter-outputs/{filter_output_id}", assert.FilterOutputFilterType(http.HandlerFunc(api.updateFilterOutputHandler))).Methods("PUT")
