@@ -1,6 +1,7 @@
 package api_test
 
 import (
+	"bytes"
 	"context"
 	"testing"
 
@@ -132,6 +133,46 @@ func TestFailedToGetFilterOutput(t *testing.T) {
 
 		response := w.Body.String()
 		So(response, ShouldResemble, filters.ErrFilterOutputNotFound.Error()+"\n")
+	})
+}
+
+func TestFlexibleGetFilterOutput(t *testing.T) {
+	t.Parallel()
+
+	Convey("When the filter is flexible, the request is forwarded to dp-cantabular-filter-flex-api", t, func() {
+		conf := cfg()
+		conf.AssertDatasetType = true
+
+		w := httptest.NewRecorder()
+		filterFlexAPIMock := &apimock.FilterFlexAPIMock{
+			ForwardRequestFunc: func(r *http.Request) (*http.Response, error) {
+				return &http.Response{
+					StatusCode: http.StatusOK,
+					Body:       io.NopCloser(bytes.NewReader([]byte("test body"))),
+				}, nil
+			},
+		}
+		datastoreMock := mock.NewDataStore().Mock
+		datastoreMock.GetFilterFunc = func(ctx context.Context, filterID, etag string) (*models.Filter, error) {
+			return &models.Filter{
+				Type: "flexible",
+			}, nil
+		}
+
+		filterApi := api.Setup(conf, mux.NewRouter(), datastoreMock, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
+
+		r, err := http.NewRequest("GET", "http://localhost:22100/filter-outputs/12345678", nil)
+		So(err, ShouldBeNil)
+		filterApi.Router.ServeHTTP(w, r)
+
+		Convey("A call to datastore is made to check the dataset type", func() {
+			So(datastoreMock.GetFilterCalls(), ShouldHaveLength, 1)
+		})
+
+		Convey("The request is forwarded to dp-cantabular-filter-flex-api", func() {
+			So(filterFlexAPIMock.ForwardRequestCalls(), ShouldHaveLength, 1)
+		})
+
 	})
 }
 
