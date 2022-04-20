@@ -43,16 +43,15 @@ func NewAssert(r responder, d datasetAPIClient, f filterFlexAPIClient, ds datast
 // Used for PUT filter-output/{filter-output-id}
 func (a *Assert) FilterOutputFilterType(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
-		vars := mux.Vars(r)
-		filterOutputID := vars["filter_output_id"]
-
-		ctx := r.Context()
 		if !a.enabled {
 			next.ServeHTTP(w, r)
 			return
 		}
 
+		vars := mux.Vars(r)
+		filterOutputID := vars["filter_output_id"]
+
+		ctx := r.Context()
 		filterOutput, err := a.store.GetFilterOutput(ctx, filterOutputID)
 		if err != nil {
 			a.respond.Error(ctx, w, statusCode(err), er{
