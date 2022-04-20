@@ -1207,20 +1207,19 @@ func TestRequestForwardingMiddleware(t *testing.T) {
 				}, nil
 			}
 
-			filterApi := api.Setup(conf, mux.NewRouter(), datastoreMock, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexMock)
+			filterApi := api.Setup(conf, mux.NewRouter(), datastoreMock, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
 
-			r, err := http.NewRequest("GET", "http://localhost:22100/filters/test-output-id/dimensions", nil)
+			r, err := http.NewRequest(http.MethodGet, "http://localhost:22100/filters/foo/dimensions/bar", nil)
 			So(err, ShouldBeNil)
 
 			filterApi.Router.ServeHTTP(w, r)
 
-			// If not flexible, should hit twice as hits get filter again later on
-			Convey("A call is made to datastore to check the dataset type", func() {
+			Convey("A call to datastore is made to check the filter type", func() {
 				So(len(datastoreMock.GetFilterCalls()), ShouldEqual, 2)
 			})
 
-			Convey("The request is forwarded to dp-cantabular-filter-flex-api", func() {
-				So(len(filterFlexMock.ForwardRequestCalls()), ShouldEqual, 0)
+			Convey("The request is not forwarded to dp-cantabular-filter-flex-api", func() {
+				So(len(filterFlexAPIMock.ForwardRequestCalls()), ShouldEqual, 0)
 			})
 
 		})
