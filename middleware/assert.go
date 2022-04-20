@@ -56,8 +56,8 @@ func (a *Assert) FilterOutputFilterType(next http.Handler) http.Handler {
 		filterOutput, err := a.store.GetFilterOutput(ctx, filterOutputID)
 		if err != nil {
 			a.respond.Error(ctx, w, statusCode(err), er{
-				err: errors.Wrap(err, "failed to get dataset"),
-				msg: fmt.Sprintf("failed to get dataset"),
+				err: errors.Wrap(err, "failed to get filter output"),
+				msg: fmt.Sprintf("failed to get filter output"),
 			})
 			return
 		}
@@ -66,7 +66,7 @@ func (a *Assert) FilterOutputFilterType(next http.Handler) http.Handler {
 			if err := a.doProxyRequest(w, r); err != nil {
 				a.respond.Error(ctx, w, statusCode(err), er{
 					err: errors.Wrap(err, "failed to do proxy request"),
-					msg: fmt.Sprintf("failed to get dataset"),
+					msg: fmt.Sprintf("failed to put filter output"),
 				})
 			}
 			return
