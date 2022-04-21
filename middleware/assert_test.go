@@ -23,6 +23,7 @@ import (
 
 const (
 	filterBlueprintID = "filter_blueprint_id"
+	filterOutputID    = "filter_output_id"
 	testBody          = "test body"
 	testToken         = "testToken"
 )
@@ -263,6 +264,179 @@ func TestAssertFilterType(t *testing.T) {
 
 				Convey("The response should have body, status and headers as set by the 'next (testHandler)' function", func() {
 					So(len(datastoreMock.GetFilterCalls()), ShouldEqual, 1)
+					So(len(filterFlexAPIMock.ForwardRequestCalls()), ShouldEqual, 0)
+					So(w.Code, ShouldEqual, http.StatusCreated)
+					So(w.HeaderMap.Get("X-Foo"), ShouldResemble, "Bar")
+					So(w.HeaderMap.Get("X-Test"), ShouldResemble, "")
+					So(w.Body.String(), ShouldResemble, "test handler response")
+				})
+			})
+		})
+	})
+}
+
+func TestAssertFilterOutputType(t *testing.T) {
+	Convey("Given a healthy dp-cantabular-filter-flex-api", t, func() {
+		testBluePrintID := "filter-blueprint-123456"
+		testOutputID := "12345678"
+		expectedResponse := &http.Response{
+			Body:       io.NopCloser(bytes.NewReader([]byte(testBody))),
+			StatusCode: http.StatusOK,
+			Header: map[string][]string{
+				"X-Test": []string{"Value"},
+			},
+		}
+
+		filterFlexAPIMock := &apimock.FilterFlexAPIMock{
+			ForwardRequestFunc: func(r *http.Request) (*http.Response, error) {
+				return expectedResponse, nil
+			},
+		}
+
+		Convey("When a filter output with given filter in the datastore of type 'flexible' is found", func() {
+			datastoreMock := mock.NewDataStore().Mock
+			datastoreMock.GetFilterOutputFunc = func(ctx context.Context, filterOutputID string) (*models.Filter, error) {
+				return &models.Filter{
+					Dataset: &models.Dataset{
+						Version: 1,
+					},
+					ID: filterOutputID,
+					Links: models.LinkMap{
+						FilterBlueprint: &models.LinkObject{ID: testBluePrintID, HRef: ""},
+					},
+				}, nil
+			}
+			datastoreMock.GetFilterFunc = func(ctx context.Context, filterID, etag string) (*models.Filter, error) {
+				return &models.Filter{
+					Type: "flexible",
+					Dataset: &models.Dataset{
+						Version: 1,
+					},
+					ID: filterID,
+				}, nil
+			}
+
+			Convey("When an incoming request passes through the assert.FilterOutputType middleware", func() {
+				assert := middleware.NewAssert(
+					responder.New(),
+					&mock.DatasetAPI{},
+					filterFlexAPIMock,
+					datastoreMock,
+					testToken,
+					true,
+				)
+
+				w := httptest.NewRecorder()
+
+				r, err := http.NewRequest("GET", "http://localhost:1234/test/"+testOutputID, nil)
+				So(err, ShouldBeNil)
+
+				requestWithVars := mux.SetURLVars(r, map[string]string{
+					filterOutputID: testOutputID,
+				})
+
+				next := http.HandlerFunc(testHandler)
+				f := assert.FilterOutputType(next)
+				f.ServeHTTP(w, requestWithVars)
+
+				Convey("The response should have body, status and headers as returned by dp-filter-flex-api", func() {
+					So(len(datastoreMock.GetFilterOutputCalls()), ShouldEqual, 1)
+					So(datastoreMock.GetFilterOutputCalls()[0].FilterOutputID, ShouldEqual, testOutputID)
+					So(len(datastoreMock.GetFilterCalls()), ShouldEqual, 1)
+					So(datastoreMock.GetFilterCalls()[0].FilterID, ShouldEqual, testBluePrintID)
+					So(len(filterFlexAPIMock.ForwardRequestCalls()), ShouldEqual, 1)
+					So(w.Code, ShouldEqual, expectedResponse.StatusCode)
+					So(w.HeaderMap.Get("X-Test"), ShouldResemble, "Value")
+					So(w.HeaderMap.Get("X-Foo"), ShouldResemble, "")
+					So(w.Body.String(), ShouldResemble, testBody)
+				})
+			})
+
+			Convey("When an incoming request passes through a disabled assert.FilterOutputType middleware", func() {
+				assert := middleware.NewAssert(
+					responder.New(),
+					&mock.DatasetAPI{},
+					filterFlexAPIMock,
+					datastoreMock,
+					testToken,
+					false,
+				)
+
+				w := httptest.NewRecorder()
+
+				r, err := http.NewRequest("GET", "http://localhost:1234/test/"+testOutputID, nil)
+				So(err, ShouldBeNil)
+
+				requestWithVars := mux.SetURLVars(r, map[string]string{
+					filterOutputID: testOutputID,
+				})
+
+				next := http.HandlerFunc(testHandler)
+				f := assert.FilterOutputType(next)
+				f.ServeHTTP(w, requestWithVars)
+
+				Convey("The response should have body, status and headers as set by the 'next (testHandler)' function", func() {
+					So(len(datastoreMock.GetFilterCalls()), ShouldEqual, 0)
+					So(len(filterFlexAPIMock.ForwardRequestCalls()), ShouldEqual, 0)
+					So(w.Code, ShouldEqual, http.StatusCreated)
+					So(w.HeaderMap.Get("X-Foo"), ShouldResemble, "Bar")
+					So(w.HeaderMap.Get("X-Test"), ShouldResemble, "")
+					So(w.Body.String(), ShouldResemble, "test handler response")
+				})
+			})
+		})
+
+		Convey("When a filter output with given ID in the datastore is found, but type is not 'flexible'", func() {
+			datastoreMock := mock.NewDataStore().Mock
+			datastoreMock.GetFilterOutputFunc = func(ctx context.Context, filterOutputID string) (*models.Filter, error) {
+				return &models.Filter{
+					Dataset: &models.Dataset{
+						Version: 1,
+					},
+					ID: filterOutputID,
+					Links: models.LinkMap{
+						FilterBlueprint: &models.LinkObject{ID: testBluePrintID, HRef: ""},
+					},
+				}, nil
+			}
+			datastoreMock.GetFilterFunc = func(ctx context.Context, filterID, etag string) (*models.Filter, error) {
+				return &models.Filter{
+					Type: "foobar",
+					Dataset: &models.Dataset{
+						Version: 2,
+					},
+					ID: filterID,
+				}, nil
+			}
+
+			Convey("When an incoming request passes through the assert.FilterOutputType middleware", func() {
+				assert := middleware.NewAssert(
+					responder.New(),
+					&mock.DatasetAPI{},
+					filterFlexAPIMock,
+					datastoreMock,
+					testToken,
+					true,
+				)
+
+				w := httptest.NewRecorder()
+
+				r, err := http.NewRequest("GET", "http://localhost:1234/test/"+testOutputID, nil)
+				So(err, ShouldBeNil)
+
+				requestWithVars := mux.SetURLVars(r, map[string]string{
+					filterOutputID: testOutputID,
+				})
+
+				next := http.HandlerFunc(testHandler)
+				f := assert.FilterOutputType(next)
+				f.ServeHTTP(w, requestWithVars)
+
+				Convey("The response should have body, status and headers as set by the 'next (testHandler)' function", func() {
+					So(len(datastoreMock.GetFilterOutputCalls()), ShouldEqual, 1)
+					So(datastoreMock.GetFilterOutputCalls()[0].FilterOutputID, ShouldEqual, testOutputID)
+					So(len(datastoreMock.GetFilterCalls()), ShouldEqual, 1)
+					So(datastoreMock.GetFilterCalls()[0].FilterID, ShouldEqual, testBluePrintID)
 					So(len(filterFlexAPIMock.ForwardRequestCalls()), ShouldEqual, 0)
 					So(w.Code, ShouldEqual, http.StatusCreated)
 					So(w.HeaderMap.Get("X-Foo"), ShouldResemble, "Bar")

@@ -164,6 +164,52 @@ func (a *Assert) FilterType(next http.Handler) http.Handler {
 	})
 }
 
+func (a *Assert) FilterOutputType(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !a.enabled {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		ctx := r.Context()
+		vars := mux.Vars(r)
+		filterOutputID := vars["filter_output_id"]
+
+		fo, err := a.store.GetFilterOutput(ctx, filterOutputID)
+
+		if err != nil {
+			a.respond.Error(ctx, w, statusCode(err), er{
+				err: errors.Wrap(err, "failed to get filter output"),
+				msg: fmt.Sprintf("failed to get filter output"),
+			})
+			return
+		}
+
+		filterID := fo.Links.FilterBlueprint.ID
+
+		f, err := a.store.GetFilter(ctx, filterID, anyEtagSelector)
+		if err != nil {
+			a.respond.Error(ctx, w, statusCode(err), er{
+				err: errors.Wrap(err, "failed to get filter"),
+				msg: fmt.Sprintf("failed to get filter"),
+			})
+			return
+		}
+
+		if f.Type == flexible {
+			if err := a.doProxyRequest(w, r); err != nil {
+				a.respond.Error(ctx, w, statusCode(err), er{
+					err: errors.Wrap(err, "failed to do proxy request"),
+					msg: fmt.Sprintf("failed to get filter"),
+				})
+			}
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
+
 func (a *Assert) doProxyRequest(w http.ResponseWriter, req *http.Request) error {
 	resp, err := a.FilterFlexAPI.ForwardRequest(req)
 	if err != nil {

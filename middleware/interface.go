@@ -21,7 +21,7 @@ type filterFlexAPIClient interface {
 
 type datastore interface {
 	GetFilter(ctx context.Context, filterID, eTagSelector string) (*models.Filter, error)
-	GetFilterOutput(ctx context.Context, filterID string) (*models.Filter, error)
+	GetFilterOutput(ctx context.Context, filterOutputID string) (*models.Filter, error)
 }
 
 type dataLogger interface {
