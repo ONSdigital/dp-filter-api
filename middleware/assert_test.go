@@ -72,16 +72,17 @@ func TestAssertFilterType(t *testing.T) {
 				r, err := http.NewRequest("GET", "http://localhost:1234/test/"+testID, nil)
 				So(err, ShouldBeNil)
 
-				r = mux.SetURLVars(r, map[string]string{
+				requestWithVars := mux.SetURLVars(r, map[string]string{
 					filterBlueprintID: testID,
 				})
 
 				next := http.HandlerFunc(testHandler)
 				f := assert.FilterType(next)
-				f.ServeHTTP(w, r)
+				f.ServeHTTP(w, requestWithVars)
 
 				Convey("The response should have body, status and headers as returned by dp-filter-flex-api", func() {
 					So(len(datastoreMock.GetFilterCalls()), ShouldEqual, 1)
+					So(datastoreMock.GetFilterCalls()[0].FilterID, ShouldEqual, testID)
 					So(len(filterFlexAPIMock.ForwardRequestCalls()), ShouldEqual, 1)
 					So(w.Code, ShouldEqual, expectedResponse.StatusCode)
 					So(w.HeaderMap.Get("X-Test"), ShouldResemble, "Value")
@@ -106,13 +107,13 @@ func TestAssertFilterType(t *testing.T) {
 				r, err := http.NewRequest("GET", "http://localhost:1234/test/"+testID, nil)
 				So(err, ShouldBeNil)
 
-				r = mux.SetURLVars(r, map[string]string{
+				requestWithVars := mux.SetURLVars(r, map[string]string{
 					filterBlueprintID: testID,
 				})
 
 				next := http.HandlerFunc(testHandler)
 				f := assert.FilterType(next)
-				f.ServeHTTP(w, r)
+				f.ServeHTTP(w, requestWithVars)
 
 				Convey("The response should have body, status and headers as set by the 'next (testHandler)' function", func() {
 					So(len(datastoreMock.GetFilterCalls()), ShouldEqual, 0)
@@ -254,16 +255,17 @@ func TestAssertFilterType(t *testing.T) {
 				r, err := http.NewRequest("GET", "http://localhost:1234/test/"+testID, nil)
 				So(err, ShouldBeNil)
 
-				r = mux.SetURLVars(r, map[string]string{
+				requestWithVars := mux.SetURLVars(r, map[string]string{
 					filterBlueprintID: testID,
 				})
 
 				next := http.HandlerFunc(testHandler)
 				f := assert.FilterType(next)
-				f.ServeHTTP(w, r)
+				f.ServeHTTP(w, requestWithVars)
 
 				Convey("The response should have body, status and headers as set by the 'next (testHandler)' function", func() {
 					So(len(datastoreMock.GetFilterCalls()), ShouldEqual, 1)
+					So(datastoreMock.GetFilterCalls()[0].FilterID, ShouldEqual, testID)
 					So(len(filterFlexAPIMock.ForwardRequestCalls()), ShouldEqual, 0)
 					So(w.Code, ShouldEqual, http.StatusCreated)
 					So(w.HeaderMap.Get("X-Foo"), ShouldResemble, "Bar")
