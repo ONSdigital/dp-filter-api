@@ -138,6 +138,82 @@ func TestSuccessfulAddFilterBlueprint_PublishedDataset(t *testing.T) {
 	})
 }
 
+func TestSuccessfulPostFilterBlueprint_Flexible(t *testing.T) {
+
+	Convey("Given an flexible filter", t, func() {
+		w := httptest.NewRecorder()
+		filterFlexAPIMock := &apimock.FilterFlexAPIMock{
+			ForwardRequestFunc: func(r *http.Request) (*http.Response, error) {
+				return &http.Response{
+					Body:       io.NopCloser(bytes.NewReader([]byte("test body"))),
+					StatusCode: http.StatusOK,
+				}, nil
+			},
+		}
+		datastoreMock := mock.NewDataStore().Mock
+		datastoreMock.GetFilterFunc = func(ctx context.Context, filterID, etag string) (*models.Filter, error) {
+			return &models.Filter{
+				Type: "flexible",
+			}, nil
+		}
+		filterApi := api.Setup(cfg(), mux.NewRouter(), datastoreMock, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
+
+		Convey("When a post request is made to the submit endpoint", func() {
+			reader := strings.NewReader(`{}`)
+			r := createAuthenticatedRequest("POST", "http://localhost:22100/filters/123456/submit", reader)
+			filterApi.Router.ServeHTTP(w, r)
+
+			Convey("Then the request is not be forwarded to the filter flex api", func() {
+				So(filterFlexAPIMock.ForwardRequestCalls(), ShouldHaveLength, 0)
+			})
+
+			Convey("Then an error is returned", func() {
+				So(w.Code, ShouldEqual, http.StatusBadRequest)
+			})
+		})
+	})
+}
+
+func TestUnSuccessfulPostFilterBlueprint_NonFlexible(t *testing.T) {
+	Convey("Given an non flexible filter", t, func() {
+		conf := cfg()
+		conf.AssertDatasetType = true
+		w := httptest.NewRecorder()
+		filterFlexAPIMock := &apimock.FilterFlexAPIMock{
+			ForwardRequestFunc: func(r *http.Request) (*http.Response, error) {
+				return &http.Response{
+					Body:       io.NopCloser(bytes.NewReader([]byte("test body"))),
+					StatusCode: http.StatusOK,
+				}, nil
+			},
+		}
+		datastoreMock := mock.NewDataStore().Mock
+		datastoreMock.GetFilterFunc = func(ctx context.Context, filterID, etag string) (*models.Filter, error) {
+			return &models.Filter{
+				Type: "flexible",
+			}, nil
+		}
+		filterApi := api.Setup(conf, mux.NewRouter(), datastoreMock, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
+
+		Convey("When a post request is made to the submit endpoint", func() {
+			reader := strings.NewReader(`{}`)
+			r := createAuthenticatedRequest("POST", "http://localhost:22100/filters/123456/submit", reader)
+			filterApi.Router.ServeHTTP(w, r)
+
+			Convey("The request is forwarded to dp-cantabular-filter-flex-api", func() {
+				So(filterFlexAPIMock.ForwardRequestCalls(), ShouldHaveLength, 1)
+
+				Convey("The request body is forwarded on", func() {
+					call := filterFlexAPIMock.ForwardRequestCalls()[0]
+					reqBody, err := io.ReadAll(call.Request.Body)
+					So(err, ShouldBeNil)
+					So(string(reqBody), ShouldEqual, `{}`)
+				})
+			})
+		})
+	})
+}
+
 func TestSuccessfulAddFilterBlueprint_UnpublishedDataset(t *testing.T) {
 
 	filterFlexAPIMock := &apimock.FilterFlexAPIMock{}
