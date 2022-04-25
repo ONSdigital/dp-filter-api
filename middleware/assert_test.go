@@ -14,8 +14,8 @@ import (
 	"github.com/ONSdigital/dp-filter-api/mock"
 	"github.com/ONSdigital/dp-filter-api/models"
 
-	"github.com/ONSdigital/dp-net/v2/responder"
 	"github.com/ONSdigital/dp-api-clients-go/v2/dataset"
+	"github.com/ONSdigital/dp-net/v2/responder"
 
 	"github.com/gorilla/mux"
 	. "github.com/smartystreets/goconvey/convey"
@@ -23,11 +23,11 @@ import (
 
 const (
 	filterBlueprintID = "filter_blueprint_id"
-	testBody = "test body"
-	testToken = "testToken"
+	testBody          = "test body"
+	testToken         = "testToken"
 )
 
-func TestAssertFilterType(t *testing.T){
+func TestAssertFilterType(t *testing.T) {
 	Convey("Given a healthy dp-cantabular-filter-flex-api", t, func() {
 		expectedResponse := &http.Response{
 			Body:       io.NopCloser(bytes.NewReader([]byte(testBody))),
@@ -43,7 +43,7 @@ func TestAssertFilterType(t *testing.T){
 			},
 		}
 
-		Convey("When a filter with given ID in the datastore of type 'flexible' is found", func(){
+		Convey("When a filter with given ID in the datastore of type 'flexible' is found", func() {
 			datastoreMock := mock.NewDataStore().Mock
 			datastoreMock.GetFilterFunc = func(ctx context.Context, filterID, etag string) (*models.Filter, error) {
 				return &models.Filter{
@@ -55,7 +55,7 @@ func TestAssertFilterType(t *testing.T){
 				}, nil
 			}
 
-			Convey("When an incoming request passes through the assert.FilterType middleware", func(){
+			Convey("When an incoming request passes through the assert.FilterType middleware", func() {
 				assert := middleware.NewAssert(
 					responder.New(),
 					&mock.DatasetAPI{},
@@ -68,10 +68,10 @@ func TestAssertFilterType(t *testing.T){
 				w := httptest.NewRecorder()
 
 				testID := "12345678"
-				r, err := http.NewRequest("GET", "http://localhost:1234/test/" + testID, nil)
+				r, err := http.NewRequest("GET", "http://localhost:1234/test/"+testID, nil)
 				So(err, ShouldBeNil)
 
-				mux.SetURLVars(r, map[string]string{
+				r = mux.SetURLVars(r, map[string]string{
 					filterBlueprintID: testID,
 				})
 
@@ -79,7 +79,7 @@ func TestAssertFilterType(t *testing.T){
 				f := assert.FilterType(next)
 				f.ServeHTTP(w, r)
 
-				Convey("The response should have body, status and headers as returned by dp-filter-flex-api", func(){
+				Convey("The response should have body, status and headers as returned by dp-filter-flex-api", func() {
 					So(len(datastoreMock.GetFilterCalls()), ShouldEqual, 1)
 					So(len(filterFlexAPIMock.ForwardRequestCalls()), ShouldEqual, 1)
 					So(w.Code, ShouldEqual, expectedResponse.StatusCode)
@@ -89,7 +89,7 @@ func TestAssertFilterType(t *testing.T){
 				})
 			})
 
-			Convey("When an incoming request passes through a disabled assert.FilterType middleware", func(){
+			Convey("When an incoming request passes through a disabled assert.FilterType middleware", func() {
 				assert := middleware.NewAssert(
 					responder.New(),
 					&mock.DatasetAPI{},
@@ -102,10 +102,10 @@ func TestAssertFilterType(t *testing.T){
 				w := httptest.NewRecorder()
 
 				testID := "12345678"
-				r, err := http.NewRequest("GET", "http://localhost:1234/test/" + testID, nil)
+				r, err := http.NewRequest("GET", "http://localhost:1234/test/"+testID, nil)
 				So(err, ShouldBeNil)
 
-				mux.SetURLVars(r, map[string]string{
+				r = mux.SetURLVars(r, map[string]string{
 					filterBlueprintID: testID,
 				})
 
@@ -113,7 +113,7 @@ func TestAssertFilterType(t *testing.T){
 				f := assert.FilterType(next)
 				f.ServeHTTP(w, r)
 
-				Convey("The response should have body, status and headers as set by the 'next (testHandler)' function", func(){
+				Convey("The response should have body, status and headers as set by the 'next (testHandler)' function", func() {
 					So(len(datastoreMock.GetFilterCalls()), ShouldEqual, 0)
 					So(len(filterFlexAPIMock.ForwardRequestCalls()), ShouldEqual, 0)
 					So(w.Code, ShouldEqual, http.StatusCreated)
@@ -124,7 +124,54 @@ func TestAssertFilterType(t *testing.T){
 			})
 		})
 
-		Convey("When a filter with given ID in the datastore is found, but type is not 'flexible'", func(){
+		Convey("When a filter output with given ID in the datastore is found, but type is not 'flexible'", func() {
+			datastoreMock := mock.NewDataStore().Mock
+			datastoreMock.GetFilterOutputFunc = func(ctx context.Context, filterID string) (*models.Filter, error) {
+				return &models.Filter{
+					Type: "foobar",
+					Dataset: &models.Dataset{
+						Version: 2,
+					},
+					ID: filterID,
+				}, nil
+			}
+
+			Convey("When an incoming request pases through the asert.FilterOutputType middleware", func() {
+				assert := middleware.NewAssert(
+					responder.New(),
+					&mock.DatasetAPI{},
+					filterFlexAPIMock,
+					datastoreMock,
+					testToken,
+					true,
+				)
+
+				w := httptest.NewRecorder()
+				testOutputID := "test-filter-output"
+				r, err := http.NewRequest("GET", "http://localhost:1234/filter-outputs/"+testOutputID, nil)
+				So(err, ShouldBeNil)
+
+				r = mux.SetURLVars(r, map[string]string{
+					"filter_output_id": testOutputID,
+				})
+
+				next := http.HandlerFunc(testHandler)
+				f := assert.FilterOutputFilterType(next)
+				f.ServeHTTP(w, r)
+
+				Convey("The response should call the datastore with the same filter output ID", func() {
+					So(len(datastoreMock.GetFilterOutputCalls()), ShouldEqual, 1)
+					So(datastoreMock.GetFilterOutputCalls()[0].FilterOutputID, ShouldEqual, testOutputID)
+					So(w.Code, ShouldEqual, http.StatusCreated)
+					So(w.HeaderMap.Get("X-Foo"), ShouldResemble, "Bar")
+					So(w.HeaderMap.Get("X-Test"), ShouldResemble, "")
+					So(w.Body.String(), ShouldResemble, "test handler response")
+				})
+
+			})
+		})
+
+		Convey("When a filter with given ID in the datastore is found, but type is not 'flexible'", func() {
 			datastoreMock := mock.NewDataStore().Mock
 			datastoreMock.GetFilterFunc = func(ctx context.Context, filterID, etag string) (*models.Filter, error) {
 				return &models.Filter{
@@ -136,7 +183,7 @@ func TestAssertFilterType(t *testing.T){
 				}, nil
 			}
 
-			Convey("When an incoming request passes through the assert.FilterType middleware", func(){
+			Convey("When an incoming request passes through the assert.FilterType middleware", func() {
 				assert := middleware.NewAssert(
 					responder.New(),
 					&mock.DatasetAPI{},
@@ -149,10 +196,10 @@ func TestAssertFilterType(t *testing.T){
 				w := httptest.NewRecorder()
 
 				testID := "12345678"
-				r, err := http.NewRequest("GET", "http://localhost:1234/test/" + testID, nil)
+				r, err := http.NewRequest("GET", "http://localhost:1234/test/"+testID, nil)
 				So(err, ShouldBeNil)
 
-				mux.SetURLVars(r, map[string]string{
+				r = mux.SetURLVars(r, map[string]string{
 					filterBlueprintID: testID,
 				})
 
@@ -160,7 +207,7 @@ func TestAssertFilterType(t *testing.T){
 				f := assert.FilterType(next)
 				f.ServeHTTP(w, r)
 
-				Convey("The response should have body, status and headers as set by the 'next (testHandler)' function", func(){
+				Convey("The response should have body, status and headers as set by the 'next (testHandler)' function", func() {
 					So(len(datastoreMock.GetFilterCalls()), ShouldEqual, 1)
 					So(len(filterFlexAPIMock.ForwardRequestCalls()), ShouldEqual, 0)
 					So(w.Code, ShouldEqual, http.StatusCreated)
@@ -173,7 +220,7 @@ func TestAssertFilterType(t *testing.T){
 	})
 }
 
-func TestAssertDatasetType(t *testing.T){
+func TestAssertDatasetType(t *testing.T) {
 	Convey("Given a healthy dp-cantabular-filter-flex-api", t, func() {
 		expectedResponse := &http.Response{
 			Body:       io.NopCloser(bytes.NewReader([]byte(testBody))),
@@ -189,7 +236,7 @@ func TestAssertDatasetType(t *testing.T){
 			},
 		}
 
-		Convey("When a filter with given ID from dp-dataset-api of type 'cantabular_flexible_table' is returned", func(){
+		Convey("When a filter with given ID from dp-dataset-api of type 'cantabular_flexible_table' is returned", func() {
 			datasetAPIMock := &apimock.DatasetAPIMock{}
 
 			datasetAPIMock.GetFunc = func(ctx context.Context, ut, st, cid, dsid string) (dataset.DatasetDetails, error) {
@@ -198,7 +245,7 @@ func TestAssertDatasetType(t *testing.T){
 				}, nil
 			}
 
-			Convey("When an incoming request passes through the assert.FilterType middleware", func(){
+			Convey("When an incoming request passes through the assert.FilterType middleware", func() {
 				assert := middleware.NewAssert(
 					responder.New(),
 					datasetAPIMock,
@@ -221,7 +268,7 @@ func TestAssertDatasetType(t *testing.T){
 				f := assert.DatasetType(next)
 				f.ServeHTTP(w, r)
 
-				Convey("The response should have body, status and headers as returned by dp-filter-flex-api", func(){
+				Convey("The response should have body, status and headers as returned by dp-filter-flex-api", func() {
 					So(len(datasetAPIMock.GetCalls()), ShouldEqual, 1)
 					So(len(filterFlexAPIMock.ForwardRequestCalls()), ShouldEqual, 1)
 					So(w.Code, ShouldEqual, expectedResponse.StatusCode)
@@ -231,7 +278,7 @@ func TestAssertDatasetType(t *testing.T){
 				})
 			})
 
-			Convey("When an incoming request passes through a disabled assert.FilterType middleware", func(){
+			Convey("When an incoming request passes through a disabled assert.FilterType middleware", func() {
 				assert := middleware.NewAssert(
 					responder.New(),
 					datasetAPIMock,
@@ -254,7 +301,7 @@ func TestAssertDatasetType(t *testing.T){
 				f := assert.DatasetType(next)
 				f.ServeHTTP(w, r)
 
-				Convey("The response should have body, status and headers as set by the 'next (testHandler)' function", func(){
+				Convey("The response should have body, status and headers as set by the 'next (testHandler)' function", func() {
 					So(len(datasetAPIMock.GetCalls()), ShouldEqual, 0)
 					So(len(filterFlexAPIMock.ForwardRequestCalls()), ShouldEqual, 0)
 					So(w.Code, ShouldEqual, http.StatusCreated)
@@ -265,16 +312,16 @@ func TestAssertDatasetType(t *testing.T){
 			})
 		})
 
-		Convey("When a filter with given ID from dp-dataset-api is found, but type is not 'cantabular_flexible_table'", func(){
+		Convey("When a filter with given ID from dp-dataset-api is found, but type is not 'cantabular_flexible_table'", func() {
 			datasetAPIMock := &apimock.DatasetAPIMock{}
-			
+
 			datasetAPIMock.GetFunc = func(ctx context.Context, ut, st, cid, dsid string) (dataset.DatasetDetails, error) {
 				return dataset.DatasetDetails{
 					Type: "not_flexible",
 				}, nil
 			}
 
-			Convey("When an incoming request passes through the assert.FilterType middleware", func(){
+			Convey("When an incoming request passes through the assert.FilterType middleware", func() {
 				assert := middleware.NewAssert(
 					responder.New(),
 					datasetAPIMock,
@@ -297,7 +344,7 @@ func TestAssertDatasetType(t *testing.T){
 				f := assert.DatasetType(next)
 				f.ServeHTTP(w, r)
 
-				Convey("The response should have body, status and headers as set by the 'next (testHandler)' function", func(){
+				Convey("The response should have body, status and headers as set by the 'next (testHandler)' function", func() {
 					So(len(datasetAPIMock.GetCalls()), ShouldEqual, 1)
 					So(len(filterFlexAPIMock.ForwardRequestCalls()), ShouldEqual, 0)
 					So(w.Code, ShouldEqual, http.StatusCreated)
@@ -310,7 +357,7 @@ func TestAssertDatasetType(t *testing.T){
 	})
 }
 
-func testHandler(w http.ResponseWriter, r *http.Request){
+func testHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 	w.Header().Set("X-Foo", "Bar")
 	w.Write([]byte("test handler response"))
