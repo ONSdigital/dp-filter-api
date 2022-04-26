@@ -1221,11 +1221,32 @@ func TestRequestForwardingMiddleware(t *testing.T) {
 
 			filterApi.Router.ServeHTTP(w, r)
 
-			Convey("A call is made to datastore to check the filter type", func() {
+			Convey("A call is made to datastore to check the filter output type", func() {
 				So(len(datastoreMock.GetFilterOutputCalls()), ShouldEqual, 1)
 			})
 			Convey("The request is forwarded to dp-cantabular-filter-flex-api", func() {
 				So(len(filterFlexMock.ForwardRequestCalls()), ShouldEqual, 1)
+			})
+		})
+		Convey("When there is a PUT request to /filter-outputs/test-output-id and the filter type is NOT flexible", func() {
+
+			reader := strings.NewReader(`{"dataset":{"version":1, "edition":"1", "id":"1", "type": "other"} }`)
+			filterFlexMock, datastoreMock := mock.GenerateMocksForMiddleware(http.StatusOK, 1, "NOT-flexible")
+
+			filterApi := api.Setup(conf, mux.NewRouter(), datastoreMock, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexMock)
+
+			datastoreMock.CreateFilterOutputFunc = func(ctx context.Context, filter *models.Filter) error { return nil }
+
+			r, err := http.NewRequest("PUT", "http://localhost:22100/filter-outputs/test-output-id", reader)
+			So(err, ShouldBeNil)
+
+			filterApi.Router.ServeHTTP(w, r)
+
+			Convey("A call is made to datastore to check the filter type", func() {
+				So(len(datastoreMock.GetFilterOutputCalls()), ShouldEqual, 1)
+			})
+			Convey("The request is NOT forwarded to dp-cantabular-filter-flex-api", func() {
+				So(len(filterFlexMock.ForwardRequestCalls()), ShouldEqual, 0)
 			})
 		})
 
