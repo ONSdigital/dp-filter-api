@@ -167,6 +167,60 @@ func TestAssertFilterType(t *testing.T) {
 					So(w.HeaderMap.Get("X-Test"), ShouldResemble, "")
 					So(w.Body.String(), ShouldResemble, "test handler response")
 				})
+				Convey("The filter flex api request should not be forwarded.", func() {
+					So(len(filterFlexAPIMock.ForwardRequestCalls()), ShouldEqual, 0)
+				})
+
+			})
+		})
+
+		Convey("When a filter output with given ID in the datastore is found, but type is 'flexible'", func() {
+			datastoreMock := mock.NewDataStore().Mock
+			datastoreMock.GetFilterOutputFunc = func(ctx context.Context, filterID string) (*models.Filter, error) {
+				return &models.Filter{
+					Type: "flexible",
+					Dataset: &models.Dataset{
+						Version: 2,
+					},
+					ID: filterID,
+				}, nil
+			}
+
+			Convey("When an incoming request pases through the asert.FilterOutputType middleware", func() {
+				assert := middleware.NewAssert(
+					responder.New(),
+					&mock.DatasetAPI{},
+					filterFlexAPIMock,
+					datastoreMock,
+					testToken,
+					true,
+				)
+
+				w := httptest.NewRecorder()
+				testOutputID := "test-filter-output"
+				r, err := http.NewRequest("GET", "http://localhost:1234/filter-outputs/"+testOutputID, nil)
+				So(err, ShouldBeNil)
+
+				r = mux.SetURLVars(r, map[string]string{
+					"filter_output_id": testOutputID,
+				})
+
+				next := http.HandlerFunc(testHandler)
+				f := assert.FilterOutputFilterType(next)
+				f.ServeHTTP(w, r)
+
+				Convey("The response should call the datastore with the same filter output ID", func() {
+					So(len(datastoreMock.GetFilterOutputCalls()), ShouldEqual, 1)
+					So(datastoreMock.GetFilterOutputCalls()[0].FilterOutputID, ShouldEqual, testOutputID)
+					So(w.Code, ShouldEqual, http.StatusOK)
+					So(w.HeaderMap.Get("X-Test"), ShouldResemble, "Value")
+					So(w.Body.String(), ShouldResemble, "test body")
+
+				})
+
+				Convey("The filter flex api request should be forwarded.", func() {
+					So(len(filterFlexAPIMock.ForwardRequestCalls()), ShouldEqual, 1)
+				})
 
 			})
 		})
