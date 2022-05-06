@@ -2,13 +2,15 @@ package api_test
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
+	"io"
+	"net/http"
+	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
-
-	"encoding/json"
-	"net/http/httptest"
-	"strings"
 
 	"github.com/ONSdigital/dp-filter-api/api"
 	apimock "github.com/ONSdigital/dp-filter-api/api/mock"
@@ -16,10 +18,6 @@ import (
 	"github.com/ONSdigital/dp-filter-api/models"
 	"github.com/gorilla/mux"
 	. "github.com/smartystreets/goconvey/convey"
-
-	"errors"
-	"io"
-	"net/http"
 
 	"github.com/ONSdigital/dp-filter-api/mock"
 	dprequest "github.com/ONSdigital/dp-net/request"
