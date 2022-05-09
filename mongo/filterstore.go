@@ -379,7 +379,7 @@ func (s *FilterStore) CreateFilterOutput(ctx context.Context, filter *models.Fil
 func (s *FilterStore) GetFilterOutput(ctx context.Context, filterID string) (*models.Filter, error) {
 	// NOTE: previously was filter_id.
 	// This should be _id/id. Confirm during PR.
-	query := bson.M{"id": filterID}
+	query := bson.M{"filter_id": filterID}
 	var result *models.Filter
 
 	if err := s.Connection.Collection(s.ActualCollectionName(config.OutputsCollection)).FindOne(ctx, query, &result); err != nil {
