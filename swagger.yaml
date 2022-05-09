@@ -271,6 +271,31 @@ paths:
           description: "Unprocessable entity - instance has been removed"
         500:
           $ref: '#/responses/InternalError'
+    put:
+      tags:
+      - "Public"
+      summary: "Update a dimension"
+      description: "Update the filter by updating a selected dimension"
+      parameters:
+      - $ref: '#/parameters/dimension'
+      - $ref: '#/parameters/if_match'
+      responses:
+        200:
+          description: "The dimension has been updated"
+          schema:
+            $ref: '#/definitions/Dimension'
+          headers:
+            ETag:
+              type: string
+              description: "Defines a unique filter resource version"
+        400:
+          description: "Invalid request body, filter does not exist, or If-Match header not provided"
+        404:
+          description: "Dimension was not found"
+        409:
+          description: '#/responses/FilterConflict'
+        500:
+          $ref: '#/responses/InternalError'
     patch:
       tags:
       - "Public"
@@ -551,6 +576,10 @@ definitions:
           description: "A list of dimensions in the filter job"
           items:
              $ref: '#/definitions/DimensionOptions'
+        population_type:
+          description: "If specifying a custom filter, the population type that the data should be queried from"
+          example: "Teaching-Dataset"
+          type: string
   UpdateFilterRequest:
     description: "A model used to update filters. Dimensions are optional, while downloads and events are for internal use only."
     allOf:
@@ -644,6 +673,8 @@ definitions:
       version:
         type: integer
         description: "A version of a dataset"
+      is_based_on:
+        $ref: '#/definitions/IsBasedOn'
   Dimension:
     type: object
     description: "A dimension to filter on a dataset. Information on a dimension can be gathered using the `Dataset API`"
@@ -657,6 +688,9 @@ definitions:
         items:
           type: string
           example: "/filters/00001/dimensions/age"
+      is_area_type:
+        type: boolean
+        description: Indicates if the dimension is an area type
   DimensionOptions:
     type: object
     description: "A dimension to filter on a dataset. Information on a dimension can be gathered using the `Dataset API`"
@@ -678,6 +712,16 @@ definitions:
         $ref: '#/definitions/DownloadFile'
       csv:
         $ref: '#/definitions/DownloadFile'
+  IsBasedOn:
+    type: object
+    description: If the dataset is related to Census, which population-type the dataset is taken from, and the type of dataset
+    properties:
+      id:
+        type: string
+        description: the population-type the dataset is based on
+      type:
+        type: string
+        description: the type of dataset
   Option:
     type: object
     description: "An option for a dimension to filter on a dataset. Information on a dimension option can be gathered using the `Dataset API`"

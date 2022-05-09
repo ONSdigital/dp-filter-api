@@ -2,12 +2,15 @@ package api_test
 
 import (
 	"context"
-	"go.mongodb.org/mongo-driver/bson/primitive"
-	"testing"
-
 	"encoding/json"
+	"errors"
+	"io"
+	"net/http"
 	"net/http/httptest"
 	"strings"
+	"testing"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
 
 	"github.com/ONSdigital/dp-filter-api/api"
 	apimock "github.com/ONSdigital/dp-filter-api/api/mock"
@@ -15,10 +18,6 @@ import (
 	"github.com/ONSdigital/dp-filter-api/models"
 	"github.com/gorilla/mux"
 	. "github.com/smartystreets/goconvey/convey"
-
-	"errors"
-	"io"
-	"net/http"
 
 	"github.com/ONSdigital/dp-filter-api/mock"
 	dprequest "github.com/ONSdigital/dp-net/request"
@@ -33,12 +32,14 @@ const (
 func TestSuccessfulGetFilterOutput(t *testing.T) {
 	t.Parallel()
 
+	filterFlexAPIMock := &apimock.FilterFlexAPIMock{}
+
 	Convey("Successfully get a filter output from an unauthenticated request", t, func() {
 		r, err := http.NewRequest("GET", "http://localhost:22100/filter-outputs/12345678", nil)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		filterApi := api.Setup(cfg(), mux.NewRouter(), &mock.DataStore{}, &mock.FilterJob{}, &mock.DatasetAPI{})
+		filterApi := api.Setup(cfg(), mux.NewRouter(), &mock.DataStore{}, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
 		filterApi.Router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusOK)
 
@@ -60,7 +61,7 @@ func TestSuccessfulGetFilterOutput(t *testing.T) {
 		r.Header.Add(dprequest.DownloadServiceHeaderKey, downloadServiceToken)
 
 		w := httptest.NewRecorder()
-		filterApi := api.Setup(cfg(), mux.NewRouter(), &mock.DataStore{}, &mock.FilterJob{}, mock.NewDatasetAPI().Unpublished())
+		filterApi := api.Setup(cfg(), mux.NewRouter(), &mock.DataStore{}, &mock.FilterJob{}, mock.NewDatasetAPI().Unpublished(), filterFlexAPIMock)
 		filterApi.Router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusOK)
 
@@ -81,7 +82,7 @@ func TestSuccessfulGetFilterOutput(t *testing.T) {
 		r := createAuthenticatedRequest("GET", "http://localhost:22100/filter-outputs/12345678", nil)
 
 		w := httptest.NewRecorder()
-		filterApi := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().Unpublished(), &mock.FilterJob{}, mock.NewDatasetAPI().Unpublished())
+		filterApi := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().Unpublished(), &mock.FilterJob{}, mock.NewDatasetAPI().Unpublished(), filterFlexAPIMock)
 		filterApi.Router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusOK)
 	})
@@ -90,12 +91,14 @@ func TestSuccessfulGetFilterOutput(t *testing.T) {
 func TestFailedToGetFilterOutput(t *testing.T) {
 	t.Parallel()
 
+	filterFlexAPIMock := &apimock.FilterFlexAPIMock{}
+
 	Convey("When no data store is available, an internal error is returned", t, func() {
 		r, err := http.NewRequest("GET", "http://localhost:22100/filter-outputs/12345678", nil)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		filterApi := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().InternalError(), &mock.FilterJob{}, &mock.DatasetAPI{})
+		filterApi := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().InternalError(), &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
 		filterApi.Router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusInternalServerError)
 
@@ -108,7 +111,7 @@ func TestFailedToGetFilterOutput(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		filterApi := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().NotFound(), &mock.FilterJob{}, &mock.DatasetAPI{})
+		filterApi := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().NotFound(), &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
 		filterApi.Router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
@@ -121,7 +124,7 @@ func TestFailedToGetFilterOutput(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		filterApi := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().Unpublished(), &mock.FilterJob{}, mock.NewDatasetAPI().Unpublished())
+		filterApi := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().Unpublished(), &mock.FilterJob{}, mock.NewDatasetAPI().Unpublished(), filterFlexAPIMock)
 		filterApi.Router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
@@ -133,12 +136,14 @@ func TestFailedToGetFilterOutput(t *testing.T) {
 func TestSuccessfulUpdateFilterOutput(t *testing.T) {
 	t.Parallel()
 
+	filterFlexAPIMock := &apimock.FilterFlexAPIMock{}
+
 	Convey("Successfully update filter output when public csv download link is missing", t, func() {
 		reader := strings.NewReader(`{"downloads":{"csv":{"size":"12mb", "public":"s3-public-csv-location"}}}`)
 		r := createAuthenticatedRequest("PUT", "http://localhost:22100/filter-outputs/21312", reader)
 
 		w := httptest.NewRecorder()
-		filterApi := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().MissingPublicLinks(), &mock.FilterJob{}, &mock.DatasetAPI{})
+		filterApi := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().MissingPublicLinks(), &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
 		filterApi.Router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusOK)
 
@@ -154,7 +159,7 @@ func TestSuccessfulUpdateFilterOutput(t *testing.T) {
 		r := createAuthenticatedRequest("PUT", "http://localhost:22100/filter-outputs/21312", reader)
 
 		w := httptest.NewRecorder()
-		filterApi := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().MissingPublicLinks(), &mock.FilterJob{}, &mock.DatasetAPI{})
+		filterApi := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().MissingPublicLinks(), &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
 		filterApi.Router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusOK)
 
@@ -169,6 +174,8 @@ func TestSuccessfulUpdateFilterOutput(t *testing.T) {
 func TestSuccessfulUpdateFilterOutput_StatusComplete(t *testing.T) {
 	t.Parallel()
 
+	filterFlexAPIMock := &apimock.FilterFlexAPIMock{}
+
 	Convey("Given a filter output without downloads", t, func() {
 		mockDatastore := &apimock.DataStoreMock{
 			AddEventToFilterOutputFunc: func(ctx context.Context, filterOutputID string, event *models.Event) error {
@@ -182,7 +189,7 @@ func TestSuccessfulUpdateFilterOutput_StatusComplete(t *testing.T) {
 			},
 		}
 
-		filterApi := api.Setup(cfg(), mux.NewRouter(), mockDatastore, &mock.FilterJob{}, &mock.DatasetAPI{})
+		filterApi := api.Setup(cfg(), mux.NewRouter(), mockDatastore, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
 
 		Convey("When the PUT filter output endpoint is called with completed download data", func() {
 			reader := strings.NewReader(`{"downloads":{"csv":{"size":"12mb", "public":"s3-public-csv-location"}, "xls":{"size":"12mb", "public":"s3-public-xls-location"}}}`)
@@ -200,7 +207,7 @@ func TestSuccessfulUpdateFilterOutput_StatusComplete(t *testing.T) {
 			Convey("Then the data store is called to add a completed event", func() {
 				So(len(mockDatastore.AddEventToFilterOutputCalls()), ShouldEqual, 1)
 				filterOutput := mockDatastore.AddEventToFilterOutputCalls()[0]
-				So(filterOutput.Event.Type, ShouldEqual, api.EventFilterOutputCompleted)
+				So(filterOutput.Event.Type, ShouldEqual, models.EventFilterOutputCompleted)
 			})
 
 			Convey("Then the response code should be 200 OK", func() {
@@ -230,7 +237,7 @@ func TestSuccessfulUpdateFilterOutput_StatusComplete(t *testing.T) {
 			Convey("Then the data store is called to add a completed event", func() {
 				So(len(mockDatastore.AddEventToFilterOutputCalls()), ShouldEqual, 1)
 				filterOutput := mockDatastore.AddEventToFilterOutputCalls()[0]
-				So(filterOutput.Event.Type, ShouldEqual, api.EventFilterOutputCompleted)
+				So(filterOutput.Event.Type, ShouldEqual, models.EventFilterOutputCompleted)
 			})
 
 			Convey("Then the response code should be 200 OK", func() {
@@ -249,12 +256,14 @@ func TestSuccessfulUpdateFilterOutput_StatusComplete(t *testing.T) {
 func TestSuccessfulUpdateFilterOutputUnpublished(t *testing.T) {
 	t.Parallel()
 
+	filterFlexAPIMock := &apimock.FilterFlexAPIMock{}
+
 	Convey("Successfully update filter output with private csv download link when version is unpublished", t, func() {
 		reader := strings.NewReader(`{"downloads":{"csv":{"size":"12mb", "private": "s3-private-csv-location"}}}`)
 		r := createAuthenticatedRequest("PUT", "http://localhost:22100/filter-outputs/21312", reader)
 
 		w := httptest.NewRecorder()
-		filterApi := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().Unpublished(), &mock.FilterJob{}, mock.NewDatasetAPI().Unpublished())
+		filterApi := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().Unpublished(), &mock.FilterJob{}, mock.NewDatasetAPI().Unpublished(), filterFlexAPIMock)
 		filterApi.Router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusOK)
 
@@ -270,7 +279,7 @@ func TestSuccessfulUpdateFilterOutputUnpublished(t *testing.T) {
 		r := createAuthenticatedRequest("PUT", "http://localhost:22100/filter-outputs/21312", reader)
 
 		w := httptest.NewRecorder()
-		filterApi := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().Unpublished(), &mock.FilterJob{}, &mock.DatasetAPI{})
+		filterApi := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().Unpublished(), &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
 		filterApi.Router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusOK)
 
@@ -285,12 +294,14 @@ func TestSuccessfulUpdateFilterOutputUnpublished(t *testing.T) {
 func TestFailedToUpdateFilterOutput(t *testing.T) {
 	t.Parallel()
 
+	filterFlexAPIMock := &apimock.FilterFlexAPIMock{}
+
 	Convey("When no data store is available, an internal error is returned", t, func() {
 		reader := strings.NewReader(`{"downloads":{"csv":{"size":"12mb", "public":"s3-public-csv-location"}}}`)
 		r := createAuthenticatedRequest("PUT", "http://localhost:22100/filter-outputs/21312", reader)
 
 		w := httptest.NewRecorder()
-		filterApi := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().InternalError(), &mock.FilterJob{}, &mock.DatasetAPI{})
+		filterApi := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().InternalError(), &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
 		filterApi.Router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusInternalServerError)
 
@@ -309,7 +320,7 @@ func TestFailedToUpdateFilterOutput(t *testing.T) {
 		r := createAuthenticatedRequest("PUT", "http://localhost:22100/filter-outputs/21312", reader)
 
 		w := httptest.NewRecorder()
-		filterApi := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().NotFound(), &mock.FilterJob{}, &mock.DatasetAPI{})
+		filterApi := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().NotFound(), &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
 		filterApi.Router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
@@ -325,7 +336,7 @@ func TestFailedToUpdateFilterOutput(t *testing.T) {
 		r := createAuthenticatedRequest("PUT", "http://localhost:22100/filter-outputs/21312", reader)
 
 		w := httptest.NewRecorder()
-		filterApi := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().MissingPublicLinks(), &mock.FilterJob{}, &mock.DatasetAPI{})
+		filterApi := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().MissingPublicLinks(), &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
 		filterApi.Router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusForbidden)
 
@@ -344,7 +355,7 @@ func TestFailedToUpdateFilterOutput(t *testing.T) {
 		r := createAuthenticatedRequest("PUT", "http://localhost:22100/filter-outputs/21312", reader)
 
 		w := httptest.NewRecorder()
-		filterApi := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().MissingPublicLinks(), &mock.FilterJob{}, &mock.DatasetAPI{})
+		filterApi := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().MissingPublicLinks(), &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
 		filterApi.Router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusForbidden)
 
@@ -362,9 +373,11 @@ func TestFailedToUpdateFilterOutput(t *testing.T) {
 func TestFailedToUpdateFilterOutput_BadRequest(t *testing.T) {
 	t.Parallel()
 
+	filterFlexAPIMock := &apimock.FilterFlexAPIMock{}
+
 	Convey("Given an existing filter output with download links", t, func() {
 		w := httptest.NewRecorder()
-		filterApi := api.Setup(cfg(), mux.NewRouter(), &mock.DataStore{}, &mock.FilterJob{}, &mock.DatasetAPI{})
+		filterApi := api.Setup(cfg(), mux.NewRouter(), &mock.DataStore{}, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
 
 		Convey("When a PUT request is made to the filter output endpoint with invalid JSON", func() {
 			reader := strings.NewReader("{")
@@ -503,6 +516,8 @@ func TestFailedToUpdateFilterOutput_BadRequest(t *testing.T) {
 
 func TestUpdateFilterOutput_PrivateEndpointsNotEnabled(t *testing.T) {
 
+	filterFlexAPIMock := &apimock.FilterFlexAPIMock{}
+
 	Convey("When private endpoints are not enabled, calling update on the filter output returns a 404 not found", t, func() {
 		cfg := cfg()
 		cfg.EnablePrivateEndpoints = false
@@ -510,7 +525,7 @@ func TestUpdateFilterOutput_PrivateEndpointsNotEnabled(t *testing.T) {
 		r := createAuthenticatedRequest("PUT", "http://localhost:22100/filter-outputs/21312", reader)
 
 		w := httptest.NewRecorder()
-		filterApi := api.Setup(cfg, mux.NewRouter(), &mock.DataStore{}, &mock.FilterJob{}, &mock.DatasetAPI{})
+		filterApi := api.Setup(cfg, mux.NewRouter(), &mock.DataStore{}, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
 		filterApi.Router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusMethodNotAllowed)
 	})
@@ -518,6 +533,8 @@ func TestUpdateFilterOutput_PrivateEndpointsNotEnabled(t *testing.T) {
 
 func TestSuccessfulAddEventToFilterOutput(t *testing.T) {
 	t.Parallel()
+
+	filterFlexAPIMock := &apimock.FilterFlexAPIMock{}
 
 	Convey("Given an existing filter output", t, func() {
 
@@ -530,11 +547,11 @@ func TestSuccessfulAddEventToFilterOutput(t *testing.T) {
 			},
 		}
 
-		filterApi := api.Setup(cfg(), mux.NewRouter(), mockDatastore, &mock.FilterJob{}, &mock.DatasetAPI{})
+		filterApi := api.Setup(cfg(), mux.NewRouter(), mockDatastore, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
 
 		Convey("When a POST request is made to the filter output event endpoint", func() {
 
-			reader := strings.NewReader(`{"type":"CSVCreated","time":"2018-06-10T05:59:05.893629647+01:00"}`)
+			reader := strings.NewReader(`{"type":"` + models.EventFilterOutputCompleted + `","time":"2018-06-10T05:59:05.893629647+01:00"}`)
 			r := createAuthenticatedRequest("POST", "http://localhost:22100/filter-outputs/21312/events", reader)
 
 			w := httptest.NewRecorder()
@@ -543,7 +560,7 @@ func TestSuccessfulAddEventToFilterOutput(t *testing.T) {
 			Convey("Then the data store is called to add the event", func() {
 				So(len(mockDatastore.AddEventToFilterOutputCalls()), ShouldEqual, 1)
 				filterOutput := mockDatastore.AddEventToFilterOutputCalls()[0]
-				So(filterOutput.Event.Type, ShouldEqual, "CSVCreated")
+				So(filterOutput.Event.Type, ShouldEqual, models.EventFilterOutputCompleted)
 			})
 
 			Convey("Then the response is 201 OK", func() {
@@ -562,11 +579,13 @@ func TestSuccessfulAddEventToFilterOutput(t *testing.T) {
 func TestFailedAddEventToFilterOutput_InvalidJson(t *testing.T) {
 	t.Parallel()
 
+	filterFlexAPIMock := &apimock.FilterFlexAPIMock{}
+
 	Convey("Given an existing filter output", t, func() {
 
 		mockDatastore := &apimock.DataStoreMock{}
 
-		filterApi := api.Setup(cfg(), mux.NewRouter(), mockDatastore, &mock.FilterJob{}, &mock.DatasetAPI{})
+		filterApi := api.Setup(cfg(), mux.NewRouter(), mockDatastore, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
 
 		Convey("When a POST request is made to the filter output event endpoint with invalid json", func() {
 
@@ -592,11 +611,13 @@ func TestFailedAddEventToFilterOutput_InvalidJson(t *testing.T) {
 func TestFailedAddEventToFilterOutput_InvalidEvent(t *testing.T) {
 	t.Parallel()
 
+	filterFlexAPIMock := &apimock.FilterFlexAPIMock{}
+
 	Convey("Given an existing filter output", t, func() {
 
 		mockDatastore := &apimock.DataStoreMock{}
 
-		filterApi := api.Setup(cfg(), mux.NewRouter(), mockDatastore, &mock.FilterJob{}, &mock.DatasetAPI{})
+		filterApi := api.Setup(cfg(), mux.NewRouter(), mockDatastore, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
 
 		Convey("When a POST request is made to the filter output event endpoint with an empty event type", func() {
 
@@ -622,6 +643,8 @@ func TestFailedAddEventToFilterOutput_InvalidEvent(t *testing.T) {
 func TestFailedAddEventToFilterOutput_DatastoreError(t *testing.T) {
 	t.Parallel()
 
+	filterFlexAPIMock := &apimock.FilterFlexAPIMock{}
+
 	Convey("Given an existing filter output", t, func() {
 
 		mockDatastore := &apimock.DataStoreMock{
@@ -633,11 +656,11 @@ func TestFailedAddEventToFilterOutput_DatastoreError(t *testing.T) {
 			},
 		}
 
-		filterApi := api.Setup(cfg(), mux.NewRouter(), mockDatastore, &mock.FilterJob{}, &mock.DatasetAPI{})
+		filterApi := api.Setup(cfg(), mux.NewRouter(), mockDatastore, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
 
 		Convey("When a POST request is made to the filter output event endpoint, and the data store returns an error", func() {
 
-			reader := strings.NewReader(`{"type":"CSVCreated","time":"2018-06-10T05:59:05.893629647+01:00"}`)
+			reader := strings.NewReader(`{"type":"` + models.EventFilterOutputCompleted + `","time":"2018-06-10T05:59:05.893629647+01:00"}`)
 			r := createAuthenticatedRequest("POST", "http://localhost:22100/filter-outputs/21312/events", reader)
 
 			w := httptest.NewRecorder()
@@ -646,7 +669,7 @@ func TestFailedAddEventToFilterOutput_DatastoreError(t *testing.T) {
 			Convey("Then the data store is called to add the event", func() {
 				So(len(mockDatastore.AddEventToFilterOutputCalls()), ShouldEqual, 1)
 				filterOutput := mockDatastore.AddEventToFilterOutputCalls()[0]
-				So(filterOutput.Event.Type, ShouldEqual, "CSVCreated")
+				So(filterOutput.Event.Type, ShouldEqual, models.EventFilterOutputCompleted)
 			})
 
 			Convey("Then the response is 500 internal server error", func() {

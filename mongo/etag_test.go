@@ -13,15 +13,6 @@ const (
 	testDimensionName = "testDimensionName"
 )
 
-func testStore() *FilterStore {
-	return &FilterStore{
-		URI:               "testHost",
-		Database:          "filters",
-		FiltersCollection: "filters",
-		OutputsCollection: "filterOutputs",
-	}
-}
-
 func testFilter() *models.Filter {
 	notPublished := false
 	f := &models.Filter{

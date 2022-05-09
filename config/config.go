@@ -2,6 +2,9 @@ package config
 
 import (
 	"time"
+	"fmt"
+
+	mongodriver "github.com/ONSdigital/dp-mongodb/v3/mongodb"
 
 	"github.com/kelseyhightower/envconfig"
 )
@@ -33,25 +36,24 @@ type Config struct {
 	MaxDatasetOptions          int           `envconfig:"MAX_DATASET_OPTIONS"`
 	BatchMaxWorkers            int           `envconfig:"BATCH_MAX_WORKERS"`
 	DefaultMaxLimit            int           `envconfig:"DEFAULT_MAXIMUM_LIMIT"`
-	MongoConfig                MongoConfig
+	AssertDatasetType          bool          `envconfig:"ASSERT_DATASET_TYPE"`
+	FilterFlexAPIURL           string        `envconfig:"FILTER_FLEX_API_URL"`
+	MongoConfig
 }
 
-// MongoConfig contains the config required to connect to MongoDB.
 type MongoConfig struct {
-	BindAddr                   string `envconfig:"MONGODB_BIND_ADDR"           json:"-"`
-	Database                   string `envconfig:"MONGODB_FILTERS_DATABASE"`
-	FiltersCollection          string `envconfig:"MONGODB_FILTERS_COLLECTION"`
-	OutputsCollection          string `envconfig:"MONGODB_OUTPUT_COLLECTION"`
-	Limit                      int    `envconfig:"MONGODB_LIMIT"`
-	Offset                     int    `envconfig:"MONGODB_OFFSET"`
-	Username                   string `envconfig:"MONGODB_USERNAME"`
-	Password                   string `envconfig:"MONGODB_PASSWORD" json:"-"`
-	IsSSL                      bool   `envconfig:"MONGODB_IS_SSL"`
-	EnableStrongReadConcern    bool   `envconfig:"MONGODB_ENABLE_STRONG_READ_CONCERN"`
-	EnableMajorityWriteConcern bool   `envconfig:"MONGODB_ENABLE_MAJORITY_WRITE_CONCERN"`
+	mongodriver.MongoDriverConfig
+
+	Limit  int `envconfig:"MONGODB_LIMIT"`
+	Offset int `envconfig:"MONGODB_OFFSET"`
 }
 
 var cfg *Config
+
+const (
+	FiltersCollection = "FiltersCollection"
+	OutputsCollection = "OutputsCollection"
+)
 
 // Get configures the application and returns the configuration
 func Get() (*Config, error) {
@@ -75,29 +77,37 @@ func Get() (*Config, error) {
 		MaxDatasetOptions:          200,  // Maximum number of options requested to Dataset API in a single call by a list of ids
 		BatchMaxWorkers:            25,   // Maximum number of concurrent go-routines requesting items concurrently from APIs with pagination
 		DefaultMaxLimit:            1000, // Maximum limit allowed for paginated calls
+		ServiceAuthToken:           "FD0108EA-825D-411C-9B1D-41EF7727F465",
+		ZebedeeURL:                 "http://localhost:8082",
+		EnablePrivateEndpoints:     true,
+		DownloadServiceURL:         "http://localhost:23600",
+		DownloadServiceSecretKey:   "QB0108EZ-825D-412C-9B1D-41EF7747F462",
+		AssertDatasetType:          false,
+		FilterFlexAPIURL:           "http://localhost:27100",
 		MongoConfig: MongoConfig{
-			BindAddr:                   "localhost:27017",
-			Database:                   "filters",
-			FiltersCollection:          "filters",
-			OutputsCollection:          "filterOutputs",
-			Limit:                      20, // Default limit for mongoDB queries that do not provide an explicit limit
-			Offset:                     0,  // Default offset for mongoDB queries that do not provide an explicit offset
-			Username:                   "",
-			Password:                   "",
-			IsSSL:                      false,
-			EnableStrongReadConcern:    false,
-			EnableMajorityWriteConcern: true,
+			MongoDriverConfig: mongodriver.MongoDriverConfig{
+				ClusterEndpoint:               "localhost:27017",
+				Username:                      "",
+				Password:                      "",
+				Database:                      "filters",
+				Collections:                   map[string]string{FiltersCollection: "filters", OutputsCollection: "filterOutputs"},
+				ReplicaSet:                    "",
+				IsStrongReadConcernEnabled:    false,
+				IsWriteConcernMajorityEnabled: true,
+				ConnectTimeout:                5 * time.Second,
+				QueryTimeout:                  15 * time.Second,
+				TLSConnectionConfig: mongodriver.TLSConnectionConfig{
+					IsSSL: false,
+				},
+			},
+			Limit:  20, // Default limit for mongoDB queries that do not provide an explicit limit
+			Offset: 0,  // Default offset for mongoDB queries that do not provide an explicit offset
 		},
-		ServiceAuthToken:         "FD0108EA-825D-411C-9B1D-41EF7727F465",
-		ZebedeeURL:               "http://localhost:8082",
-		EnablePrivateEndpoints:   true,
-		DownloadServiceURL:       "http://localhost:23600",
-		DownloadServiceSecretKey: "QB0108EZ-825D-412C-9B1D-41EF7747F462",
 	}
 
 	err := envconfig.Process("", cfg)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed tp pas: %w", err)
 	}
 
 	return cfg, nil

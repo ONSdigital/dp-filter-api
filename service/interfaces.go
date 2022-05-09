@@ -4,8 +4,11 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/ONSdigital/dp-filter-api/api"
+	"github.com/ONSdigital/dp-filter-api/models"
+
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 //go:generate moq -out mock/server.go -pkg mock . HTTPServer
@@ -28,7 +31,20 @@ type HealthChecker interface {
 
 // MongoDB defines the required methods from MongoDB package
 type MongoDB interface {
-	api.DataStore
+	AddFilter(ctx context.Context, filter *models.Filter) (*models.Filter, error)
+	GetFilter(ctx context.Context, filterID, eTagSelector string) (*models.Filter, error)
+	UpdateFilter(ctx context.Context, updatedFilter *models.Filter, timestamp primitive.Timestamp, eTagSelector string, currentFilter *models.Filter) (newETag string, err error)
+	GetFilterDimension(ctx context.Context, filterID string, name, eTagSelector string) (dimension *models.Dimension, err error)
+	AddFilterDimension(ctx context.Context, filterID, name string, options []string, dimensions []models.Dimension, timestamp primitive.Timestamp, eTagSelector string, currentFilter *models.Filter) (newETag string, err error)
+	RemoveFilterDimension(ctx context.Context, filterID, name string, timestamp primitive.Timestamp, eTagSelector string, currentFilter *models.Filter) (newETag string, err error)
+	AddFilterDimensionOption(ctx context.Context, filterID, name, option string, timestamp primitive.Timestamp, eTagSelector string, currentFilter *models.Filter) (newETag string, err error)
+	AddFilterDimensionOptions(ctx context.Context, filterID, name string, options []string, timestamp primitive.Timestamp, eTagSelector string, currentFilter *models.Filter) (newETag string, err error)
+	RemoveFilterDimensionOption(ctx context.Context, filterID string, name string, option string, timestamp primitive.Timestamp, eTagSelector string, currentFilter *models.Filter) (newETag string, err error)
+	RemoveFilterDimensionOptions(ctx context.Context, filterID string, name string, options []string, timestamp primitive.Timestamp, eTagSelector string, currentFilter *models.Filter) (newETag string, err error)
+	CreateFilterOutput(ctx context.Context, filter *models.Filter) error
+	GetFilterOutput(ctx context.Context, filterOutputID string) (*models.Filter, error)
+	UpdateFilterOutput(ctx context.Context, filter *models.Filter, timestamp primitive.Timestamp) error
+	AddEventToFilterOutput(ctx context.Context, filterOutputID string, event *models.Event) error
 	Checker(ctx context.Context, state *healthcheck.CheckState) error
 	Close(ctx context.Context) error
 }
