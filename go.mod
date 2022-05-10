@@ -7,6 +7,7 @@ require (
 	github.com/ONSdigital/dp-api-clients-go/v2 v2.100.0
 	github.com/ONSdigital/dp-healthcheck v1.2.3
 	github.com/ONSdigital/dp-kafka/v2 v2.4.4
+	github.com/ONSdigital/dp-mongodb-in-memory v1.3.0
 	github.com/ONSdigital/dp-mongodb/v3 v3.0.0
 	github.com/ONSdigital/dp-net v1.2.0
 	github.com/ONSdigital/dp-net/v2 v2.4.0-beta
@@ -18,7 +19,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/satori/go.uuid v1.2.1-0.20181028125025-b2ce2384e17b
 	github.com/smartystreets/goconvey v1.7.2
-	go.mongodb.org/mongo-driver v1.8.0
+	go.mongodb.org/mongo-driver v1.9.1
 )
 
 require (
@@ -46,6 +47,7 @@ require (
 	github.com/pierrec/lz4 v2.6.1+incompatible // indirect
 	github.com/rcrowley/go-metrics v0.0.0-20201227073835-cf1acfcdf475 // indirect
 	github.com/smartystreets/assertions v1.2.0 // indirect
+	github.com/spf13/afero v1.6.0 // indirect
 	github.com/square/mongo-lock v0.0.0-20201208161834-4db518ed7fb2 // indirect
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
 	github.com/xdg-go/scram v1.0.2 // indirect
