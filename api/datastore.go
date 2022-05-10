@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+
 	"go.mongodb.org/mongo-driver/bson/primitive"
 
 	"github.com/ONSdigital/dp-filter-api/models"
@@ -22,7 +23,8 @@ type DataStore interface {
 	RemoveFilterDimensionOption(ctx context.Context, filterID string, name string, option string, timestamp primitive.Timestamp, eTagSelector string, currentFilter *models.Filter) (newETag string, err error)
 	RemoveFilterDimensionOptions(ctx context.Context, filterID string, name string, options []string, timestamp primitive.Timestamp, eTagSelector string, currentFilter *models.Filter) (newETag string, err error)
 	CreateFilterOutput(ctx context.Context, filter *models.Filter) error
-	GetFilterOutput(ctx context.Context, filterOutputID string) (*models.Filter, error)
+	GetFilterOutput(ctx context.Context, filterID string) (*models.Filter, error)
+	GetCantabularFilterOutput(ctx context.Context, filterOutputID string) (*models.Filter, error)
 	UpdateFilterOutput(ctx context.Context, filter *models.Filter, timestamp primitive.Timestamp) error
 	AddEventToFilterOutput(ctx context.Context, filterOutputID string, event *models.Event) error
 }

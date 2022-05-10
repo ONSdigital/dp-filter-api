@@ -377,9 +377,23 @@ func (s *FilterStore) CreateFilterOutput(ctx context.Context, filter *models.Fil
 
 // GetFilterOutput returns a filter output resource
 func (s *FilterStore) GetFilterOutput(ctx context.Context, filterID string) (*models.Filter, error) {
-	// NOTE: previously was filter_id.
-	// This should be _id/id. Confirm during PR.
 	query := bson.M{"filter_id": filterID}
+	var result *models.Filter
+
+	if err := s.Connection.Collection(s.ActualCollectionName(config.OutputsCollection)).FindOne(ctx, query, &result); err != nil {
+		if errors.Is(err, mongodriver.ErrNoDocumentFound) {
+			return nil, filters.ErrFilterOutputNotFound
+		}
+
+		return nil, err
+	}
+
+	return result, nil
+}
+
+// GetFilterOutput returns a filter output resource
+func (s *FilterStore) GetCantabularFilterOutput(ctx context.Context, filterOutputID string) (*models.Filter, error) {
+	query := bson.M{"id": filterOutputID}
 	var result *models.Filter
 
 	if err := s.Connection.Collection(s.ActualCollectionName(config.OutputsCollection)).FindOne(ctx, query, &result); err != nil {

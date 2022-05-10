@@ -3,18 +3,19 @@ package middleware_test
 import (
 	"bytes"
 	"context"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
+	"github.com/ONSdigital/dp-api-clients-go/v2/dataset"
+	dperrors "github.com/ONSdigital/dp-api-clients-go/v2/errors"
 	apimock "github.com/ONSdigital/dp-filter-api/api/mock"
 	"github.com/ONSdigital/dp-filter-api/middleware"
 	"github.com/ONSdigital/dp-filter-api/mock"
 	"github.com/ONSdigital/dp-filter-api/models"
-
-	"github.com/ONSdigital/dp-api-clients-go/v2/dataset"
 	"github.com/ONSdigital/dp-net/v2/responder"
 
 	"github.com/gorilla/mux"
@@ -161,7 +162,55 @@ func TestAssertFilterType(t *testing.T) {
 
 				Convey("The response should call the datastore with the same filter output ID", func() {
 					So(len(datastoreMock.GetFilterOutputCalls()), ShouldEqual, 1)
-					So(datastoreMock.GetFilterOutputCalls()[0].FilterOutputID, ShouldEqual, testOutputID)
+					So(datastoreMock.GetFilterOutputCalls()[0].FilterID, ShouldEqual, testOutputID)
+					So(w.Code, ShouldEqual, http.StatusCreated)
+					So(w.HeaderMap.Get("X-Foo"), ShouldResemble, "Bar")
+					So(w.HeaderMap.Get("X-Test"), ShouldResemble, "")
+					So(w.Body.String(), ShouldResemble, "test handler response")
+				})
+				Convey("The filter flex api request should not be forwarded.", func() {
+					So(len(filterFlexAPIMock.ForwardRequestCalls()), ShouldEqual, 0)
+				})
+
+			})
+		})
+
+		Convey("If a CMD filter output with is not found and type is not flexible", func() {
+			datastoreMock := mock.NewDataStore().Mock
+			datastoreMock.GetFilterOutputFunc = func(ctx context.Context, filterID string) (*models.Filter, error) {
+				return nil, dperrors.New(errors.New("errSomeError"), http.StatusNotFound, nil)
+			}
+
+			Convey("When an incoming request passes through the assert.FilterOutputType middleware", func() {
+				assert := middleware.NewAssert(
+					responder.New(),
+					&mock.DatasetAPI{},
+					filterFlexAPIMock,
+					datastoreMock,
+					testToken,
+					true,
+				)
+
+				w := httptest.NewRecorder()
+				testOutputID := "test-filter-output"
+				r, err := http.NewRequest("GET", "http://localhost:1234/filter-outputs/"+testOutputID, nil)
+				So(err, ShouldBeNil)
+
+				r = mux.SetURLVars(r, map[string]string{
+					"filter_output_id": testOutputID,
+				})
+
+				next := http.HandlerFunc(testHandler)
+				f := assert.FilterOutputFilterType(next)
+				f.ServeHTTP(w, r)
+
+				Convey("The the request should be successfully served querying the datastore Cantabular 'id' key instead of the CMD 'filter_id'", func() {
+					So(len(datastoreMock.GetFilterOutputCalls()), ShouldEqual, 1)
+					So(datastoreMock.GetFilterOutputCalls()[0].FilterID, ShouldEqual, testOutputID)
+
+					So(len(datastoreMock.GetCantabularFilterOutputCalls()), ShouldEqual, 1)
+					So(datastoreMock.GetCantabularFilterOutputCalls()[0].FilterOutputID, ShouldEqual, testOutputID)
+
 					So(w.Code, ShouldEqual, http.StatusCreated)
 					So(w.HeaderMap.Get("X-Foo"), ShouldResemble, "Bar")
 					So(w.HeaderMap.Get("X-Test"), ShouldResemble, "")
@@ -211,7 +260,7 @@ func TestAssertFilterType(t *testing.T) {
 
 				Convey("The response should call the datastore with the same filter output ID", func() {
 					So(len(datastoreMock.GetFilterOutputCalls()), ShouldEqual, 1)
-					So(datastoreMock.GetFilterOutputCalls()[0].FilterOutputID, ShouldEqual, testOutputID)
+					So(datastoreMock.GetFilterOutputCalls()[0].FilterID, ShouldEqual, testOutputID)
 					So(w.Code, ShouldEqual, http.StatusOK)
 					So(w.HeaderMap.Get("X-Test"), ShouldResemble, "Value")
 					So(w.Body.String(), ShouldResemble, "test body")

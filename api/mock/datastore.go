@@ -39,13 +39,16 @@ var _ api.DataStore = &DataStoreMock{}
 // 			CreateFilterOutputFunc: func(ctx context.Context, filter *models.Filter) error {
 // 				panic("mock out the CreateFilterOutput method")
 // 			},
+// 			GetCantabularFilterOutputFunc: func(ctx context.Context, filterOutputID string) (*models.Filter, error) {
+// 				panic("mock out the GetCantabularFilterOutput method")
+// 			},
 // 			GetFilterFunc: func(ctx context.Context, filterID string, eTagSelector string) (*models.Filter, error) {
 // 				panic("mock out the GetFilter method")
 // 			},
 // 			GetFilterDimensionFunc: func(ctx context.Context, filterID string, name string, eTagSelector string) (*models.Dimension, error) {
 // 				panic("mock out the GetFilterDimension method")
 // 			},
-// 			GetFilterOutputFunc: func(ctx context.Context, filterOutputID string) (*models.Filter, error) {
+// 			GetFilterOutputFunc: func(ctx context.Context, filterID string) (*models.Filter, error) {
 // 				panic("mock out the GetFilterOutput method")
 // 			},
 // 			RemoveFilterDimensionFunc: func(ctx context.Context, filterID string, name string, timestamp primitive.Timestamp, eTagSelector string, currentFilter *models.Filter) (string, error) {
@@ -88,6 +91,9 @@ type DataStoreMock struct {
 	// CreateFilterOutputFunc mocks the CreateFilterOutput method.
 	CreateFilterOutputFunc func(ctx context.Context, filter *models.Filter) error
 
+	// GetCantabularFilterOutputFunc mocks the GetCantabularFilterOutput method.
+	GetCantabularFilterOutputFunc func(ctx context.Context, filterOutputID string) (*models.Filter, error)
+
 	// GetFilterFunc mocks the GetFilter method.
 	GetFilterFunc func(ctx context.Context, filterID string, eTagSelector string) (*models.Filter, error)
 
@@ -95,7 +101,7 @@ type DataStoreMock struct {
 	GetFilterDimensionFunc func(ctx context.Context, filterID string, name string, eTagSelector string) (*models.Dimension, error)
 
 	// GetFilterOutputFunc mocks the GetFilterOutput method.
-	GetFilterOutputFunc func(ctx context.Context, filterOutputID string) (*models.Filter, error)
+	GetFilterOutputFunc func(ctx context.Context, filterID string) (*models.Filter, error)
 
 	// RemoveFilterDimensionFunc mocks the RemoveFilterDimension method.
 	RemoveFilterDimensionFunc func(ctx context.Context, filterID string, name string, timestamp primitive.Timestamp, eTagSelector string, currentFilter *models.Filter) (string, error)
@@ -190,6 +196,13 @@ type DataStoreMock struct {
 			// Filter is the filter argument value.
 			Filter *models.Filter
 		}
+		// GetCantabularFilterOutput holds details about calls to the GetCantabularFilterOutput method.
+		GetCantabularFilterOutput []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// FilterOutputID is the filterOutputID argument value.
+			FilterOutputID string
+		}
 		// GetFilter holds details about calls to the GetFilter method.
 		GetFilter []struct {
 			// Ctx is the ctx argument value.
@@ -214,8 +227,8 @@ type DataStoreMock struct {
 		GetFilterOutput []struct {
 			// Ctx is the ctx argument value.
 			Ctx context.Context
-			// FilterOutputID is the filterOutputID argument value.
-			FilterOutputID string
+			// FilterID is the filterID argument value.
+			FilterID string
 		}
 		// RemoveFilterDimension holds details about calls to the RemoveFilterDimension method.
 		RemoveFilterDimension []struct {
@@ -295,6 +308,7 @@ type DataStoreMock struct {
 	lockAddFilterDimensionOption     sync.RWMutex
 	lockAddFilterDimensionOptions    sync.RWMutex
 	lockCreateFilterOutput           sync.RWMutex
+	lockGetCantabularFilterOutput    sync.RWMutex
 	lockGetFilter                    sync.RWMutex
 	lockGetFilterDimension           sync.RWMutex
 	lockGetFilterOutput              sync.RWMutex
@@ -583,6 +597,41 @@ func (mock *DataStoreMock) CreateFilterOutputCalls() []struct {
 	return calls
 }
 
+// GetCantabularFilterOutput calls GetCantabularFilterOutputFunc.
+func (mock *DataStoreMock) GetCantabularFilterOutput(ctx context.Context, filterOutputID string) (*models.Filter, error) {
+	if mock.GetCantabularFilterOutputFunc == nil {
+		panic("DataStoreMock.GetCantabularFilterOutputFunc: method is nil but DataStore.GetCantabularFilterOutput was just called")
+	}
+	callInfo := struct {
+		Ctx            context.Context
+		FilterOutputID string
+	}{
+		Ctx:            ctx,
+		FilterOutputID: filterOutputID,
+	}
+	mock.lockGetCantabularFilterOutput.Lock()
+	mock.calls.GetCantabularFilterOutput = append(mock.calls.GetCantabularFilterOutput, callInfo)
+	mock.lockGetCantabularFilterOutput.Unlock()
+	return mock.GetCantabularFilterOutputFunc(ctx, filterOutputID)
+}
+
+// GetCantabularFilterOutputCalls gets all the calls that were made to GetCantabularFilterOutput.
+// Check the length with:
+//     len(mockedDataStore.GetCantabularFilterOutputCalls())
+func (mock *DataStoreMock) GetCantabularFilterOutputCalls() []struct {
+	Ctx            context.Context
+	FilterOutputID string
+} {
+	var calls []struct {
+		Ctx            context.Context
+		FilterOutputID string
+	}
+	mock.lockGetCantabularFilterOutput.RLock()
+	calls = mock.calls.GetCantabularFilterOutput
+	mock.lockGetCantabularFilterOutput.RUnlock()
+	return calls
+}
+
 // GetFilter calls GetFilterFunc.
 func (mock *DataStoreMock) GetFilter(ctx context.Context, filterID string, eTagSelector string) (*models.Filter, error) {
 	if mock.GetFilterFunc == nil {
@@ -666,33 +715,33 @@ func (mock *DataStoreMock) GetFilterDimensionCalls() []struct {
 }
 
 // GetFilterOutput calls GetFilterOutputFunc.
-func (mock *DataStoreMock) GetFilterOutput(ctx context.Context, filterOutputID string) (*models.Filter, error) {
+func (mock *DataStoreMock) GetFilterOutput(ctx context.Context, filterID string) (*models.Filter, error) {
 	if mock.GetFilterOutputFunc == nil {
 		panic("DataStoreMock.GetFilterOutputFunc: method is nil but DataStore.GetFilterOutput was just called")
 	}
 	callInfo := struct {
-		Ctx            context.Context
-		FilterOutputID string
+		Ctx      context.Context
+		FilterID string
 	}{
-		Ctx:            ctx,
-		FilterOutputID: filterOutputID,
+		Ctx:      ctx,
+		FilterID: filterID,
 	}
 	mock.lockGetFilterOutput.Lock()
 	mock.calls.GetFilterOutput = append(mock.calls.GetFilterOutput, callInfo)
 	mock.lockGetFilterOutput.Unlock()
-	return mock.GetFilterOutputFunc(ctx, filterOutputID)
+	return mock.GetFilterOutputFunc(ctx, filterID)
 }
 
 // GetFilterOutputCalls gets all the calls that were made to GetFilterOutput.
 // Check the length with:
 //     len(mockedDataStore.GetFilterOutputCalls())
 func (mock *DataStoreMock) GetFilterOutputCalls() []struct {
-	Ctx            context.Context
-	FilterOutputID string
+	Ctx      context.Context
+	FilterID string
 } {
 	var calls []struct {
-		Ctx            context.Context
-		FilterOutputID string
+		Ctx      context.Context
+		FilterID string
 	}
 	mock.lockGetFilterOutput.RLock()
 	calls = mock.calls.GetFilterOutput

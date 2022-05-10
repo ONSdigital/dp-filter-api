@@ -54,11 +54,16 @@ func (a *Assert) FilterOutputFilterType(next http.Handler) http.Handler {
 		ctx := r.Context()
 		filterOutput, err := a.store.GetFilterOutput(ctx, filterOutputID)
 		if err != nil {
-			a.respond.Error(ctx, w, statusCode(err), er{
-				err: errors.Wrap(err, "failed to get filter output"),
-				msg: fmt.Sprintf("failed to get filter output"),
-			})
-			return
+			if statusCode(err) == http.StatusNotFound {
+				filterOutput, err = a.store.GetCantabularFilterOutput(ctx, filterOutputID)
+				if err != nil {
+					a.respond.Error(ctx, w, statusCode(err), er{
+						err: errors.Wrap(err, "failed to get filter output"),
+						msg: fmt.Sprintf("failed to get filter output"),
+					})
+					return
+				}
+			}
 		}
 
 		if filterOutput.Type == flexible {

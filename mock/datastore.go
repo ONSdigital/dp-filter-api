@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+
 	"go.mongodb.org/mongo-driver/bson/primitive"
 
 	apimock "github.com/ONSdigital/dp-filter-api/api/mock"
@@ -78,6 +79,7 @@ func NewDataStore() *DataStore {
 		GetFilterFunc:                    ds.GetFilter,
 		GetFilterDimensionFunc:           ds.GetFilterDimension,
 		GetFilterOutputFunc:              ds.GetFilterOutput,
+		GetCantabularFilterOutputFunc:    ds.GetCantabularFilterOutput,
 		RemoveFilterDimensionFunc:        ds.RemoveFilterDimension,
 		RemoveFilterDimensionOptionFunc:  ds.RemoveFilterDimensionOption,
 		RemoveFilterDimensionOptionsFunc: ds.RemoveFilterDimensionOptions,
@@ -295,6 +297,11 @@ func (ds *DataStore) GetFilterDimension(ctx context.Context, filterID string, na
 	}
 
 	return &models.Dimension{Name: "1_age"}, nil
+}
+
+// GetCantabularFilterOutput represents the mocked version of getting a Cantabular filter output from the datastore
+func (ds *DataStore) GetCantabularFilterOutput(ctx context.Context, filterID string) (*models.Filter, error) {
+	return ds.GetFilterOutput(ctx, filterID)
 }
 
 // GetFilterOutput represents the mocked version of getting a filter output from the datastore
