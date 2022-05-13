@@ -7,8 +7,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ONSdigital/dp-api-clients-go/dataset"
+	"github.com/ONSdigital/dp-api-clients-go/v2/dataset"
 	"github.com/ONSdigital/dp-api-clients-go/identity"
+	"github.com/ONSdigital/dp-api-clients-go/v2/filterflex"
 	"github.com/ONSdigital/dp-filter-api/api"
 	"github.com/ONSdigital/dp-filter-api/config"
 	"github.com/ONSdigital/dp-filter-api/filterOutputQueue"
@@ -30,6 +31,7 @@ type Service struct {
 	FilterOutputSubmittedProducer kafka.IProducer
 	IdentityClient                *identity.Client
 	datasetAPI                    *dataset.Client
+	filterFlexAPI                 *filterflex.Client
 	HealthCheck                   HealthChecker
 	Server                        HTTPServer
 	api                           *api.FilterAPI
@@ -104,6 +106,9 @@ func (svc *Service) Init(ctx context.Context, cfg *config.Config, buildTime, git
 
 	// Create Dataset API client.
 	svc.datasetAPI = dataset.NewAPIClient(svc.Cfg.DatasetAPIURL)
+	svc.filterFlexAPI = filterflex.New(filterflex.Config{
+		HostURL: svc.Cfg.FilterFlexAPIURL,
+	})
 
 	// Get HealthCheck and register checkers
 	versionInfo, err := healthcheck.NewVersionInfo(buildTime, gitCommit, version)
@@ -128,7 +133,9 @@ func (svc *Service) Init(ctx context.Context, cfg *config.Config, buildTime, git
 		r,
 		svc.FilterStore,
 		&outputQueue,
-		svc.datasetAPI)
+		svc.datasetAPI,
+		svc.filterFlexAPI,
+	)
 	return nil
 }
 

@@ -4,82 +4,49 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"math"
 	"time"
-
-	"go.mongodb.org/mongo-driver/bson/primitive"
 
 	"github.com/ONSdigital/dp-filter-api/config"
 	"github.com/ONSdigital/dp-filter-api/filters"
 	"github.com/ONSdigital/dp-filter-api/models"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
-	dpMongoHealth "github.com/ONSdigital/dp-mongodb/v3/health"
-	dpMongoDriver "github.com/ONSdigital/dp-mongodb/v3/mongodb"
-	"go.mongodb.org/mongo-driver/bson"
-)
 
-const (
-	connectTimeoutInSeconds = 5
-	queryTimeoutInSeconds   = 15
+	mongohealth "github.com/ONSdigital/dp-mongodb/v3/health"
+	mongodriver "github.com/ONSdigital/dp-mongodb/v3/mongodb"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 // FilterStore containing all filter jobs stored in mongodb
 type FilterStore struct {
-	URI               string
-	Database          string
-	FiltersCollection string
-	OutputsCollection string
-	Connection        *dpMongoDriver.MongoConnection
-	Username          string
-	Password          string
-	CAFilePath        string
-	healthCheckClient *dpMongoHealth.CheckMongoClient
-}
+	mongodriver.MongoDriverConfig
 
-func NewMongoTimestamp(t time.Time, c uint32) (int64, error) {
-	u := t.Unix()
-	if u < 0 || u > math.MaxUint32 {
-		return -1, errors.New("invalid value for time")
-	}
+	Connection        *mongodriver.MongoConnection
+	healthCheckClient *mongohealth.CheckMongoClient
 
-	i := int64(u<<32 | int64(c))
-
-	return int64(i), nil
+	URI string
 }
 
 // CreateFilterStore which can store, update and fetch filter jobs
 func CreateFilterStore(cfg config.MongoConfig, host string) (*FilterStore, error) {
-	mongoConnection, err := dpMongoDriver.Open(&dpMongoDriver.MongoConnectionConfig{
-		ConnectTimeoutInSeconds: connectTimeoutInSeconds,
-		QueryTimeoutInSeconds:   queryTimeoutInSeconds,
+	var (
+		filterStore = &FilterStore{
+			MongoDriverConfig: cfg.MongoDriverConfig,
+			URI:               host,
+		}
+		err error
+	)
 
-		Username:                      cfg.Username,
-		Password:                      cfg.Password,
-		ClusterEndpoint:               cfg.BindAddr,
-		Database:                      cfg.Database,
-		IsStrongReadConcernEnabled:    cfg.EnableStrongReadConcern,
-		IsWriteConcernMajorityEnabled: cfg.EnableMajorityWriteConcern,
-		TLSConnectionConfig: dpMongoDriver.TLSConnectionConfig{
-			IsSSL: cfg.IsSSL,
-		},
-	})
-
+	filterStore.Connection, err = mongodriver.Open(&filterStore.MongoDriverConfig)
 	if err != nil {
 		return nil, err
 	}
 
-	filterStore := &FilterStore{
-		Connection:        mongoConnection,
-		URI:               host,
-		Database:          cfg.Database,
-		FiltersCollection: cfg.FiltersCollection,
-		OutputsCollection: cfg.OutputsCollection,
-	}
+	databaseCollectionBuilder := map[mongohealth.Database][]mongohealth.Collection{mongohealth.Database(cfg.Database): {
+		mongohealth.Collection(filterStore.ActualCollectionName(config.FiltersCollection)),
+		mongohealth.Collection(filterStore.ActualCollectionName(config.OutputsCollection))}}
+	filterStore.healthCheckClient = mongohealth.NewClientWithCollections(filterStore.Connection, databaseCollectionBuilder)
 
-	databaseCollectionBuilder := make(map[dpMongoHealth.Database][]dpMongoHealth.Collection)
-	databaseCollectionBuilder[(dpMongoHealth.Database)(cfg.Database)] = []dpMongoHealth.Collection{(dpMongoHealth.Collection)(cfg.FiltersCollection), (dpMongoHealth.Collection)(cfg.OutputsCollection)}
-
-	filterStore.healthCheckClient = dpMongoHealth.NewClientWithCollections(mongoConnection, databaseCollectionBuilder)
 	return filterStore, nil
 }
 
@@ -96,11 +63,11 @@ func (s *FilterStore) AddFilter(ctx context.Context, filter *models.Filter) (*mo
 	}
 
 	// Insert filter to database
-	if _, err = s.Connection.C(s.FiltersCollection).Insert(ctx, filter); err != nil {
+	if _, err = s.Connection.Collection(s.ActualCollectionName(config.FiltersCollection)).Insert(ctx, filter); err != nil {
 		return nil, err
 	}
-
 	validateFilter(filter)
+
 	return filter, nil
 }
 
@@ -112,15 +79,15 @@ func (s *FilterStore) GetFilter(ctx context.Context, filterID, eTagSelector stri
 
 // get a filter with the provided session.
 // Optional timestamp and eTag can be provided to assure that a filter has not been modified since expected.
-func (s *FilterStore) getFilterWithSession(ctx context.Context, connection *dpMongoDriver.MongoConnection, filterID string, timestamp primitive.Timestamp, eTagSelector string) (*models.Filter, error) {
+func (s *FilterStore) getFilterWithSession(ctx context.Context, connection *mongodriver.MongoConnection, filterID string, timestamp primitive.Timestamp, eTagSelector string) (*models.Filter, error) {
 
 	// ignore eTag for query, so that we can return the correct error if it does not match
 	query := selector(filterID, "", timestamp, AnyETag)
 
 	var result models.Filter
 
-	if err := connection.C(s.FiltersCollection).FindOne(ctx, query, &result); err != nil {
-		if dpMongoDriver.IsErrNoDocumentFound(err) {
+	if err := connection.Collection(s.ActualCollectionName(config.FiltersCollection)).FindOne(ctx, query, &result); err != nil {
+		if errors.Is(err, mongodriver.ErrNoDocumentFound) {
 			return nil, filters.ErrFilterBlueprintNotFound
 		}
 		return nil, err
@@ -130,15 +97,15 @@ func (s *FilterStore) getFilterWithSession(ctx context.Context, connection *dpMo
 	if eTagSelector != AnyETag && eTagSelector != result.ETag {
 		return nil, filters.ErrFilterBlueprintConflict
 	}
-
 	validateFilter(&result)
+
 	return &result, nil
 }
 
 // UpdateFilter replaces the stored filter properties.
-func (s *FilterStore) UpdateFilter(ctx context.Context, updatedFilter *models.Filter, timestamp primitive.Timestamp, eTagSelector string, currentFilter *models.Filter) (newETag string, err error) {
+func (s *FilterStore) UpdateFilter(ctx context.Context, updatedFilter *models.Filter, timestamp primitive.Timestamp, eTagSelector string, currentFilter *models.Filter) (string, error) {
 	// calculate the new eTag hash for the filter that would result from applying the update
-	newETag, err = newETagForUpdate(currentFilter, updatedFilter)
+	newETag, err := newETagForUpdate(currentFilter, updatedFilter)
 	if err != nil {
 		return "", err
 	}
@@ -147,7 +114,7 @@ func (s *FilterStore) UpdateFilter(ctx context.Context, updatedFilter *models.Fi
 	selector := selector(updatedFilter.FilterID, "", timestamp, eTagSelector)
 
 	// create update query from updatedFilter and newly generated eTag
-	update, err := dpMongoDriver.WithUpdates(bson.M{
+	update, err := mongodriver.WithUpdates(bson.M{
 		"$set": bson.M{
 			"events":      updatedFilter.Events,
 			"instance_id": updatedFilter.InstanceID,
@@ -160,8 +127,8 @@ func (s *FilterStore) UpdateFilter(ctx context.Context, updatedFilter *models.Fi
 	}
 
 	// execute the update against MongoDB to atomically check and update the filter
-	if _, err := s.Connection.C(s.FiltersCollection).Update(ctx, selector, update); err != nil {
-		if dpMongoDriver.IsErrNoDocumentFound(err) {
+	if _, err := s.Connection.Collection(s.ActualCollectionName(config.FiltersCollection)).Must().Update(ctx, selector, update); err != nil {
+		if errors.Is(err, mongodriver.ErrNoDocumentFound) {
 			return "", filters.ErrFilterBlueprintConflict
 		}
 		return "", err
@@ -171,14 +138,15 @@ func (s *FilterStore) UpdateFilter(ctx context.Context, updatedFilter *models.Fi
 }
 
 // GetFilterDimension return a single dimension, along with the filter eTag hash
-func (s *FilterStore) GetFilterDimension(ctx context.Context, filterID string, name, eTagSelector string) (dimension *models.Dimension, err error) {
-	// create selector query
-	selector := selector(filterID, name, primitive.Timestamp{}, eTagSelector)
-	dimensionSelect := bson.M{"dimensions.$": 1}
-
+func (s *FilterStore) GetFilterDimension(ctx context.Context, filterID string, name, eTagSelector string) (*models.Dimension, error) {
 	var result models.Filter
-	if err := s.Connection.C(s.FiltersCollection).Find(selector).Select(dimensionSelect).One(ctx, &result); err != nil {
-		if dpMongoDriver.IsErrNoDocumentFound(err) {
+	err := s.Connection.Collection(s.ActualCollectionName(config.FiltersCollection)).FindOne(
+		ctx,
+		selector(filterID, name, primitive.Timestamp{}, eTagSelector),
+		&result,
+		mongodriver.Projection(bson.M{"dimensions.$": 1}))
+	if err != nil {
+		if errors.Is(err, mongodriver.ErrNoDocumentFound) {
 			return nil, filters.ErrDimensionNotFound
 		}
 		return nil, err
@@ -188,7 +156,7 @@ func (s *FilterStore) GetFilterDimension(ctx context.Context, filterID string, n
 }
 
 // AddFilterDimension to a filter
-func (s *FilterStore) AddFilterDimension(ctx context.Context, filterID, name string, options []string, dimensions []models.Dimension, timestamp primitive.Timestamp, eTagSelector string, currentFilter *models.Filter) (newETag string, err error) {
+func (s *FilterStore) AddFilterDimension(ctx context.Context, filterID, name string, options []string, dimensions []models.Dimension, timestamp primitive.Timestamp, eTagSelector string, currentFilter *models.Filter) (string, error) {
 	url := fmt.Sprintf("%s/filters/%s/dimensions/%s", s.URI, filterID, name)
 	d := models.Dimension{Name: name, Options: options, URL: url}
 
@@ -210,13 +178,13 @@ func (s *FilterStore) AddFilterDimension(ctx context.Context, filterID, name str
 	selector := selector(filterID, "", timestamp, eTagSelector)
 
 	// calculate the new eTag hash for the filter that would result from removing the dimension
-	newETag, err = newETagForAddDimensions(currentFilter, filterID, list)
+	newETag, err := newETagForAddDimensions(currentFilter, filterID, list)
 	if err != nil {
 		return "", err
 	}
 
 	// define update query
-	update, err := dpMongoDriver.WithUpdates(bson.M{
+	update, err := mongodriver.WithUpdates(bson.M{
 		"$set": bson.M{"dimensions": list, "e_tag": newETag},
 	})
 	if err != nil {
@@ -224,8 +192,8 @@ func (s *FilterStore) AddFilterDimension(ctx context.Context, filterID, name str
 	}
 
 	// run the query
-	if _, err := s.Connection.C(s.FiltersCollection).Update(ctx, selector, update); err != nil {
-		if dpMongoDriver.IsErrNoDocumentFound(err) {
+	if _, err := s.Connection.Collection(s.ActualCollectionName(config.FiltersCollection)).Must().Update(ctx, selector, update); err != nil {
+		if errors.Is(err, mongodriver.ErrNoDocumentFound) {
 			return "", filters.ErrFilterBlueprintConflict
 		}
 		return "", err
@@ -235,18 +203,18 @@ func (s *FilterStore) AddFilterDimension(ctx context.Context, filterID, name str
 }
 
 // RemoveFilterDimension from a filter
-func (s *FilterStore) RemoveFilterDimension(ctx context.Context, filterID, name string, timestamp primitive.Timestamp, eTagSelector string, currentFilter *models.Filter) (newETag string, err error) {
+func (s *FilterStore) RemoveFilterDimension(ctx context.Context, filterID, name string, timestamp primitive.Timestamp, eTagSelector string, currentFilter *models.Filter) (string, error) {
 	// define selector query
 	selector := selector(filterID, "", timestamp, eTagSelector)
 
 	// calculate the new eTag hash for the filter that would result from removing the dimension
-	newETag, err = newETagForRemoveDimension(currentFilter, filterID, name)
+	newETag, err := newETagForRemoveDimension(currentFilter, filterID, name)
 	if err != nil {
 		return "", err
 	}
 
 	// define update query
-	update, err := dpMongoDriver.WithUpdates(bson.M{
+	update, err := mongodriver.WithUpdates(bson.M{
 		"$pull": bson.M{"dimensions": bson.M{"name": name}},
 		"$set":  bson.M{"e_tag": newETag},
 	})
@@ -255,12 +223,13 @@ func (s *FilterStore) RemoveFilterDimension(ctx context.Context, filterID, name 
 	}
 
 	// execute the query
-	info, err := s.Connection.C(s.FiltersCollection).Update(ctx, selector, update)
+	info, err := s.Connection.Collection(s.ActualCollectionName(config.FiltersCollection)).Update(ctx, selector, update)
 	if err != nil {
-		if dpMongoDriver.IsErrNoDocumentFound(err) {
-			return "", filters.ErrFilterBlueprintConflict
-		}
 		return "", err
+	}
+
+	if info.MatchedCount == 0 {
+		return "", filters.ErrFilterBlueprintConflict
 	}
 
 	if info.ModifiedCount == 0 {
@@ -271,23 +240,23 @@ func (s *FilterStore) RemoveFilterDimension(ctx context.Context, filterID, name 
 }
 
 // AddFilterDimensionOption to a filter.
-func (s *FilterStore) AddFilterDimensionOption(ctx context.Context, filterID, name, option string, timestamp primitive.Timestamp, eTagSelector string, currentFilter *models.Filter) (newETag string, err error) {
+func (s *FilterStore) AddFilterDimensionOption(ctx context.Context, filterID, name, option string, timestamp primitive.Timestamp, eTagSelector string, currentFilter *models.Filter) (string, error) {
 	return s.AddFilterDimensionOptions(ctx, filterID, name, []string{option}, timestamp, eTagSelector, currentFilter)
 }
 
 // AddFilterDimensionOptions adds the provided options to a filter. The number of successfully added options is returned, along with an error.
-func (s *FilterStore) AddFilterDimensionOptions(ctx context.Context, filterID, name string, options []string, timestamp primitive.Timestamp, eTagSelector string, currentFilter *models.Filter) (newETag string, err error) {
+func (s *FilterStore) AddFilterDimensionOptions(ctx context.Context, filterID, name string, options []string, timestamp primitive.Timestamp, eTagSelector string, currentFilter *models.Filter) (string, error) {
 	// define selector query
 	selector := selector(filterID, name, timestamp, eTagSelector)
 
 	// calculate the new eTag hash for the filter that would result from removing the dimension
-	newETag, err = newETagForAddDimensionOptions(currentFilter, filterID, name, options)
+	newETag, err := newETagForAddDimensionOptions(currentFilter, filterID, name, options)
 	if err != nil {
 		return "", err
 	}
 
 	// define update query
-	update, err := dpMongoDriver.WithUpdates(bson.M{
+	update, err := mongodriver.WithUpdates(bson.M{
 		"$addToSet": bson.M{"dimensions.$.options": bson.M{"$each": options}},
 		"$set":      bson.M{"e_tag": newETag},
 	})
@@ -296,8 +265,8 @@ func (s *FilterStore) AddFilterDimensionOptions(ctx context.Context, filterID, n
 	}
 
 	// execute update
-	if _, err := s.Connection.C(s.FiltersCollection).Update(ctx, selector, update); err != nil {
-		if dpMongoDriver.IsErrNoDocumentFound(err) {
+	if _, err := s.Connection.Collection(s.ActualCollectionName(config.FiltersCollection)).Must().Update(ctx, selector, update); err != nil {
+		if errors.Is(err, mongodriver.ErrNoDocumentFound) {
 			return "", filters.ErrFilterBlueprintConflict
 		}
 		return "", err
@@ -307,18 +276,18 @@ func (s *FilterStore) AddFilterDimensionOptions(ctx context.Context, filterID, n
 }
 
 // RemoveFilterDimensionOption from a filter
-func (s *FilterStore) RemoveFilterDimensionOption(ctx context.Context, filterID string, name string, option string, timestamp primitive.Timestamp, eTagSelector string, currentFilter *models.Filter) (newETag string, err error) {
+func (s *FilterStore) RemoveFilterDimensionOption(ctx context.Context, filterID string, name string, option string, timestamp primitive.Timestamp, eTagSelector string, currentFilter *models.Filter) (string, error) {
 	// define selector query
 	selector := selector(filterID, name, timestamp, eTagSelector)
 
 	// calculate the new eTag hash for the filter that would result from removing the dimension
-	newETag, err = newETagForRemoveDimensionOptions(currentFilter, filterID, name, []string{option})
+	newETag, err := newETagForRemoveDimensionOptions(currentFilter, filterID, name, []string{option})
 	if err != nil {
 		return "", err
 	}
 
 	// define update query
-	update, err := dpMongoDriver.WithUpdates(bson.M{
+	update, err := mongodriver.WithUpdates(bson.M{
 		"$pull": bson.M{"dimensions.$.options": option},
 		"$set":  bson.M{"e_tag": newETag},
 	})
@@ -327,12 +296,13 @@ func (s *FilterStore) RemoveFilterDimensionOption(ctx context.Context, filterID 
 	}
 
 	// execute the query
-	info, err := s.Connection.C(s.FiltersCollection).Update(ctx, selector, update)
+	info, err := s.Connection.Collection(s.ActualCollectionName(config.FiltersCollection)).Update(ctx, selector, update)
 	if err != nil {
-		if dpMongoDriver.IsErrNoDocumentFound(err) {
-			return "", filters.ErrFilterBlueprintConflict
-		}
 		return "", err
+	}
+
+	if info.MatchedCount == 0 {
+		return "", filters.ErrFilterBlueprintConflict
 	}
 
 	// document was match but nothing was removed
@@ -344,18 +314,18 @@ func (s *FilterStore) RemoveFilterDimensionOption(ctx context.Context, filterID 
 }
 
 // RemoveFilterDimensionOptions removes the provided options from a filter. If an error happens, it is returned.
-func (s *FilterStore) RemoveFilterDimensionOptions(ctx context.Context, filterID string, name string, options []string, timestamp primitive.Timestamp, eTagSelector string, currentFilter *models.Filter) (newETag string, err error) {
+func (s *FilterStore) RemoveFilterDimensionOptions(ctx context.Context, filterID string, name string, options []string, timestamp primitive.Timestamp, eTagSelector string, currentFilter *models.Filter) (string, error) {
 	// define selector query
 	selector := selector(filterID, name, timestamp, eTagSelector)
 
 	// calculate the new eTag hash for the filter that would result from removing the dimension
-	newETag, err = newETagForRemoveDimensionOptions(currentFilter, filterID, name, options)
+	newETag, err := newETagForRemoveDimensionOptions(currentFilter, filterID, name, options)
 	if err != nil {
 		return "", err
 	}
 
 	// define update query
-	update, err := dpMongoDriver.WithUpdates(bson.M{
+	update, err := mongodriver.WithUpdates(bson.M{
 		"$pull": bson.M{"dimensions.$.options": bson.M{"$in": options}},
 		"$set":  bson.M{"e_tag": newETag},
 	})
@@ -364,8 +334,8 @@ func (s *FilterStore) RemoveFilterDimensionOptions(ctx context.Context, filterID
 	}
 
 	// execute the query
-	if _, err := s.Connection.C(s.FiltersCollection).Update(ctx, selector, update); err != nil {
-		if dpMongoDriver.IsErrNoDocumentFound(err) {
+	if _, err := s.Connection.Collection(s.ActualCollectionName(config.FiltersCollection)).Must().Update(ctx, selector, update); err != nil {
+		if errors.Is(err, mongodriver.ErrNoDocumentFound) {
 			return "", filters.ErrFilterBlueprintConflict
 		}
 		return "", err
@@ -394,13 +364,10 @@ func selector(filterID, dimensionName string, timestamp primitive.Timestamp, eTa
 }
 
 // CreateFilterOutput creates a filter output resource
-func (s *FilterStore) CreateFilterOutput(ctx context.Context, filter *models.Filter) (err error) {
+func (s *FilterStore) CreateFilterOutput(ctx context.Context, filter *models.Filter) error {
 	filter.UniqueTimestamp = primitive.Timestamp{T: uint32(time.Now().Unix()), I: 1}
-	if err != nil {
-		return
-	}
 
-	_, err = s.Connection.C(s.OutputsCollection).Insert(ctx, filter)
+	_, err := s.Connection.Collection(s.ActualCollectionName(config.OutputsCollection)).Insert(ctx, filter)
 	if err != nil {
 		return err
 	}
@@ -410,11 +377,13 @@ func (s *FilterStore) CreateFilterOutput(ctx context.Context, filter *models.Fil
 
 // GetFilterOutput returns a filter output resource
 func (s *FilterStore) GetFilterOutput(ctx context.Context, filterID string) (*models.Filter, error) {
+	// NOTE: previously was filter_id.
+	// This should be _id/id. Confirm during PR.
 	query := bson.M{"filter_id": filterID}
 	var result *models.Filter
 
-	if err := s.Connection.C(s.OutputsCollection).FindOne(ctx, query, &result); err != nil {
-		if dpMongoDriver.IsErrNoDocumentFound(err) {
+	if err := s.Connection.Collection(s.ActualCollectionName(config.OutputsCollection)).FindOne(ctx, query, &result); err != nil {
+		if errors.Is(err, mongodriver.ErrNoDocumentFound) {
 			return nil, filters.ErrFilterOutputNotFound
 		}
 
@@ -426,14 +395,14 @@ func (s *FilterStore) GetFilterOutput(ctx context.Context, filterID string) (*mo
 
 // UpdateFilterOutput updates a filter output resource
 func (s *FilterStore) UpdateFilterOutput(ctx context.Context, filter *models.Filter, timestamp primitive.Timestamp) error {
-	update, err := dpMongoDriver.WithUpdates(createUpdateFilterOutput(filter))
+	update, err := mongodriver.WithUpdates(createUpdateFilterOutput(filter))
 	if err != nil {
 		return err
 	}
 
-	if _, err = s.Connection.C(s.OutputsCollection).
+	if _, err = s.Connection.Collection(s.ActualCollectionName(config.OutputsCollection)).Must().
 		Update(ctx, bson.M{"filter_id": filter.FilterID, "unique_timestamp": timestamp}, update); err != nil {
-		if dpMongoDriver.IsErrNoDocumentFound(err) {
+		if errors.Is(err, mongodriver.ErrNoDocumentFound) {
 			return filters.ErrFilterOutputConflict
 		}
 	}
@@ -443,7 +412,7 @@ func (s *FilterStore) UpdateFilterOutput(ctx context.Context, filter *models.Fil
 
 // AddEventToFilterOutput adds the given event to the filter output of the given ID
 func (s *FilterStore) AddEventToFilterOutput(ctx context.Context, filterOutputID string, event *models.Event) error {
-	info, err := s.Connection.C(s.OutputsCollection).Upsert(ctx, bson.M{"filter_id": filterOutputID},
+	info, err := s.Connection.Collection(s.ActualCollectionName(config.OutputsCollection)).Upsert(ctx, bson.M{"filter_id": filterOutputID},
 		bson.M{"$push": bson.M{"events": &event}, "$set": bson.M{"last_updated": time.Now().UTC()}})
 	if err != nil {
 		return err

@@ -1,8 +1,9 @@
 package mongo
 
 import (
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"testing"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
 
 	"github.com/ONSdigital/dp-filter-api/models"
 	. "github.com/smartystreets/goconvey/convey"
@@ -74,10 +75,8 @@ func TestCreateUpdateFilterOutput(t *testing.T) {
 
 func TestSelector(t *testing.T) {
 
-	Convey("Given some testing values to provide as selector paramters", t, func() {
-		var testFilterID string = "filterID"
-		var testDimensionName string = "dimensionName"
-		var testETag string = "testETag"
+	Convey("Given some testing values to provide as selector parameters", t, func() {
+		var testETag = "testETag"
 		var testMongoTimestamp = primitive.Timestamp{1234567890, 0}
 
 		Convey("Then, providing an empty string dimension, zero timestamp and any eTag generates a selector that only queries by filter_id", func() {

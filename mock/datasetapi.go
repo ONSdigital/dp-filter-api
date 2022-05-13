@@ -3,7 +3,7 @@ package mock
 import (
 	"context"
 
-	"github.com/ONSdigital/dp-api-clients-go/dataset"
+	"github.com/ONSdigital/dp-api-clients-go/v2/dataset"
 	apimock "github.com/ONSdigital/dp-filter-api/api/mock"
 	"github.com/ONSdigital/dp-filter-api/filters"
 )
@@ -52,6 +52,10 @@ func (ds *DatasetAPI) InternalServiceError() *DatasetAPI {
 func (ds *DatasetAPI) Unpublished() *DatasetAPI {
 	ds.Cfg.Unpublished = true
 	return ds
+}
+
+func (ds *DatasetAPI) Get(ctx context.Context, userToken, svcToken, collectionID, datasetID string) (dataset.DatasetDetails, error){
+	return dataset.DatasetDetails{}, nil
 }
 
 // GetVersion represents the mocked version of getting an version document from dataset API

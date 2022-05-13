@@ -5,13 +5,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"io"
 	"io/ioutil"
 	"net/url"
 	"time"
 
-	"github.com/ONSdigital/dp-api-clients-go/dataset"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+
+	"github.com/ONSdigital/dp-api-clients-go/v2/dataset"
 	dprequest "github.com/ONSdigital/dp-net/request"
 	"go.mongodb.org/mongo-driver/bson"
 )
@@ -56,6 +57,7 @@ type Filter struct {
 	State      string      `bson:"state,omitempty"      json:"state,omitempty"`
 	Published  *bool       `bson:"published,omitempty"  json:"published,omitempty"`
 	Links      LinkMap     `bson:"links"                json:"links,omitempty"`
+	Type       string      `bson:"type,omitempty"       json:"type,omitempty"`
 }
 
 // Hash generates a SHA-1 hash of the filter struct. SHA-1 is not cryptographically safe,
@@ -99,9 +101,10 @@ type LinkObject struct {
 
 // Dimension represents an object containing a list of dimension values and the dimension name
 type Dimension struct {
-	URL     string   `bson:"dimension_url,omitempty" json:"dimension_url,omitempty"`
-	Name    string   `bson:"name"                    json:"name"`
-	Options []string `bson:"options,omitempty"                 json:"options"`
+	URL        string   `bson:"dimension_url,omitempty" json:"dimension_url,omitempty"`
+	Name       string   `bson:"name"                    json:"name"`
+	Options    []string `bson:"options,omitempty"       json:"options"`
+	IsAreaType *bool    `bson:"is_area_type,omitempty"  json:"is_area_type,omitempty"`
 }
 
 // EncodedOptions returns the list of options for this dimension after escaping the values for URL query paramters
@@ -169,11 +172,6 @@ type DownloadItem struct {
 	Private string `bson:"private,omitempty" json:"private,omitempty"`
 	Public  string `bson:"public,omitempty"  json:"public,omitempty"`
 	Size    string `bson:"size,omitempty"    json:"size,omitempty"`
-}
-
-type Event struct {
-	Type string    `bson:"type,omitempty" json:"type"`
-	Time time.Time `bson:"time,omitempty" json:"time"`
 }
 
 // A list of errors returned from package

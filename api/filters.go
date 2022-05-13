@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"time"
 
-	datasetAPI "github.com/ONSdigital/dp-api-clients-go/dataset"
+	datasetAPI "github.com/ONSdigital/dp-api-clients-go/v2/dataset"
 	"github.com/ONSdigital/dp-filter-api/filters"
 	"github.com/ONSdigital/dp-filter-api/models"
 	"github.com/ONSdigital/dp-filter-api/mongo"
@@ -17,6 +17,7 @@ import (
 	dprequest "github.com/ONSdigital/dp-net/request"
 	"github.com/ONSdigital/log.go/v2/log"
 	"github.com/gorilla/mux"
+	"github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -35,9 +36,6 @@ var (
 
 const (
 	filterSubmitted = "true"
-
-	EventFilterOutputCreated   = "FilterOutputCreated"
-	EventFilterOutputCompleted = "FilterOutputCompleted"
 )
 
 func (api *FilterAPI) postFilterBlueprintHandler(w http.ResponseWriter, r *http.Request) {
@@ -210,6 +208,21 @@ func (api *FilterAPI) getFilterBlueprintHandler(w http.ResponseWriter, r *http.R
 	}
 
 	log.Info(ctx, "got filter blueprint", logData)
+}
+
+func (api *FilterAPI) postFilterBlueprintSubmitHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	filterBlueprintID := vars["filter_blueprint_id"]
+
+	logData := log.Data{
+		"filter_blueprint_id": filterBlueprintID,
+	}
+	ctx := r.Context()
+	log.Info(ctx, "post filter blueprint", logData)
+
+	err := errors.New("filter not of type flexible")
+	log.Error(ctx, "invalid filter type", err, logData)
+	http.Error(w, BadRequest, http.StatusBadRequest)
 }
 
 func (api *FilterAPI) putFilterBlueprintHandler(w http.ResponseWriter, r *http.Request) {
@@ -559,7 +572,7 @@ func (api *FilterAPI) createFilterOutputResource(ctx context.Context, newFilter 
 	// Clear out any event information to output document
 	filterOutput.Events = []*models.Event{
 		{
-			Type: EventFilterOutputCreated,
+			Type: models.EventFilterOutputCreated,
 			Time: time.Now(),
 		},
 	}
