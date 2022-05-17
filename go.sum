@@ -6,8 +6,6 @@ github.com/ONSdigital/dp-api-clients-go v1.41.1/go.mod h1:Ga1+ANjviu21NFJI9wp5Nc
 github.com/ONSdigital/dp-api-clients-go v1.43.0 h1:0982P/YxnYXvba1RhEcFmwF3xywC4eXokWQ8YH3Mm24=
 github.com/ONSdigital/dp-api-clients-go v1.43.0/go.mod h1:V5MfINik+o3OAF985UXUoMjXIfrZe3JKYa5AhZn5jts=
 github.com/ONSdigital/dp-api-clients-go/v2 v2.1.7-beta/go.mod h1:p9Ig0jUJmOXYpsZFZkb+mBeUgNBKoTiTVqHt1kJlVrM=
-github.com/ONSdigital/dp-api-clients-go/v2 v2.9.4 h1:i4tyST1hk6IZORHrpPi6xfhtyUhzgCacPzY6SQRf0jY=
-github.com/ONSdigital/dp-api-clients-go/v2 v2.9.4/go.mod h1:P3GYyqqXnbp4RjWhz0oYpUFjHPT6Ca4fEoh4huNkxHU=
 github.com/ONSdigital/dp-api-clients-go/v2 v2.100.0 h1:5PhLF15kSdahChnVhmvuHYwrxI29CQDFkYw/PjWAuiM=
 github.com/ONSdigital/dp-api-clients-go/v2 v2.100.0/go.mod h1:/Pa0nFxsXQVkMz8ywCfx0dIa6OPbHRup7JRHsb6gBCU=
 github.com/ONSdigital/dp-component-test v0.6.3/go.mod h1:CfpOujIEqZS5qON7sWn0LRyiP0V+5l12+2XWHB7S/oo=
@@ -22,10 +20,11 @@ github.com/ONSdigital/dp-kafka/v2 v2.4.4 h1:YHURygN7YVQTJ+2E7DrqbJMWSTUJJ6+9TjeN
 github.com/ONSdigital/dp-kafka/v2 v2.4.4/go.mod h1:8fTKJ8F06nmTA3ixRnbUwfi9n+sQDfltw5d9uLJQtug=
 github.com/ONSdigital/dp-mocking v0.0.0-20190905163309-fee2702ad1b9 h1:+WXVfTDyWXY1DQRDFSmt1b/ORKk5c7jGiPu7NoeaM/0=
 github.com/ONSdigital/dp-mocking v0.0.0-20190905163309-fee2702ad1b9/go.mod h1:BcIRgitUju//qgNePRBmNjATarTtynAgc0yV29VpLEk=
-github.com/ONSdigital/dp-mongodb-in-memory v1.1.0 h1:EjUU1zpIU1LElhiTMAG7qxy7Rq9+VTUtt3/lyA+K7jI=
 github.com/ONSdigital/dp-mongodb-in-memory v1.1.0/go.mod h1:AQaNcbSS18WtldA4iWUlHQDn9FCLB2K6ff68QnvZBqM=
-github.com/ONSdigital/dp-mongodb/v3 v3.0.0-beta.8 h1:si/3vZAdM5xnCyVprHJ7huByZ2Zavzkv91YcKwQGedQ=
-github.com/ONSdigital/dp-mongodb/v3 v3.0.0-beta.8/go.mod h1:8rceYZlPQVy5UpQp6QrJjS26+3p+Atidi6GZMPUdc/Y=
+github.com/ONSdigital/dp-mongodb-in-memory v1.3.0 h1:j/KGcYsT6OCbOs6Exv8W8TwQql5Qao6S/h6xsXie7nA=
+github.com/ONSdigital/dp-mongodb-in-memory v1.3.0/go.mod h1:AQaNcbSS18WtldA4iWUlHQDn9FCLB2K6ff68QnvZBqM=
+github.com/ONSdigital/dp-mongodb/v3 v3.0.0 h1:VjhOpjcGH6dZrvLBtzcTcGyFg7ElBMG9UDB8cOrxhk8=
+github.com/ONSdigital/dp-mongodb/v3 v3.0.0/go.mod h1:8rceYZlPQVy5UpQp6QrJjS26+3p+Atidi6GZMPUdc/Y=
 github.com/ONSdigital/dp-net v1.0.5-0.20200805082802-e518bc287596/go.mod h1:wDVhk2pYosQ1q6PXxuFIRYhYk2XX5+1CeRRnXpSczPY=
 github.com/ONSdigital/dp-net v1.0.5-0.20200805145012-9227a11caddb/go.mod h1:MrSZwDUvp8u1VJEqa+36Gwq4E7/DdceW+BDCvGes6Cs=
 github.com/ONSdigital/dp-net v1.0.5-0.20200805150805-cac050646ab5/go.mod h1:de3LB9tedE0tObBwa12dUOt5rvTW4qQkF5rXtt4b6CE=
@@ -280,8 +279,9 @@ github.com/youmark/pkcs8 v0.0.0-20201027041543-1326539a0a0a/go.mod h1:ul22v+Nro/
 github.com/yuin/goldmark v1.1.27/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
 github.com/yuin/goldmark v1.2.1/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
 go.mongodb.org/mongo-driver v1.4.2/go.mod h1:WcMNYLx/IlOxLe6JRJiv2uXuCz6zBLndR4SoGjYphSc=
-go.mongodb.org/mongo-driver v1.8.0 h1:R/P/JJzu8LJvJ1lDfph9GLNIKQxEtIHFfnUUUve35zY=
 go.mongodb.org/mongo-driver v1.8.0/go.mod h1:0sQWfOeY63QTntERDJJ/0SuKK0T1uVSgKCuAROlKEPY=
+go.mongodb.org/mongo-driver v1.9.1 h1:m078y9v7sBItkt1aaoe2YlvWEXcD263e1a4E1fBrJ1c=
+go.mongodb.org/mongo-driver v1.9.1/go.mod h1:0sQWfOeY63QTntERDJJ/0SuKK0T1uVSgKCuAROlKEPY=
 golang.org/x/crypto v0.0.0-20180904163835-0709b304e793/go.mod h1:6SG95UA2DQfeDnfUPMdvaQW0Q7yPrPDi9nlGo2tz2b4=
 golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2/go.mod h1:djNgcEr1/C05ACkg1iLfiJU5Ep61QUkGW8qpdssI0+w=
 golang.org/x/crypto v0.0.0-20190422162423-af44ce270edf/go.mod h1:WFFai1msRO1wXaEeE5yQxYXgSfI8pQAWXbQop6sCtWE=
