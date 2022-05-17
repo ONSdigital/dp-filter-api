@@ -1,14 +1,77 @@
 package mongo
 
 import (
+	"context"
 	"testing"
 
-	"go.mongodb.org/mongo-driver/bson/primitive"
-
 	"github.com/ONSdigital/dp-filter-api/models"
+	mim "github.com/ONSdigital/dp-mongodb-in-memory"
+	mongoDriver "github.com/ONSdigital/dp-mongodb/v3/mongodb"
 	. "github.com/smartystreets/goconvey/convey"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
+
+func TestGetFilterOutput(t *testing.T) {
+	ctx := context.Background()
+
+	server, err := mim.Start(ctx, "5.0.2")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer server.Stop(ctx)
+
+	client, err := mongo.Connect(ctx, options.Client().ApplyURI(server.URI()))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	sf := createFilterStore(client)
+	collection := client.Database("filters").Collection("filterOutputs")
+
+	Convey("Given a filter output exists in the database", t, func() {
+		f := createFilter()
+		_, err = collection.InsertOne(ctx, f)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		Convey("When ONS CMD searches the filter output via 'filterID'", func() {
+
+			output, err := sf.GetFilterOutput(ctx, "some-filter-id")
+			if err != nil {
+				t.Fatal(err)
+			}
+			Convey("Then it should return a Filter Output", func() {
+				So(output.FilterID, ShouldEqual, f.FilterID)
+				So(output.ID, ShouldEqual, f.ID)
+			})
+		})
+
+		Convey("When ONS Cantabular searches the filter output via 'ID'", func() {
+
+			output, err := sf.GetFilterOutput(ctx, "some-id")
+			if err != nil {
+				t.Fatal(err)
+			}
+			Convey("Then it should return a Filter Output", func() {
+				So(output.FilterID, ShouldEqual, f.FilterID)
+				So(output.ID, ShouldEqual, f.ID)
+			})
+		})
+
+		Convey("When the service searches for a non-existing ID ", func() {
+
+			output, err := sf.GetFilterOutput(ctx, "none-existing-id")
+			Convey("Then it should not return a Filter Output", func() {
+				So(err.Error(), ShouldEqual, "filter output not found")
+				So(output, ShouldBeNil)
+			})
+		})
+	})
+}
 
 func TestCreateUpdateFilterOutput(t *testing.T) {
 	Convey("When a filter output is updated with a new CSV file", t, func() {
@@ -103,4 +166,46 @@ func TestValidateFilter(t *testing.T) {
 		So(filter.Dimensions, ShouldResemble, []models.Dimension{})
 		So(filter.Events, ShouldResemble, []*models.Event{})
 	})
+}
+
+func createFilter() *models.Filter {
+	filter := &models.Filter{
+		ID:         "some-id",
+		InstanceID: "some-instance-id",
+		Dimensions: nil,
+		Downloads:  nil,
+		Events:     nil,
+		FilterID:   "some-filter-id",
+		State:      "published",
+		Links:      models.LinkMap{},
+		Type:       "flexible",
+	}
+	return filter
+}
+
+func createFilterStore(client *mongo.Client) FilterStore {
+	sf := FilterStore{
+		MongoDriverConfig: mongoDriver.MongoDriverConfig{
+			Username:                      "admin",
+			Password:                      "admin",
+			ClusterEndpoint:               "localhost:27017",
+			Database:                      "filters",
+			Collections:                   map[string]string{"FiltersCollection": "filters", "OutputsCollection": "filterOutputs"},
+			ReplicaSet:                    "",
+			IsStrongReadConcernEnabled:    false,
+			IsWriteConcernMajorityEnabled: true,
+			ConnectTimeout:                5,
+			QueryTimeout:                  15,
+			TLSConnectionConfig: mongoDriver.TLSConnectionConfig{
+				IsSSL:              false,
+				VerifyCert:         false,
+				CACertChain:        "",
+				RealHostnameForSSH: "",
+			},
+		},
+		Connection:        mongoDriver.NewMongoConnection(client, "filters"),
+		healthCheckClient: nil,
+		URI:               "mongodb://localhost:27017",
+	}
+	return sf
 }
