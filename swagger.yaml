@@ -391,7 +391,7 @@ paths:
         200:
           description: "An option within a dimension was returned"
           schema:
-            $ref: '#/definitions/Option'
+            $ref: '#/definitions/AddOptionResponse'
           headers:
             ETag:
               type: string
