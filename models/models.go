@@ -107,6 +107,19 @@ type Dimension struct {
 	IsAreaType *bool    `bson:"is_area_type,omitempty"  json:"is_area_type,omitempty"`
 }
 
+type UpdateDimensionResponse struct {
+	ID    string             `json:"id"`
+	Name  string             `json:"name"`
+	Label string             `json:"label"`
+	Links DimensionItemLinks `json:"links"`
+}
+
+type DimensionItemLinks struct {
+	Filter  LinkObject `json:"filter"`
+	Options LinkObject `json:"options"`
+	Self    LinkObject `json:"self"`
+}
+
 // EncodedOptions returns the list of options for this dimension after escaping the values for URL query paramters
 func (d *Dimension) EncodedOptions() []string {
 	encodedIDs := make([]string, len(d.Options))

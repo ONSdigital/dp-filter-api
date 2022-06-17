@@ -283,7 +283,7 @@ paths:
         200:
           description: "The dimension has been updated"
           schema:
-            $ref: '#/definitions/Dimension'
+            $ref: '#/definitions/UpdateDimensionResponse'
           headers:
             ETag:
               type: string
@@ -705,6 +705,24 @@ definitions:
         description: "A list of options for dimension to filter on a dataset"
         items:
           type: string
+  UpdateDimensionResponse:
+    properties:
+      name:
+        type: string
+      id:
+        type: string
+      label:
+        type: string
+      links:
+        $ref: "#/definitions/DimensionItemLinks"
+  DimensionItemLinks:
+    properties:
+      self:
+        $ref: "#/definitions/Link"
+      options:
+        $ref: "#/definitions/Link"
+      filter:
+        $ref: "#/definitions/Link"
   Downloads:
     type: object
     description: |
@@ -866,3 +884,11 @@ definitions:
             description: "The ID of the dimension for the filter"
             example: "aggregate"
             type: string
+  Link:
+    properties:
+      href:
+        type: string
+        description: "link to resource"
+      id:
+        type: string
+        description: "id of resource"
