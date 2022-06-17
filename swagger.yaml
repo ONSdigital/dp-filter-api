@@ -364,9 +364,7 @@ paths:
         200:
           description: "A list of all options for a dimension was returned"
           schema:
-            type: array
-            items:
-              $ref: '#/definitions/Option'
+              $ref: '#/definitions/OptionsResponse'
           headers:
             ETag:
               type: string
@@ -892,3 +890,22 @@ definitions:
       id:
         type: string
         description: "id of resource"
+  OptionsResponse:
+    description: "A list of options for the dimension"
+    readOnly: true
+    type: object
+    properties:
+      items:
+        type: array
+        items:
+          $ref: '#/definitions/AddOptionResponse'
+      limit:
+        description: "The number of options requested"
+        type: integer
+      offset:
+        description: "The first row of options to retrieve, starting at 0. Use this parameter as a pagination mechanism along with the limit parameter"
+        type: integer
+      total_count:
+        description: "The total number of options"
+        readOnly: true
+        type: integer
