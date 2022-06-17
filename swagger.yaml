@@ -412,6 +412,8 @@ paths:
       responses:
         201:
           description: "Option was added"
+          schema:
+            $ref: '#/definitions/AddOptionResponse'
           headers:
             ETag:
               type: string
@@ -821,4 +823,46 @@ definitions:
           id:
             description: "An ID of the version being filtered"
             example: "de3bc0b6-d6c4-4e20-917e-95d7ea8c91dc"
+            type: string
+  AddOptionResponse:
+    description: "A list of links related to this resource"
+    readOnly: true
+    type: object
+    properties:
+      option:
+        type: string
+        description: "The option added to the dimension for this filter"
+        example: "cpih1dim1T10000"
+      self:
+        type: object
+        properties:
+          href:
+            description: "A URL to the options for this filter"
+            example: "http://localhost:8080/filters/bd67930a-2856-44b3-a87a-e9e5fb832324/dimensions/aggregate/options/cpih1dim1T10000"
+            type: string
+          id:
+            description: "The ID of the option"
+            example: "cpih1dim1T10000"
+            type: string
+      filter:
+        type: object
+        properties:
+          href:
+            description: "A URL to the filter"
+            example: "http://localhost:8080/filters/bd67930a-2856-44b3-a87a-e9e5fb832324"
+            type: string
+          id:
+            description: "The ID of the filter"
+            example: "bd67930a-2856-44b3-a87a-e9e5fb832324"
+            type: string
+      dimension:
+        type: object
+        properties:
+          href:
+            description: "A URL to the selected dimension this option applies to for the filter"
+            example: "http://localhost:8080/filters/bd67930a-2856-44b3-a87a-e9e5fb832324/dimensions/aggregate"
+            type: string
+          id:
+            description: "The ID of the dimension for the filter"
+            example: "aggregate"
             type: string
