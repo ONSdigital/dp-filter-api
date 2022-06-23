@@ -41,7 +41,7 @@ func NewAssert(r responder, d datasetAPIClient, f filterFlexAPIClient, ds datast
 
 // Filter Flex Forwarder that checks for filter in the route, not in the body as below.
 // Used for PUT filter-output/{filter-output-id}
-func (a *Assert) FilterOutputFilterType(next http.Handler) http.Handler {
+func (a *Assert) FilterOutputType(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !a.enabled {
 			next.ServeHTTP(w, r)
@@ -144,8 +144,8 @@ func (a *Assert) FilterType(next http.Handler) http.Handler {
 		f, err := a.store.GetFilter(ctx, filterID, anyEtagSelector)
 		if err != nil {
 			a.respond.Error(ctx, w, statusCode(err), er{
-				err: errors.Wrap(err, "failed to get dataset"),
-				msg: fmt.Sprintf("failed to get dataset"),
+				err: errors.Wrap(err, "failed to get filter"),
+				msg: fmt.Sprintf("failed to get filter"),
 			})
 			return
 		}
@@ -154,7 +154,7 @@ func (a *Assert) FilterType(next http.Handler) http.Handler {
 			if err := a.doProxyRequest(w, r); err != nil {
 				a.respond.Error(ctx, w, statusCode(err), er{
 					err: errors.Wrap(err, "failed to do proxy request"),
-					msg: fmt.Sprintf("failed to get dataset"),
+					msg: fmt.Sprintf("failed to get filter"),
 				})
 			}
 			return
