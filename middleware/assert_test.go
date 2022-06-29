@@ -156,7 +156,7 @@ func TestAssertFilterType(t *testing.T) {
 				})
 
 				next := http.HandlerFunc(testHandler)
-				f := assert.FilterOutputFilterType(next)
+				f := assert.FilterOutputType(next)
 				f.ServeHTTP(w, r)
 
 				Convey("The response should call the datastore with the same filter output ID", func() {
@@ -206,7 +206,7 @@ func TestAssertFilterType(t *testing.T) {
 				})
 
 				next := http.HandlerFunc(testHandler)
-				f := assert.FilterOutputFilterType(next)
+				f := assert.FilterOutputType(next)
 				f.ServeHTTP(w, r)
 
 				Convey("The response should call the datastore with the same filter output ID", func() {
@@ -244,7 +244,7 @@ func TestAssertFilterType(t *testing.T) {
 				})
 
 				next := http.HandlerFunc(testHandler)
-				f := assert.FilterOutputFilterType(next)
+				f := assert.FilterOutputType(next)
 				f.ServeHTTP(w, r)
 
 				Convey("The response should call the datastore with the same filter output ID", func() {
