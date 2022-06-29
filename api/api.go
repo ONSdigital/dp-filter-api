@@ -99,6 +99,7 @@ func Setup(
 
 	api.Router.Handle("/filters/{filter_blueprint_id}/dimensions/{name}", assert.FilterType(http.HandlerFunc(api.putFilterBlueprintDimensionHandler))).Methods("PUT")
 	api.Router.Handle("/filters/{filter_blueprint_id}/dimensions/{name}", assert.FilterType(http.HandlerFunc(api.getFilterBlueprintDimensionHandler))).Methods("GET")
+	api.Router.Handle("/filters/{filter_blueprint_id}/dimensions/{name}/options/{option}", assert.FilterType(http.HandlerFunc(api.removeFilterBlueprintDimensionOptionHandler))).Methods("DELETE")
 
 	api.Router.HandleFunc("/filters/{filter_blueprint_id}", api.putFilterBlueprintHandler).Methods("PUT")
 
@@ -108,7 +109,7 @@ func Setup(
 	api.Router.HandleFunc("/filters/{filter_blueprint_id}/dimensions/{name}/options", api.getFilterBlueprintDimensionOptionsHandler).Methods("GET")
 	api.Router.HandleFunc("/filters/{filter_blueprint_id}/dimensions/{name}/options/{option}", api.getFilterBlueprintDimensionOptionHandler).Methods("GET")
 	api.Router.HandleFunc("/filters/{filter_blueprint_id}/dimensions/{name}/options/{option}", api.addFilterBlueprintDimensionOptionHandler).Methods("POST")
-	api.Router.HandleFunc("/filters/{filter_blueprint_id}/dimensions/{name}/options/{option}", api.removeFilterBlueprintDimensionOptionHandler).Methods("DELETE")
+
 	api.Router.Handle("/filter-outputs/{filter_output_id}", assert.FilterOutputFilterType(http.HandlerFunc(api.getFilterOutputHandler))).Methods("GET")
 
 	if cfg.EnablePrivateEndpoints {
