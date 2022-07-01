@@ -99,9 +99,9 @@ func Setup(
 	api.Router.Handle("/filters/{filter_blueprint_id}/dimensions/{name}", assert.FilterType(http.HandlerFunc(api.putFilterBlueprintDimensionHandler))).Methods("PUT")
 	api.Router.Handle("/filters/{filter_blueprint_id}/dimensions/{name}", assert.FilterType(http.HandlerFunc(api.getFilterBlueprintDimensionHandler))).Methods("GET")
 	api.Router.Handle("/filters/{filter_blueprint_id}/dimensions/{name}/options/{option}", assert.FilterType(http.HandlerFunc(api.removeFilterBlueprintDimensionOptionHandler))).Methods("DELETE")
-
 	api.Router.Handle("/filters/{filter_blueprint_id}/dimensions/{name}/options/{option}", assert.FilterType(http.HandlerFunc(api.addFilterBlueprintDimensionOptionHandler))).Methods("POST")
 	api.Router.Handle("/filters/{filter_blueprint_id}/dimensions/{name}/options", assert.FilterType(http.HandlerFunc(api.getFilterBlueprintDimensionOptionsHandler))).Methods("GET")
+	api.Router.Handle("/filters/{filter_blueprint_id}/dimensions/{name}/options", assert.FilterType(http.HandlerFunc(api.filterFlexNullEndpointHandler))).Methods("DELETE")
 
 	api.Router.Handle("/filter-outputs/{filter_output_id}", assert.FilterOutputType(http.HandlerFunc(api.getFilterOutputHandler))).Methods("GET")
 
