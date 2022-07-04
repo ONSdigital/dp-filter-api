@@ -1545,6 +1545,46 @@ func TestGetFilterBlueprintDimensionOptionsFilterTypeAssertion(t *testing.T) {
 	})
 }
 
+func TestDummyHandler(t *testing.T) {
+	Convey("Given the assert dataset feature flag is toggled on", t, func() {
+		conf := cfg()
+		conf.AssertDatasetType = true
+
+		Convey("When the filter is not flexible", func() {
+			w := httptest.NewRecorder()
+			filterFlexAPIMock := &apimock.FilterFlexAPIMock{
+				ForwardRequestFunc: func(r *http.Request) (*http.Response, error) {
+					return &http.Response{
+						Body:       io.NopCloser(bytes.NewReader([]byte("test body"))),
+						StatusCode: http.StatusOK,
+					}, nil
+				},
+			}
+
+			datastoreMock := mock.NewDataStore().Mock
+			datastoreMock.GetFilterFunc = func(ctx context.Context, filterID, etag string) (*models.Filter, error) {
+				return &models.Filter{
+					Type:    "not-flexible",
+					Dataset: &models.Dataset{},
+				}, nil
+			}
+
+			filterApi := api.Setup(conf, mux.NewRouter(), datastoreMock, &mock.FilterJob{}, mock.NewDatasetAPI().Mock, filterFlexAPIMock)
+
+			r, err := http.NewRequest("DELETE", "http://localhost:22100/filters/12345678/dimensions/1_age/options", nil)
+			So(err, ShouldBeNil)
+			r.Header.Set("If-Match", testETag)
+			filterApi.Router.ServeHTTP(w, r)
+
+			Convey("Then the request is not forwarded to dp-cantabular-filter-flex-api", func() {
+				So(filterFlexAPIMock.ForwardRequestCalls(), ShouldHaveLength, 0)
+			})
+			Convey("Then the null endpoint handler should return a bad request", func() {
+				So(w.Code, ShouldEqual, http.StatusBadRequest)
+			})
+		})
+	})
+}
 func TestDeleteFilterBlueprintDimensionOptionsFilterTypeAssertion(t *testing.T) {
 
 	Convey("Given the assert dataset feature flag is toggled off", t, func() {
