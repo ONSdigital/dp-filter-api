@@ -714,6 +714,10 @@ definitions:
       is_area_type:
         type: boolean
         description: Indicates if the dimension is an area type
+      filter_by_parent:
+        type: string
+        description: indicates the dependent variable, one level up, that the dimension should be filtered by
+
   DimensionOptions:
     type: object
     description: "A dimension to filter on a dataset. Information on a dimension can be gathered using the `Dataset API`"
