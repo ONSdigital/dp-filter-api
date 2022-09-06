@@ -14,9 +14,12 @@ import (
 )
 
 const (
-	cantabularFlexibleTable = "cantabular_flexible_table"
-	flexible                = "flexible"
-	anyEtagSelector         = "*"
+	cantabularTable             = "cantabular_table"
+	cantabularFlexibleTable     = "cantabular_flexible_table"
+	cantabularMultivariateTable = "cantabular_multivariate_table"
+	flexible                    = "flexible"
+	multivariate                = "multivariate"
+	anyEtagSelector             = "*"
 )
 
 type Assert struct {
@@ -39,7 +42,7 @@ func NewAssert(r responder, d datasetAPIClient, f filterFlexAPIClient, ds datast
 	}
 }
 
-// Filter Flex Forwarder that checks for filter in the route, not in the body as below.
+// FilterOutputType is a forwarder that checks for filter in the route, not in the body as below.
 // Used for PUT filter-output/{filter-output-id}
 func (a *Assert) FilterOutputType(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -56,16 +59,16 @@ func (a *Assert) FilterOutputType(next http.Handler) http.Handler {
 		if err != nil {
 			a.respond.Error(ctx, w, statusCode(err), er{
 				err: errors.Wrap(err, "failed to get filter output"),
-				msg: fmt.Sprintf("failed to get filter output"),
+				msg: "failed to get filter output",
 			})
 			return
 		}
 
-		if filterOutput.Type == flexible {
+		if filterOutput.Type == flexible || filterOutput.Type == multivariate {
 			if err := a.doProxyRequest(w, r); err != nil {
 				a.respond.Error(ctx, w, statusCode(err), er{
 					err: errors.Wrap(err, "failed to do proxy request"),
-					msg: fmt.Sprintf("failed to put filter output"),
+					msg: "unable to fulfil request",
 				})
 			}
 			return
@@ -90,8 +93,8 @@ func (a *Assert) DatasetType(next http.Handler) http.Handler {
 		// Accept any request with 'dataset.id' field
 		var req struct {
 			Dataset struct {
-				ID string `json: "id"`
-			} `json: "dataset"`
+				ID string `json:"id"`
+			} `json:"dataset"`
 		}
 
 		if err := json.NewDecoder(rdr).Decode(&req); err != nil {
@@ -107,20 +110,23 @@ func (a *Assert) DatasetType(next http.Handler) http.Handler {
 		if err != nil {
 			a.respond.Error(ctx, w, statusCode(err), er{
 				err: errors.Wrap(err, "failed to get dataset"),
-				msg: fmt.Sprintf("failed to get dataset"),
+				msg: "failed to get dataset",
 			})
 			return
 		}
 
 		r.Body = io.NopCloser(buf)
 
-		if d.Type == cantabularFlexibleTable {
+		if d.Type == cantabularFlexibleTable || d.Type == cantabularMultivariateTable {
 			if err := a.doProxyRequest(w, r); err != nil {
 				a.respond.Error(ctx, w, statusCode(err), er{
 					err: errors.Wrap(err, "failed to do proxy request"),
-					msg: fmt.Sprintf("failed to get dataset"),
+					msg: "unable to fulfil request",
 				})
 			}
+			return
+		} else if d.Type == cantabularTable {
+			a.respond.Error(ctx, w, http.StatusBadRequest, errors.New("invalid dataset type"))
 			return
 		}
 
@@ -145,16 +151,16 @@ func (a *Assert) FilterType(next http.Handler) http.Handler {
 		if err != nil {
 			a.respond.Error(ctx, w, statusCode(err), er{
 				err: errors.Wrap(err, "failed to get filter"),
-				msg: fmt.Sprintf("failed to get filter"),
+				msg: "failed to get filter",
 			})
 			return
 		}
 
-		if f.Type == flexible {
+		if f.Type == flexible || f.Type == multivariate {
 			if err := a.doProxyRequest(w, r); err != nil {
 				a.respond.Error(ctx, w, statusCode(err), er{
 					err: errors.Wrap(err, "failed to do proxy request"),
-					msg: fmt.Sprintf("failed to get filter"),
+					msg: "unable to fulfil request",
 				})
 			}
 			return
