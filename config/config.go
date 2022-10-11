@@ -37,6 +37,9 @@ type Config struct {
 	DefaultMaxLimit            int           `envconfig:"DEFAULT_MAXIMUM_LIMIT"`
 	AssertDatasetType          bool          `envconfig:"ASSERT_DATASET_TYPE"`
 	FilterFlexAPIURL           string        `envconfig:"FILTER_FLEX_API_URL"`
+	EnableFilterOutputs        bool          `envconfig:"ENABLE_FILTER_OUTPUTS_CHECK"`
+	FilterOutputToken          bool          `envconfig:"FILTER_OUTPUT_TOKEN"`
+
 	MongoConfig
 }
 

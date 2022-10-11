@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 
+	"github.com/ONSdigital/dp-net/request"
 	"github.com/ONSdigital/log.go/v2/log"
 
 	"github.com/gorilla/mux"
@@ -134,6 +135,26 @@ func (a *Assert) DatasetType(next http.Handler) http.Handler {
 	})
 }
 
+func (a *Assert) FilterOutputToken(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+
+		if id := request.Caller(ctx); id != "" {
+			log.Info(ctx, "caller identity verified", log.Data{
+				"caller_identity": id,
+				"URI":             r.URL.Path,
+			})
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		log.Info(ctx, "caller identity not present", log.Data{
+			"URI": r.URL.Path,
+		})
+		http.Error(w, "401 Unauthorized", http.StatusUnauthorized)
+	})
+
+}
 func (a *Assert) FilterType(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !a.enabled {
