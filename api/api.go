@@ -114,12 +114,9 @@ func Setup(
 	if cfg.EnablePrivateEndpoints {
 		api.Router.Handle("/filter-outputs/{filter_output_id}", assert.FilterOutputType(http.HandlerFunc(api.updateFilterOutputHandler))).Methods("PUT")
 		api.Router.HandleFunc("/filter-outputs/{filter_output_id}/events", api.addEventHandler).Methods("POST")
-	}
-
-	if cfg.EnableFilterOutputs {
-
-		identityMiddleware := handlers.Identity(cfg.ZebedeeURL)
+	} else if cfg.EnableFilterOutputs {
 		// web journey
+		identityMiddleware := handlers.Identity(cfg.ZebedeeURL)
 		api.Router.Handle("/filter-outputs/{filter_output_id}", identityMiddleware(assert.FilterOutputType(http.HandlerFunc(api.updateFilterOutputHandler)))).Methods("PUT")
 	}
 
