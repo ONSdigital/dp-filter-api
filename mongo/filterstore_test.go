@@ -70,6 +70,13 @@ func TestGetFilterOutput(t *testing.T) {
 				So(output, ShouldBeNil)
 			})
 		})
+
+		Reset(func() {
+			_, err = collection.DeleteMany(ctx, bson.D{{}})
+			if err != nil {
+				t.Fatal(err)
+			}
+		})
 	})
 }
 

@@ -379,7 +379,7 @@ func (s *FilterStore) CreateFilterOutput(ctx context.Context, filter *models.Fil
 func (s *FilterStore) GetFilterOutput(ctx context.Context, filterID string) (*models.Filter, error) {
 	// we have to match either the filter_id (in CMD) or the id (in Cantabular)
 	// This way we support both CMD and Cantabular
-	query := bson.M{"$or": []bson.M{{"filter_id": filterID}, {"id": filterID}}}
+	query := bson.M{"$or": []bson.M{{"filter_id": filterID}, {"_id": filterID}}}
 	var result *models.Filter
 
 	if err := s.Connection.Collection(s.ActualCollectionName(config.OutputsCollection)).FindOne(ctx, query, &result); err != nil {
