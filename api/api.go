@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/gorilla/mux"
+
 	"github.com/ONSdigital/dp-api-clients-go/v2/dataset"
 	"github.com/ONSdigital/dp-filter-api/config"
 	"github.com/ONSdigital/dp-filter-api/filters"
@@ -12,7 +14,6 @@ import (
 	"github.com/ONSdigital/dp-filter-api/models"
 	"github.com/ONSdigital/dp-net/handlers"
 	"github.com/ONSdigital/dp-net/v2/responder"
-	"github.com/gorilla/mux"
 )
 
 //go:generate moq -out mock/datasetapi.go -pkg mock . DatasetAPI
@@ -97,7 +98,6 @@ func Setup(
 	api.Router.Handle("/filters/{filter_blueprint_id}/submit", assert.FilterType(http.HandlerFunc(api.postFilterBlueprintSubmitHandler))).Methods("POST")
 
 	api.Router.Handle("/filters/{filter_blueprint_id}/dimensions", assert.FilterType(http.HandlerFunc(api.getFilterBlueprintDimensionsHandler))).Methods("GET")
-	api.Router.Handle("/filters/{filter_blueprint_id}/dimensions/{name}", assert.FilterType(http.HandlerFunc(api.putFilterBlueprintDimensionHandler))).Methods("PUT")
 	api.Router.Handle("/filters/{filter_blueprint_id}/dimensions/{name}", assert.FilterType(http.HandlerFunc(api.getFilterBlueprintDimensionHandler))).Methods("GET")
 	api.Router.Handle("/filters/{filter_blueprint_id}/dimensions/{name}/options/{option}", assert.FilterType(http.HandlerFunc(api.removeFilterBlueprintDimensionOptionHandler))).Methods("DELETE")
 	api.Router.Handle("/filters/{filter_blueprint_id}/dimensions/{name}/options/{option}", assert.FilterType(http.HandlerFunc(api.addFilterBlueprintDimensionOptionHandler))).Methods("POST")
@@ -118,6 +118,7 @@ func Setup(
 		// web journey
 		identityMiddleware := handlers.Identity(cfg.ZebedeeURL)
 		api.Router.Handle("/filter-outputs/{filter_output_id}", identityMiddleware(assert.FilterOutputType(http.HandlerFunc(api.updateFilterOutputHandler)))).Methods("PUT")
+		api.Router.Handle("/filters/{filter_blueprint_id}/dimensions/{name}", identityMiddleware(assert.FilterType(http.HandlerFunc(api.putFilterBlueprintDimensionHandler)))).Methods("PUT")
 	}
 
 	return api
