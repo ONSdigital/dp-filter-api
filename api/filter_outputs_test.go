@@ -12,12 +12,13 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
 
+	"github.com/gorilla/mux"
+	. "github.com/smartystreets/goconvey/convey"
+
 	"github.com/ONSdigital/dp-filter-api/api"
 	apimock "github.com/ONSdigital/dp-filter-api/api/mock"
 	"github.com/ONSdigital/dp-filter-api/filters"
 	"github.com/ONSdigital/dp-filter-api/models"
-	"github.com/gorilla/mux"
-	. "github.com/smartystreets/goconvey/convey"
 
 	"github.com/ONSdigital/dp-filter-api/mock"
 	dprequest "github.com/ONSdigital/dp-net/request"
@@ -28,6 +29,46 @@ const (
 	filterID2 = "122"
 	filterID3 = "123"
 )
+
+func TestPutFilterOutputMiddleware(t *testing.T) {
+	t.Parallel()
+	filterFlexAPIMock := &apimock.FilterFlexAPIMock{}
+	cfg := cfg()
+	cfg.EnableFilterOutputs = true
+	cfg.EnablePrivateEndpoints = false
+
+	Convey("Put filter output errors with wrong token", t, func() {
+		r, err := http.NewRequest("PUT", "http://localhost:22100/filter-outputs/12345678", nil)
+		So(err, ShouldBeNil)
+
+		w := httptest.NewRecorder()
+		filterApi := api.Setup(cfg, mux.NewRouter(), &mock.DataStore{}, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
+		filterApi.Router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusUnauthorized)
+
+	})
+
+}
+
+func TestPutFilterOutputDimensionsMiddleware(t *testing.T) {
+	t.Parallel()
+	filterFlexAPIMock := &apimock.FilterFlexAPIMock{}
+	cfg := cfg()
+	cfg.EnableFilterOutputs = true
+	cfg.EnablePrivateEndpoints = false
+
+	Convey("Put filter output dimension name errors with wrong token", t, func() {
+		r, err := http.NewRequest("PUT", "http://localhost:22100/filters/12345678/dimensions/name", nil)
+		So(err, ShouldBeNil)
+
+		w := httptest.NewRecorder()
+		filterApi := api.Setup(cfg, mux.NewRouter(), &mock.DataStore{}, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
+		filterApi.Router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusUnauthorized)
+
+	})
+
+}
 
 func TestSuccessfulGetFilterOutput(t *testing.T) {
 	t.Parallel()
