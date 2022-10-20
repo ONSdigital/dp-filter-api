@@ -16,6 +16,7 @@ import (
 	"fmt"
 
 	"github.com/ONSdigital/dp-filter-api/filters"
+	mongodriver "github.com/ONSdigital/dp-mongodb/v3/mongodb"
 )
 
 func (api *FilterAPI) getFilterBlueprintDimensionOptionsHandler(w http.ResponseWriter, r *http.Request) {
@@ -547,28 +548,35 @@ func (api *FilterAPI) patchFilterBlueprintDimension(ctx context.Context, filterB
 
 	successful = []dprequest.Patch{}
 
-	// apply patch operations sequentially, stop processing if one patch fails, and return a list of successful patches operations
-	for _, patch := range patches {
-		allOptions, err := getStringArrayFromInterface(patch.Value)
-		if err != nil {
-			return successful, eTag, err
-		}
-		options := RemoveDuplicateAndEmptyOptions(allOptions)
+	updateDimensions := func(sessionCtx mongodriver.Session) error {
+		// apply patch operations sequentially, stop processing if one patch fails, and return a list of successful patches operations
+		for _, patch := range patches {
+			allOptions, err := getStringArrayFromInterface(patch.Value)
+			if err != nil {
+				return err
+			}
+			options := RemoveDuplicateAndEmptyOptions(allOptions)
 
-		if patch.Op == dprequest.OpAdd.String() {
-			eTag, err = api.addFilterBlueprintDimensionOptions(ctx, filterBlueprintID, dimensionName, options, logData, eTag)
-			if err != nil {
-				return successful, eTag, err
+			if patch.Op == dprequest.OpAdd.String() {
+				eTag, err = api.addFilterBlueprintDimensionOptions(sessionCtx.Ctx, filterBlueprintID, dimensionName, options, logData, eTag)
+				if err != nil {
+					return err
+				}
+			} else {
+				eTag, err = api.removeFilterBlueprintDimensionOptions(sessionCtx.Ctx, filterBlueprintID, dimensionName, options, logData, eTag)
+				if err != nil {
+					return err
+				}
 			}
-		} else {
-			eTag, err = api.removeFilterBlueprintDimensionOptions(ctx, filterBlueprintID, dimensionName, options, logData, eTag)
-			if err != nil {
-				return successful, eTag, err
-			}
+			successful = append(successful, patch)
 		}
-		successful = append(successful, patch)
+
+		return nil
 	}
-	return successful, eTag, nil
+
+	err = api.dataStore.RunTransaction(ctx, updateDimensions)
+
+	return successful, eTag, err
 }
 
 // findDimensionAndOptions finds the provided dimensionName and options (in the dimension) in the filterBlueprint

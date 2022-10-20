@@ -2,9 +2,11 @@ package api
 
 import (
 	"context"
+
 	"go.mongodb.org/mongo-driver/bson/primitive"
 
 	"github.com/ONSdigital/dp-filter-api/models"
+	mongodriver "github.com/ONSdigital/dp-mongodb/v3/mongodb"
 )
 
 //go:generate moq -out mock/datastore.go -pkg mock . DataStore
@@ -25,4 +27,5 @@ type DataStore interface {
 	GetFilterOutput(ctx context.Context, filterOutputID string) (*models.Filter, error)
 	UpdateFilterOutput(ctx context.Context, filter *models.Filter, timestamp primitive.Timestamp) error
 	AddEventToFilterOutput(ctx context.Context, filterOutputID string, event *models.Event) error
+	RunTransaction(ctx context.Context, fn mongodriver.SessionFunc) error
 }
