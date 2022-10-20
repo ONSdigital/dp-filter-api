@@ -29,26 +29,27 @@ const (
 	filterID3 = "123"
 )
 
-func TestPutFilterOutputMiddleware(t *testing.T) {
-	t.Parallel()
-	filterFlexAPIMock := &apimock.FilterFlexAPIMock{}
-	cfg := cfg()
-	cfg.EnableFilterOutputs = true
-	cfg.EnablePrivateEndpoints = false
+/*
+	func TestPutFilterOutputMiddleware(t *testing.T) {
+		t.Parallel()
+		filterFlexAPIMock := &apimock.FilterFlexAPIMock{}
+		cfg := cfg()
+		cfg.EnableFilterOutputs = true
+		cfg.EnablePrivateEndpoints = false
 
-	Convey("Put filter output errors with wrong token", t, func() {
-		r, err := http.NewRequest("PUT", "http://localhost:22100/filter-outputs/12345678", nil)
-		So(err, ShouldBeNil)
+		Convey("Put filter output errors with wrong token", t, func() {
+			r, err := http.NewRequest("PUT", "http://localhost:22100/filter-outputs/12345678", nil)
+			So(err, ShouldBeNil)
 
-		w := httptest.NewRecorder()
-		filterApi := api.Setup(cfg, mux.NewRouter(), &mock.DataStore{}, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
-		filterApi.Router.ServeHTTP(w, r)
-		So(w.Code, ShouldEqual, http.StatusUnauthorized)
+			w := httptest.NewRecorder()
+			filterApi := api.Setup(cfg, mux.NewRouter(), &mock.DataStore{}, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
+			filterApi.Router.ServeHTTP(w, r)
+			So(w.Code, ShouldEqual, http.StatusUnauthorized)
 
-	})
+		})
 
 }
-
+*/
 func TestSuccessfulGetFilterOutput(t *testing.T) {
 	t.Parallel()
 
