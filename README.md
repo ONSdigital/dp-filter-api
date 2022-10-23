@@ -46,7 +46,6 @@ Scripts for updating and debugging Kafka can be found [here](https://github.com/
 | MONGODB_IS_SSL               | false                                                        | Switch to use (or not) TLS when connecting to mongodb                                                            |
 | SHUTDOWN_TIMEOUT             | 5s                                                           | The graceful shutdown timeout (`time.Duration` format)                                                           |
 | DATASET_API_URL              | http://localhost:22000                                       | The URL of the Dataset API                                                                                       |
-| DATASET_API_AUTH_TOKEN       | FD0108EA-825D-411C-9B1D-41EF7727F465                         | The token used to access the Dataset API                                                                         |
 | HEALTHCHECK_INTERVAL         | 30s                                                          | Time between self-healthchecks (`time.Duration` format)                                                          |
 | HEALTHCHECK_CRITICAL_TIMEOUT | 90s                                                          | The time taken for the health changes from warning state to critical due to subsystem check failures             |
 | SERVICE_AUTH_TOKEN           | FD0108EA-825D-411C-9B1D-41EF7727F465                         | The token used to identify this service when authenticating                                                      |
