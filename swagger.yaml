@@ -744,7 +744,6 @@ definitions:
     description: |
       A description of a job to generate a customised dataset
     type: object
-    required: ["instance_id"]
     properties:
       filter_id:
         readOnly: true
