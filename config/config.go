@@ -37,7 +37,6 @@ type Config struct {
 	DefaultMaxLimit            int           `envconfig:"DEFAULT_MAXIMUM_LIMIT"`
 	AssertDatasetType          bool          `envconfig:"ASSERT_DATASET_TYPE"`
 	FilterFlexAPIURL           string        `envconfig:"FILTER_FLEX_API_URL"`
-	EnableFilterOutputs        bool          `envconfig:"ENABLE_FILTER_OUTPUTS_CHECK"`
 	MongoConfig
 }
 
@@ -79,7 +78,6 @@ func Get() (*Config, error) {
 		ServiceAuthToken:           "FD0108EA-825D-411C-9B1D-41EF7727F465",
 		ZebedeeURL:                 "http://localhost:8082",
 		EnablePrivateEndpoints:     true,
-		EnableFilterOutputs:        false,
 		DownloadServiceURL:         "http://localhost:23600",
 		DownloadServiceSecretKey:   "QB0108EZ-825D-412C-9B1D-41EF7747F462",
 		AssertDatasetType:          false,
