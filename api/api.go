@@ -110,13 +110,10 @@ func Setup(
 	api.Router.HandleFunc("/filters/{filter_blueprint_id}/dimensions/{name}", api.removeFilterBlueprintDimensionHandler).Methods("DELETE")
 	api.Router.HandleFunc("/filters/{filter_blueprint_id}/dimensions/{name}/options/{option}", api.getFilterBlueprintDimensionOptionHandler).Methods("GET")
 
+	api.Router.Handle("/filter-outputs/{filter_output_id}", assert.FilterOutputType(http.HandlerFunc(api.updateFilterOutputHandler))).Methods("PUT")
+
 	if cfg.EnablePrivateEndpoints {
-		api.Router.Handle("/filter-outputs/{filter_output_id}", assert.FilterOutputType(http.HandlerFunc(api.updateFilterOutputHandler))).Methods("PUT")
 		api.Router.HandleFunc("/filter-outputs/{filter_output_id}/events", api.addEventHandler).Methods("POST")
-	} else if cfg.EnableFilterOutputs {
-		// web journey
-		//identityMiddleware := handlers.Identity(cfg.ZebedeeURL)
-		api.Router.Handle("/filter-outputs/{filter_output_id}", assert.FilterOutputType(http.HandlerFunc(api.updateFilterOutputHandler))).Methods("PUT")
 	}
 
 	return api

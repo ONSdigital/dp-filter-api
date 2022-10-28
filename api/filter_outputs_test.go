@@ -29,27 +29,6 @@ const (
 	filterID3 = "123"
 )
 
-/*
-	func TestPutFilterOutputMiddleware(t *testing.T) {
-		t.Parallel()
-		filterFlexAPIMock := &apimock.FilterFlexAPIMock{}
-		cfg := cfg()
-		cfg.EnableFilterOutputs = true
-		cfg.EnablePrivateEndpoints = false
-
-		Convey("Put filter output errors with wrong token", t, func() {
-			r, err := http.NewRequest("PUT", "http://localhost:22100/filter-outputs/12345678", nil)
-			So(err, ShouldBeNil)
-
-			w := httptest.NewRecorder()
-			filterApi := api.Setup(cfg, mux.NewRouter(), &mock.DataStore{}, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
-			filterApi.Router.ServeHTTP(w, r)
-			So(w.Code, ShouldEqual, http.StatusUnauthorized)
-
-		})
-
-}
-*/
 func TestSuccessfulGetFilterOutput(t *testing.T) {
 	t.Parallel()
 
@@ -532,23 +511,6 @@ func TestFailedToUpdateFilterOutput_BadRequest(t *testing.T) {
 				So(err, ShouldEqual, io.EOF)
 			})
 		})
-	})
-}
-
-func TestUpdateFilterOutput_PrivateEndpointsNotEnabled(t *testing.T) {
-
-	filterFlexAPIMock := &apimock.FilterFlexAPIMock{}
-
-	Convey("When private endpoints are not enabled, calling update on the filter output returns a 404 not found", t, func() {
-		cfg := cfg()
-		cfg.EnablePrivateEndpoints = false
-		reader := strings.NewReader(`{"downloads":{"csv":{"url":"s3-csv-location","size":"12mb"}}}`)
-		r := createAuthenticatedRequest("PUT", "http://localhost:22100/filter-outputs/21312", reader)
-
-		w := httptest.NewRecorder()
-		filterApi := api.Setup(cfg, mux.NewRouter(), &mock.DataStore{}, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
-		filterApi.Router.ServeHTTP(w, r)
-		So(w.Code, ShouldEqual, http.StatusMethodNotAllowed)
 	})
 }
 
