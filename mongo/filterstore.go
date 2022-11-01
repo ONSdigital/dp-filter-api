@@ -483,6 +483,6 @@ func (s *FilterStore) Close(ctx context.Context) error {
 	return s.Connection.Close(ctx)
 }
 
-func (s *FilterStore) RunTransaction(ctx context.Context, fn mongodriver.SessionFunc) error {
+func (s *FilterStore) RunTransaction(ctx context.Context, fn mongodriver.TransactionFunc) error {
 	return s.Connection.RunTransaction(ctx, fn)
 }

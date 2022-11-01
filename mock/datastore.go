@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+
+	mongodriver "github.com/ONSdigital/dp-mongodb/v3/mongodb"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 
 	apimock "github.com/ONSdigital/dp-filter-api/api/mock"
@@ -84,6 +86,7 @@ func NewDataStore() *DataStore {
 		UpdateFilterFunc:                 ds.UpdateFilter,
 		UpdateFilterOutputFunc:           ds.UpdateFilterOutput,
 		AddEventToFilterOutputFunc:       ds.AddEventToFilterOutput,
+		RunTransactionFunc:               ds.RunTransaction,
 	}
 	return ds
 }
@@ -458,4 +461,12 @@ func (ds *DataStore) AddEventToFilterOutput(ctx context.Context, filterOutputID 
 	}
 
 	return nil
+}
+
+func (ds *DataStore) RunTransaction(ctx context.Context, fn mongodriver.TransactionFunc) error {
+	if ds.Cfg.InternalError {
+		return errorInternalServer
+	}
+
+	return fn(ctx)
 }

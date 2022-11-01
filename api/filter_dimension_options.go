@@ -16,7 +16,6 @@ import (
 	"fmt"
 
 	"github.com/ONSdigital/dp-filter-api/filters"
-	mongodriver "github.com/ONSdigital/dp-mongodb/v3/mongodb"
 )
 
 func (api *FilterAPI) getFilterBlueprintDimensionOptionsHandler(w http.ResponseWriter, r *http.Request) {
@@ -548,7 +547,7 @@ func (api *FilterAPI) patchFilterBlueprintDimension(ctx context.Context, filterB
 
 	successful = []dprequest.Patch{}
 
-	updateDimensions := func(sessionCtx mongodriver.Session) error {
+	updateDimensions := func(transactionCtx context.Context) error {
 		// apply patch operations sequentially, stop processing if one patch fails, and return a list of successful patches operations
 		for _, patch := range patches {
 			allOptions, err := getStringArrayFromInterface(patch.Value)
@@ -558,12 +557,12 @@ func (api *FilterAPI) patchFilterBlueprintDimension(ctx context.Context, filterB
 			options := RemoveDuplicateAndEmptyOptions(allOptions)
 
 			if patch.Op == dprequest.OpAdd.String() {
-				eTag, err = api.addFilterBlueprintDimensionOptions(sessionCtx.Ctx, filterBlueprintID, dimensionName, options, logData, eTag)
+				eTag, err = api.addFilterBlueprintDimensionOptions(transactionCtx, filterBlueprintID, dimensionName, options, logData, eTag)
 				if err != nil {
 					return err
 				}
 			} else {
-				eTag, err = api.removeFilterBlueprintDimensionOptions(sessionCtx.Ctx, filterBlueprintID, dimensionName, options, logData, eTag)
+				eTag, err = api.removeFilterBlueprintDimensionOptions(transactionCtx, filterBlueprintID, dimensionName, options, logData, eTag)
 				if err != nil {
 					return err
 				}

@@ -27,5 +27,5 @@ type DataStore interface {
 	GetFilterOutput(ctx context.Context, filterOutputID string) (*models.Filter, error)
 	UpdateFilterOutput(ctx context.Context, filter *models.Filter, timestamp primitive.Timestamp) error
 	AddEventToFilterOutput(ctx context.Context, filterOutputID string, event *models.Event) error
-	RunTransaction(ctx context.Context, fn mongodriver.SessionFunc) error
+	RunTransaction(ctx context.Context, fn mongodriver.TransactionFunc) error
 }
