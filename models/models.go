@@ -30,9 +30,10 @@ var (
 
 // Dataset contains the uniique identifiers that make a dataset unique
 type Dataset struct {
-	ID      string `bson:"id"        json:"id"`
-	Edition string `bson:"edition"   json:"edition"`
-	Version int    `bson:"version"   json:"version"`
+	ID              string `bson:"id"        json:"id"`
+	Edition         string `bson:"edition"   json:"edition"`
+	Version         int    `bson:"version"   json:"version"`
+	LowestGeography string `bson:"lowest_geography" json:"lowest_geography"`
 }
 
 // NewFilter creates a filter by using the dataset id, edition and version
