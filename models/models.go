@@ -221,8 +221,12 @@ func (filter *NewFilter) ValidateNewFilter() error {
 		if filter.Dataset.ID == "" {
 			missingFields = append(missingFields, "dataset.id")
 		}
+
+		if filter.Dataset.LowestGeography == "" {
+			missingFields = append(missingFields, "dataset.lowest_geography")
+		}
 	} else {
-		missingFields = append(missingFields, "dataset.version", "dataset.edition", "dataset.id")
+		missingFields = append(missingFields, "dataset.version", "dataset.edition", "dataset.id", "dataset.lowest_geography")
 	}
 
 	if missingFields != nil {

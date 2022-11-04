@@ -19,7 +19,7 @@ func (f reader) Read(bytes []byte) (int, error) {
 
 func TestCreateFilterBlueprintWithValidJSON(t *testing.T) {
 	Convey("When a filter blueprint has a valid json body, a message is returned", t, func() {
-		reader := strings.NewReader(`{"dataset":{"version":1, "edition":"1", "id":"1"} }`)
+		reader := strings.NewReader(`{"dataset":{"version":1, "edition":"1", "id":"1", "lowest_geography":"lowest-geography"} }`)
 		filter, err := CreateNewFilter(reader)
 		So(err, ShouldBeNil)
 		So(filter.ValidateNewFilter(), ShouldBeNil)
@@ -51,7 +51,7 @@ func TestCreateFilterBlueprintWithInvalidJson(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		err = filter.ValidateNewFilter()
-		missingFields := []string{"dataset.edition", "dataset.id"}
+		missingFields := []string{"dataset.edition", "dataset.id", "dataset.lowest_geography"}
 		So(err, ShouldNotBeNil)
 		So(err, ShouldResemble, fmt.Errorf("missing mandatory fields: %v", missingFields))
 	})
@@ -61,7 +61,7 @@ func TestCreateFilterBlueprintWithInvalidJson(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		err = filter.ValidateNewFilter()
-		missingFields := []string{"dataset.version", "dataset.edition", "dataset.id"}
+		missingFields := []string{"dataset.version", "dataset.edition", "dataset.id", "dataset.lowest_geography"}
 		So(err, ShouldNotBeNil)
 		So(err, ShouldResemble, fmt.Errorf("missing mandatory fields: %v", missingFields))
 	})

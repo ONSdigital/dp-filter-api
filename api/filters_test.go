@@ -58,7 +58,7 @@ func TestSuccessfulAddFilterBlueprint_PublishedDataset(t *testing.T) {
 
 		Convey("When a POST request is made to the filters endpoint", func() {
 
-			reader := strings.NewReader(`{"dataset":{"version":1, "edition":"1", "id":"1"} }`)
+			reader := strings.NewReader(`{"dataset":{"version":1, "edition":"1", "id":"1", "lowest_geography":"lowest-geography"} }`)
 			r, err := http.NewRequest("POST", "http://localhost:22100/filters", reader)
 			So(err, ShouldBeNil)
 			filterApi.Router.ServeHTTP(w, r)
@@ -84,7 +84,7 @@ func TestSuccessfulAddFilterBlueprint_PublishedDataset(t *testing.T) {
 
 		Convey("When a POST request is made to the filters endpoint with valid dimensions", func() {
 
-			reader := strings.NewReader(`{"dataset":{"version":1, "edition":"1", "id":"1"}, "dimensions":[{"name": "age", "options": ["27","33"]}]}`)
+			reader := strings.NewReader(`{"dataset":{"version":1, "edition":"1", "id":"1", "lowest_geography":"lowest-geography"}, "dimensions":[{"name": "age", "options": ["27","33"]}]}`)
 			r, err := http.NewRequest("POST", "http://localhost:22100/filters", reader)
 			So(err, ShouldBeNil)
 			filterApi.Router.ServeHTTP(w, r)
@@ -110,7 +110,7 @@ func TestSuccessfulAddFilterBlueprint_PublishedDataset(t *testing.T) {
 
 		Convey("When a POST request is made to the filters endpoint with the submitted query string parameter", func() {
 
-			reader := strings.NewReader(`{"dataset":{"version":1, "edition":"1", "id":"1"} }`)
+			reader := strings.NewReader(`{"dataset":{"version":1, "edition":"1", "id":"1", "lowest_geography":"lowest-geography"} }`)
 			r, err := http.NewRequest("POST", "http://localhost:22100/filters?submitted=true", reader)
 			So(err, ShouldBeNil)
 			filterApi.Router.ServeHTTP(w, r)
@@ -230,7 +230,7 @@ func TestSuccessfulAddFilterBlueprint_UnpublishedDataset(t *testing.T) {
 
 		Convey("When a POST request is made to the filters endpoint", func() {
 
-			reader := strings.NewReader(`{"dataset":{"version":1, "edition":"1", "id":"1"}, "dimensions":[{"name": "age", "options": ["27","33"]}]}`)
+			reader := strings.NewReader(`{"dataset":{"version":1, "edition":"1", "id":"1", "lowest_geography":"lowest-geography"}, "dimensions":[{"name": "age", "options": ["27","33"]}]}`)
 			r := createAuthenticatedRequest("POST", "http://localhost:22100/filters", reader)
 			filterApi.Router.ServeHTTP(w, r)
 
@@ -284,7 +284,7 @@ func TestFailedToAddFilterBlueprint(t *testing.T) {
 	})
 
 	Convey("When no data store is available", t, func() {
-		reader := strings.NewReader(`{"dataset":{"version":1, "edition":"1", "id":"1"} }`)
+		reader := strings.NewReader(`{"dataset":{"version":1, "edition":"1", "id":"1", "lowest_geography":"lowest-geography"} }`)
 		r, err := http.NewRequest("POST", "http://localhost:22100/filters", reader)
 		So(err, ShouldBeNil)
 
@@ -310,7 +310,7 @@ func TestFailedToAddFilterBlueprint(t *testing.T) {
 	})
 
 	Convey("When dataset API is unavailable", t, func() {
-		reader := strings.NewReader(`{"dataset":{"version":1, "edition":"1", "id":"1"} }`)
+		reader := strings.NewReader(`{"dataset":{"version":1, "edition":"1", "id":"1", "lowest_geography":"lowest-geography"} }`)
 		r, err := http.NewRequest("POST", "http://localhost:22100/filters", reader)
 		So(err, ShouldBeNil)
 
@@ -336,7 +336,7 @@ func TestFailedToAddFilterBlueprint(t *testing.T) {
 	})
 
 	Convey("When version does not exist", t, func() {
-		reader := strings.NewReader(`{"dataset":{"version":1, "edition":"1", "id":"1"} }`)
+		reader := strings.NewReader(`{"dataset":{"version":1, "edition":"1", "id":"1", "lowest_geography":"lowest-geography"} }`)
 		r, err := http.NewRequest("POST", "http://localhost:22100/filters", reader)
 		So(err, ShouldBeNil)
 
@@ -362,7 +362,7 @@ func TestFailedToAddFilterBlueprint(t *testing.T) {
 	})
 
 	Convey("When version is unpublished and the request is not authenticated", t, func() {
-		reader := strings.NewReader(`{"dataset":{"version":1, "edition":"1", "id":"1"}, "dimensions":[{"name": "age", "options": ["27","33"]}]}`)
+		reader := strings.NewReader(`{"dataset":{"version":1, "edition":"1", "id":"1", "lowest_geography":"lowest-geography"}, "dimensions":[{"name": "age", "options": ["27","33"]}]}`)
 		r, err := http.NewRequest("POST", "http://localhost:22100/filters", reader)
 		So(err, ShouldBeNil)
 
@@ -480,7 +480,7 @@ func TestFailedToAddFilterBlueprint_BadJSON(t *testing.T) {
 
 		Convey("When a POST request is made to the filters endpoint with a dimension that does not exist", func() {
 
-			reader := strings.NewReader(`{"dataset":{"version":1, "edition":"1", "id":"1"} , "dimensions":[{"name": "weight", "options": ["27","33"]}]}`)
+			reader := strings.NewReader(`{"dataset":{"version":1, "edition":"1", "id":"1", "lowest_geography":"lowest-geography"} , "dimensions":[{"name": "weight", "options": ["27","33"]}]}`)
 			r, err := http.NewRequest("POST", "http://localhost:22100/filters", reader)
 			So(err, ShouldBeNil)
 
@@ -507,7 +507,7 @@ func TestFailedToAddFilterBlueprint_BadJSON(t *testing.T) {
 
 		Convey("When a POST request is made to the filters endpoint with a dimension option that does not exist", func() {
 
-			reader := strings.NewReader(`{"dataset":{"version":1, "edition":"1", "id":"1"} , "dimensions":[{"name": "age", "options": ["29","33"]}]}`)
+			reader := strings.NewReader(`{"dataset":{"version":1, "edition":"1", "id":"1", "lowest_geography":"lowest-geography"} , "dimensions":[{"name": "age", "options": ["29","33"]}]}`)
 			r, err := http.NewRequest("POST", "http://localhost:22100/filters", reader)
 			So(err, ShouldBeNil)
 
