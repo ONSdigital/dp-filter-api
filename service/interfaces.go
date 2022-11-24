@@ -48,7 +48,7 @@ type MongoDB interface {
 	AddEventToFilterOutput(ctx context.Context, filterOutputID string, event *models.Event) error
 	Checker(ctx context.Context, state *healthcheck.CheckState) error
 	Close(ctx context.Context) error
-	RunTransaction(ctx context.Context, fn mongodriver.TransactionFunc) error
+	RunTransaction(ctx context.Context, retry bool, fn mongodriver.TransactionFunc) (interface{}, error)
 }
 
 type Closer interface {

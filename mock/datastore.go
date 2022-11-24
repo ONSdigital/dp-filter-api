@@ -463,9 +463,9 @@ func (ds *DataStore) AddEventToFilterOutput(ctx context.Context, filterOutputID 
 	return nil
 }
 
-func (ds *DataStore) RunTransaction(ctx context.Context, fn mongodriver.TransactionFunc) error {
+func (ds *DataStore) RunTransaction(ctx context.Context, retry bool, fn mongodriver.TransactionFunc) (interface{}, error) {
 	if ds.Cfg.InternalError {
-		return errorInternalServer
+		return nil, errorInternalServer
 	}
 
 	return fn(ctx)

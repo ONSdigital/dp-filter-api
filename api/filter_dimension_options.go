@@ -517,65 +517,52 @@ func (api *FilterAPI) patchFilterBlueprintDimensionHandler(w http.ResponseWriter
 	}
 
 	// apply the patches to the filter blueprint dimension options
-	successfulPatches, newETag, err := api.patchFilterBlueprintDimension(ctx, filterBlueprintID, dimensionName, patches, logData, eTag)
-	if err != nil {
-		logData["successful_patches"] = successfulPatches
-		log.Error(ctx, "error patching filter blueprint dimension options", err, logData)
-		setErrorCodeFromError(w, err)
-		if len(successfulPatches) > 0 {
-			if err := WriteJSONBody(ctx, successfulPatches, w, logData); err != nil {
-				log.Error(ctx, "error writing JSON body during filter blueprint patch error handling", err, logData)
+	var newETag interface{}
+	newETag, err = api.dataStore.RunTransaction(ctx, true, func(transactionCtx context.Context) (interface{}, error) {
+		var (
+			allOptions, options []string
+			tag                 = eTag
+		)
+
+		// apply patch operations sequentially, stop processing if one patch fails, and return a list of successful patches operations
+		for _, patch := range patches {
+			allOptions, err = getStringArrayFromInterface(patch.Value)
+			if err != nil {
+				return tag, err
+			}
+			options = RemoveDuplicateAndEmptyOptions(allOptions)
+
+			if patch.Op == dprequest.OpAdd.String() {
+				tag, err = api.addFilterBlueprintDimensionOptions(transactionCtx, filterBlueprintID, dimensionName, options, logData, tag)
+				if err != nil {
+					return tag, err
+				}
+			} else {
+				tag, err = api.removeFilterBlueprintDimensionOptions(transactionCtx, filterBlueprintID, dimensionName, options, logData, tag)
+				if err != nil {
+					return tag, err
+				}
 			}
 		}
+
+		return tag, nil
+	})
+	if err != nil {
+		log.Error(ctx, "error patching filter blueprint dimension options", err, logData)
+		setErrorCodeFromError(w, err)
 		return
 	}
 
 	// set content type, marshal and write response
 	setJSONPatchContentType(w)
-	setETag(w, newETag)
-	if err := WriteJSONBody(ctx, successfulPatches, w, logData); err != nil {
+	setETag(w, newETag.(string))
+	if err = WriteJSONBody(ctx, patches, w, logData); err != nil {
 		log.Error(ctx, "error writing JSON body after a successful filter blueprint patch", err, logData)
 		setErrorCodeFromError(w, err)
 		return
 	}
 
 	log.Info(ctx, "successfully patched filter dimension options on filter blueprint", logData)
-}
-
-// patchFilterBlueprintDimension applies the patches by calling add or remove filter dimension options. It keeps track of a list of successful patches
-func (api *FilterAPI) patchFilterBlueprintDimension(ctx context.Context, filterBlueprintID string, dimensionName string, patches []dprequest.Patch, logData log.Data, eTag string) (successful []dprequest.Patch, newETag string, err error) {
-
-	successful = []dprequest.Patch{}
-
-	updateDimensions := func(transactionCtx context.Context) error {
-		// apply patch operations sequentially, stop processing if one patch fails, and return a list of successful patches operations
-		for _, patch := range patches {
-			allOptions, err := getStringArrayFromInterface(patch.Value)
-			if err != nil {
-				return err
-			}
-			options := RemoveDuplicateAndEmptyOptions(allOptions)
-
-			if patch.Op == dprequest.OpAdd.String() {
-				eTag, err = api.addFilterBlueprintDimensionOptions(transactionCtx, filterBlueprintID, dimensionName, options, logData, eTag)
-				if err != nil {
-					return err
-				}
-			} else {
-				eTag, err = api.removeFilterBlueprintDimensionOptions(transactionCtx, filterBlueprintID, dimensionName, options, logData, eTag)
-				if err != nil {
-					return err
-				}
-			}
-			successful = append(successful, patch)
-		}
-
-		return nil
-	}
-
-	err = api.dataStore.RunTransaction(ctx, updateDimensions)
-
-	return successful, eTag, err
 }
 
 // findDimensionAndOptions finds the provided dimensionName and options (in the dimension) in the filterBlueprint

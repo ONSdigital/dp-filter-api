@@ -77,7 +77,7 @@ func Get() (*Config, error) {
 		DefaultMaxLimit:            1000, // Maximum limit allowed for paginated calls
 		ServiceAuthToken:           "FD0108EA-825D-411C-9B1D-41EF7727F465",
 		ZebedeeURL:                 "http://localhost:8082",
-		EnablePrivateEndpoints:     true,
+		EnablePrivateEndpoints:     false,
 		DownloadServiceURL:         "http://localhost:23600",
 		DownloadServiceSecretKey:   "QB0108EZ-825D-412C-9B1D-41EF7747F462",
 		AssertDatasetType:          false,

@@ -116,6 +116,8 @@ func Setup(
 		api.Router.HandleFunc("/filter-outputs/{filter_output_id}/events", api.addEventHandler).Methods("POST")
 	}
 
+	api.Router.Handle("/test-trans", http.HandlerFunc(api.testTrans)).Methods("GET")
+
 	return api
 }
 

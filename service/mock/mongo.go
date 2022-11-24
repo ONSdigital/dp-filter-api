@@ -65,7 +65,7 @@ var _ service.MongoDB = &MongoDBMock{}
 //			RemoveFilterDimensionOptionsFunc: func(ctx context.Context, filterID string, name string, options []string, timestamp primitive.Timestamp, eTagSelector string, currentFilter *models.Filter) (string, error) {
 //				panic("mock out the RemoveFilterDimensionOptions method")
 //			},
-//			RunTransactionFunc: func(ctx context.Context, fn mongodriver.TransactionFunc) error {
+//			RunTransactionFunc: func(ctx context.Context, retry bool, fn mongodriver.TransactionFunc) (interface{}, error) {
 //				panic("mock out the RunTransaction method")
 //			},
 //			UpdateFilterFunc: func(ctx context.Context, updatedFilter *models.Filter, timestamp primitive.Timestamp, eTagSelector string, currentFilter *models.Filter) (string, error) {
@@ -124,7 +124,7 @@ type MongoDBMock struct {
 	RemoveFilterDimensionOptionsFunc func(ctx context.Context, filterID string, name string, options []string, timestamp primitive.Timestamp, eTagSelector string, currentFilter *models.Filter) (string, error)
 
 	// RunTransactionFunc mocks the RunTransaction method.
-	RunTransactionFunc func(ctx context.Context, fn mongodriver.TransactionFunc) error
+	RunTransactionFunc func(ctx context.Context, retry bool, fn mongodriver.TransactionFunc) (interface{}, error)
 
 	// UpdateFilterFunc mocks the UpdateFilter method.
 	UpdateFilterFunc func(ctx context.Context, updatedFilter *models.Filter, timestamp primitive.Timestamp, eTagSelector string, currentFilter *models.Filter) (string, error)
@@ -302,6 +302,8 @@ type MongoDBMock struct {
 		RunTransaction []struct {
 			// Ctx is the ctx argument value.
 			Ctx context.Context
+			// Retry is the retry argument value.
+			Retry bool
 			// Fn is the fn argument value.
 			Fn mongodriver.TransactionFunc
 		}
@@ -984,21 +986,23 @@ func (mock *MongoDBMock) RemoveFilterDimensionOptionsCalls() []struct {
 }
 
 // RunTransaction calls RunTransactionFunc.
-func (mock *MongoDBMock) RunTransaction(ctx context.Context, fn mongodriver.TransactionFunc) error {
+func (mock *MongoDBMock) RunTransaction(ctx context.Context, retry bool, fn mongodriver.TransactionFunc) (interface{}, error) {
 	if mock.RunTransactionFunc == nil {
 		panic("MongoDBMock.RunTransactionFunc: method is nil but MongoDB.RunTransaction was just called")
 	}
 	callInfo := struct {
-		Ctx context.Context
-		Fn  mongodriver.TransactionFunc
+		Ctx   context.Context
+		Retry bool
+		Fn    mongodriver.TransactionFunc
 	}{
-		Ctx: ctx,
-		Fn:  fn,
+		Ctx:   ctx,
+		Retry: retry,
+		Fn:    fn,
 	}
 	mock.lockRunTransaction.Lock()
 	mock.calls.RunTransaction = append(mock.calls.RunTransaction, callInfo)
 	mock.lockRunTransaction.Unlock()
-	return mock.RunTransactionFunc(ctx, fn)
+	return mock.RunTransactionFunc(ctx, retry, fn)
 }
 
 // RunTransactionCalls gets all the calls that were made to RunTransaction.
@@ -1006,12 +1010,14 @@ func (mock *MongoDBMock) RunTransaction(ctx context.Context, fn mongodriver.Tran
 //
 //	len(mockedMongoDB.RunTransactionCalls())
 func (mock *MongoDBMock) RunTransactionCalls() []struct {
-	Ctx context.Context
-	Fn  mongodriver.TransactionFunc
+	Ctx   context.Context
+	Retry bool
+	Fn    mongodriver.TransactionFunc
 } {
 	var calls []struct {
-		Ctx context.Context
-		Fn  mongodriver.TransactionFunc
+		Ctx   context.Context
+		Retry bool
+		Fn    mongodriver.TransactionFunc
 	}
 	mock.lockRunTransaction.RLock()
 	calls = mock.calls.RunTransaction

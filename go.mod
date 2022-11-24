@@ -15,7 +15,7 @@ require (
 	github.com/ONSdigital/dp-api-clients-go/v2 v2.191.0
 	github.com/ONSdigital/dp-healthcheck v1.5.0
 	github.com/ONSdigital/dp-kafka/v2 v2.7.3
-	github.com/ONSdigital/dp-mongodb-in-memory v1.3.1
+	github.com/ONSdigital/dp-mongodb-in-memory v1.5.0
 	github.com/ONSdigital/dp-mongodb/v3 v3.3.0
 	github.com/ONSdigital/dp-net v1.5.0
 	github.com/ONSdigital/dp-net/v2 v2.6.0
