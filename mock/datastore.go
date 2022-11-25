@@ -4,11 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 
 	apimock "github.com/ONSdigital/dp-filter-api/api/mock"
 	"github.com/ONSdigital/dp-filter-api/filters"
 	"github.com/ONSdigital/dp-filter-api/models"
+	mongodriver "github.com/ONSdigital/dp-mongodb/v3/mongodb"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 // A list of errors that can be returned by mock package
@@ -84,6 +86,7 @@ func NewDataStore() *DataStore {
 		UpdateFilterFunc:                 ds.UpdateFilter,
 		UpdateFilterOutputFunc:           ds.UpdateFilterOutput,
 		AddEventToFilterOutputFunc:       ds.AddEventToFilterOutput,
+		RunTransactionFunc:               ds.RunTransaction,
 	}
 	return ds
 }
@@ -458,4 +461,12 @@ func (ds *DataStore) AddEventToFilterOutput(ctx context.Context, filterOutputID 
 	}
 
 	return nil
+}
+
+func (ds *DataStore) RunTransaction(ctx context.Context, retry bool, fn mongodriver.TransactionFunc) (interface{}, error) {
+	if ds.Cfg.InternalError {
+		return nil, errorInternalServer
+	}
+
+	return fn(ctx)
 }

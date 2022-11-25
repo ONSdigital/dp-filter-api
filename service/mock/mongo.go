@@ -8,6 +8,7 @@ import (
 	"github.com/ONSdigital/dp-filter-api/models"
 	"github.com/ONSdigital/dp-filter-api/service"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
+	mongodriver "github.com/ONSdigital/dp-mongodb/v3/mongodb"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"sync"
 )
@@ -18,64 +19,67 @@ var _ service.MongoDB = &MongoDBMock{}
 
 // MongoDBMock is a mock implementation of service.MongoDB.
 //
-// 	func TestSomethingThatUsesMongoDB(t *testing.T) {
+//	func TestSomethingThatUsesMongoDB(t *testing.T) {
 //
-// 		// make and configure a mocked service.MongoDB
-// 		mockedMongoDB := &MongoDBMock{
-// 			AddEventToFilterOutputFunc: func(ctx context.Context, filterOutputID string, event *models.Event) error {
-// 				panic("mock out the AddEventToFilterOutput method")
-// 			},
-// 			AddFilterFunc: func(ctx context.Context, filter *models.Filter) (*models.Filter, error) {
-// 				panic("mock out the AddFilter method")
-// 			},
-// 			AddFilterDimensionFunc: func(ctx context.Context, filterID string, name string, options []string, dimensions []models.Dimension, timestamp primitive.Timestamp, eTagSelector string, currentFilter *models.Filter) (string, error) {
-// 				panic("mock out the AddFilterDimension method")
-// 			},
-// 			AddFilterDimensionOptionFunc: func(ctx context.Context, filterID string, name string, option string, timestamp primitive.Timestamp, eTagSelector string, currentFilter *models.Filter) (string, error) {
-// 				panic("mock out the AddFilterDimensionOption method")
-// 			},
-// 			AddFilterDimensionOptionsFunc: func(ctx context.Context, filterID string, name string, options []string, timestamp primitive.Timestamp, eTagSelector string, currentFilter *models.Filter) (string, error) {
-// 				panic("mock out the AddFilterDimensionOptions method")
-// 			},
-// 			CheckerFunc: func(ctx context.Context, state *healthcheck.CheckState) error {
-// 				panic("mock out the Checker method")
-// 			},
-// 			CloseFunc: func(ctx context.Context) error {
-// 				panic("mock out the Close method")
-// 			},
-// 			CreateFilterOutputFunc: func(ctx context.Context, filter *models.Filter) error {
-// 				panic("mock out the CreateFilterOutput method")
-// 			},
-// 			GetFilterFunc: func(ctx context.Context, filterID string, eTagSelector string) (*models.Filter, error) {
-// 				panic("mock out the GetFilter method")
-// 			},
-// 			GetFilterDimensionFunc: func(ctx context.Context, filterID string, name string, eTagSelector string) (*models.Dimension, error) {
-// 				panic("mock out the GetFilterDimension method")
-// 			},
-// 			GetFilterOutputFunc: func(ctx context.Context, filterOutputID string) (*models.Filter, error) {
-// 				panic("mock out the GetFilterOutput method")
-// 			},
-// 			RemoveFilterDimensionFunc: func(ctx context.Context, filterID string, name string, timestamp primitive.Timestamp, eTagSelector string, currentFilter *models.Filter) (string, error) {
-// 				panic("mock out the RemoveFilterDimension method")
-// 			},
-// 			RemoveFilterDimensionOptionFunc: func(ctx context.Context, filterID string, name string, option string, timestamp primitive.Timestamp, eTagSelector string, currentFilter *models.Filter) (string, error) {
-// 				panic("mock out the RemoveFilterDimensionOption method")
-// 			},
-// 			RemoveFilterDimensionOptionsFunc: func(ctx context.Context, filterID string, name string, options []string, timestamp primitive.Timestamp, eTagSelector string, currentFilter *models.Filter) (string, error) {
-// 				panic("mock out the RemoveFilterDimensionOptions method")
-// 			},
-// 			UpdateFilterFunc: func(ctx context.Context, updatedFilter *models.Filter, timestamp primitive.Timestamp, eTagSelector string, currentFilter *models.Filter) (string, error) {
-// 				panic("mock out the UpdateFilter method")
-// 			},
-// 			UpdateFilterOutputFunc: func(ctx context.Context, filter *models.Filter, timestamp primitive.Timestamp) error {
-// 				panic("mock out the UpdateFilterOutput method")
-// 			},
-// 		}
+//		// make and configure a mocked service.MongoDB
+//		mockedMongoDB := &MongoDBMock{
+//			AddEventToFilterOutputFunc: func(ctx context.Context, filterOutputID string, event *models.Event) error {
+//				panic("mock out the AddEventToFilterOutput method")
+//			},
+//			AddFilterFunc: func(ctx context.Context, filter *models.Filter) (*models.Filter, error) {
+//				panic("mock out the AddFilter method")
+//			},
+//			AddFilterDimensionFunc: func(ctx context.Context, filterID string, name string, options []string, dimensions []models.Dimension, timestamp primitive.Timestamp, eTagSelector string, currentFilter *models.Filter) (string, error) {
+//				panic("mock out the AddFilterDimension method")
+//			},
+//			AddFilterDimensionOptionFunc: func(ctx context.Context, filterID string, name string, option string, timestamp primitive.Timestamp, eTagSelector string, currentFilter *models.Filter) (string, error) {
+//				panic("mock out the AddFilterDimensionOption method")
+//			},
+//			AddFilterDimensionOptionsFunc: func(ctx context.Context, filterID string, name string, options []string, timestamp primitive.Timestamp, eTagSelector string, currentFilter *models.Filter) (string, error) {
+//				panic("mock out the AddFilterDimensionOptions method")
+//			},
+//			CheckerFunc: func(ctx context.Context, state *healthcheck.CheckState) error {
+//				panic("mock out the Checker method")
+//			},
+//			CloseFunc: func(ctx context.Context) error {
+//				panic("mock out the Close method")
+//			},
+//			CreateFilterOutputFunc: func(ctx context.Context, filter *models.Filter) error {
+//				panic("mock out the CreateFilterOutput method")
+//			},
+//			GetFilterFunc: func(ctx context.Context, filterID string, eTagSelector string) (*models.Filter, error) {
+//				panic("mock out the GetFilter method")
+//			},
+//			GetFilterDimensionFunc: func(ctx context.Context, filterID string, name string, eTagSelector string) (*models.Dimension, error) {
+//				panic("mock out the GetFilterDimension method")
+//			},
+//			GetFilterOutputFunc: func(ctx context.Context, filterOutputID string) (*models.Filter, error) {
+//				panic("mock out the GetFilterOutput method")
+//			},
+//			RemoveFilterDimensionFunc: func(ctx context.Context, filterID string, name string, timestamp primitive.Timestamp, eTagSelector string, currentFilter *models.Filter) (string, error) {
+//				panic("mock out the RemoveFilterDimension method")
+//			},
+//			RemoveFilterDimensionOptionFunc: func(ctx context.Context, filterID string, name string, option string, timestamp primitive.Timestamp, eTagSelector string, currentFilter *models.Filter) (string, error) {
+//				panic("mock out the RemoveFilterDimensionOption method")
+//			},
+//			RemoveFilterDimensionOptionsFunc: func(ctx context.Context, filterID string, name string, options []string, timestamp primitive.Timestamp, eTagSelector string, currentFilter *models.Filter) (string, error) {
+//				panic("mock out the RemoveFilterDimensionOptions method")
+//			},
+//			RunTransactionFunc: func(ctx context.Context, retry bool, fn mongodriver.TransactionFunc) (interface{}, error) {
+//				panic("mock out the RunTransaction method")
+//			},
+//			UpdateFilterFunc: func(ctx context.Context, updatedFilter *models.Filter, timestamp primitive.Timestamp, eTagSelector string, currentFilter *models.Filter) (string, error) {
+//				panic("mock out the UpdateFilter method")
+//			},
+//			UpdateFilterOutputFunc: func(ctx context.Context, filter *models.Filter, timestamp primitive.Timestamp) error {
+//				panic("mock out the UpdateFilterOutput method")
+//			},
+//		}
 //
-// 		// use mockedMongoDB in code that requires service.MongoDB
-// 		// and then make assertions.
+//		// use mockedMongoDB in code that requires service.MongoDB
+//		// and then make assertions.
 //
-// 	}
+//	}
 type MongoDBMock struct {
 	// AddEventToFilterOutputFunc mocks the AddEventToFilterOutput method.
 	AddEventToFilterOutputFunc func(ctx context.Context, filterOutputID string, event *models.Event) error
@@ -118,6 +122,9 @@ type MongoDBMock struct {
 
 	// RemoveFilterDimensionOptionsFunc mocks the RemoveFilterDimensionOptions method.
 	RemoveFilterDimensionOptionsFunc func(ctx context.Context, filterID string, name string, options []string, timestamp primitive.Timestamp, eTagSelector string, currentFilter *models.Filter) (string, error)
+
+	// RunTransactionFunc mocks the RunTransaction method.
+	RunTransactionFunc func(ctx context.Context, retry bool, fn mongodriver.TransactionFunc) (interface{}, error)
 
 	// UpdateFilterFunc mocks the UpdateFilter method.
 	UpdateFilterFunc func(ctx context.Context, updatedFilter *models.Filter, timestamp primitive.Timestamp, eTagSelector string, currentFilter *models.Filter) (string, error)
@@ -291,6 +298,15 @@ type MongoDBMock struct {
 			// CurrentFilter is the currentFilter argument value.
 			CurrentFilter *models.Filter
 		}
+		// RunTransaction holds details about calls to the RunTransaction method.
+		RunTransaction []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// Retry is the retry argument value.
+			Retry bool
+			// Fn is the fn argument value.
+			Fn mongodriver.TransactionFunc
+		}
 		// UpdateFilter holds details about calls to the UpdateFilter method.
 		UpdateFilter []struct {
 			// Ctx is the ctx argument value.
@@ -328,6 +344,7 @@ type MongoDBMock struct {
 	lockRemoveFilterDimension        sync.RWMutex
 	lockRemoveFilterDimensionOption  sync.RWMutex
 	lockRemoveFilterDimensionOptions sync.RWMutex
+	lockRunTransaction               sync.RWMutex
 	lockUpdateFilter                 sync.RWMutex
 	lockUpdateFilterOutput           sync.RWMutex
 }
@@ -354,7 +371,8 @@ func (mock *MongoDBMock) AddEventToFilterOutput(ctx context.Context, filterOutpu
 
 // AddEventToFilterOutputCalls gets all the calls that were made to AddEventToFilterOutput.
 // Check the length with:
-//     len(mockedMongoDB.AddEventToFilterOutputCalls())
+//
+//	len(mockedMongoDB.AddEventToFilterOutputCalls())
 func (mock *MongoDBMock) AddEventToFilterOutputCalls() []struct {
 	Ctx            context.Context
 	FilterOutputID string
@@ -391,7 +409,8 @@ func (mock *MongoDBMock) AddFilter(ctx context.Context, filter *models.Filter) (
 
 // AddFilterCalls gets all the calls that were made to AddFilter.
 // Check the length with:
-//     len(mockedMongoDB.AddFilterCalls())
+//
+//	len(mockedMongoDB.AddFilterCalls())
 func (mock *MongoDBMock) AddFilterCalls() []struct {
 	Ctx    context.Context
 	Filter *models.Filter
@@ -438,7 +457,8 @@ func (mock *MongoDBMock) AddFilterDimension(ctx context.Context, filterID string
 
 // AddFilterDimensionCalls gets all the calls that were made to AddFilterDimension.
 // Check the length with:
-//     len(mockedMongoDB.AddFilterDimensionCalls())
+//
+//	len(mockedMongoDB.AddFilterDimensionCalls())
 func (mock *MongoDBMock) AddFilterDimensionCalls() []struct {
 	Ctx           context.Context
 	FilterID      string
@@ -495,7 +515,8 @@ func (mock *MongoDBMock) AddFilterDimensionOption(ctx context.Context, filterID 
 
 // AddFilterDimensionOptionCalls gets all the calls that were made to AddFilterDimensionOption.
 // Check the length with:
-//     len(mockedMongoDB.AddFilterDimensionOptionCalls())
+//
+//	len(mockedMongoDB.AddFilterDimensionOptionCalls())
 func (mock *MongoDBMock) AddFilterDimensionOptionCalls() []struct {
 	Ctx           context.Context
 	FilterID      string
@@ -550,7 +571,8 @@ func (mock *MongoDBMock) AddFilterDimensionOptions(ctx context.Context, filterID
 
 // AddFilterDimensionOptionsCalls gets all the calls that were made to AddFilterDimensionOptions.
 // Check the length with:
-//     len(mockedMongoDB.AddFilterDimensionOptionsCalls())
+//
+//	len(mockedMongoDB.AddFilterDimensionOptionsCalls())
 func (mock *MongoDBMock) AddFilterDimensionOptionsCalls() []struct {
 	Ctx           context.Context
 	FilterID      string
@@ -595,7 +617,8 @@ func (mock *MongoDBMock) Checker(ctx context.Context, state *healthcheck.CheckSt
 
 // CheckerCalls gets all the calls that were made to Checker.
 // Check the length with:
-//     len(mockedMongoDB.CheckerCalls())
+//
+//	len(mockedMongoDB.CheckerCalls())
 func (mock *MongoDBMock) CheckerCalls() []struct {
 	Ctx   context.Context
 	State *healthcheck.CheckState
@@ -628,7 +651,8 @@ func (mock *MongoDBMock) Close(ctx context.Context) error {
 
 // CloseCalls gets all the calls that were made to Close.
 // Check the length with:
-//     len(mockedMongoDB.CloseCalls())
+//
+//	len(mockedMongoDB.CloseCalls())
 func (mock *MongoDBMock) CloseCalls() []struct {
 	Ctx context.Context
 } {
@@ -661,7 +685,8 @@ func (mock *MongoDBMock) CreateFilterOutput(ctx context.Context, filter *models.
 
 // CreateFilterOutputCalls gets all the calls that were made to CreateFilterOutput.
 // Check the length with:
-//     len(mockedMongoDB.CreateFilterOutputCalls())
+//
+//	len(mockedMongoDB.CreateFilterOutputCalls())
 func (mock *MongoDBMock) CreateFilterOutputCalls() []struct {
 	Ctx    context.Context
 	Filter *models.Filter
@@ -698,7 +723,8 @@ func (mock *MongoDBMock) GetFilter(ctx context.Context, filterID string, eTagSel
 
 // GetFilterCalls gets all the calls that were made to GetFilter.
 // Check the length with:
-//     len(mockedMongoDB.GetFilterCalls())
+//
+//	len(mockedMongoDB.GetFilterCalls())
 func (mock *MongoDBMock) GetFilterCalls() []struct {
 	Ctx          context.Context
 	FilterID     string
@@ -739,7 +765,8 @@ func (mock *MongoDBMock) GetFilterDimension(ctx context.Context, filterID string
 
 // GetFilterDimensionCalls gets all the calls that were made to GetFilterDimension.
 // Check the length with:
-//     len(mockedMongoDB.GetFilterDimensionCalls())
+//
+//	len(mockedMongoDB.GetFilterDimensionCalls())
 func (mock *MongoDBMock) GetFilterDimensionCalls() []struct {
 	Ctx          context.Context
 	FilterID     string
@@ -778,7 +805,8 @@ func (mock *MongoDBMock) GetFilterOutput(ctx context.Context, filterOutputID str
 
 // GetFilterOutputCalls gets all the calls that were made to GetFilterOutput.
 // Check the length with:
-//     len(mockedMongoDB.GetFilterOutputCalls())
+//
+//	len(mockedMongoDB.GetFilterOutputCalls())
 func (mock *MongoDBMock) GetFilterOutputCalls() []struct {
 	Ctx            context.Context
 	FilterOutputID string
@@ -821,7 +849,8 @@ func (mock *MongoDBMock) RemoveFilterDimension(ctx context.Context, filterID str
 
 // RemoveFilterDimensionCalls gets all the calls that were made to RemoveFilterDimension.
 // Check the length with:
-//     len(mockedMongoDB.RemoveFilterDimensionCalls())
+//
+//	len(mockedMongoDB.RemoveFilterDimensionCalls())
 func (mock *MongoDBMock) RemoveFilterDimensionCalls() []struct {
 	Ctx           context.Context
 	FilterID      string
@@ -874,7 +903,8 @@ func (mock *MongoDBMock) RemoveFilterDimensionOption(ctx context.Context, filter
 
 // RemoveFilterDimensionOptionCalls gets all the calls that were made to RemoveFilterDimensionOption.
 // Check the length with:
-//     len(mockedMongoDB.RemoveFilterDimensionOptionCalls())
+//
+//	len(mockedMongoDB.RemoveFilterDimensionOptionCalls())
 func (mock *MongoDBMock) RemoveFilterDimensionOptionCalls() []struct {
 	Ctx           context.Context
 	FilterID      string
@@ -929,7 +959,8 @@ func (mock *MongoDBMock) RemoveFilterDimensionOptions(ctx context.Context, filte
 
 // RemoveFilterDimensionOptionsCalls gets all the calls that were made to RemoveFilterDimensionOptions.
 // Check the length with:
-//     len(mockedMongoDB.RemoveFilterDimensionOptionsCalls())
+//
+//	len(mockedMongoDB.RemoveFilterDimensionOptionsCalls())
 func (mock *MongoDBMock) RemoveFilterDimensionOptionsCalls() []struct {
 	Ctx           context.Context
 	FilterID      string
@@ -951,6 +982,46 @@ func (mock *MongoDBMock) RemoveFilterDimensionOptionsCalls() []struct {
 	mock.lockRemoveFilterDimensionOptions.RLock()
 	calls = mock.calls.RemoveFilterDimensionOptions
 	mock.lockRemoveFilterDimensionOptions.RUnlock()
+	return calls
+}
+
+// RunTransaction calls RunTransactionFunc.
+func (mock *MongoDBMock) RunTransaction(ctx context.Context, retry bool, fn mongodriver.TransactionFunc) (interface{}, error) {
+	if mock.RunTransactionFunc == nil {
+		panic("MongoDBMock.RunTransactionFunc: method is nil but MongoDB.RunTransaction was just called")
+	}
+	callInfo := struct {
+		Ctx   context.Context
+		Retry bool
+		Fn    mongodriver.TransactionFunc
+	}{
+		Ctx:   ctx,
+		Retry: retry,
+		Fn:    fn,
+	}
+	mock.lockRunTransaction.Lock()
+	mock.calls.RunTransaction = append(mock.calls.RunTransaction, callInfo)
+	mock.lockRunTransaction.Unlock()
+	return mock.RunTransactionFunc(ctx, retry, fn)
+}
+
+// RunTransactionCalls gets all the calls that were made to RunTransaction.
+// Check the length with:
+//
+//	len(mockedMongoDB.RunTransactionCalls())
+func (mock *MongoDBMock) RunTransactionCalls() []struct {
+	Ctx   context.Context
+	Retry bool
+	Fn    mongodriver.TransactionFunc
+} {
+	var calls []struct {
+		Ctx   context.Context
+		Retry bool
+		Fn    mongodriver.TransactionFunc
+	}
+	mock.lockRunTransaction.RLock()
+	calls = mock.calls.RunTransaction
+	mock.lockRunTransaction.RUnlock()
 	return calls
 }
 
@@ -980,7 +1051,8 @@ func (mock *MongoDBMock) UpdateFilter(ctx context.Context, updatedFilter *models
 
 // UpdateFilterCalls gets all the calls that were made to UpdateFilter.
 // Check the length with:
-//     len(mockedMongoDB.UpdateFilterCalls())
+//
+//	len(mockedMongoDB.UpdateFilterCalls())
 func (mock *MongoDBMock) UpdateFilterCalls() []struct {
 	Ctx           context.Context
 	UpdatedFilter *models.Filter
@@ -1023,7 +1095,8 @@ func (mock *MongoDBMock) UpdateFilterOutput(ctx context.Context, filter *models.
 
 // UpdateFilterOutputCalls gets all the calls that were made to UpdateFilterOutput.
 // Check the length with:
-//     len(mockedMongoDB.UpdateFilterOutputCalls())
+//
+//	len(mockedMongoDB.UpdateFilterOutputCalls())
 func (mock *MongoDBMock) UpdateFilterOutputCalls() []struct {
 	Ctx       context.Context
 	Filter    *models.Filter

@@ -5,8 +5,8 @@ import (
 	"net/http"
 
 	"github.com/ONSdigital/dp-filter-api/models"
-
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
+	mongodriver "github.com/ONSdigital/dp-mongodb/v3/mongodb"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
@@ -47,6 +47,7 @@ type MongoDB interface {
 	AddEventToFilterOutput(ctx context.Context, filterOutputID string, event *models.Event) error
 	Checker(ctx context.Context, state *healthcheck.CheckState) error
 	Close(ctx context.Context) error
+	RunTransaction(ctx context.Context, retry bool, fn mongodriver.TransactionFunc) (interface{}, error)
 }
 
 type Closer interface {

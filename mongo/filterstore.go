@@ -482,3 +482,7 @@ func (s *FilterStore) Checker(ctx context.Context, state *healthcheck.CheckState
 func (s *FilterStore) Close(ctx context.Context) error {
 	return s.Connection.Close(ctx)
 }
+
+func (s *FilterStore) RunTransaction(ctx context.Context, retry bool, fn mongodriver.TransactionFunc) (interface{}, error) {
+	return s.Connection.RunTransaction(ctx, retry, fn)
+}
