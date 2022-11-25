@@ -832,6 +832,7 @@ func TestSuccessfulPatchFilterBlueprintDimension(t *testing.T) {
 		})
 
 		Convey("And only the valid inexistent option being added to the database", func() {
+			So(ds.RunTransactionCalls(), ShouldHaveLength, 1)
 			So(ds.GetFilterCalls(), ShouldHaveLength, 1)
 			So(ds.GetFilterCalls()[0].FilterID, ShouldEqual, "12345678")
 			So(ds.AddFilterDimensionOptionsCalls(), ShouldHaveLength, 1)
@@ -870,6 +871,7 @@ func TestSuccessfulPatchFilterBlueprintDimension(t *testing.T) {
 		})
 
 		Convey("And the option being removed from the database", func() {
+			So(ds.RunTransactionCalls(), ShouldHaveLength, 1)
 			So(ds.GetFilterCalls(), ShouldHaveLength, 1)
 			So(ds.GetFilterCalls()[0].FilterID, ShouldEqual, "12345678")
 			So(ds.AddFilterDimensionOptionsCalls(), ShouldHaveLength, 0)
@@ -908,6 +910,7 @@ func TestSuccessfulPatchFilterBlueprintDimension(t *testing.T) {
 		})
 
 		Convey("And only the existing options being updated to the database", func() {
+			So(ds.RunTransactionCalls(), ShouldHaveLength, 1)
 			So(ds.GetFilterCalls(), ShouldHaveLength, 1)
 			So(ds.GetFilterCalls()[0].FilterID, ShouldEqual, "12345678")
 			So(ds.AddFilterDimensionOptionsCalls(), ShouldHaveLength, 0)
@@ -946,6 +949,7 @@ func TestSuccessfulPatchFilterBlueprintDimension(t *testing.T) {
 		})
 
 		Convey("And no calls to remove options from the database", func() {
+			So(ds.RunTransactionCalls(), ShouldHaveLength, 1)
 			So(ds.GetFilterCalls(), ShouldHaveLength, 1)
 			So(ds.GetFilterCalls()[0].FilterID, ShouldEqual, "12345678")
 			So(ds.AddFilterDimensionOptionsCalls(), ShouldHaveLength, 0)
@@ -981,6 +985,7 @@ func TestSuccessfulPatchFilterBlueprintDimension(t *testing.T) {
 		})
 
 		Convey("And no calls the database", func() {
+			So(ds.RunTransactionCalls(), ShouldHaveLength, 1)
 			So(ds.GetFilterCalls(), ShouldHaveLength, 0)
 			So(ds.AddFilterDimensionOptionsCalls(), ShouldHaveLength, 0)
 			So(ds.RemoveFilterDimensionOptionsCalls(), ShouldHaveLength, 0)
@@ -1017,6 +1022,7 @@ func TestSuccessfulPatchFilterBlueprintDimension(t *testing.T) {
 		})
 
 		Convey("And the expected calls for both operations are performed against the database", func() {
+			So(ds.RunTransactionCalls(), ShouldHaveLength, 1)
 			So(ds.GetFilterCalls(), ShouldHaveLength, 2)
 			So(ds.GetFilterCalls()[0].FilterID, ShouldEqual, "12345678")
 			So(ds.GetFilterCalls()[1].FilterID, ShouldEqual, "12345678")
@@ -1062,6 +1068,7 @@ func TestSuccessfulPatchFilterBlueprintDimension(t *testing.T) {
 		})
 
 		Convey("And the expected calls for both operations are performed against the database", func() {
+			So(ds.RunTransactionCalls(), ShouldHaveLength, 1)
 			So(ds.GetFilterCalls(), ShouldHaveLength, 2)
 			So(ds.GetFilterCalls()[0].FilterID, ShouldEqual, "12345678")
 			So(ds.GetFilterCalls()[1].FilterID, ShouldEqual, "12345678")
@@ -1585,6 +1592,7 @@ func TestDummyHandler(t *testing.T) {
 		})
 	})
 }
+
 func TestDeleteFilterBlueprintDimensionOptionsFilterTypeAssertion(t *testing.T) {
 
 	Convey("Given the assert dataset feature flag is toggled off", t, func() {
