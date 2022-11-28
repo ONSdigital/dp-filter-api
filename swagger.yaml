@@ -308,9 +308,9 @@ paths:
       - $ref: '#/parameters/if_match'
       responses:
         200:
-          description: "The dimension was patched and the links for the dimension are returned"
+          description: "The dimension was patched and the list of dimension options are returned"
           schema:
-            $ref: '#/definitions/DimensionItemLinks'
+            $ref: '#/definitions/PatchOptions'
           headers:
             ETag:
               type: string
