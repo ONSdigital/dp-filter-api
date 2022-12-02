@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"sort"
 
@@ -518,7 +519,7 @@ func (api *FilterAPI) patchFilterBlueprintDimensionHandler(w http.ResponseWriter
 
 	// apply the patches to the filter blueprint dimension options
 	var newETag interface{}
-	newETag, err = api.dataStore.RunTransaction(ctx, true, func(transactionCtx context.Context) (interface{}, error) {
+	newETag, err = api.dataStore.RunTransaction(ctx, true, func(txCtx context.Context) (interface{}, error) {
 		var (
 			allOptions, options []string
 			tag                 = eTag
@@ -533,12 +534,12 @@ func (api *FilterAPI) patchFilterBlueprintDimensionHandler(w http.ResponseWriter
 			options = RemoveDuplicateAndEmptyOptions(allOptions)
 
 			if patch.Op == dprequest.OpAdd.String() {
-				tag, err = api.addFilterBlueprintDimensionOptions(transactionCtx, filterBlueprintID, dimensionName, options, logData, tag)
+				tag, err = api.addFilterBlueprintDimensionOptions(txCtx, filterBlueprintID, dimensionName, options, logData, tag)
 				if err != nil {
 					return tag, err
 				}
 			} else {
-				tag, err = api.removeFilterBlueprintDimensionOptions(transactionCtx, filterBlueprintID, dimensionName, options, logData, tag)
+				tag, err = api.removeFilterBlueprintDimensionOptions(txCtx, filterBlueprintID, dimensionName, options, logData, tag)
 				if err != nil {
 					return tag, err
 				}
@@ -552,10 +553,17 @@ func (api *FilterAPI) patchFilterBlueprintDimensionHandler(w http.ResponseWriter
 		setErrorCodeFromError(w, err)
 		return
 	}
+	t, ok := newETag.(string)
+	if !ok {
+		err = errors.New("returned ETag is not a string value")
+		log.Error(ctx, err.Error(), err, log.Data{"newETag": newETag})
+		setErrorCodeFromError(w, err)
+		return
+	}
+	setETag(w, t)
 
 	// set content type, marshal and write response
 	setJSONPatchContentType(w)
-	setETag(w, newETag.(string))
 	if err = WriteJSONBody(ctx, patches, w, logData); err != nil {
 		log.Error(ctx, "error writing JSON body after a successful filter blueprint patch", err, logData)
 		setErrorCodeFromError(w, err)
