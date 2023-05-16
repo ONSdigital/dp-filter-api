@@ -79,7 +79,10 @@ func (api *FilterAPI) getFilterBlueprintDimensionOptionsHandler(w http.ResponseW
 		return
 	}
 
-	logData["options"] = options
+	// The additions of `options` has been commented out below because sometimes it is resulting
+	// in a log line that is greater or equal to: 270836 bytes
+	// ... and this is contributing to the 'logstash' servers having a BAD day.
+	//logData["options"] = options
 
 	b, err := json.Marshal(options)
 	if err != nil {
