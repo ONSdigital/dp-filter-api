@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 
+	"github.com/ONSdigital/dp-filter-api/filters"
 	"github.com/ONSdigital/log.go/v2/log"
 
 	"github.com/gorilla/mux"
@@ -149,7 +150,13 @@ func (a *Assert) FilterType(next http.Handler) http.Handler {
 		// TODO: Better to add GetFilterType query to mongo?
 		f, err := a.store.GetFilter(ctx, filterID, anyEtagSelector)
 		if err != nil {
-			a.respond.Error(ctx, w, statusCode(err), er{
+			var status int
+			if err == filters.ErrFilterBlueprintNotFound {
+				status = http.StatusNotFound
+			} else {
+				status = statusCode(err)
+			}
+			a.respond.Error(ctx, w, status, er{
 				err: errors.Wrap(err, "failed to get filter"),
 				msg: "failed to get filter",
 			})
