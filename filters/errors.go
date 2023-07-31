@@ -1,6 +1,10 @@
 package filters
 
-import "errors"
+import (
+	"errors"
+	"net/http"
+	"regexp"
+)
 
 var (
 	ErrVersionNotFound          = errors.New("version not found")
@@ -18,6 +22,20 @@ var (
 	ErrUnauthorised             = errors.New("unauthorised")
 	ErrInternalError            = errors.New("internal server error")
 	ErrNoIfMatchHeader          = errors.New("required If-Match header not provided")
+)
+
+var (
+	InternalError = "Failed to process the request due to an internal error"
+	BadRequest    = "Bad request - Invalid request body"
+
+	statusBadRequest          = "bad request"
+	StatusNotFound            = "not found"
+	statusUnprocessableEntity = "unprocessable entity"
+
+	incorrectDimensionOptions = regexp.MustCompile("incorrect dimension options chosen")
+	incorrectDimension        = regexp.MustCompile("incorrect dimensions chosen")
+
+	publishedState = "published"
 )
 
 func NewBadRequestErr(text string) error {
@@ -44,4 +62,36 @@ type ForbiddenErr struct {
 
 func (e ForbiddenErr) Error() string {
 	return e.s
+}
+
+func GetErrorStatusCode(err error) int {
+	switch err {
+	case ErrFilterBlueprintNotFound:
+		return http.StatusNotFound
+	case ErrFilterOutputNotFound:
+		return http.StatusNotFound
+	case ErrUnauthorised:
+		return http.StatusUnauthorized
+	case ErrInvalidQueryParameter:
+		return http.StatusBadRequest
+	case ErrBadRequest:
+		return http.StatusBadRequest
+	case ErrFilterBlueprintConflict:
+		return http.StatusConflict
+	case ErrFilterOutputConflict:
+		return http.StatusConflict
+	case ErrInternalError:
+		return http.StatusInternalServerError
+
+	default:
+
+		switch err.(type) {
+		case BadRequestErr:
+			return http.StatusBadRequest
+		case ForbiddenErr:
+			return http.StatusForbidden
+		default:
+			return http.StatusInternalServerError
+		}
+	}
 }
