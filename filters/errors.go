@@ -3,7 +3,6 @@ package filters
 import (
 	"errors"
 	"net/http"
-	"regexp"
 )
 
 var (
@@ -22,20 +21,6 @@ var (
 	ErrUnauthorised             = errors.New("unauthorised")
 	ErrInternalError            = errors.New("internal server error")
 	ErrNoIfMatchHeader          = errors.New("required If-Match header not provided")
-)
-
-var (
-	InternalError = "Failed to process the request due to an internal error"
-	BadRequest    = "Bad request - Invalid request body"
-
-	statusBadRequest          = "bad request"
-	StatusNotFound            = "not found"
-	statusUnprocessableEntity = "unprocessable entity"
-
-	incorrectDimensionOptions = regexp.MustCompile("incorrect dimension options chosen")
-	incorrectDimension        = regexp.MustCompile("incorrect dimensions chosen")
-
-	publishedState = "published"
 )
 
 func NewBadRequestErr(text string) error {
