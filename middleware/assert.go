@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 
+	"github.com/ONSdigital/dp-filter-api/filters"
 	"github.com/ONSdigital/log.go/v2/log"
 
 	"github.com/gorilla/mux"
@@ -57,7 +58,7 @@ func (a *Assert) FilterOutputType(next http.Handler) http.Handler {
 		ctx := r.Context()
 		filterOutput, err := a.store.GetFilterOutput(ctx, filterOutputID)
 		if err != nil {
-			a.respond.Error(ctx, w, statusCode(err), er{
+			a.respond.Error(ctx, w, filters.GetErrorStatusCode(err), er{
 				err: errors.Wrap(err, "failed to get filter output"),
 				msg: "failed to get filter output",
 			})
@@ -66,7 +67,7 @@ func (a *Assert) FilterOutputType(next http.Handler) http.Handler {
 
 		if filterOutput.Type == flexible || filterOutput.Type == multivariate {
 			if err := a.doProxyRequest(w, r); err != nil {
-				a.respond.Error(ctx, w, statusCode(err), er{
+				a.respond.Error(ctx, w, filters.GetErrorStatusCode(err), er{
 					err: errors.Wrap(err, "failed to do proxy request"),
 					msg: "unable to fulfil request",
 				})
@@ -108,7 +109,7 @@ func (a *Assert) DatasetType(next http.Handler) http.Handler {
 		// TODO: Probably better to create a new GetDatasetType function in dataset api-client
 		d, err := a.DatasetAPI.Get(ctx, "", a.svcAuthToken, "", req.Dataset.ID)
 		if err != nil {
-			a.respond.Error(ctx, w, statusCode(err), er{
+			a.respond.Error(ctx, w, filters.GetErrorStatusCode(err), er{
 				err: errors.Wrap(err, "failed to get dataset"),
 				msg: "failed to get dataset",
 			})
@@ -119,7 +120,7 @@ func (a *Assert) DatasetType(next http.Handler) http.Handler {
 
 		if d.Type == cantabularFlexibleTable || d.Type == cantabularMultivariateTable {
 			if err := a.doProxyRequest(w, r); err != nil {
-				a.respond.Error(ctx, w, statusCode(err), er{
+				a.respond.Error(ctx, w, filters.GetErrorStatusCode(err), er{
 					err: errors.Wrap(err, "failed to do proxy request"),
 					msg: "unable to fulfil request",
 				})
@@ -149,7 +150,7 @@ func (a *Assert) FilterType(next http.Handler) http.Handler {
 		// TODO: Better to add GetFilterType query to mongo?
 		f, err := a.store.GetFilter(ctx, filterID, anyEtagSelector)
 		if err != nil {
-			a.respond.Error(ctx, w, statusCode(err), er{
+			a.respond.Error(ctx, w, filters.GetErrorStatusCode(err), er{
 				err: errors.Wrap(err, "failed to get filter"),
 				msg: "failed to get filter",
 			})
@@ -158,7 +159,7 @@ func (a *Assert) FilterType(next http.Handler) http.Handler {
 
 		if f.Type == flexible || f.Type == multivariate {
 			if err := a.doProxyRequest(w, r); err != nil {
-				a.respond.Error(ctx, w, statusCode(err), er{
+				a.respond.Error(ctx, w, filters.GetErrorStatusCode(err), er{
 					err: errors.Wrap(err, "failed to do proxy request"),
 					msg: "unable to fulfil request",
 				})

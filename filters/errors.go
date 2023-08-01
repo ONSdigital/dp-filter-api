@@ -1,6 +1,9 @@
 package filters
 
-import "errors"
+import (
+	"errors"
+	"net/http"
+)
 
 var (
 	ErrVersionNotFound          = errors.New("version not found")
@@ -44,4 +47,36 @@ type ForbiddenErr struct {
 
 func (e ForbiddenErr) Error() string {
 	return e.s
+}
+
+func GetErrorStatusCode(err error) int {
+	switch err {
+	case ErrFilterBlueprintNotFound:
+		return http.StatusNotFound
+	case ErrFilterOutputNotFound:
+		return http.StatusNotFound
+	case ErrUnauthorised:
+		return http.StatusUnauthorized
+	case ErrInvalidQueryParameter:
+		return http.StatusBadRequest
+	case ErrBadRequest:
+		return http.StatusBadRequest
+	case ErrFilterBlueprintConflict:
+		return http.StatusConflict
+	case ErrFilterOutputConflict:
+		return http.StatusConflict
+	case ErrInternalError:
+		return http.StatusInternalServerError
+
+	default:
+
+		switch err.(type) {
+		case BadRequestErr:
+			return http.StatusBadRequest
+		case ForbiddenErr:
+			return http.StatusForbidden
+		default:
+			return http.StatusInternalServerError
+		}
+	}
 }
