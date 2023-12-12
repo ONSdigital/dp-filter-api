@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ONSdigital/dp-api-clients-go/v2/dataset"
 	"github.com/ONSdigital/dp-api-clients-go/identity"
+	"github.com/ONSdigital/dp-api-clients-go/v2/dataset"
 	"github.com/ONSdigital/dp-api-clients-go/v2/filterflex"
 	"github.com/ONSdigital/dp-filter-api/api"
 	"github.com/ONSdigital/dp-filter-api/config"
@@ -22,6 +22,8 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/justinas/alice"
 	"github.com/pkg/errors"
+	"go.opentelemetry.io/contrib/instrumentation/github.com/gorilla/mux/otelmux"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
 
 // Service contains all the configs, server and clients to run the Dataset API
@@ -123,7 +125,8 @@ func (svc *Service) Init(ctx context.Context, cfg *config.Config, buildTime, git
 
 	// Get HTTP router and server with middleware
 	r := mux.NewRouter()
-	m := svc.createMiddleware(ctx)
+	r.Use(otelmux.Middleware(cfg.OTServiceName))
+	m := svc.createMiddleware(ctx, cfg)
 	svc.Server = GetHTTPServer(svc.Cfg.BindAddr, m.Then(r))
 
 	// Create API, with outputQueue
@@ -158,11 +161,13 @@ func (svc *Service) Start(ctx context.Context, svcErrors chan error) {
 }
 
 // CreateMiddleware creates an Alice middleware chain of handlers
-func (svc *Service) createMiddleware(ctx context.Context) alice.Chain {
+func (svc *Service) createMiddleware(ctx context.Context, cfg *config.Config) alice.Chain {
 	healthCheckHandler := newMiddleware(svc.HealthCheck.Handler, "/health")
 	middlewareChain := alice.New(
 		healthCheckHandler,
-		dphandlers.CheckHeader(dphandlers.CollectionID))
+		dphandlers.CheckHeader(dphandlers.CollectionID),
+		otelhttp.NewMiddleware(cfg.OTServiceName),
+	)
 
 	if svc.Cfg.EnablePrivateEndpoints {
 		log.Info(ctx, "private endpoints are enabled. using identity middleware")
