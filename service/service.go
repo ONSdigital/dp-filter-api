@@ -22,6 +22,8 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/justinas/alice"
 	"github.com/pkg/errors"
+	"go.opentelemetry.io/contrib/instrumentation/github.com/gorilla/mux/otelmux"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
 
 // Service contains all the configs, server and clients to run the Dataset API
@@ -123,8 +125,9 @@ func (svc *Service) Init(ctx context.Context, cfg *config.Config, buildTime, git
 
 	// Get HTTP router and server with middleware
 	r := mux.NewRouter()
+	r.Use(otelmux.Middleware(svc.Cfg.OTServiceName))
 	m := svc.createMiddleware(ctx)
-	svc.Server = GetHTTPServer(svc.Cfg.BindAddr, m.Then(r))
+	svc.Server = GetHTTPServer(svc.Cfg.BindAddr, m.Then(otelhttp.NewHandler(r,"/")))
 
 	// Create API, with outputQueue
 	outputQueue := filterOutputQueue.CreateOutputQueue(svc.FilterOutputSubmittedProducer.Channels().Output)

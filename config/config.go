@@ -37,6 +37,9 @@ type Config struct {
 	DefaultMaxLimit            int           `envconfig:"DEFAULT_MAXIMUM_LIMIT"`
 	AssertDatasetType          bool          `envconfig:"ASSERT_DATASET_TYPE"`
 	FilterFlexAPIURL           string        `envconfig:"FILTER_FLEX_API_URL"`
+	OTExporterOTLPEndpoint     string        `envconfig:"OTEL_EXPORTER_OTLP_ENDPOINT"`
+	OTServiceName              string        `envconfig:"OTEL_SERVICE_NAME"`
+	OTBatchTimeout             time.Duration `envconfig:"OTEL_BATCH_TIMEOUT"`
 	MongoConfig
 }
 
@@ -82,6 +85,9 @@ func Get() (*Config, error) {
 		DownloadServiceSecretKey:   "QB0108EZ-825D-412C-9B1D-41EF7747F462",
 		AssertDatasetType:          false,
 		FilterFlexAPIURL:           "http://localhost:27100",
+		OTExporterOTLPEndpoint:         "localhost:4317",
+		OTServiceName:                  "dp-filter-api",
+		OTBatchTimeout:                 5 * time.Second,
 		MongoConfig: MongoConfig{
 			MongoDriverConfig: mongodriver.MongoDriverConfig{
 				ClusterEndpoint:               "localhost:27017",
