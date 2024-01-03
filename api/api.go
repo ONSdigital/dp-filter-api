@@ -31,7 +31,7 @@ type FilterFlexAPI interface {
 
 // OutputQueue - An interface used to queue filter outputs
 type OutputQueue interface {
-	Queue(output *models.Filter) error
+	Queue(ctx context.Context, output *models.Filter) error
 }
 
 // FilterAPI manages importing filters against a dataset

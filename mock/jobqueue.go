@@ -1,6 +1,7 @@
 package mock
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/ONSdigital/dp-filter-api/models"
@@ -17,7 +18,7 @@ type MessageData struct {
 }
 
 // Queue checks whether the filter job has errored
-func (fj *FilterJob) Queue(filter *models.Filter) error {
+func (fj *FilterJob) Queue(ctx context.Context, filter *models.Filter) error {
 	if fj.ReturnError {
 		return fmt.Errorf("no message produced for filter job")
 	}

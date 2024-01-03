@@ -15,7 +15,7 @@ import (
 	"github.com/ONSdigital/dp-filter-api/filterOutputQueue"
 	"github.com/ONSdigital/dp-filter-api/mongo"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
-	kafka "github.com/ONSdigital/dp-kafka/v2"
+	kafka "github.com/ONSdigital/dp-kafka/v4"
 	dphandlers "github.com/ONSdigital/dp-net/handlers"
 	dphttp "github.com/ONSdigital/dp-net/http"
 	"github.com/ONSdigital/log.go/v2/log"
@@ -49,6 +49,8 @@ var GetProducer = func(ctx context.Context, cfg *config.Config, kafkaBrokers []s
 	pConfig := &kafka.ProducerConfig{
 		KafkaVersion:    &cfg.KafkaVersion,
 		MaxMessageBytes: &cfg.KafkaMaxBytes,
+		BrokerAddrs: kafkaBrokers,
+		Topic: topic,
 	}
 	if cfg.KafkaSecProtocol == "TLS" {
 		pConfig.SecurityConfig = kafka.GetSecurityConfig(
@@ -58,8 +60,7 @@ var GetProducer = func(ctx context.Context, cfg *config.Config, kafkaBrokers []s
 			cfg.KafkaSecSkipVerify,
 		)
 	}
-	producerChannels := kafka.CreateProducerChannels()
-	return kafka.NewProducer(ctx, kafkaBrokers, topic, producerChannels, pConfig)
+	return kafka.NewProducer(ctx, pConfig)
 }
 
 // GetHealthCheck returns a healthcheck
@@ -146,7 +147,7 @@ func (svc *Service) Init(ctx context.Context, cfg *config.Config, buildTime, git
 func (svc *Service) Start(ctx context.Context, svcErrors chan error) {
 
 	// Start kafka logging
-	svc.FilterOutputSubmittedProducer.Channels().LogErrors(ctx, "error received from kafka producer, topic: "+svc.Cfg.FilterOutputSubmittedTopic)
+	svc.FilterOutputSubmittedProducer.LogErrors(ctx)
 
 	// Start healthcheck
 	svc.HealthCheck.Start(ctx)
