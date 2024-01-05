@@ -599,7 +599,7 @@ func (api *FilterAPI) createFilterOutputResource(ctx context.Context, newFilter 
 	}
 
 	log.Info(ctx, "submitting filter job", log.Data{"filter_id": filterOutput.FilterID})
-	return filterOutput, api.outputQueue.Queue(&filterOutput)
+	return filterOutput, api.outputQueue.Queue(ctx, &filterOutput)
 }
 
 func setJSONContentType(w http.ResponseWriter) {

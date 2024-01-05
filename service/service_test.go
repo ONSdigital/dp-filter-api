@@ -12,8 +12,8 @@ import (
 	"github.com/ONSdigital/dp-filter-api/service"
 	serviceMock "github.com/ONSdigital/dp-filter-api/service/mock"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
-	kafka "github.com/ONSdigital/dp-kafka/v2"
-	"github.com/ONSdigital/dp-kafka/v2/kafkatest"
+	kafka "github.com/ONSdigital/dp-kafka/v4"
+	"github.com/ONSdigital/dp-kafka/v4/kafkatest"
 	"github.com/pkg/errors"
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -56,6 +56,9 @@ func TestInit(t *testing.T) {
 			ChannelsFunc: func() *kafka.ProducerChannels {
 				return &kafka.ProducerChannels{}
 			},
+			LogErrorsFunc: func(ctx context.Context) {
+				// Do nothing
+			},	
 		}
 		service.GetProducer = func(ctx context.Context, cfg *config.Config, kafkaBrokers []string, topic string) (kafkaProducer kafka.IProducer, err error) {
 			return kafkaProducerMock, nil
@@ -210,6 +213,9 @@ func TestStart(t *testing.T) {
 			ChannelsFunc: func() *kafka.ProducerChannels {
 				return &kafka.ProducerChannels{}
 			},
+			LogErrorsFunc: func(ctx context.Context) {
+				// Do nothing
+			},	
 		}
 
 		hcMock := &serviceMock.HealthCheckerMock{
@@ -305,6 +311,9 @@ func TestClose(t *testing.T) {
 				return &kafka.ProducerChannels{}
 			},
 			CloseFunc: funcClose,
+			LogErrorsFunc: func(ctx context.Context) {
+				// Do nothing
+			},	
 		}
 
 		svc := &service.Service{
