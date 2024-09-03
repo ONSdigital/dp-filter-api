@@ -26,6 +26,9 @@ type Config struct {
 	DatasetAPIURL              string        `envconfig:"DATASET_API_URL"`
 	HealthCheckInterval        time.Duration `envconfig:"HEALTHCHECK_INTERVAL"`
 	HealthCheckCriticalTimeout time.Duration `envconfig:"HEALTHCHECK_CRITICAL_TIMEOUT"`
+	OTBatchTimeout             time.Duration `encconfig:"OTEL_BATCH_TIMEOUT"`
+	OTServiceName              string        `envconfig:"OTEL_SERVICE_NAME"`
+	OTExporterOTLPEndpoint     string        `envconfig:"OTEL_EXPORTER_OTLP_ENDPOINT"`
 	ServiceAuthToken           string        `envconfig:"SERVICE_AUTH_TOKEN"               json:"-"`
 	ZebedeeURL                 string        `envconfig:"ZEBEDEE_URL"`
 	EnablePrivateEndpoints     bool          `envconfig:"ENABLE_PRIVATE_ENDPOINTS"`
@@ -71,6 +74,9 @@ func Get() (*Config, error) {
 		DatasetAPIURL:              "http://localhost:22000",
 		HealthCheckInterval:        30 * time.Second,
 		HealthCheckCriticalTimeout: 90 * time.Second,
+		OTBatchTimeout:             5 * time.Second,
+		OTExporterOTLPEndpoint:     "localhost:4317",
+		OTServiceName:              "dp-filter-api",
 		MaxRequestOptions:          1000, // Maximum number of options acceptable in an incoming Patch request. Compromise between one option per call (inefficient) and an order of 100k options per call, for census data (memory and computationally expensive)
 		MaxDatasetOptions:          200,  // Maximum number of options requested to Dataset API in a single call by a list of ids
 		BatchMaxWorkers:            25,   // Maximum number of concurrent go-routines requesting items concurrently from APIs with pagination
