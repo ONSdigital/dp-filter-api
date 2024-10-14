@@ -1,8 +1,8 @@
-FROM golang:1.17-stretch AS base
+FROM golang:1.21.3-bullseye AS base
 
 ENV GOCACHE=/go/.go/cache GOPATH=/go/.go/path TZ=Europe/London
 
-RUN GOBIN=/bin go get github.com/cespare/reflex
+RUN GOBIN=/bin go install github.com/cespare/reflex@v0.3.1
 
 RUN echo "pwd: $(pwd)"
 
