@@ -92,19 +92,16 @@ func (api *FilterAPI) getFilterBlueprintDimensionOptionsHandler(w http.ResponseW
 			item := options.Items[i].Links
 			//self
 			newSelfLink, err := dimensionSearchAPILinksBuilder.BuildLink(item.Self.HRef)
-			fmt.Println("newSelfLink is: ", newSelfLink)
 			if err == nil {
 				options.Items[i].Links.Self.HRef = newSelfLink
 			}
 			//filter
 			newFilterLink, err := dimensionSearchAPILinksBuilder.BuildLink(item.Filter.HRef)
-			fmt.Println("newFilterLink is: ", newFilterLink)
 			if err == nil {
 				options.Items[i].Links.Filter.HRef = newFilterLink
 			}
 			//Dimension
 			newOptionsLink, err := dimensionSearchAPILinksBuilder.BuildLink(item.Dimension.HRef)
-			fmt.Println("newDimension is: ", newOptionsLink)
 			if err == nil {
 				options.Items[i].Links.Dimension.HRef = newOptionsLink
 			}
@@ -212,29 +209,26 @@ func (api *FilterAPI) getFilterBlueprintDimensionOptionHandler(w http.ResponseWr
 		setErrorCodeFromError(w, err)
 		return
 	}
-	fmt.Println("dimensionOption is: ", dimensionOption)
 
-	//testHost, _ := url.Parse("http//localabc:3333")
 	if api.enableURLRewriting {
 		dimensionSearchAPILinksBuilder := links.FromHeadersOrDefault(&r.Header, api.host)
 
-		//self
-		newSelfLink, err := dimensionSearchAPILinksBuilder.BuildLink(dimensionOption.Links.Self.HRef)
-		fmt.Println("newSelfLink is: ", newSelfLink)
-		if err == nil {
-			dimensionOption.Links.Self.HRef = newSelfLink
+		linkFields := map[string]*models.LinkObject{
+			"Self":      dimensionOption.Links.Self,
+			"Filter":    dimensionOption.Links.Filter,
+			"Dimension": dimensionOption.Links.Dimension,
 		}
-		//filter
-		newFilterLink, err := dimensionSearchAPILinksBuilder.BuildLink(dimensionOption.Links.Filter.HRef)
-		fmt.Println("newFilterLink is: ", newFilterLink)
-		if err == nil {
-			dimensionOption.Links.Filter.HRef = newFilterLink
-		}
-		//dimension
-		newDimensionLink, err := dimensionSearchAPILinksBuilder.BuildLink(dimensionOption.Links.Dimension.HRef)
-		fmt.Println("newDimensionLink is: ", newDimensionLink)
-		if err == nil {
-			dimensionOption.Links.Dimension.HRef = newDimensionLink
+
+		for _, linkObj := range linkFields {
+			if linkObj != nil && linkObj.HRef != "" {
+				newLink, err := dimensionSearchAPILinksBuilder.BuildLink(linkObj.HRef)
+				if err == nil {
+					linkObj.HRef = newLink
+				} else {
+					log.Error(ctx, "failed to rewrite dimension option link", err, logData)
+					setErrorCode(w, err)
+				}
+			}
 		}
 	}
 

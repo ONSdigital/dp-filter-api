@@ -3,7 +3,6 @@ package api
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"time"
@@ -44,23 +43,22 @@ func (api *FilterAPI) getFilterOutputHandler(w http.ResponseWriter, r *http.Requ
 	if api.enableURLRewriting {
 		dimensionSearchAPILinksBuilder := links.FromHeadersOrDefault(&r.Header, api.host)
 
-		//self
-		newSelfLink, err := dimensionSearchAPILinksBuilder.BuildLink(filterOutput.Links.Self.HRef)
-		fmt.Println("newSelfLink is: ", newSelfLink)
-		if err == nil {
-			filterOutput.Links.Self.HRef = newSelfLink
+		linkFields := map[string]*models.LinkObject{
+			"Self":            filterOutput.Links.Self,
+			"FilterBlueprint": filterOutput.Links.FilterBlueprint,
+			"Version":         filterOutput.Links.Version,
 		}
-		//filter_blueprint
-		newFilterBlueprintLink, err := dimensionSearchAPILinksBuilder.BuildLink(filterOutput.Links.FilterBlueprint.HRef)
-		fmt.Println("newFilterBlueprintLink is: ", newFilterBlueprintLink)
-		if err == nil {
-			filterOutput.Links.FilterBlueprint.HRef = newFilterBlueprintLink
-		}
-		//dimension
-		newVersionLink, err := dimensionSearchAPILinksBuilder.BuildLink(filterOutput.Links.Version.HRef)
-		fmt.Println("newDimensionLink is: ", newVersionLink)
-		if err == nil {
-			filterOutput.Links.Version.HRef = newVersionLink
+
+		for _, linkObj := range linkFields {
+			if linkObj != nil && linkObj.HRef != "" {
+				newLink, err := dimensionSearchAPILinksBuilder.BuildLink(linkObj.HRef)
+				if err == nil {
+					linkObj.HRef = newLink
+				} else {
+					log.Error(ctx, "failed to rewrite filter output links", err, logData)
+					setErrorCode(w, err)
+				}
+			}
 		}
 	}
 
