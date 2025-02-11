@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"time"
@@ -12,6 +13,7 @@ import (
 	"github.com/ONSdigital/dp-filter-api/mongo"
 	dphttp "github.com/ONSdigital/dp-net/http"
 	dprequest "github.com/ONSdigital/dp-net/request"
+	"github.com/ONSdigital/dp-net/v2/links"
 	"github.com/ONSdigital/log.go/v2/log"
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
@@ -38,6 +40,31 @@ func (api *FilterAPI) getFilterOutputHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 	logData["filter_output"] = filterOutput
+
+	enableRewriting := true
+	//testHost, _ := url.Parse("http//localabc:3333")
+	if enableRewriting {
+		dimensionSearchAPILinksBuilder := links.FromHeadersOrDefault(&r.Header, api.host)
+
+		//self
+		newSelfLink, err := dimensionSearchAPILinksBuilder.BuildLink(filterOutput.Links.Self.HRef)
+		fmt.Println("newSelfLink is: ", newSelfLink)
+		if err == nil {
+			filterOutput.Links.Self.HRef = newSelfLink
+		}
+		//filter_blueprint
+		newFilterBlueprintLink, err := dimensionSearchAPILinksBuilder.BuildLink(filterOutput.Links.FilterBlueprint.HRef)
+		fmt.Println("newFilterBlueprintLink is: ", newFilterBlueprintLink)
+		if err == nil {
+			filterOutput.Links.FilterBlueprint.HRef = newFilterBlueprintLink
+		}
+		//dimension
+		newVersionLink, err := dimensionSearchAPILinksBuilder.BuildLink(filterOutput.Links.Version.HRef)
+		fmt.Println("newDimensionLink is: ", newVersionLink)
+		if err == nil {
+			filterOutput.Links.Version.HRef = newVersionLink
+		}
+	}
 
 	bytes, err := json.Marshal(filterOutput)
 	if err != nil {

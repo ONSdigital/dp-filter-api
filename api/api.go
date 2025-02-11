@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"net/http"
+	"net/url"
 	"strconv"
 
 	"github.com/ONSdigital/dp-api-clients-go/v2/dataset"
@@ -36,7 +37,7 @@ type OutputQueue interface {
 
 // FilterAPI manages importing filters against a dataset
 type FilterAPI struct {
-	host                 string
+	host                 *url.URL
 	maxRequestOptions    int
 	Router               *mux.Router
 	dataStore            DataStore
@@ -60,10 +61,11 @@ func Setup(
 	dataStore DataStore,
 	outputQueue OutputQueue,
 	datasetAPI DatasetAPI,
-	filterFlexAPI FilterFlexAPI) *FilterAPI {
+	filterFlexAPI FilterFlexAPI,
+	hostURL *url.URL) *FilterAPI {
 
 	api := &FilterAPI{
-		host:                 cfg.Host,
+		host:                 hostURL,
 		maxRequestOptions:    cfg.MaxRequestOptions,
 		Router:               router,
 		dataStore:            dataStore,
@@ -91,25 +93,25 @@ func Setup(
 
 	// routes
 	api.Router.Handle("/filters", assert.DatasetType(http.HandlerFunc(api.postFilterBlueprintHandler))).Methods("POST")
-	api.Router.Handle("/filters/{filter_blueprint_id}", assert.FilterType(http.HandlerFunc(api.getFilterBlueprintHandler))).Methods("GET")
+	api.Router.Handle("/filters/{filter_blueprint_id}", assert.FilterType(http.HandlerFunc(api.getFilterBlueprintHandler))).Methods("GET") //rewrite logic added
 	api.Router.Handle("/filters/{filter_blueprint_id}", assert.FilterType(http.HandlerFunc(api.putFilterBlueprintHandler))).Methods("PUT")
 	api.Router.Handle("/filters/{filter_blueprint_id}/submit", assert.FilterType(http.HandlerFunc(api.postFilterBlueprintSubmitHandler))).Methods("POST")
 
-	api.Router.Handle("/filters/{filter_blueprint_id}/dimensions", assert.FilterType(http.HandlerFunc(api.getFilterBlueprintDimensionsHandler))).Methods("GET")
+	api.Router.Handle("/filters/{filter_blueprint_id}/dimensions", assert.FilterType(http.HandlerFunc(api.getFilterBlueprintDimensionsHandler))).Methods("GET") //rewrite logic added
 	api.Router.Handle("/filters/{filter_blueprint_id}/dimensions", assert.FilterType(http.HandlerFunc(api.filterFlexNullEndpointHandler))).Methods("POST")
 	api.Router.Handle("/filters/{filter_blueprint_id}/dimensions/{name}", assert.FilterType(http.HandlerFunc(api.putFilterBlueprintDimensionHandler))).Methods("PUT")
-	api.Router.Handle("/filters/{filter_blueprint_id}/dimensions/{name}", assert.FilterType(http.HandlerFunc(api.getFilterBlueprintDimensionHandler))).Methods("GET")
+	api.Router.Handle("/filters/{filter_blueprint_id}/dimensions/{name}", assert.FilterType(http.HandlerFunc(api.getFilterBlueprintDimensionHandler))).Methods("GET") //rewrite logic added
 	api.Router.Handle("/filters/{filter_blueprint_id}/dimensions/{name}", assert.FilterType(http.HandlerFunc(api.addFilterBlueprintDimensionHandler))).Methods("POST")
 	api.Router.Handle("/filters/{filter_blueprint_id}/dimensions/{name}", assert.FilterType(http.HandlerFunc(api.patchFilterBlueprintDimensionHandler))).Methods("PATCH")
 	api.Router.Handle("/filters/{filter_blueprint_id}/dimensions/{name}", assert.FilterType(http.HandlerFunc(api.removeFilterBlueprintDimensionHandler))).Methods("DELETE")
 
 	api.Router.Handle("/filters/{filter_blueprint_id}/dimensions/{name}/options/{option}", assert.FilterType(http.HandlerFunc(api.removeFilterBlueprintDimensionOptionHandler))).Methods("DELETE")
 	api.Router.Handle("/filters/{filter_blueprint_id}/dimensions/{name}/options/{option}", assert.FilterType(http.HandlerFunc(api.addFilterBlueprintDimensionOptionHandler))).Methods("POST")
-	api.Router.Handle("/filters/{filter_blueprint_id}/dimensions/{name}/options/{option}", assert.FilterType(http.HandlerFunc(api.getFilterBlueprintDimensionOptionHandler))).Methods("GET")
-	api.Router.Handle("/filters/{filter_blueprint_id}/dimensions/{name}/options", assert.FilterType(http.HandlerFunc(api.getFilterBlueprintDimensionOptionsHandler))).Methods("GET")
+	api.Router.Handle("/filters/{filter_blueprint_id}/dimensions/{name}/options/{option}", assert.FilterType(http.HandlerFunc(api.getFilterBlueprintDimensionOptionHandler))).Methods("GET") //rewrite logic added
+	api.Router.Handle("/filters/{filter_blueprint_id}/dimensions/{name}/options", assert.FilterType(http.HandlerFunc(api.getFilterBlueprintDimensionOptionsHandler))).Methods("GET")         //rewrite logic added
 	api.Router.Handle("/filters/{filter_blueprint_id}/dimensions/{name}/options", assert.FilterType(http.HandlerFunc(api.filterFlexNullEndpointHandler))).Methods("DELETE")
 
-	api.Router.Handle("/filter-outputs/{filter_output_id}", assert.FilterOutputType(http.HandlerFunc(api.getFilterOutputHandler))).Methods("GET")
+	api.Router.Handle("/filter-outputs/{filter_output_id}", assert.FilterOutputType(http.HandlerFunc(api.getFilterOutputHandler))).Methods("GET") //rewrite logic added
 	api.Router.Handle("/filter-outputs/{filter_output_id}", assert.FilterOutputType(http.HandlerFunc(api.updateFilterOutputHandler))).Methods("PUT")
 
 	if cfg.EnablePrivateEndpoints {

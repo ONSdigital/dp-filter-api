@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -129,6 +130,11 @@ func (svc *Service) Init(ctx context.Context, cfg *config.Config, buildTime, git
 	m := svc.createMiddleware(ctx, cfg)
 	svc.Server = GetHTTPServer(svc.Cfg.BindAddr, m.Then(r))
 
+	host, err := url.Parse(svc.Cfg.Host)
+	if err != nil {
+		log.Fatal(ctx, "error parsing Filter API URL", err, log.Data{"url": cfg.Host})
+	}
+
 	// Create API, with outputQueue
 	outputQueue := filterOutputQueue.CreateOutputQueue(svc.FilterOutputSubmittedProducer.Channels().Output)
 	svc.api = api.Setup(
@@ -138,6 +144,7 @@ func (svc *Service) Init(ctx context.Context, cfg *config.Config, buildTime, git
 		&outputQueue,
 		svc.datasetAPI,
 		svc.filterFlexAPI,
+		host,
 	)
 	return nil
 }

@@ -15,6 +15,7 @@ import (
 	"github.com/ONSdigital/dp-filter-api/mongo"
 	dphttp "github.com/ONSdigital/dp-net/http"
 	dprequest "github.com/ONSdigital/dp-net/request"
+	"github.com/ONSdigital/dp-net/v2/links"
 	"github.com/ONSdigital/log.go/v2/log"
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
@@ -190,6 +191,30 @@ func (api *FilterAPI) getFilterBlueprintHandler(w http.ResponseWriter, r *http.R
 	filterBlueprint.ID = filterBlueprint.FilterID
 	filterBlueprint.Dimensions = nil
 	logData["filter_blueprint"] = filterBlueprint
+
+	enableURLRewriting := true
+
+	if enableURLRewriting {
+		dimensionSearchAPILinksBuilder := links.FromHeadersOrDefault(&r.Header, api.host)
+
+		fmt.Println("host is : ", api.host)
+		linkFields := []*models.LinkObject{
+			filterBlueprint.Links.Dimensions,
+			filterBlueprint.Links.FilterOutput,
+			filterBlueprint.Links.FilterBlueprint,
+			filterBlueprint.Links.Self,
+			filterBlueprint.Links.Version,
+		}
+
+		for _, linkObj := range linkFields {
+			if linkObj != nil {
+				newLink, err := dimensionSearchAPILinksBuilder.BuildLink(linkObj.HRef)
+				if err == nil {
+					linkObj.HRef = newLink
+				}
+			}
+		}
+	}
 
 	bytes, err := json.Marshal(filterBlueprint)
 	if err != nil {

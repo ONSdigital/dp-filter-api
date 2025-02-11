@@ -10,6 +10,7 @@ import (
 	"github.com/ONSdigital/dp-filter-api/mongo"
 	"github.com/ONSdigital/dp-filter-api/utils"
 	dprequest "github.com/ONSdigital/dp-net/request"
+	"github.com/ONSdigital/dp-net/v2/links"
 	"github.com/ONSdigital/log.go/v2/log"
 	"github.com/gorilla/mux"
 
@@ -83,6 +84,33 @@ func (api *FilterAPI) getFilterBlueprintDimensionOptionsHandler(w http.ResponseW
 	// in a log line that is greater or equal to: 270836 bytes
 	// ... and this is contributing to the 'logstash' servers having a BAD day.
 	//logData["options"] = options
+
+	enableRewriting := true
+	if enableRewriting {
+		dimensionSearchAPILinksBuilder := links.FromHeadersOrDefault(&r.Header, api.host)
+
+		for i := range options.Items {
+			item := options.Items[i].Links
+			//self
+			newSelfLink, err := dimensionSearchAPILinksBuilder.BuildLink(item.Self.HRef)
+			fmt.Println("newSelfLink is: ", newSelfLink)
+			if err == nil {
+				options.Items[i].Links.Self.HRef = newSelfLink
+			}
+			//filter
+			newFilterLink, err := dimensionSearchAPILinksBuilder.BuildLink(item.Filter.HRef)
+			fmt.Println("newFilterLink is: ", newFilterLink)
+			if err == nil {
+				options.Items[i].Links.Filter.HRef = newFilterLink
+			}
+			//Dimension
+			newOptionsLink, err := dimensionSearchAPILinksBuilder.BuildLink(item.Dimension.HRef)
+			fmt.Println("newDimension is: ", newOptionsLink)
+			if err == nil {
+				options.Items[i].Links.Dimension.HRef = newOptionsLink
+			}
+		}
+	}
 
 	b, err := json.Marshal(options)
 	if err != nil {
@@ -184,6 +212,32 @@ func (api *FilterAPI) getFilterBlueprintDimensionOptionHandler(w http.ResponseWr
 		log.Error(ctx, "unable to get dimension option for filter blueprint", err, logData)
 		setErrorCodeFromError(w, err)
 		return
+	}
+	fmt.Println("dimensionOption is: ", dimensionOption)
+
+	enableRewriting := true
+	//testHost, _ := url.Parse("http//localabc:3333")
+	if enableRewriting {
+		dimensionSearchAPILinksBuilder := links.FromHeadersOrDefault(&r.Header, api.host)
+
+		//self
+		newSelfLink, err := dimensionSearchAPILinksBuilder.BuildLink(dimensionOption.Links.Self.HRef)
+		fmt.Println("newSelfLink is: ", newSelfLink)
+		if err == nil {
+			dimensionOption.Links.Self.HRef = newSelfLink
+		}
+		//filter
+		newFilterLink, err := dimensionSearchAPILinksBuilder.BuildLink(dimensionOption.Links.Filter.HRef)
+		fmt.Println("newFilterLink is: ", newFilterLink)
+		if err == nil {
+			dimensionOption.Links.Filter.HRef = newFilterLink
+		}
+		//dimension
+		newDimensionLink, err := dimensionSearchAPILinksBuilder.BuildLink(dimensionOption.Links.Dimension.HRef)
+		fmt.Println("newDimensionLink is: ", newDimensionLink)
+		if err == nil {
+			dimensionOption.Links.Dimension.HRef = newDimensionLink
+		}
 	}
 
 	b, err := json.Marshal(dimensionOption)

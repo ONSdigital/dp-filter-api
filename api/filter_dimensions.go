@@ -13,6 +13,7 @@ import (
 	"github.com/ONSdigital/dp-filter-api/mongo"
 	"github.com/ONSdigital/dp-filter-api/utils"
 	dphttp "github.com/ONSdigital/dp-net/http"
+	"github.com/ONSdigital/dp-net/v2/links"
 	"github.com/ONSdigital/log.go/v2/log"
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
@@ -68,6 +69,8 @@ func (api *FilterAPI) getFilterBlueprintDimensionsHandler(w http.ResponseWriter,
 		return
 	}
 
+	logData["filter out put:"] = filter
+
 	logData["dimensions"] = filter.Dimensions
 
 	if len(filter.Dimensions) == 0 {
@@ -96,7 +99,7 @@ func (api *FilterAPI) getFilterBlueprintDimensionsHandler(w http.ResponseWriter,
 		}
 	}
 
-	items := CreatePublicDimensions(filterDimensions, api.host, filter.FilterID)
+	items := CreatePublicDimensions(filterDimensions, api.host.String(), filter.FilterID)
 	publicDimensions := models.PublicDimensions{
 		Items:      items,
 		Count:      len(items),
@@ -104,6 +107,35 @@ func (api *FilterAPI) getFilterBlueprintDimensionsHandler(w http.ResponseWriter,
 		Offset:     offset,
 		Limit:      limit,
 	}
+	logData["items out put:"] = items
+
+	enableRewriting := true
+	if enableRewriting {
+		dimensionSearchAPILinksBuilder := links.FromHeadersOrDefault(&r.Header, api.host)
+
+		for i := range publicDimensions.Items {
+			item := publicDimensions.Items[i].Links
+			//self
+			newSelfLink, err := dimensionSearchAPILinksBuilder.BuildLink(item.Self.HRef)
+			fmt.Println("newSelfLink is: ", newSelfLink)
+			if err == nil {
+				publicDimensions.Items[i].Links.Self.HRef = newSelfLink
+			}
+			//filter
+			newFilterLink, err := dimensionSearchAPILinksBuilder.BuildLink(item.Filter.HRef)
+			fmt.Println("newFilterLink is: ", newFilterLink)
+			if err == nil {
+				publicDimensions.Items[i].Links.Filter.HRef = newFilterLink
+			}
+			//options
+			newOptionsLink, err := dimensionSearchAPILinksBuilder.BuildLink(item.Options.HRef)
+			fmt.Println("newOptionsLink is: ", newOptionsLink)
+			if err == nil {
+				publicDimensions.Items[i].Links.Options.HRef = newOptionsLink
+			}
+		}
+	}
+
 	b, err := json.Marshal(publicDimensions)
 	if err != nil {
 		log.Error(ctx, "failed to marshal filter blueprint dimensions into bytes", err, logData)
@@ -152,7 +184,33 @@ func (api *FilterAPI) getFilterBlueprintDimensionHandler(w http.ResponseWriter, 
 		return
 	}
 
-	publicDimension := CreatePublicDimension(*dimension, api.host, filterBlueprintID)
+	publicDimension := CreatePublicDimension(*dimension, api.host.String(), filterBlueprintID)
+
+	enableRewriting := true
+	//testHost, _ := url.Parse("http//localabc:3333")
+	if enableRewriting {
+		dimensionSearchAPILinksBuilder := links.FromHeadersOrDefault(&r.Header, api.host)
+
+		//self
+		newSelfLink, err := dimensionSearchAPILinksBuilder.BuildLink(publicDimension.Links.Self.HRef)
+		fmt.Println("newSelfLink is: ", newSelfLink)
+		if err == nil {
+			publicDimension.Links.Self.HRef = newSelfLink
+		}
+		//filter
+		newFilterLink, err := dimensionSearchAPILinksBuilder.BuildLink(publicDimension.Links.Filter.HRef)
+		fmt.Println("newFilterLink is: ", newFilterLink)
+		if err == nil {
+			publicDimension.Links.Filter.HRef = newFilterLink
+		}
+		//options
+		newOptionsLink, err := dimensionSearchAPILinksBuilder.BuildLink(publicDimension.Links.Options.HRef)
+		fmt.Println("newOptionsLink is: ", newOptionsLink)
+		if err == nil {
+			publicDimension.Links.Options.HRef = newOptionsLink
+		}
+	}
+
 	b, err := json.Marshal(publicDimension)
 	if err != nil {
 		log.Error(ctx, "failed to marshal filter blueprint dimensions into bytes", err, logData)
@@ -278,7 +336,7 @@ func (api *FilterAPI) addFilterBlueprintDimensionHandler(w http.ResponseWriter, 
 		setErrorCode(w, err)
 		return
 	}
-	publicDimension := CreatePublicDimension(*dimension, api.host, filterBlueprintID)
+	publicDimension := CreatePublicDimension(*dimension, api.host.String(), filterBlueprintID)
 	b, err := json.Marshal(publicDimension)
 	if err != nil {
 		log.Error(ctx, "failed to marshal filter blueprint dimensions into bytes", err, logData)
