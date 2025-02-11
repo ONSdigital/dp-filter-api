@@ -40,6 +40,7 @@ type Config struct {
 	DefaultMaxLimit            int           `envconfig:"DEFAULT_MAXIMUM_LIMIT"`
 	AssertDatasetType          bool          `envconfig:"ASSERT_DATASET_TYPE"`
 	FilterFlexAPIURL           string        `envconfig:"FILTER_FLEX_API_URL"`
+	EnableURLRewriting         bool          `envconfig:"ENABLE_URL_REWRITING"`
 	MongoConfig
 }
 
@@ -107,6 +108,7 @@ func Get() (*Config, error) {
 			Limit:  20, // Default limit for mongoDB queries that do not provide an explicit limit
 			Offset: 0,  // Default offset for mongoDB queries that do not provide an explicit offset
 		},
+		EnableURLRewriting: true,
 	}
 
 	err := envconfig.Process("", cfg)

@@ -109,8 +109,7 @@ func (api *FilterAPI) getFilterBlueprintDimensionsHandler(w http.ResponseWriter,
 	}
 	logData["items out put:"] = items
 
-	enableRewriting := true
-	if enableRewriting {
+	if api.enableURLRewriting {
 		dimensionSearchAPILinksBuilder := links.FromHeadersOrDefault(&r.Header, api.host)
 
 		for i := range publicDimensions.Items {
@@ -186,9 +185,7 @@ func (api *FilterAPI) getFilterBlueprintDimensionHandler(w http.ResponseWriter, 
 
 	publicDimension := CreatePublicDimension(*dimension, api.host.String(), filterBlueprintID)
 
-	enableRewriting := true
-	//testHost, _ := url.Parse("http//localabc:3333")
-	if enableRewriting {
+	if api.enableURLRewriting {
 		dimensionSearchAPILinksBuilder := links.FromHeadersOrDefault(&r.Header, api.host)
 
 		//self

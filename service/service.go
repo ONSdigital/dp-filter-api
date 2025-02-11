@@ -145,6 +145,7 @@ func (svc *Service) Init(ctx context.Context, cfg *config.Config, buildTime, git
 		svc.datasetAPI,
 		svc.filterFlexAPI,
 		host,
+		svc.Cfg.EnableURLRewriting,
 	)
 	return nil
 }

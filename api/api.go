@@ -52,6 +52,7 @@ type FilterAPI struct {
 	defaultOffset        int
 	maxDatasetOptions    int
 	BatchMaxWorkers      int
+	enableURLRewriting   bool
 }
 
 // Setup manages all the routes configured to API
@@ -62,7 +63,8 @@ func Setup(
 	outputQueue OutputQueue,
 	datasetAPI DatasetAPI,
 	filterFlexAPI FilterFlexAPI,
-	hostURL *url.URL) *FilterAPI {
+	hostURL *url.URL,
+	enableURLRewriting bool) *FilterAPI {
 
 	api := &FilterAPI{
 		host:                 hostURL,
@@ -79,6 +81,7 @@ func Setup(
 		defaultOffset:        cfg.MongoConfig.Offset,
 		maxDatasetOptions:    cfg.MaxDatasetOptions,
 		BatchMaxWorkers:      cfg.BatchMaxWorkers,
+		enableURLRewriting:   enableURLRewriting,
 	}
 
 	// middleware

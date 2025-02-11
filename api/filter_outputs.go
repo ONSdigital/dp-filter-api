@@ -41,9 +41,7 @@ func (api *FilterAPI) getFilterOutputHandler(w http.ResponseWriter, r *http.Requ
 	}
 	logData["filter_output"] = filterOutput
 
-	enableRewriting := true
-	//testHost, _ := url.Parse("http//localabc:3333")
-	if enableRewriting {
+	if api.enableURLRewriting {
 		dimensionSearchAPILinksBuilder := links.FromHeadersOrDefault(&r.Header, api.host)
 
 		//self

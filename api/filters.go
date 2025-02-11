@@ -192,9 +192,7 @@ func (api *FilterAPI) getFilterBlueprintHandler(w http.ResponseWriter, r *http.R
 	filterBlueprint.Dimensions = nil
 	logData["filter_blueprint"] = filterBlueprint
 
-	enableURLRewriting := true
-
-	if enableURLRewriting {
+	if api.enableURLRewriting {
 		dimensionSearchAPILinksBuilder := links.FromHeadersOrDefault(&r.Header, api.host)
 
 		fmt.Println("host is : ", api.host)

@@ -85,8 +85,7 @@ func (api *FilterAPI) getFilterBlueprintDimensionOptionsHandler(w http.ResponseW
 	// ... and this is contributing to the 'logstash' servers having a BAD day.
 	//logData["options"] = options
 
-	enableRewriting := true
-	if enableRewriting {
+	if api.enableURLRewriting {
 		dimensionSearchAPILinksBuilder := links.FromHeadersOrDefault(&r.Header, api.host)
 
 		for i := range options.Items {
@@ -215,9 +214,8 @@ func (api *FilterAPI) getFilterBlueprintDimensionOptionHandler(w http.ResponseWr
 	}
 	fmt.Println("dimensionOption is: ", dimensionOption)
 
-	enableRewriting := true
 	//testHost, _ := url.Parse("http//localabc:3333")
-	if enableRewriting {
+	if api.enableURLRewriting {
 		dimensionSearchAPILinksBuilder := links.FromHeadersOrDefault(&r.Header, api.host)
 
 		//self
