@@ -6,8 +6,6 @@ RUN GOBIN=/bin go install github.com/cespare/reflex@v0.3.1
 
 RUN echo "pwd: $(pwd)"
 
-RUN git config --global --add safe.directory /go
-
 # Map between the working directories of dev and live
 RUN ln -s /go /dp-filter-api
 WORKDIR /dp-filter-api
