@@ -108,7 +108,7 @@ func Get() (*Config, error) {
 			Limit:  20, // Default limit for mongoDB queries that do not provide an explicit limit
 			Offset: 0,  // Default offset for mongoDB queries that do not provide an explicit offset
 		},
-		EnableURLRewriting: true,
+		EnableURLRewriting: false,
 	}
 
 	err := envconfig.Process("", cfg)
