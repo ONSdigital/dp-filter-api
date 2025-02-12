@@ -90,17 +90,15 @@ func (api *FilterAPI) getFilterBlueprintDimensionOptionsHandler(w http.ResponseW
 
 		for i := range options.Items {
 			item := options.Items[i].Links
-			//self
+
 			newSelfLink, err := dimensionSearchAPILinksBuilder.BuildLink(item.Self.HRef)
 			if err == nil {
 				options.Items[i].Links.Self.HRef = newSelfLink
 			}
-			//filter
 			newFilterLink, err := dimensionSearchAPILinksBuilder.BuildLink(item.Filter.HRef)
 			if err == nil {
 				options.Items[i].Links.Filter.HRef = newFilterLink
 			}
-			//Dimension
 			newOptionsLink, err := dimensionSearchAPILinksBuilder.BuildLink(item.Dimension.HRef)
 			if err == nil {
 				options.Items[i].Links.Dimension.HRef = newOptionsLink
