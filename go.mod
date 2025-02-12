@@ -1,6 +1,6 @@
 module github.com/ONSdigital/dp-filter-api
 
-go 1.23.5
+go 1.23
 
 // to avoid 'sonatype-2021-4899' non-CVE Vulnerability
 exclude github.com/gorilla/sessions v1.2.1
