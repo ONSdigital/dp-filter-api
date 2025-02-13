@@ -29,7 +29,6 @@ func TestSuccessfulGetFilterBlueprintDimensions(t *testing.T) {
 	filterFlexAPIMock := &apimock.FilterFlexAPIMock{}
 
 	Convey("Given expected body", t, func() {
-
 		expectedBodyFull := models.PublicDimensions{
 			Items: []*models.PublicDimension{
 
@@ -74,45 +73,45 @@ func TestSuccessfulGetFilterBlueprintDimensions(t *testing.T) {
 		}
 
 		Convey("Getting a list of dimensions for a filter blueprint results in a 200 response and expected body", func() {
-			r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678/dimensions", nil)
+			r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678/dimensions", http.NoBody)
 			So(err, ShouldBeNil)
 
 			w := httptest.NewRecorder()
-			filterApi := api.Setup(cfg(), mux.NewRouter(), &mock.DataStore{}, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
-			filterApi.Router.ServeHTTP(w, r)
+			filterAPI := api.Setup(cfg(), mux.NewRouter(), &mock.DataStore{}, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
+			filterAPI.Router.ServeHTTP(w, r)
 			So(w.Code, ShouldEqual, http.StatusOK)
-			So(w.HeaderMap.Get("ETag"), ShouldResemble, testETag)
+			So(w.Result().Header.Get("ETag"), ShouldResemble, testETag)
 
 			validateBody(w.Body.Bytes(), expectedBodyFull)
 		})
 
 		Convey("Getting a list of dimensions for an unpublished filter blueprint results in a 200 response and expected body", func() {
-			r := createAuthenticatedRequest("GET", "http://localhost:22100/filters/12345678/dimensions", nil)
+			r := createAuthenticatedRequest("GET", "http://localhost:22100/filters/12345678/dimensions", http.NoBody)
 
 			w := httptest.NewRecorder()
-			filterApi := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().Unpublished(), &mock.FilterJob{}, mock.NewDatasetAPI().Unpublished(), filterFlexAPIMock)
-			filterApi.Router.ServeHTTP(w, r)
+			filterAPI := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().Unpublished(), &mock.FilterJob{}, mock.NewDatasetAPI().Unpublished(), filterFlexAPIMock)
+			filterAPI.Router.ServeHTTP(w, r)
 			So(w.Code, ShouldEqual, http.StatusOK)
-			So(w.HeaderMap.Get("ETag"), ShouldResemble, testETag)
+			So(w.Result().Header.Get("ETag"), ShouldResemble, testETag)
 
 			validateBody(w.Body.Bytes(), expectedBodyFull)
 		})
 
 		Convey("Geting a list of dimensions with 0 offset results in a 200 response and expected body", func() {
-			r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678/dimensions?offset=0", nil)
+			r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678/dimensions?offset=0", http.NoBody)
 			So(err, ShouldBeNil)
 
 			w := httptest.NewRecorder()
-			filterApi := api.Setup(cfg(), mux.NewRouter(), &mock.DataStore{}, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
-			filterApi.Router.ServeHTTP(w, r)
+			filterAPI := api.Setup(cfg(), mux.NewRouter(), &mock.DataStore{}, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
+			filterAPI.Router.ServeHTTP(w, r)
 			So(w.Code, ShouldEqual, http.StatusOK)
-			So(w.HeaderMap.Get("ETag"), ShouldResemble, testETag)
+			So(w.Result().Header.Get("ETag"), ShouldResemble, testETag)
 
 			validateBody(w.Body.Bytes(), expectedBodyFull)
 		})
 
 		Convey("Geting a list of dimensions with offset and limit results in a 200 response and expected items only", func() {
-			r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678/dimensions?offset=1&limit=3", nil)
+			r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678/dimensions?offset=1&limit=3", http.NoBody)
 			So(err, ShouldBeNil)
 
 			expected := models.PublicDimensions{
@@ -143,16 +142,16 @@ func TestSuccessfulGetFilterBlueprintDimensions(t *testing.T) {
 			}
 
 			w := httptest.NewRecorder()
-			filterApi := api.Setup(cfg(), mux.NewRouter(), &mock.DataStore{}, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
-			filterApi.Router.ServeHTTP(w, r)
+			filterAPI := api.Setup(cfg(), mux.NewRouter(), &mock.DataStore{}, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
+			filterAPI.Router.ServeHTTP(w, r)
 			So(w.Code, ShouldEqual, http.StatusOK)
-			So(w.HeaderMap.Get("ETag"), ShouldResemble, testETag)
+			So(w.Result().Header.Get("ETag"), ShouldResemble, testETag)
 
 			validateBody(w.Body.Bytes(), expected)
 		})
 
 		Convey("Geting a list of dimensions with a zero limit results in a 200 response and an empty list of dimensions, with the correct totalCount", func() {
-			r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678/dimensions?limit=0", nil)
+			r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678/dimensions?limit=0", http.NoBody)
 			So(err, ShouldBeNil)
 
 			expected := models.PublicDimensions{
@@ -164,10 +163,10 @@ func TestSuccessfulGetFilterBlueprintDimensions(t *testing.T) {
 			}
 
 			w := httptest.NewRecorder()
-			filterApi := api.Setup(cfg(), mux.NewRouter(), &mock.DataStore{}, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
-			filterApi.Router.ServeHTTP(w, r)
+			filterAPI := api.Setup(cfg(), mux.NewRouter(), &mock.DataStore{}, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
+			filterAPI.Router.ServeHTTP(w, r)
 			So(w.Code, ShouldEqual, http.StatusOK)
-			So(w.HeaderMap.Get("ETag"), ShouldResemble, testETag)
+			So(w.Result().Header.Get("ETag"), ShouldResemble, testETag)
 
 			validateBody(w.Body.Bytes(), expected)
 		})
@@ -180,56 +179,56 @@ func TestFailedToGetFilterBlueprintDimensions(t *testing.T) {
 	filterFlexAPIMock := &apimock.FilterFlexAPIMock{}
 
 	Convey("When no data store is available, an internal error is returned", t, func() {
-		r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678/dimensions", nil)
+		r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678/dimensions", http.NoBody)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		filterApi := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().InternalError(), &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
-		filterApi.Router.ServeHTTP(w, r)
+		filterAPI := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().InternalError(), &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
+		filterAPI.Router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusInternalServerError)
-		So(w.HeaderMap.Get("ETag"), ShouldResemble, "")
+		So(w.Result().Header.Get("ETag"), ShouldResemble, "")
 
 		response := w.Body.String()
 		So(response, ShouldResemble, internalErrResponse)
 	})
 
 	Convey("When negative values are provided for limit and offset query parameters, a bad request error is returned", t, func() {
-		r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678/dimensions?offset=-8&limit=-3", nil)
+		r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678/dimensions?offset=-8&limit=-3", http.NoBody)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		filterApi := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().InternalError(), &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
-		filterApi.Router.ServeHTTP(w, r)
+		filterAPI := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().InternalError(), &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
+		filterAPI.Router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
-		So(w.HeaderMap.Get("ETag"), ShouldResemble, "")
+		So(w.Result().Header.Get("ETag"), ShouldResemble, "")
 
 		response := w.Body.String()
 		So(response, ShouldResemble, invalidQueryParameterResponse)
 	})
 
 	Convey("When a limit higher than the maximum allowed is provided, a bad request error is returned", t, func() {
-		r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678/dimensions?limit=1001", nil)
+		r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678/dimensions?limit=1001", http.NoBody)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		filterApi := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().InternalError(), &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
-		filterApi.Router.ServeHTTP(w, r)
+		filterAPI := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().InternalError(), &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
+		filterAPI.Router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
-		So(w.HeaderMap.Get("ETag"), ShouldResemble, "")
+		So(w.Result().Header.Get("ETag"), ShouldResemble, "")
 
 		response := w.Body.String()
 		So(response, ShouldResemble, invalidQueryParameterResponse)
 	})
 
 	Convey("When filter blueprint does not exist, a not found is returned", t, func() {
-		r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678/dimensions", nil)
+		r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678/dimensions", http.NoBody)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		filterApi := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().NotFound(), &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
-		filterApi.Router.ServeHTTP(w, r)
+		filterAPI := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().NotFound(), &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
+		filterAPI.Router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
-		So(w.HeaderMap.Get("ETag"), ShouldResemble, "")
+		So(w.Result().Header.Get("ETag"), ShouldResemble, "")
 
 		response := w.Body.String()
 		So(response, ShouldResemble, filterNotFoundResponse)
@@ -248,10 +247,10 @@ func TestSuccessfulAddFilterBlueprintDimension(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		filterApi := api.Setup(cfg(), mux.NewRouter(), &mock.DataStore{}, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
-		filterApi.Router.ServeHTTP(w, r)
+		filterAPI := api.Setup(cfg(), mux.NewRouter(), &mock.DataStore{}, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
+		filterAPI.Router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusCreated)
-		So(w.HeaderMap.Get("ETag"), ShouldResemble, testETag1)
+		So(w.Result().Header.Get("ETag"), ShouldResemble, testETag1)
 
 		Convey("Then the request body has been drained", func() {
 			bytesRead, err := r.Body.Read(make([]byte, 1))
@@ -267,10 +266,10 @@ func TestSuccessfulAddFilterBlueprintDimension(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		filterApi := api.Setup(cfg(), mux.NewRouter(), &mock.DataStore{}, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
-		filterApi.Router.ServeHTTP(w, r)
+		filterAPI := api.Setup(cfg(), mux.NewRouter(), &mock.DataStore{}, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
+		filterAPI.Router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusCreated)
-		So(w.HeaderMap.Get("ETag"), ShouldResemble, testETag1)
+		So(w.Result().Header.Get("ETag"), ShouldResemble, testETag1)
 
 		Convey("Then the request body has been drained", func() {
 			bytesRead, err := r.Body.Read(make([]byte, 1))
@@ -286,10 +285,10 @@ func TestSuccessfulAddFilterBlueprintDimension(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		filterApi := api.Setup(cfg(), mux.NewRouter(), &mock.DataStore{}, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
-		filterApi.Router.ServeHTTP(w, r)
+		filterAPI := api.Setup(cfg(), mux.NewRouter(), &mock.DataStore{}, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
+		filterAPI.Router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusCreated)
-		So(w.HeaderMap.Get("ETag"), ShouldResemble, testETag1)
+		So(w.Result().Header.Get("ETag"), ShouldResemble, testETag1)
 
 		Convey("Then the request body has been drained", func() {
 			bytesRead, err := r.Body.Read(make([]byte, 1))
@@ -304,10 +303,10 @@ func TestSuccessfulAddFilterBlueprintDimension(t *testing.T) {
 		r.Header.Set("If-Match", testETag)
 
 		w := httptest.NewRecorder()
-		filterApi := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().Unpublished(), &mock.FilterJob{}, mock.NewDatasetAPI().Unpublished(), filterFlexAPIMock)
-		filterApi.Router.ServeHTTP(w, r)
+		filterAPI := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().Unpublished(), &mock.FilterJob{}, mock.NewDatasetAPI().Unpublished(), filterFlexAPIMock)
+		filterAPI.Router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusCreated)
-		So(w.HeaderMap.Get("ETag"), ShouldResemble, testETag1)
+		So(w.Result().Header.Get("ETag"), ShouldResemble, testETag1)
 
 		Convey("Then the request body has been drained", func() {
 			bytesRead, err := r.Body.Read(make([]byte, 1))
@@ -329,10 +328,10 @@ func TestFailedToAddFilterBlueprintDimension(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		filterApi := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().InternalError(), &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
-		filterApi.Router.ServeHTTP(w, r)
+		filterAPI := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().InternalError(), &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
+		filterAPI.Router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusInternalServerError)
-		So(w.HeaderMap.Get("ETag"), ShouldResemble, "")
+		So(w.Result().Header.Get("ETag"), ShouldResemble, "")
 
 		response := w.Body.String()
 		So(response, ShouldResemble, internalErrResponse)
@@ -351,10 +350,10 @@ func TestFailedToAddFilterBlueprintDimension(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		filterApi := api.Setup(cfg(), mux.NewRouter(), &mock.DataStore{}, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
-		filterApi.Router.ServeHTTP(w, r)
+		filterAPI := api.Setup(cfg(), mux.NewRouter(), &mock.DataStore{}, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
+		filterAPI.Router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
-		So(w.HeaderMap.Get("ETag"), ShouldResemble, "")
+		So(w.Result().Header.Get("ETag"), ShouldResemble, "")
 
 		response := w.Body.String()
 		So(response, ShouldResemble, badRequestResponse)
@@ -373,10 +372,10 @@ func TestFailedToAddFilterBlueprintDimension(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		filterApi := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().NotFound(), &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
-		filterApi.Router.ServeHTTP(w, r)
+		filterAPI := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().NotFound(), &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
+		filterAPI.Router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
-		So(w.HeaderMap.Get("ETag"), ShouldResemble, "")
+		So(w.Result().Header.Get("ETag"), ShouldResemble, "")
 
 		response := w.Body.String()
 		So(response, ShouldResemble, filterNotFoundResponse)
@@ -395,10 +394,10 @@ func TestFailedToAddFilterBlueprintDimension(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		filterApi := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().Unpublished(), &mock.FilterJob{}, mock.NewDatasetAPI().Unpublished(), filterFlexAPIMock)
-		filterApi.Router.ServeHTTP(w, r)
+		filterAPI := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().Unpublished(), &mock.FilterJob{}, mock.NewDatasetAPI().Unpublished(), filterFlexAPIMock)
+		filterAPI.Router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
-		So(w.HeaderMap.Get("ETag"), ShouldResemble, "")
+		So(w.Result().Header.Get("ETag"), ShouldResemble, "")
 
 		response := w.Body.String()
 		So(response, ShouldResemble, filterNotFoundResponse)
@@ -417,10 +416,10 @@ func TestFailedToAddFilterBlueprintDimension(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		filterApi := api.Setup(cfg(), mux.NewRouter(), &mock.DataStore{}, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
-		filterApi.Router.ServeHTTP(w, r)
+		filterAPI := api.Setup(cfg(), mux.NewRouter(), &mock.DataStore{}, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
+		filterAPI.Router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
-		So(w.HeaderMap.Get("ETag"), ShouldResemble, "")
+		So(w.Result().Header.Get("ETag"), ShouldResemble, "")
 
 		response := w.Body.String()
 		So(response, ShouldResemble, "incorrect dimensions chosen: [wealth]\n")
@@ -439,10 +438,10 @@ func TestFailedToAddFilterBlueprintDimension(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		filterApi := api.Setup(cfg(), mux.NewRouter(), &mock.DataStore{}, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
-		filterApi.Router.ServeHTTP(w, r)
+		filterAPI := api.Setup(cfg(), mux.NewRouter(), &mock.DataStore{}, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
+		filterAPI.Router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
-		So(w.HeaderMap.Get("ETag"), ShouldResemble, "")
+		So(w.Result().Header.Get("ETag"), ShouldResemble, "")
 
 		response := w.Body.String()
 		So(response, ShouldResemble, "incorrect dimension options chosen: [22]\n")
@@ -461,10 +460,10 @@ func TestFailedToAddFilterBlueprintDimension(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		filterApi := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().ConflictRequest(), &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
-		filterApi.Router.ServeHTTP(w, r)
+		filterAPI := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().ConflictRequest(), &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
+		filterAPI.Router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusConflict)
-		So(w.HeaderMap.Get("ETag"), ShouldResemble, "")
+		So(w.Result().Header.Get("ETag"), ShouldResemble, "")
 
 		response := w.Body.String()
 		So(response, ShouldResemble, filters.ErrFilterBlueprintConflict.Error()+"\n")
@@ -487,10 +486,10 @@ func TestFailedToAddFilterBlueprintDimension(t *testing.T) {
 		ds.Mock.GetFilterDimensionFunc = func(ctx context.Context, filterID string, name, eTagSelector string) (dimension *models.Dimension, err error) {
 			return nil, filters.ErrFilterBlueprintConflict
 		}
-		filterApi := api.Setup(cfg(), mux.NewRouter(), ds.Mock, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
-		filterApi.Router.ServeHTTP(w, r)
+		filterAPI := api.Setup(cfg(), mux.NewRouter(), ds.Mock, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
+		filterAPI.Router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusConflict)
-		So(w.HeaderMap.Get("ETag"), ShouldResemble, "")
+		So(w.Result().Header.Get("ETag"), ShouldResemble, "")
 
 		response := w.Body.String()
 		So(response, ShouldResemble, filters.ErrFilterBlueprintConflict.Error()+"\n")
@@ -508,10 +507,10 @@ func TestFailedToAddFilterBlueprintDimension(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		filterApi := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore(), &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
-		filterApi.Router.ServeHTTP(w, r)
+		filterAPI := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore(), &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
+		filterAPI.Router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
-		So(w.HeaderMap.Get("ETag"), ShouldResemble, "")
+		So(w.Result().Header.Get("ETag"), ShouldResemble, "")
 
 		response := w.Body.String()
 		So(response, ShouldResemble, "required If-Match header not provided\n")
@@ -522,7 +521,6 @@ func TestFailedToAddFilterBlueprintDimension(t *testing.T) {
 			So(err, ShouldEqual, io.EOF)
 		})
 	})
-
 }
 
 func TestSuccessfulGetFilterBlueprintDimension(t *testing.T) {
@@ -531,27 +529,27 @@ func TestSuccessfulGetFilterBlueprintDimension(t *testing.T) {
 	filterFlexAPIMock := &apimock.FilterFlexAPIMock{}
 
 	Convey("Successfully get a dimension for a filter blueprint, returns 200", t, func() {
-		r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678/dimensions/1_age", nil)
+		r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678/dimensions/1_age", http.NoBody)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		filterApi := api.Setup(cfg(), mux.NewRouter(), &mock.DataStore{}, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
-		filterApi.Router.ServeHTTP(w, r)
+		filterAPI := api.Setup(cfg(), mux.NewRouter(), &mock.DataStore{}, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
+		filterAPI.Router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusOK)
-		So(w.HeaderMap.Get("ETag"), ShouldResemble, testETag)
+		So(w.Result().Header.Get("ETag"), ShouldResemble, testETag)
 
 		So(w.Body.String(), ShouldContainSubstring, `{"self":{"id":"1_age","href":"http://localhost:80/filters/12345678/dimensions/1_age"}`)
 		So(w.Body.String(), ShouldContainSubstring, `"options":{"href":"http://localhost:80/filters/12345678/dimensions/1_age/options"`)
 	})
 
 	Convey("Successfully get a dimension for an unpublished filter blueprint, returns 200", t, func() {
-		r := createAuthenticatedRequest("GET", "http://localhost:22100/filters/12345678/dimensions/1_age", nil)
+		r := createAuthenticatedRequest("GET", "http://localhost:22100/filters/12345678/dimensions/1_age", http.NoBody)
 
 		w := httptest.NewRecorder()
-		filterApi := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().Unpublished(), &mock.FilterJob{}, mock.NewDatasetAPI().Unpublished(), filterFlexAPIMock)
-		filterApi.Router.ServeHTTP(w, r)
+		filterAPI := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().Unpublished(), &mock.FilterJob{}, mock.NewDatasetAPI().Unpublished(), filterFlexAPIMock)
+		filterAPI.Router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusOK)
-		So(w.HeaderMap.Get("ETag"), ShouldResemble, testETag)
+		So(w.Result().Header.Get("ETag"), ShouldResemble, testETag)
 
 		So(w.Body.String(), ShouldContainSubstring, `{"self":{"id":"1_age","href":"http://localhost:80/filters/12345678/dimensions/1_age"}`)
 		So(w.Body.String(), ShouldContainSubstring, `"options":{"href":"http://localhost:80/filters/12345678/dimensions/1_age/options"`)
@@ -564,63 +562,63 @@ func TestFailedToGetFilterBlueprintDimension(t *testing.T) {
 	filterFlexAPIMock := &apimock.FilterFlexAPIMock{}
 
 	Convey("When no data store is available, an internal error is returned", t, func() {
-		r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678/dimensions/1_age", nil)
+		r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678/dimensions/1_age", http.NoBody)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		filterApi := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().InternalError(), &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
-		filterApi.Router.ServeHTTP(w, r)
+		filterAPI := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().InternalError(), &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
+		filterAPI.Router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusInternalServerError)
-		So(w.HeaderMap.Get("ETag"), ShouldResemble, "")
+		So(w.Result().Header.Get("ETag"), ShouldResemble, "")
 
 		response := w.Body.String()
 		So(response, ShouldResemble, internalErrResponse)
 	})
 
 	Convey("When filter blueprint does not exist, a bad request is returned", t, func() {
-		r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678/dimensions/1_age", nil)
+		r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678/dimensions/1_age", http.NoBody)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		filterApi := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().NotFound(), &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
-		filterApi.Router.ServeHTTP(w, r)
+		filterAPI := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().NotFound(), &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
+		filterAPI.Router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
-		So(w.HeaderMap.Get("ETag"), ShouldResemble, "")
+		So(w.Result().Header.Get("ETag"), ShouldResemble, "")
 
 		response := w.Body.String()
 		So(response, ShouldResemble, filterNotFoundResponse)
 	})
 
 	Convey("When filter blueprint is unpublished and request is unauthenticated, a bad request is returned", t, func() {
-		r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678/dimensions/1_age", nil)
+		r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678/dimensions/1_age", http.NoBody)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		filterApi := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().Unpublished(), &mock.FilterJob{}, mock.NewDatasetAPI().Unpublished(), filterFlexAPIMock)
-		filterApi.Router.ServeHTTP(w, r)
+		filterAPI := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().Unpublished(), &mock.FilterJob{}, mock.NewDatasetAPI().Unpublished(), filterFlexAPIMock)
+		filterAPI.Router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
-		So(w.HeaderMap.Get("ETag"), ShouldResemble, "")
+		So(w.Result().Header.Get("ETag"), ShouldResemble, "")
 
 		response := w.Body.String()
 		So(response, ShouldResemble, filterNotFoundResponse)
 	})
 
 	Convey("When dimension does not exist against filter blueprint, a not found is returned", t, func() {
-		r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678/dimensions/1_age", nil)
+		r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678/dimensions/1_age", http.NoBody)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		filterApi := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().DimensionNotFound(), &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
-		filterApi.Router.ServeHTTP(w, r)
+		filterAPI := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().DimensionNotFound(), &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
+		filterAPI.Router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
-		So(w.HeaderMap.Get("ETag"), ShouldResemble, "")
+		So(w.Result().Header.Get("ETag"), ShouldResemble, "")
 
 		response := w.Body.String()
 		So(response, ShouldResemble, dimensionNotFoundResponse)
 	})
 
 	Convey("When an unpublished filter with a version that is published is updated by an external source after it is obtained from the datastore and before its state is updated, a conflict is returned", t, func() {
-		r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678/dimensions/1_age", nil)
+		r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678/dimensions/1_age", http.NoBody)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
@@ -628,10 +626,10 @@ func TestFailedToGetFilterBlueprintDimension(t *testing.T) {
 		ds.UpdateFilterFunc = func(ctx context.Context, updatedFilter *models.Filter, timestamp primitive.Timestamp, eTagSelector string, currentFilter *models.Filter) (string, error) {
 			return "", filters.ErrFilterBlueprintConflict
 		}
-		filterApi := api.Setup(cfg(), mux.NewRouter(), ds, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
-		filterApi.Router.ServeHTTP(w, r)
+		filterAPI := api.Setup(cfg(), mux.NewRouter(), ds, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
+		filterAPI.Router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusConflict)
-		So(w.HeaderMap.Get("ETag"), ShouldResemble, "")
+		So(w.Result().Header.Get("ETag"), ShouldResemble, "")
 
 		response := w.Body.String()
 		So(response, ShouldResemble, filerBlueprintConflictResponse)
@@ -644,23 +642,23 @@ func TestSuccessfulRemoveFilterBlueprintDimension(t *testing.T) {
 	filterFlexAPIMock := &apimock.FilterFlexAPIMock{}
 
 	Convey("Successfully remove a dimension for a filter blueprint, returns 204", t, func() {
-		r, err := http.NewRequest("DELETE", "http://localhost:22100/filters/12345678/dimensions/1_age", nil)
+		r, err := http.NewRequest("DELETE", "http://localhost:22100/filters/12345678/dimensions/1_age", http.NoBody)
 		r.Header.Set("If-Match", testETag)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		filterApi := api.Setup(cfg(), mux.NewRouter(), &mock.DataStore{}, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
-		filterApi.Router.ServeHTTP(w, r)
+		filterAPI := api.Setup(cfg(), mux.NewRouter(), &mock.DataStore{}, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
+		filterAPI.Router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNoContent)
 	})
 
 	Convey("Successfully remove a dimension for an unpublished filter blueprint, returns 204", t, func() {
-		r := createAuthenticatedRequest("DELETE", "http://localhost:22100/filters/12345678/dimensions/1_age", nil)
+		r := createAuthenticatedRequest("DELETE", "http://localhost:22100/filters/12345678/dimensions/1_age", http.NoBody)
 		r.Header.Set("If-Match", testETag)
 
 		w := httptest.NewRecorder()
-		filterApi := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().Unpublished(), &mock.FilterJob{}, mock.NewDatasetAPI().Unpublished(), filterFlexAPIMock)
-		filterApi.Router.ServeHTTP(w, r)
+		filterAPI := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().Unpublished(), &mock.FilterJob{}, mock.NewDatasetAPI().Unpublished(), filterFlexAPIMock)
+		filterAPI.Router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNoContent)
 	})
 }
@@ -671,13 +669,13 @@ func TestFailedToRemoveFilterBlueprintDimension(t *testing.T) {
 	filterFlexAPIMock := &apimock.FilterFlexAPIMock{}
 
 	Convey("When no data store is available, an internal error is returned", t, func() {
-		r, err := http.NewRequest("DELETE", "http://localhost:22100/filters/12345678/dimensions/1_age", nil)
+		r, err := http.NewRequest("DELETE", "http://localhost:22100/filters/12345678/dimensions/1_age", http.NoBody)
 		r.Header.Set("If-Match", testETag)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		filterApi := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().InternalError(), &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
-		filterApi.Router.ServeHTTP(w, r)
+		filterAPI := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().InternalError(), &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
+		filterAPI.Router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusInternalServerError)
 
 		response := w.Body.String()
@@ -685,13 +683,13 @@ func TestFailedToRemoveFilterBlueprintDimension(t *testing.T) {
 	})
 
 	Convey("When filter blueprint does not exist, a bad request is returned", t, func() {
-		r, err := http.NewRequest("DELETE", "http://localhost:22100/filters/12345678/dimensions/1_age", nil)
+		r, err := http.NewRequest("DELETE", "http://localhost:22100/filters/12345678/dimensions/1_age", http.NoBody)
 		r.Header.Set("If-Match", testETag)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		filterApi := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().NotFound(), &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
-		filterApi.Router.ServeHTTP(w, r)
+		filterAPI := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().NotFound(), &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
+		filterAPI.Router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
 		response := w.Body.String()
@@ -699,13 +697,13 @@ func TestFailedToRemoveFilterBlueprintDimension(t *testing.T) {
 	})
 
 	Convey("When filter blueprint is unpublished, and request is not authenticated, a bad request is returned", t, func() {
-		r, err := http.NewRequest("DELETE", "http://localhost:22100/filters/12345678/dimensions/1_age", nil)
+		r, err := http.NewRequest("DELETE", "http://localhost:22100/filters/12345678/dimensions/1_age", http.NoBody)
 		r.Header.Set("If-Match", testETag)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		filterApi := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().Unpublished(), &mock.FilterJob{}, mock.NewDatasetAPI().Unpublished(), filterFlexAPIMock)
-		filterApi.Router.ServeHTTP(w, r)
+		filterAPI := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().Unpublished(), &mock.FilterJob{}, mock.NewDatasetAPI().Unpublished(), filterFlexAPIMock)
+		filterAPI.Router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 
 		response := w.Body.String()
@@ -713,34 +711,34 @@ func TestFailedToRemoveFilterBlueprintDimension(t *testing.T) {
 	})
 
 	Convey("When dimension does not exist against filter blueprint, the response is 404 Status Not Found", t, func() {
-		r, err := http.NewRequest("DELETE", "http://localhost:22100/filters/12345678/dimensions/1_age", nil)
+		r, err := http.NewRequest("DELETE", "http://localhost:22100/filters/12345678/dimensions/1_age", http.NoBody)
 		r.Header.Set("If-Match", testETag)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		filterApi := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().DimensionNotFound(), &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
-		filterApi.Router.ServeHTTP(w, r)
+		filterAPI := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().DimensionNotFound(), &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
+		filterAPI.Router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 	})
 
 	Convey("Trying to remove an existing dimension without providing a valid If-Match header results in 400 Bad Request", t, func() {
-		r, err := http.NewRequest("DELETE", "http://localhost:22100/filters/12345678/dimensions/1_age", nil)
+		r, err := http.NewRequest("DELETE", "http://localhost:22100/filters/12345678/dimensions/1_age", http.NoBody)
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		filterApi := api.Setup(cfg(), mux.NewRouter(), &mock.DataStore{}, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
-		filterApi.Router.ServeHTTP(w, r)
+		filterAPI := api.Setup(cfg(), mux.NewRouter(), &mock.DataStore{}, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
+		filterAPI.Router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 	})
 
 	Convey("Trying to remove an existing dimension with an invalid value for If-Match header results in 409 Conflict", t, func() {
-		r, err := http.NewRequest("DELETE", "http://localhost:22100/filters/12345678/dimensions/1_age", nil)
+		r, err := http.NewRequest("DELETE", "http://localhost:22100/filters/12345678/dimensions/1_age", http.NoBody)
 		r.Header.Set("If-Match", "wrong")
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		filterApi := api.Setup(cfg(), mux.NewRouter(), &mock.DataStore{}, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
-		filterApi.Router.ServeHTTP(w, r)
+		filterAPI := api.Setup(cfg(), mux.NewRouter(), &mock.DataStore{}, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
+		filterAPI.Router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusConflict)
 	})
 }
@@ -755,7 +753,6 @@ func TestCreatePublicDimensionSucceeds(t *testing.T) {
 	}
 
 	Convey("When a Dimension struct is provided a PublicDimension struct is returned", t, func() {
-
 		publicDim := api.CreatePublicDimension(*testDim, "", "1234")
 
 		So(publicDim.Name, ShouldEqual, "testDim1")
@@ -764,7 +761,6 @@ func TestCreatePublicDimensionSucceeds(t *testing.T) {
 		So(publicDim.Links.Filter.ID, ShouldEqual, "1234")
 		So(publicDim.Links.Filter.HRef, ShouldEqual, "/filters/1234")
 		So(publicDim.Links.Options.HRef, ShouldEqual, "/filters/1234/dimensions/testDim1/options")
-
 	})
 }
 
@@ -784,7 +780,6 @@ func TestCreatePublicDimensionsSucceeds(t *testing.T) {
 	}
 
 	Convey("When an array of Dimension structs is provided an array of PublicDimension structs is returned", t, func() {
-
 		publicDims := api.CreatePublicDimensions(testDims, "", "5678")
 
 		So(len(publicDims), ShouldEqual, 2)
@@ -833,11 +828,11 @@ func TestPutFilterBlueprintDimension(t *testing.T) {
 				}, nil
 			}
 
-			filterApi := api.Setup(conf, mux.NewRouter(), datastoreMock, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
+			filterAPI := api.Setup(conf, mux.NewRouter(), datastoreMock, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
 
 			r, err := http.NewRequest("PUT", "http://localhost:22100/filters/12345678/dimensions/1_age", reader)
 			So(err, ShouldBeNil)
-			filterApi.Router.ServeHTTP(w, r)
+			filterAPI.Router.ServeHTTP(w, r)
 
 			Convey("An error is returned", func() {
 				So(w.Code, ShouldEqual, http.StatusBadRequest)
@@ -867,11 +862,11 @@ func TestPutFilterBlueprintDimension(t *testing.T) {
 				}, nil
 			}
 
-			filterApi := api.Setup(conf, mux.NewRouter(), datastoreMock, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
+			filterAPI := api.Setup(conf, mux.NewRouter(), datastoreMock, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
 
 			r, err := http.NewRequest("PUT", "http://localhost:22100/filters/12345678/dimensions/1_age", reader)
 			So(err, ShouldBeNil)
-			filterApi.Router.ServeHTTP(w, r)
+			filterAPI.Router.ServeHTTP(w, r)
 
 			Convey("An error is returned", func() {
 				So(w.Code, ShouldEqual, http.StatusBadRequest)
@@ -884,7 +879,6 @@ func TestPutFilterBlueprintDimension(t *testing.T) {
 	})
 
 	Convey("Given the assert dataset feature flag is toggled on", t, func() {
-
 		conf := cfg()
 		conf.AssertDatasetType = true
 
@@ -905,11 +899,11 @@ func TestPutFilterBlueprintDimension(t *testing.T) {
 				}, nil
 			}
 
-			filterApi := api.Setup(conf, mux.NewRouter(), datastoreMock, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
+			filterAPI := api.Setup(conf, mux.NewRouter(), datastoreMock, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
 
 			r, err := http.NewRequest("PUT", "http://localhost:22100/filters/12345678/dimensions/1_age", reader)
 			So(err, ShouldBeNil)
-			filterApi.Router.ServeHTTP(w, r)
+			filterAPI.Router.ServeHTTP(w, r)
 
 			Convey("A call to datastore is made to check the dataset type", func() {
 				So(datastoreMock.GetFilterCalls(), ShouldHaveLength, 1)
@@ -925,7 +919,6 @@ func TestPutFilterBlueprintDimension(t *testing.T) {
 					So(string(reqBody), ShouldEqual, stubBody)
 				})
 			})
-
 		})
 
 		Convey("When the filter not flexible", func() {
@@ -947,11 +940,11 @@ func TestPutFilterBlueprintDimension(t *testing.T) {
 				}, nil
 			}
 
-			filterApi := api.Setup(conf, mux.NewRouter(), datastoreMock, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
+			filterAPI := api.Setup(conf, mux.NewRouter(), datastoreMock, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
 
 			r, err := http.NewRequest("PUT", "http://localhost:22100/filters/12345678/dimensions/1_age", reader)
 			So(err, ShouldBeNil)
-			filterApi.Router.ServeHTTP(w, r)
+			filterAPI.Router.ServeHTTP(w, r)
 
 			Convey("An error is returned", func() {
 				So(w.Code, ShouldEqual, http.StatusBadRequest)
@@ -966,7 +959,6 @@ func TestPutFilterBlueprintDimension(t *testing.T) {
 
 func TestPostDimensionFilterFlexRoute(t *testing.T) {
 	Convey("Given the assert dataset feature flag is toggled on", t, func() {
-
 		conf := cfg()
 		conf.AssertDatasetType = true
 
@@ -987,11 +979,11 @@ func TestPostDimensionFilterFlexRoute(t *testing.T) {
 				}, nil
 			}
 
-			filterApi := api.Setup(conf, mux.NewRouter(), datastoreMock, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
+			filterAPI := api.Setup(conf, mux.NewRouter(), datastoreMock, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock)
 
-			r, err := http.NewRequest("POST", "http://localhost:22100/filters/12345678/dimensions", nil)
+			r, err := http.NewRequest("POST", "http://localhost:22100/filters/12345678/dimensions", http.NoBody)
 			So(err, ShouldBeNil)
-			filterApi.Router.ServeHTTP(w, r)
+			filterAPI.Router.ServeHTTP(w, r)
 
 			Convey("Then a call to datastore is made to check the filter type", func() {
 				So(datastoreMock.GetFilterCalls(), ShouldHaveLength, 1)
@@ -1021,11 +1013,11 @@ func TestPostDimensionFilterFlexRoute(t *testing.T) {
 				}, nil
 			}
 
-			filterApi := api.Setup(conf, mux.NewRouter(), datastoreMock, &mock.FilterJob{}, mock.NewDatasetAPI().Mock, filterFlexAPIMock)
+			filterAPI := api.Setup(conf, mux.NewRouter(), datastoreMock, &mock.FilterJob{}, mock.NewDatasetAPI().Mock, filterFlexAPIMock)
 
-			r, err := http.NewRequest("POST", "http://localhost:22100/filters/12345678/dimensions", nil)
+			r, err := http.NewRequest("POST", "http://localhost:22100/filters/12345678/dimensions", http.NoBody)
 			So(err, ShouldBeNil)
-			filterApi.Router.ServeHTTP(w, r)
+			filterAPI.Router.ServeHTTP(w, r)
 
 			Convey("Then the request is not forwarded to dp-cantabular-filter-flex-api", func() {
 				So(filterFlexAPIMock.ForwardRequestCalls(), ShouldHaveLength, 0)

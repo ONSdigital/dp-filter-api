@@ -33,7 +33,7 @@ func TestAssertFilterType(t *testing.T) {
 			Body:       io.NopCloser(bytes.NewReader([]byte(testBody))),
 			StatusCode: http.StatusOK,
 			Header: map[string][]string{
-				"X-Test": []string{"Value"},
+				"X-Test": {"Value"},
 			},
 		}
 
@@ -68,7 +68,7 @@ func TestAssertFilterType(t *testing.T) {
 				w := httptest.NewRecorder()
 
 				testID := "12345678"
-				r, err := http.NewRequest("GET", "http://localhost:1234/test/"+testID, nil)
+				r, err := http.NewRequest("GET", "http://localhost:1234/test/"+testID, http.NoBody)
 				So(err, ShouldBeNil)
 
 				r = mux.SetURLVars(r, map[string]string{
@@ -102,7 +102,7 @@ func TestAssertFilterType(t *testing.T) {
 				w := httptest.NewRecorder()
 
 				testID := "12345678"
-				r, err := http.NewRequest("GET", "http://localhost:1234/test/"+testID, nil)
+				r, err := http.NewRequest("GET", "http://localhost:1234/test/"+testID, http.NoBody)
 				So(err, ShouldBeNil)
 
 				r = mux.SetURLVars(r, map[string]string{
@@ -149,7 +149,7 @@ func TestAssertFilterType(t *testing.T) {
 				w := httptest.NewRecorder()
 
 				testID := "12345678"
-				r, err := http.NewRequest("GET", "http://localhost:1234/test/"+testID, nil)
+				r, err := http.NewRequest("GET", "http://localhost:1234/test/"+testID, http.NoBody)
 				So(err, ShouldBeNil)
 
 				r = mux.SetURLVars(r, map[string]string{
@@ -183,7 +183,7 @@ func TestAssertFilterType(t *testing.T) {
 				w := httptest.NewRecorder()
 
 				testID := "12345678"
-				r, err := http.NewRequest("GET", "http://localhost:1234/test/"+testID, nil)
+				r, err := http.NewRequest("GET", "http://localhost:1234/test/"+testID, http.NoBody)
 				So(err, ShouldBeNil)
 
 				r = mux.SetURLVars(r, map[string]string{
@@ -228,8 +228,9 @@ func TestAssertFilterType(t *testing.T) {
 				)
 
 				w := httptest.NewRecorder()
+				// nolint:goconst // acceptable for test
 				testOutputID := "test-filter-output"
-				r, err := http.NewRequest("GET", "http://localhost:1234/filter-outputs/"+testOutputID, nil)
+				r, err := http.NewRequest("GET", "http://localhost:1234/filter-outputs/"+testOutputID, http.NoBody)
 				So(err, ShouldBeNil)
 
 				r = mux.SetURLVars(r, map[string]string{
@@ -251,7 +252,6 @@ func TestAssertFilterType(t *testing.T) {
 				Convey("The filter flex api request should not be forwarded.", func() {
 					So(len(filterFlexAPIMock.ForwardRequestCalls()), ShouldEqual, 0)
 				})
-
 			})
 		})
 
@@ -279,7 +279,7 @@ func TestAssertFilterType(t *testing.T) {
 
 				w := httptest.NewRecorder()
 				testOutputID := "test-filter-output"
-				r, err := http.NewRequest("GET", "http://localhost:1234/filter-outputs/"+testOutputID, nil)
+				r, err := http.NewRequest("GET", "http://localhost:1234/filter-outputs/"+testOutputID, http.NoBody)
 				So(err, ShouldBeNil)
 
 				r = mux.SetURLVars(r, map[string]string{
@@ -296,13 +296,11 @@ func TestAssertFilterType(t *testing.T) {
 					So(w.Code, ShouldEqual, http.StatusOK)
 					So(w.HeaderMap.Get("X-Test"), ShouldResemble, "Value")
 					So(w.Body.String(), ShouldResemble, "test body")
-
 				})
 
 				Convey("The filter flex api request should be forwarded.", func() {
 					So(len(filterFlexAPIMock.ForwardRequestCalls()), ShouldEqual, 1)
 				})
-
 			})
 		})
 
@@ -331,7 +329,7 @@ func TestAssertFilterType(t *testing.T) {
 				w := httptest.NewRecorder()
 
 				testID := "12345678"
-				r, err := http.NewRequest("GET", "http://localhost:1234/test/"+testID, nil)
+				r, err := http.NewRequest("GET", "http://localhost:1234/test/"+testID, http.NoBody)
 				So(err, ShouldBeNil)
 
 				r = mux.SetURLVars(r, map[string]string{
@@ -361,7 +359,7 @@ func TestAssertDatasetType(t *testing.T) {
 			Body:       io.NopCloser(bytes.NewReader([]byte(testBody))),
 			StatusCode: http.StatusOK,
 			Header: map[string][]string{
-				"X-Test": []string{"Value"},
+				"X-Test": {"Value"},
 			},
 		}
 
