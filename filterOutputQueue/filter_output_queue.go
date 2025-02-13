@@ -1,4 +1,4 @@
-package filterOutputQueue
+package filteroutputqueue
 
 import (
 	"strconv"
