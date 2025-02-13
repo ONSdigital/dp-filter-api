@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/url"
 	"time"
 
@@ -65,11 +64,11 @@ type Filter struct {
 // ETag field value is ignored when generating a hash.
 // An optional byte array can be provided to append to the hash.
 // This can be used, for example, to calculate a hash of this filter and an update applied to it.
-func (f *Filter) Hash(extraBytes []byte) (string, error) {
+func (filter *Filter) Hash(extraBytes []byte) (string, error) {
 	h := sha1.New()
 
 	// copy by value to ignore ETag without affecting f
-	f2 := *f
+	f2 := *filter
 	f2.ETag = ""
 
 	filterBytes, err := bson.Marshal(f2)
@@ -235,8 +234,8 @@ func (filter *NewFilter) ValidateNewFilter() error {
 // are valid for a version of a dataset
 func ValidateFilterDimensions(filterDimensions []Dimension, dimensions *dataset.VersionDimensions) error {
 	dimensionNames := make(map[string]int)
-	for _, dimension := range dimensions.Items {
-		dimensionNames[dimension.Name] = 1
+	for i := range dimensions.Items {
+		dimensionNames[dimensions.Items[i].Name] = 1
 	}
 
 	var incorrectDimensions []string
@@ -254,8 +253,9 @@ func ValidateFilterDimensions(filterDimensions []Dimension, dimensions *dataset.
 }
 
 // ValidateFilterOutputUpdate checks the content of the filter structure
+//
+//nolint:gocognit,gocyclo // complexity of 41 (>40) is acceptable here, cyclomatic complexity 23 (>20) is acceptable here
 func (filter *Filter) ValidateFilterOutputUpdate(currentFilter *Filter) error {
-
 	// Only downloads, events and state can be updated, any attempt to update other
 	// fields will result in an error of forbidden
 
@@ -306,7 +306,6 @@ func (filter *Filter) ValidateFilterOutputUpdate(currentFilter *Filter) error {
 			}
 
 			if filter.Downloads.XLS != nil && currentFilter.Downloads.XLS != nil {
-
 				// If version for filter output is published and filter output has a
 				// public link, do not allow any updates to download item (xls)
 				var hasXLSPublicDownload bool
@@ -334,7 +333,6 @@ func (filter *Filter) ValidateFilterOutputUpdate(currentFilter *Filter) error {
 // ValidateFilterBlueprintUpdate checks the content of the filter structure for
 // changes against the dataset
 func ValidateFilterBlueprintUpdate(filter *Filter) error {
-
 	// Only events and dataset version can be updated, any attempt to update the
 	// dataset id or edition will result in an error of bad request
 
@@ -359,7 +357,7 @@ func ValidateFilterBlueprintUpdate(filter *Filter) error {
 
 // CreateFilter manages the creation of a filter from a reader
 func CreateFilter(reader io.Reader) (*Filter, error) {
-	bytes, err := ioutil.ReadAll(reader)
+	bytes, err := io.ReadAll(reader)
 	if err != nil {
 		return nil, ErrorReadingBody
 	}
@@ -383,12 +381,12 @@ func CreateFilter(reader io.Reader) (*Filter, error) {
 func CreateDimensionOptions(reader io.Reader) ([]string, error) {
 	var dimension Dimension
 
-	bytes, err := ioutil.ReadAll(reader)
+	bytes, err := io.ReadAll(reader)
 	if err != nil {
 		return nil, ErrorReadingBody
 	}
 
-	if string(bytes) == "" {
+	if len(bytes) == 0 {
 		return dimension.Options, nil
 	}
 
@@ -404,7 +402,7 @@ func CreateDimensionOptions(reader io.Reader) ([]string, error) {
 func CreatePatches(reader io.Reader) ([]dprequest.Patch, error) {
 	patches := []dprequest.Patch{}
 
-	bytes, err := ioutil.ReadAll(reader)
+	bytes, err := io.ReadAll(reader)
 	if err != nil {
 		return []dprequest.Patch{}, ErrorReadingBody
 	}
@@ -424,7 +422,7 @@ func CreatePatches(reader io.Reader) ([]dprequest.Patch, error) {
 
 // CreateNewFilter manages the creation of a filter blueprint being updated (new filter)
 func CreateNewFilter(reader io.Reader) (*NewFilter, error) {
-	bytes, err := ioutil.ReadAll(reader)
+	bytes, err := io.ReadAll(reader)
 	if err != nil {
 		return nil, ErrorReadingBody
 	}

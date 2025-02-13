@@ -39,7 +39,6 @@ const (
 )
 
 func (api *FilterAPI) postFilterBlueprintHandler(w http.ResponseWriter, r *http.Request) {
-
 	defer dphttp.DrainBody(r)
 
 	submitted := r.FormValue("submitted")
@@ -85,7 +84,6 @@ func (api *FilterAPI) postFilterBlueprintHandler(w http.ResponseWriter, r *http.
 }
 
 func (api *FilterAPI) createFilterBlueprint(ctx context.Context, filter *models.NewFilter, submitted string) (*models.Filter, error) {
-
 	newFilter := &models.Filter{}
 	logData := log.Data{}
 
@@ -226,7 +224,6 @@ func (api *FilterAPI) postFilterBlueprintSubmitHandler(w http.ResponseWriter, r 
 }
 
 func (api *FilterAPI) putFilterBlueprintHandler(w http.ResponseWriter, r *http.Request) {
-
 	defer dphttp.DrainBody(r)
 
 	vars := mux.Vars(r)
@@ -283,7 +280,6 @@ func (api *FilterAPI) putFilterBlueprintHandler(w http.ResponseWriter, r *http.R
 }
 
 func (api *FilterAPI) updateFilterBlueprint(ctx context.Context, filter *models.Filter, submitted, eTag string) (*models.Filter, error) {
-
 	logData := log.Data{"filter_blueprint_id": filter.FilterID, "submitted": submitted}
 	log.Info(ctx, "updating filter blueprint", logData)
 	logData["filter_update"] = filter
@@ -363,7 +359,6 @@ func (api *FilterAPI) updateFilterBlueprint(ctx context.Context, filter *models.
 }
 
 func (api *FilterAPI) getFilterBlueprint(ctx context.Context, filterID, eTag string) (*models.Filter, error) {
-
 	logData := log.Data{"filter_blueprint_id": filterID}
 
 	currentFilter, err := api.dataStore.GetFilter(ctx, filterID, mongo.AnyETag)
@@ -445,7 +440,6 @@ func (api *FilterAPI) checkFilterOptions(ctx context.Context, newFilter *models.
 }
 
 func (api *FilterAPI) getVersion(ctx context.Context, dataset *models.Dataset) (*datasetAPI.Version, error) {
-
 	dimensions, err := api.datasetAPI.GetVersion(ctx,
 		"",
 		api.serviceAuthToken,
@@ -469,7 +463,6 @@ func (api *FilterAPI) getVersion(ctx context.Context, dataset *models.Dataset) (
 }
 
 func getUserAuthToken(ctx context.Context) string {
-
 	if dprequest.IsFlorenceIdentityPresent(ctx) {
 		return ctx.Value(dprequest.FlorenceIdentityKey).(string)
 	}
@@ -478,7 +471,6 @@ func getUserAuthToken(ctx context.Context) string {
 }
 
 func getCollectionID(ctx context.Context) string {
-
 	rawKeyValue := ctx.Value(dprequest.CollectionIDHeaderKey)
 
 	if rawKeyValue != nil {
@@ -490,7 +482,6 @@ func getCollectionID(ctx context.Context) string {
 }
 
 func (api *FilterAPI) getDimensions(ctx context.Context, dataset *models.Dataset) (*datasetAPI.VersionDimensions, error) {
-
 	dimensions, err := api.datasetAPI.GetVersionDimensions(ctx,
 		getUserAuthToken(ctx),
 		api.serviceAuthToken,
@@ -513,9 +504,8 @@ func (api *FilterAPI) getDimensions(ctx context.Context, dataset *models.Dataset
 
 // getDimensionOptionsBatchProcess calls dataset API GetOptionsBatchProcess with the provided batch processor
 func (api *FilterAPI) getDimensionOptionsBatchProcess(ctx context.Context, dimension models.Dimension, dataset *models.Dataset, processBatch datasetAPI.OptionsBatchProcessor) error {
-
 	// if no options are defined, there is nothing to validate against dataset API
-	if dimension.Options == nil || len(dimension.Options) == 0 {
+	if len(dimension.Options) == 0 {
 		return nil
 	}
 
@@ -599,6 +589,7 @@ func (api *FilterAPI) createFilterOutputResource(ctx context.Context, newFilter 
 	}
 
 	log.Info(ctx, "submitting filter job", log.Data{"filter_id": filterOutput.FilterID})
+	//nolint:gocritic // evaluate api.outputQueue.Queue(&filterOutput) before the return statement not a priority
 	return filterOutput, api.outputQueue.Queue(&filterOutput)
 }
 
@@ -627,7 +618,7 @@ func getIfMatchForce(r *http.Request) (string, error) {
 	return eTag, nil
 }
 
-func createNewFilter(filter *models.Filter, currentFilter *models.Filter) (newFilter *models.Filter, versionHasChanged bool) {
+func createNewFilter(filter, currentFilter *models.Filter) (newFilter *models.Filter, versionHasChanged bool) {
 	newFilter = currentFilter
 
 	if filter.Dataset != nil {
@@ -636,26 +627,24 @@ func createNewFilter(filter *models.Filter, currentFilter *models.Filter) (newFi
 			newFilter.Dataset.Version = filter.Dataset.Version
 		}
 
-		if &filter.Events != nil {
-			newFilter.Events = append(newFilter.Events, filter.Events...)
-		}
+		newFilter.Events = append(newFilter.Events, filter.Events...)
 	}
 
 	return
 }
 
+//nolint:gocyclo // cyclomatic complexity 22 of func `setErrorCode` is high (> 20), not necessary to refactor this case
 func setErrorCode(w http.ResponseWriter, err error, typ ...string) {
-
 	switch err {
 	case filters.ErrFilterBlueprintNotFound:
-		if typ != nil && typ[0] == statusBadRequest {
+		if len(typ) > 0 && typ[0] == statusBadRequest {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	case filters.ErrDimensionNotFound:
-		if typ != nil && typ[0] == statusBadRequest {
+		if len(typ) > 0 && typ[0] == statusBadRequest {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}

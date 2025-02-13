@@ -114,4 +114,24 @@ issues:
       text: "shadowing of predeclared identifier: new"
       linters:
         - gocritic
+    # TODO: refactor to use a different hashing algorithm, e.g. SHA-256 (acceptable on the basic other services use this and the impact of changing is unknown)
+    - path: models/models.go
+      text: "weak cryptographic primitive"
+      linters:
+        - gosec
+    # TODO: refactor code to remove fallthrough
+    - path: api/filter_dimension_options.go
+      text: "emptyFallthrough: replace empty case containing only fallthrough with expression list"
+      linters:
+        - gocritic
+    # TODO: refactor code to reduce nesting
+    - path: api/filter_dimension_options.go
+      text: "nestingReduce: invert if cond, replace body with `continue`, move old body after the statement"
+      linters:
+        - gocritic
+    # TODO: refactor code to remove fallthrough
+    - path: api/filters.go
+      text: "emptyFallthrough: replace empty case containing only fallthrough with expression list"
+      linters:
+        - gocritic
   new: false
