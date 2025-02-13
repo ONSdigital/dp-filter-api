@@ -92,9 +92,3 @@ func run(ctx context.Context) error {
 	}
 	return svc.Close(ctx)
 }
-
-func logIfError(ctx context.Context, err error, message string) {
-	if err != nil {
-		log.Error(ctx, message, err)
-	}
-}

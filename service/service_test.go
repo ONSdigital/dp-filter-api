@@ -27,7 +27,6 @@ var (
 
 var (
 	errMongo    = errors.New("MongoDB error")
-	errGraph    = errors.New("GraphDB error")
 	errKafka    = errors.New("Kafka producer error")
 	errServer   = errors.New("HTTP Server error")
 	errAddCheck = errors.New("healthcheck add check error")
@@ -40,9 +39,7 @@ func TestNew(t *testing.T) {
 }
 
 func TestInit(t *testing.T) {
-
 	Convey("Having a set of mocked dependencies", t, func() {
-
 		cfg, err := config.Get()
 		cfg.EnablePrivateEndpoints = true
 		So(err, ShouldBeNil)
@@ -154,7 +151,6 @@ func TestInit(t *testing.T) {
 		})
 
 		Convey("Given that all dependencies are successfully initialised", func() {
-
 			Convey("Then service Init succeeds, all dependencies are initialised", func() {
 				err := svc.Init(ctx, cfg, testBuildTime, testGitCommit, testVersion)
 				So(err, ShouldBeNil)
@@ -199,9 +195,7 @@ func TestInit(t *testing.T) {
 }
 
 func TestStart(t *testing.T) {
-
 	Convey("Having a correctly initialised Service with mocked dependencies", t, func() {
-
 		cfg, err := config.Get()
 		cfg.EnablePrivateEndpoints = true
 		So(err, ShouldBeNil)
@@ -259,7 +253,6 @@ func TestStart(t *testing.T) {
 }
 
 func TestClose(t *testing.T) {
-
 	Convey("Having a correctly initialised service with mocked dependencies", t, func() {
 		cfg, err := config.Get()
 		So(err, ShouldBeNil)
