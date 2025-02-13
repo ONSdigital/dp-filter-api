@@ -76,10 +76,10 @@ func (api *FilterAPI) getFilterBlueprintDimensionsHandler(w http.ResponseWriter,
 		return
 	}
 
-	var dimensionNames []string
+	var dimensionNames = make([]string, len(filter.Dimensions))
 
-	for _, dimension := range filter.Dimensions {
-		dimensionNames = append(dimensionNames, dimension.Name)
+	for i, dimension := range filter.Dimensions {
+		dimensionNames[i] = dimension.Name
 	}
 
 	sort.Strings(dimensionNames)
@@ -210,7 +210,6 @@ func (api *FilterAPI) removeFilterBlueprintDimensionHandler(w http.ResponseWrite
 }
 
 func (api *FilterAPI) removeFilterBlueprintDimension(ctx context.Context, filterBlueprintID, dimensionName, eTag string) (newETag string, err error) {
-
 	filter, err := api.getFilterBlueprint(ctx, filterBlueprintID, mongo.AnyETag)
 	if err != nil {
 		return "", err
@@ -231,7 +230,6 @@ func (api *FilterAPI) removeFilterBlueprintDimension(ctx context.Context, filter
 }
 
 func (api *FilterAPI) addFilterBlueprintDimensionHandler(w http.ResponseWriter, r *http.Request) {
-
 	defer dphttp.DrainBody(r)
 
 	vars := mux.Vars(r)
@@ -318,7 +316,6 @@ func (api *FilterAPI) putFilterBlueprintDimensionHandler(w http.ResponseWriter, 
 }
 
 func (api *FilterAPI) addFilterBlueprintDimension(ctx context.Context, filterBlueprintID, dimensionName string, options []string, eTag string) (newETag string, err error) {
-
 	filterBlueprint, err := api.getFilterBlueprint(ctx, filterBlueprintID, eTag)
 	if err != nil {
 		return "", err
@@ -339,7 +336,6 @@ func (api *FilterAPI) addFilterBlueprintDimension(ctx context.Context, filterBlu
 // checkNewFilterDimension validates that the dimension with the provided name is valid, by calling GetDimensions in Dataset API.
 // Once the dimension name is validated, it validates the provided options array.
 func (api *FilterAPI) checkNewFilterDimension(ctx context.Context, name string, options []string, dataset *models.Dataset) error {
-
 	logData := log.Data{"dimension_name": name, "dimension_options": options, "dataset": dataset}
 	log.Info(ctx, "check filter dimensions and dimension options before calling api, see version number", logData)
 
@@ -377,13 +373,12 @@ func (api *FilterAPI) checkNewFilterDimensionOptions(ctx context.Context, dimens
 
 	// process batch func
 	processBatch := func(batch datasetAPI.Options) (forceAbort bool, err error) {
-
 		// (first iteration only) - logData
 		if isFirstBatch {
 			isFirstBatch = false
 			logData["dimension_options_total"] = batch.TotalCount
 			if batch.TotalCount > maxLogOptions {
-				if batch.Items != nil && len(batch.Items) > 0 {
+				if len(batch.Items) > 0 {
 					logData["dimension_options_first"] = batch.Items[0]
 				}
 			} else {
@@ -392,10 +387,8 @@ func (api *FilterAPI) checkNewFilterDimensionOptions(ctx context.Context, dimens
 		}
 
 		// remove found items from notFound map
-		for _, opt := range batch.Items {
-			if _, found := optionsNotFound[opt.Option]; found {
-				delete(optionsNotFound, opt.Option)
-			}
+		for i := range batch.Items {
+			delete(optionsNotFound, batch.Items[i].Option)
 		}
 
 		// abort if all options have been found
@@ -415,7 +408,7 @@ func (api *FilterAPI) checkNewFilterDimensionOptions(ctx context.Context, dimens
 	log.Info(ctx, "dimension options successfully retrieved from dataset API", logData)
 
 	// if there is any dimension that is not found, error
-	if optionsNotFound != nil && len(optionsNotFound) > 0 {
+	if len(optionsNotFound) > 0 {
 		incorrectDimensionOptions := utils.CreateArray(optionsNotFound)
 		logData["incorrect_dimension_options"] = incorrectDimensionOptions
 		err := fmt.Errorf("incorrect dimension options chosen: %v", incorrectDimensionOptions)
@@ -428,10 +421,8 @@ func (api *FilterAPI) checkNewFilterDimensionOptions(ctx context.Context, dimens
 
 // CreatePublicDimensions wraps CreatePublicDimension for converting arrays of dimensions
 func CreatePublicDimensions(inputDimensions []models.Dimension, host, filterID string) []*models.PublicDimension {
-
 	outputDimensions := make([]*models.PublicDimension, 0)
 	for _, inputDimension := range inputDimensions {
-
 		publicDimension := CreatePublicDimension(inputDimension, host, filterID)
 		outputDimensions = append(outputDimensions, publicDimension)
 	}
@@ -441,7 +432,6 @@ func CreatePublicDimensions(inputDimensions []models.Dimension, host, filterID s
 
 // CreatePublicDimension creates a PublicDimension struct from a Dimension struct
 func CreatePublicDimension(dimension models.Dimension, host, filterID string) *models.PublicDimension {
-
 	// split out filterID and URL from dimension.URL
 	filterURL := fmt.Sprintf("%s/filters/%s", host, filterID)
 	dimensionURL := fmt.Sprintf("%s/dimensions/%s", filterURL, dimension.Name)
@@ -484,7 +474,7 @@ func getStringArrayFromInterface(elements interface{}) ([]string, error) {
 	for _, v := range v2 {
 		v3, ok := v.(string)
 		if !ok {
-			return result, fmt.Errorf("Non string item in list, got: %v", v)
+			return result, fmt.Errorf("non string item in list, got: %v", v)
 		}
 		result = append(result, v3)
 	}

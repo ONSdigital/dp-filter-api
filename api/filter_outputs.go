@@ -3,7 +3,7 @@ package api
 import (
 	"context"
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"time"
 
@@ -14,12 +14,6 @@ import (
 	dprequest "github.com/ONSdigital/dp-net/request"
 	"github.com/ONSdigital/log.go/v2/log"
 	"github.com/gorilla/mux"
-	"github.com/pkg/errors"
-)
-
-var (
-	errRequestLimitNotNumber = errors.New("requested limit is not a number")
-	errMissingDimensions     = filters.NewBadRequestErr("no dimensions are present in the filter")
 )
 
 func (api *FilterAPI) getFilterOutputHandler(w http.ResponseWriter, r *http.Request) {
@@ -235,24 +229,23 @@ func BuildDownloadsObject(previousFilterOutput, filterOutput *models.Filter, dow
 
 	if previousFilterOutput.Downloads != nil && previousFilterOutput.Downloads.CSV != nil {
 		filterOutput.Downloads.CSV = buildDownloadItem(filterOutput.Downloads.CSV, previousFilterOutput.Downloads.CSV)
-
 	}
 
 	if previousFilterOutput.Downloads != nil && previousFilterOutput.Downloads.XLS != nil {
 		filterOutput.Downloads.XLS = buildDownloadItem(filterOutput.Downloads.XLS, previousFilterOutput.Downloads.XLS)
-
 	}
 
 	baseHref := downloadServiceURL + "/downloads/filter-outputs/" + previousFilterOutput.FilterID
-	if filterOutput.Downloads.CSV != nil && !filterOutput.Downloads.CSV.Skipped && len(filterOutput.Downloads.CSV.Size) > 0 {
+	if filterOutput.Downloads.CSV != nil && !filterOutput.Downloads.CSV.Skipped && filterOutput.Downloads.CSV.Size != "" {
 		filterOutput.Downloads.CSV.HRef = baseHref + ".csv"
-
 	}
-	if filterOutput.Downloads.XLS != nil && !filterOutput.Downloads.XLS.Skipped && len(filterOutput.Downloads.XLS.Size) > 0 {
+
+	if filterOutput.Downloads.XLS != nil && !filterOutput.Downloads.XLS.Skipped && filterOutput.Downloads.XLS.Size != "" {
 		filterOutput.Downloads.XLS.HRef = baseHref + ".xlsx"
 	}
 }
 
+//nolint:gocritic // shadowing of predeclared identifier: new is acceptable here
 func buildDownloadItem(new, old *models.DownloadItem) *models.DownloadItem {
 	if new == nil {
 		return old
@@ -287,7 +280,7 @@ func (api *FilterAPI) addEventHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	log.Info(ctx, "add event to filter output endpoint called", logData)
 
-	bytes, err := ioutil.ReadAll(r.Body)
+	bytes, err := io.ReadAll(r.Body)
 	if err != nil {
 		log.Error(ctx, "failed to read request body", err)
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -295,7 +288,7 @@ func (api *FilterAPI) addEventHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	event := &models.Event{}
-	err = json.Unmarshal([]byte(bytes), event)
+	err = json.Unmarshal(bytes, event)
 	if err != nil {
 		log.Error(ctx, "failed to parse json body", err)
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -329,7 +322,6 @@ func (api *FilterAPI) addEvents(ctx context.Context, events []*models.Event, id 
 
 	// save the completed event after saving the filter output if its now complete
 	if completed {
-
 		completedEvent := &models.Event{
 			Type: models.EventFilterOutputCompleted,
 			Time: time.Now(),
