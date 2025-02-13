@@ -76,7 +76,6 @@ func (a *Assert) FilterOutputType(next http.Handler) http.Handler {
 		}
 
 		next.ServeHTTP(w, r)
-
 	})
 }
 func (a *Assert) DatasetType(next http.Handler) http.Handler {

@@ -9,11 +9,11 @@ import (
 )
 
 /*
-   filterFlexNullEndpointHandler is used to log a Filter Flex
-   request that does not have an equivalent
-   CMD Journey.
+filterFlexNullEndpointHandler is used to log a Filter Flex
+request that does not have an equivalent
+CMD Journey.
 
-   Used currently for DELETE filters/{id}/dimensions/{name}/options
+Used currently for DELETE filters/{id}/dimensions/{name}/options
 */
 func (api *FilterAPI) filterFlexNullEndpointHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)

@@ -33,7 +33,7 @@ func (filter *Filter) RemoveDuplicateEvents(currentFilter *Filter) {
 	for _, e := range filter.Events {
 		found := false
 		for _, ce := range currentFilter.Events {
-			//compare the values not the pointers
+			// compare the values not the pointers
 			if *e == *ce {
 				found = true
 				break
@@ -55,7 +55,6 @@ func (e *Event) Validate() error {
 
 	if e.Time.IsZero() {
 		missingFields = append(missingFields, "event.time")
-
 	}
 
 	if e.Type == "" {
@@ -63,7 +62,7 @@ func (e *Event) Validate() error {
 	}
 
 	if len(missingFields) > 0 {
-		return fmt.Errorf("Missing mandatory fields: %v", missingFields)
+		return fmt.Errorf("missing mandatory fields: %v", missingFields)
 	}
 
 	switch e.Type {
@@ -74,8 +73,7 @@ func (e *Event) Validate() error {
 		EventFilterOutputCompleted:
 		break
 	default:
-		return fmt.Errorf("Invalid event type provided: %v", e.Type)
-
+		return fmt.Errorf("invalid event type provided: %v", e.Type)
 	}
 
 	return nil

@@ -39,7 +39,6 @@ func TestGetFilterOutput(t *testing.T) {
 		}
 
 		Convey("When ONS CMD searches the filter output via 'filterID'", func() {
-
 			output, err := sf.GetFilterOutput(ctx, "some-filter-id")
 			if err != nil {
 				t.Fatal(err)
@@ -51,7 +50,6 @@ func TestGetFilterOutput(t *testing.T) {
 		})
 
 		Convey("When ONS Cantabular searches the filter output via 'ID'", func() {
-
 			output, err := sf.GetFilterOutput(ctx, "some-id")
 			if err != nil {
 				t.Fatal(err)
@@ -63,7 +61,6 @@ func TestGetFilterOutput(t *testing.T) {
 		})
 
 		Convey("When the service searches for a non-existing ID ", func() {
-
 			output, err := sf.GetFilterOutput(ctx, "none-existing-id")
 			Convey("Then it should not return a Filter Output", func() {
 				So(err.Error(), ShouldEqual, "filter output not found")
@@ -131,16 +128,14 @@ func TestCreateUpdateFilterOutput(t *testing.T) {
 			So(downloads.CSV.HRef, ShouldEndWith, filterOutput.Downloads.CSV.HRef)
 			So(downloads.CSV.Size, ShouldEndWith, filterOutput.Downloads.CSV.Size)
 			So(state, ShouldEqual, models.CompletedState)
-
 		})
 	})
 }
 
 func TestSelector(t *testing.T) {
-
 	Convey("Given some testing values to provide as selector parameters", t, func() {
 		var testETag = "testETag"
-		var testMongoTimestamp = primitive.Timestamp{1234567890, 0}
+		var testMongoTimestamp = primitive.Timestamp{T: 1234567890, I: 0}
 
 		Convey("Then, providing an empty string dimension, zero timestamp and any eTag generates a selector that only queries by filter_id", func() {
 			s := selector(testFilterID, "", primitive.Timestamp{}, AnyETag)

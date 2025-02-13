@@ -61,7 +61,6 @@ func Setup(
 	outputQueue OutputQueue,
 	datasetAPI DatasetAPI,
 	filterFlexAPI FilterFlexAPI) *FilterAPI {
-
 	api := &FilterAPI{
 		host:                 cfg.Host,
 		maxRequestOptions:    cfg.MaxRequestOptions,

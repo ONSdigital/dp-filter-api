@@ -101,9 +101,7 @@ var testOptions = []struct {
 }
 
 func TestBuildDownloadsObject(t *testing.T) {
-
 	Convey("Successfully build download object", t, func() {
-
 		for _, option := range testOptions {
 			Convey(option.title, func(c C) {
 				api.BuildDownloadsObject(option.inputPreviousFilterOutput, option.inputFilterOutput, downloadServiceURL)
