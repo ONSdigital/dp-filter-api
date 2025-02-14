@@ -12,7 +12,7 @@ import (
 	"github.com/ONSdigital/dp-api-clients-go/v2/filterflex"
 	"github.com/ONSdigital/dp-filter-api/api"
 	"github.com/ONSdigital/dp-filter-api/config"
-	"github.com/ONSdigital/dp-filter-api/filteroutputqueue"
+	"github.com/ONSdigital/dp-filter-api/filterOutputQueue"
 	"github.com/ONSdigital/dp-filter-api/mongo"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 	kafka "github.com/ONSdigital/dp-kafka/v2"
@@ -129,7 +129,7 @@ func (svc *Service) Init(ctx context.Context, cfg *config.Config, buildTime, git
 	svc.Server = GetHTTPServer(svc.Cfg.BindAddr, m.Then(r))
 
 	// Create API, with outputQueue
-	outputQueue := filteroutputqueue.CreateOutputQueue(svc.FilterOutputSubmittedProducer.Channels().Output)
+	outputQueue := filterOutputQueue.CreateOutputQueue(svc.FilterOutputSubmittedProducer.Channels().Output)
 	svc.api = api.Setup(
 		svc.Cfg,
 		r,

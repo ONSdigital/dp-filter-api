@@ -134,4 +134,13 @@ issues:
       text: "emptyFallthrough: replace empty case containing only fallthrough with expression list"
       linters:
         - gocritic
+    # TODO: Ignore MixedCaps in package name for filterOutputQueue. Refactoring this caused issues within Concourse still expecting the old package name
+    - path: filterOutputQueue/filter_output_queue.go
+      text: "should not use MixedCaps in package name; filterOutputQueue should be filteroutputqueue"
+      linters:
+        - stylecheck
+    - path: filterOutputQueue/filter_output_queue_test.go
+      text: "should not use MixedCaps in package name; filterOutputQueue should be filteroutputqueue"
+      linters:
+        - stylecheck
   new: false
