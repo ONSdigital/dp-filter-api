@@ -53,6 +53,7 @@ func CreateFilterStore(cfg config.MongoConfig, host string) (*FilterStore, error
 // AddFilter to the data store.
 func (s *FilterStore) AddFilter(ctx context.Context, filter *models.Filter) (*models.Filter, error) {
 	// Initialise with a timestamp
+	//nolint:gosec // G115: integer overflow conversion int64 -> uint32 // acceptable until February 7, 2106
 	filter.UniqueTimestamp = primitive.Timestamp{T: uint32(time.Now().Unix()), I: 1}
 
 	var err error
@@ -80,7 +81,6 @@ func (s *FilterStore) GetFilter(ctx context.Context, filterID, eTagSelector stri
 // get a filter with the provided session.
 // Optional timestamp and eTag can be provided to assure that a filter has not been modified since expected.
 func (s *FilterStore) getFilterWithSession(ctx context.Context, connection *mongodriver.MongoConnection, filterID string, timestamp primitive.Timestamp, eTagSelector string) (*models.Filter, error) {
-
 	// ignore eTag for query, so that we can return the correct error if it does not match
 	query := selector(filterID, "", timestamp, AnyETag)
 
@@ -365,6 +365,7 @@ func selector(filterID, dimensionName string, timestamp primitive.Timestamp, eTa
 
 // CreateFilterOutput creates a filter output resource
 func (s *FilterStore) CreateFilterOutput(ctx context.Context, filter *models.Filter) error {
+	//nolint:gosec // G115: integer overflow conversion int64 -> uint32 // acceptable until February 7, 2106
 	filter.UniqueTimestamp = primitive.Timestamp{T: uint32(time.Now().Unix()), I: 1}
 
 	_, err := s.Connection.Collection(s.ActualCollectionName(config.OutputsCollection)).Insert(ctx, filter)
@@ -426,7 +427,6 @@ func (s *FilterStore) AddEventToFilterOutput(ctx context.Context, filterOutputID
 }
 
 func createUpdateFilterOutput(filter *models.Filter) bson.M {
-
 	var downloads models.Downloads
 	state := models.CreatedState
 

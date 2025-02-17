@@ -34,9 +34,7 @@ func testFilter() *models.Filter {
 }
 
 func TestGetNewETagForUpdate(t *testing.T) {
-
 	Convey("Given a filer that we want to update", t, func() {
-
 		currentFilter := testFilter()
 
 		published := true
@@ -52,6 +50,7 @@ func TestGetNewETagForUpdate(t *testing.T) {
 
 			Convey("Applying the same update to a different filter results in a different ETag", func() {
 				filter2 := testFilter()
+				//nolint:goconst // acceptable for test
 				filter2.FilterID = "otherFilter"
 				eTag2, err := newETagForUpdate(filter2, update)
 				So(err, ShouldBeNil)
@@ -72,9 +71,7 @@ func TestGetNewETagForUpdate(t *testing.T) {
 }
 
 func TestGetNewETagForDimensionOperations(t *testing.T) {
-
 	Convey("Given a filer whose dimensions we want to update", t, func() {
-
 		currentFilter := testFilter()
 
 		dims := []models.Dimension{
@@ -127,11 +124,8 @@ func TestGetNewETagForDimensionOperations(t *testing.T) {
 }
 
 func TestGetNewETagForDimensionOptionsOperations(t *testing.T) {
-
 	Convey("Given a filer with a dimension whose options we want to update", t, func() {
-
 		currentFilter := testFilter()
-
 		Convey("getNewETagForAddDimensionOptions returns an eTag that is different from the original filter ETag", func() {
 			eTag1, err := newETagForAddDimensionOptions(currentFilter, testFilterID, testDimensionName, []string{"op4", "op5"})
 			So(err, ShouldBeNil)

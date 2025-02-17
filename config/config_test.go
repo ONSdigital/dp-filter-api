@@ -9,13 +9,11 @@ import (
 )
 
 func TestSpec(t *testing.T) {
-
 	Convey("Given an environment with no environment variables set", t, func() {
 		os.Clearenv()
 		cfg, err := Get()
 
 		Convey("When the config values are retrieved", func() {
-
 			Convey("There should be no error returned", func() {
 				So(err, ShouldBeNil)
 			})

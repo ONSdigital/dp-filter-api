@@ -21,25 +21,6 @@ var (
 // TestETag represents an mocked base value for ETags
 var TestETag = "testETag"
 
-// aux function to get the eTag, without updating it (ie. for readers)
-func (ds *DataStore) currentETag() string {
-	return fmt.Sprintf("%s%d", TestETag, ds.eTagUpdateCount)
-}
-
-// aux function to get a new eTag, updating it (ie. for writers)
-func (ds *DataStore) newETag() string {
-	ds.eTagUpdateCount++
-	return ds.currentETag()
-}
-
-// aux function to validate that the eTagSelector, if provided, is correct
-func (ds *DataStore) validateETag(eTagSelector string) error {
-	if eTagSelector != "*" && eTagSelector != ds.currentETag() {
-		return filters.ErrFilterBlueprintConflict
-	}
-	return nil
-}
-
 // DataStoreConfig represents a list of error flags to set error in mocked datastore
 type DataStoreConfig struct {
 	NotFound               bool
@@ -89,6 +70,25 @@ func NewDataStore() *DataStore {
 		RunTransactionFunc:               ds.RunTransaction,
 	}
 	return ds
+}
+
+// aux function to get the eTag, without updating it (ie. for readers)
+func (ds *DataStore) currentETag() string {
+	return fmt.Sprintf("%s%d", TestETag, ds.eTagUpdateCount)
+}
+
+// aux function to get a new eTag, updating it (ie. for writers)
+func (ds *DataStore) newETag() string {
+	ds.eTagUpdateCount++
+	return ds.currentETag()
+}
+
+// aux function to validate that the eTagSelector, if provided, is correct
+func (ds *DataStore) validateETag(eTagSelector string) error {
+	if eTagSelector != "*" && eTagSelector != ds.currentETag() {
+		return filters.ErrFilterBlueprintConflict
+	}
+	return nil
 }
 
 // NotFound sets NotFound flag to true
@@ -173,7 +173,6 @@ func (ds *DataStore) AddFilter(ctx context.Context, filterJob *models.Filter) (*
 
 // AddFilterDimension represents the mocked version of creating a filter dimension to the datastore
 func (ds *DataStore) AddFilterDimension(ctx context.Context, filterID, name string, options []string, dimensions []models.Dimension, timestamp primitive.Timestamp, eTagSelector string, currentFilter *models.Filter) (newETag string, err error) {
-
 	if ds.Cfg.InternalError {
 		return "", errorInternalServer
 	}
@@ -195,7 +194,6 @@ func (ds *DataStore) AddFilterDimension(ctx context.Context, filterID, name stri
 
 // AddFilterDimensionOption represents the mocked version of creating a filter dimension option to the datastore
 func (ds *DataStore) AddFilterDimensionOption(ctx context.Context, filterID, name, option string, timestamp primitive.Timestamp, eTagSelector string, currentFilter *models.Filter) (newETag string, err error) {
-
 	if ds.Cfg.InternalError {
 		return "", errorInternalServer
 	}
@@ -217,7 +215,6 @@ func (ds *DataStore) AddFilterDimensionOption(ctx context.Context, filterID, nam
 
 // AddFilterDimensionOptions represents the mocked version of adding a list of dimension options to the datastore
 func (ds *DataStore) AddFilterDimensionOptions(ctx context.Context, filterID, name string, options []string, timestamp primitive.Timestamp, eTagSelector string, currentFilter *models.Filter) (newETag string, err error) {
-
 	if ds.Cfg.InternalError {
 		return "", errorInternalServer
 	}
@@ -248,7 +245,6 @@ func (ds *DataStore) CreateFilterOutput(ctx context.Context, filterJob *models.F
 
 // GetFilter represents the mocked version of getting a filter blueprint from the datastore
 func (ds *DataStore) GetFilter(ctx context.Context, filterID, eTagSelector string) (*models.Filter, error) {
-
 	if ds.Cfg.NotFound {
 		return nil, filters.ErrFilterBlueprintNotFound
 	}
@@ -284,7 +280,7 @@ func (ds *DataStore) GetFilter(ctx context.Context, filterID, eTagSelector strin
 }
 
 // GetFilterDimension represents the mocked version of getting a filter dimension from the datastore
-func (ds *DataStore) GetFilterDimension(ctx context.Context, filterID string, name, eTagSelector string) (dimension *models.Dimension, err error) {
+func (ds *DataStore) GetFilterDimension(ctx context.Context, filterID, name, eTagSelector string) (dimension *models.Dimension, err error) {
 	if ds.Cfg.DimensionNotFound {
 		return nil, filters.ErrDimensionNotFound
 	}
@@ -343,7 +339,6 @@ func (ds *DataStore) GetFilterOutput(ctx context.Context, filterID string) (*mod
 
 // RemoveFilterDimension represents the mocked version of removing a filter dimension from the datastore
 func (ds *DataStore) RemoveFilterDimension(ctx context.Context, filterID, name string, timestamp primitive.Timestamp, eTagSelector string, currentFilter *models.Filter) (newETag string, err error) {
-
 	if ds.Cfg.InternalError {
 		return "", errorInternalServer
 	}
@@ -365,7 +360,6 @@ func (ds *DataStore) RemoveFilterDimension(ctx context.Context, filterID, name s
 
 // RemoveFilterDimensionOption represents the mocked version of removing a filter dimension option from the datastore
 func (ds *DataStore) RemoveFilterDimensionOption(ctx context.Context, filterID string, name string, option string, timestamp primitive.Timestamp, eTagSelector string, currentFilter *models.Filter) (newETag string, err error) {
-
 	if ds.Cfg.InternalError {
 		return "", errorInternalServer
 	}
@@ -387,7 +381,6 @@ func (ds *DataStore) RemoveFilterDimensionOption(ctx context.Context, filterID s
 
 // RemoveFilterDimensionOptions represents the mocked version of removing a set of filter dimension options from the datastore
 func (ds *DataStore) RemoveFilterDimensionOptions(ctx context.Context, filterID string, name string, options []string, timestamp primitive.Timestamp, eTagSelector string, currentFilter *models.Filter) (newETag string, err error) {
-
 	if ds.Cfg.InternalError {
 		return "", errorInternalServer
 	}
@@ -409,7 +402,6 @@ func (ds *DataStore) RemoveFilterDimensionOptions(ctx context.Context, filterID 
 
 // UpdateFilter represents the mocked version of updating a filter blueprint from the datastore
 func (ds *DataStore) UpdateFilter(ctx context.Context, updatedFilter *models.Filter, timestamp primitive.Timestamp, eTagSelector string, currentFilter *models.Filter) (newETag string, err error) {
-
 	if ds.Cfg.InternalError {
 		return "", errorInternalServer
 	}

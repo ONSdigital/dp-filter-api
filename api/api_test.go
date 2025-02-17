@@ -50,7 +50,6 @@ func cfg() *config.Config {
 }
 
 func createAuthenticatedRequest(method, url string, body io.Reader) *http.Request {
-
 	r, err := http.NewRequest(method, url, body)
 	ctx := r.Context()
 	ctx = dprequest.SetCaller(ctx, "someone@ons.gov.uk")

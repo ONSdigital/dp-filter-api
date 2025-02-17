@@ -4,11 +4,6 @@ import (
 	"github.com/ONSdigital/log.go/v2/log"
 )
 
-// errorResponse is the generic ONS error response body for HTTP errors
-type erResponse struct {
-	Errors []string `json:"errors"`
-}
-
 // er is the package's internal error struct
 type er struct {
 	err    error

@@ -54,7 +54,7 @@ func (ds *DatasetAPI) Unpublished() *DatasetAPI {
 	return ds
 }
 
-func (ds *DatasetAPI) Get(ctx context.Context, userToken, svcToken, collectionID, datasetID string) (dataset.DatasetDetails, error){
+func (ds *DatasetAPI) Get(ctx context.Context, userToken, svcToken, collectionID, datasetID string) (dataset.DatasetDetails, error) {
 	return dataset.DatasetDetails{}, nil
 }
 
@@ -116,8 +116,7 @@ func (ds *DatasetAPI) GetVersionDimensions(ctx context.Context, userAuthToken, s
 }
 
 // GetOptionsBatchProcess represents the mocked version of getting a list of dimension options from the dataset API
-func (ds *DatasetAPI) GetOptionsBatchProcess(ctx context.Context, userAuthToken, serviceAuthToken, collectionID, id, edition, version, dimension string, optionIDs *[]string, processBatch dataset.OptionsBatchProcessor, batchSize int, maxWorkers int) (err error) {
-
+func (ds *DatasetAPI) GetOptionsBatchProcess(ctx context.Context, userAuthToken, serviceAuthToken, collectionID, id, edition, version, dimension string, optionIDs *[]string, processBatch dataset.OptionsBatchProcessor, batchSize, maxWorkers int) (err error) {
 	if ds.Cfg.InternalServerError {
 		return errorInternalServer
 	}
@@ -134,7 +133,6 @@ func (ds *DatasetAPI) GetOptionsBatchProcess(ctx context.Context, userAuthToken,
 
 	offset := 0
 	for offset < 2 {
-
 		// get items for the offset
 		items := slice([]dataset.Option{dimensionOptionOne, dimensionOptionTwo}, offset, batchSize)
 		opts := dataset.Options{

@@ -70,8 +70,8 @@ github.com/ONSdigital/dp-mocking v0.9.2-0.20230419122200-aef54dcf2a23/go.mod h1:
 github.com/ONSdigital/dp-mocking v0.10.0/go.mod h1:7G8DbpNpLFoxZD8IpLotHUdWmOZ9dPIWKp/rOhuLRmE=
 github.com/ONSdigital/dp-mocking v0.10.1 h1:yEEglJ458kUztHlnGxhMiKhIr13gMYWYOBKFbCbp89M=
 github.com/ONSdigital/dp-mocking v0.10.1/go.mod h1:LVFMmSpUTgalQoWbFOXTNUXrA+W+H1Lzbv+yrhmtPEY=
-github.com/ONSdigital/dp-mongodb-in-memory v1.7.0 h1:lBmjAOfnp4JPZU/Krq+ad1sqknTwUZrUp+rFHoMfr8s=
-github.com/ONSdigital/dp-mongodb-in-memory v1.7.0/go.mod h1:78zt2X+mhXlPlDoaAX19Hu462XPJIW/llN2vcUAAWSc=
+github.com/ONSdigital/dp-mongodb-in-memory v1.8.0 h1:y/4ipJk9KKlu2g9DKA8g064h3AiqLLEEpAGCn1D7SSA=
+github.com/ONSdigital/dp-mongodb-in-memory v1.8.0/go.mod h1:rJK99EZhCULTjcVDyg5KrHaTYcmuf53JH3gDg6q1m6g=
 github.com/ONSdigital/dp-mongodb/v3 v3.8.0 h1:9mHKePAdg0BLelHtGG1cGRlY78c7kSDB62lEXR2Cor8=
 github.com/ONSdigital/dp-mongodb/v3 v3.8.0/go.mod h1:x/YvepJ5/s05iKxWJNhkqGsncV130Bo4G/AwLTwesh4=
 github.com/ONSdigital/dp-net v1.0.5-0.20200805082802-e518bc287596/go.mod h1:wDVhk2pYosQ1q6PXxuFIRYhYk2XX5+1CeRRnXpSczPY=
@@ -90,8 +90,8 @@ github.com/ONSdigital/dp-net/v2 v2.8.2-0.20230419115013-79ae10aa11c0/go.mod h1:Q
 github.com/ONSdigital/dp-net/v2 v2.8.2-0.20230419120713-385da54498d1/go.mod h1:SYLCesz1mQadKKU7aER+vSTXkcqZfk1MTOFru2n/S5E=
 github.com/ONSdigital/dp-net/v2 v2.9.0/go.mod h1:gJUSRWOsXPXI23WgkQzuvFmLifHLMogunzt+9CL/KC8=
 github.com/ONSdigital/dp-net/v2 v2.9.1/go.mod h1:iy1XmnqC7aKwHCpbTDhfAVrlYDGJGkZl36zeXyHq+Hw=
-github.com/ONSdigital/dp-net/v2 v2.20.0 h1:IdMpZWRVGnDQ00mC4/8f/oRKlCCTurZ8weA0RcBEA+k=
-github.com/ONSdigital/dp-net/v2 v2.20.0/go.mod h1:F6yL3jjuVwBLVMFIKgHF3zhMRbmZysAxBiu+aIAi3Z0=
+github.com/ONSdigital/dp-net/v2 v2.21.0 h1:nR+KENSkMgCowrJFTyOXDQjhZ67nw9SGfpZtAdbLcv0=
+github.com/ONSdigital/dp-net/v2 v2.21.0/go.mod h1:F6yL3jjuVwBLVMFIKgHF3zhMRbmZysAxBiu+aIAi3Z0=
 github.com/ONSdigital/dp-otel-go v0.0.8 h1:jSX32oDmOUKlHyH3FPCBkBpiBKYmWKELoNo6jontKRM=
 github.com/ONSdigital/dp-otel-go v0.0.8/go.mod h1:pCDuFqZX8+7CBQX1nMlLMPj52VsMAN3Y8h0uLmzC3cU=
 github.com/ONSdigital/go-ns v0.0.0-20191104121206-f144c4ec2e58/go.mod h1:iWos35il+NjbvDEqwtB736pyHru0MPFE/LqcwkV1wDc=
@@ -409,8 +409,8 @@ github.com/smartystreets/goconvey v1.8.0/go.mod h1:EdX8jtrTIj26jmjCOVNMVSIYAtgex
 github.com/smartystreets/goconvey v1.8.1 h1:qGjIddxOk4grTu9JPOU31tVfq3cNdBlNa5sSznIX1xY=
 github.com/smartystreets/goconvey v1.8.1/go.mod h1:+/u4qLyY6x1jReYOp7GOM2FSt8aP9CzCZL03bI28W60=
 github.com/spf13/afero v1.6.0/go.mod h1:Ai8FlHk4v/PARR026UzYexafAt9roJ7LcLMAmO6Z93I=
-github.com/spf13/afero v1.11.0 h1:WJQKhtpdm3v2IzqG8VMqrr6Rf3UYpEF239Jy9wNepM8=
-github.com/spf13/afero v1.11.0/go.mod h1:GH9Y3pIexgf1MTIWtNGyogA5MwRIDXGUr+hbWNoBjkY=
+github.com/spf13/afero v1.12.0 h1:UcOPyRBYczmFn6yvphxkn9ZEOY65cpwGKb5mL36mrqs=
+github.com/spf13/afero v1.12.0/go.mod h1:ZTlWwG4/ahT8W7T0WQ5uYmjI9duaLQGy3Q2OAl4sk/4=
 github.com/spf13/cast v1.3.1/go.mod h1:Qx5cxh0v+4UWYiBimWS+eyWzqEqokIECu5etghLkUJE=
 github.com/spf13/cobra v1.2.1/go.mod h1:ExllRjgxM/piMAM+3tAZvg8fsklGAf3tPfi+i8t68Nk=
 github.com/spf13/jwalterweatherman v1.1.0/go.mod h1:aNWZUN0dPAAO/Ljvb5BEdw96iTZ0EXowPYD95IqWIGo=

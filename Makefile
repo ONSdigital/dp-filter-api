@@ -30,6 +30,10 @@ debug:
 
 .PHONY: lint
 lint:
+	golangci-lint run ./...
+
+.PHONY: test-component
+test-component:
 	exit
 
 .PHONY: acceptance-publishing

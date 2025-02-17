@@ -41,7 +41,6 @@ func TestRemoveDuplicateEvents(t *testing.T) {
 				So(len(new.Events), ShouldEqual, 1)
 			})
 		})
-
 	})
 
 	Convey("Given the stored filter output does contain events", t, func() {
@@ -97,9 +96,7 @@ func TestRemoveDuplicateEvents(t *testing.T) {
 				So(len(new.Events), ShouldEqual, 0)
 			})
 		})
-
 	})
-
 }
 
 func TestValidate(t *testing.T) {
@@ -110,7 +107,7 @@ func TestValidate(t *testing.T) {
 			err := event.Validate()
 			Convey("Then the error should contain only the time field", func() {
 				So(err, ShouldNotBeEmpty)
-				So(err.Error(), ShouldContainSubstring, "Missing mandatory fields")
+				So(err.Error(), ShouldContainSubstring, "missing mandatory fields")
 				So(err.Error(), ShouldNotContainSubstring, "event.type")
 				So(err.Error(), ShouldContainSubstring, "event.time")
 			})
@@ -124,7 +121,7 @@ func TestValidate(t *testing.T) {
 			err := event.Validate()
 			Convey("Then the error should contain only the time field", func() {
 				So(err, ShouldNotBeEmpty)
-				So(err.Error(), ShouldContainSubstring, "Missing mandatory fields")
+				So(err.Error(), ShouldContainSubstring, "missing mandatory fields")
 				So(err.Error(), ShouldContainSubstring, "event.type")
 				So(err.Error(), ShouldNotContainSubstring, "event.time")
 			})
@@ -155,10 +152,9 @@ func TestValidate(t *testing.T) {
 			err := event.Validate()
 			Convey("Then no error should be returned", func() {
 				So(err, ShouldNotBeEmpty)
-				So(err.Error(), ShouldContainSubstring, "Invalid event type")
+				So(err.Error(), ShouldContainSubstring, "invalid event type")
 				So(err.Error(), ShouldContainSubstring, "anewevent")
 			})
 		})
 	})
-
 }

@@ -7,8 +7,6 @@ import (
 	"github.com/ONSdigital/dp-filter-api/models"
 
 	"github.com/ONSdigital/dp-api-clients-go/v2/dataset"
-
-	"github.com/pkg/errors"
 )
 
 type datasetAPIClient interface {
@@ -22,22 +20,6 @@ type filterFlexAPIClient interface {
 type datastore interface {
 	GetFilter(ctx context.Context, filterID, eTagSelector string) (*models.Filter, error)
 	GetFilterOutput(ctx context.Context, filterID string) (*models.Filter, error)
-}
-
-type dataLogger interface {
-	LogData() map[string]interface{}
-}
-
-type coder interface {
-	Code() int
-}
-
-type messager interface {
-	Message() string
-}
-
-type stacktracer interface {
-	StackTrace() errors.StackTrace
 }
 
 type responder interface {

@@ -65,7 +65,6 @@ func Setup(
 	filterFlexAPI FilterFlexAPI,
 	hostURL *url.URL,
 	enableURLRewriting bool) *FilterAPI {
-
 	api := &FilterAPI{
 		host:                 hostURL,
 		maxRequestOptions:    cfg.MaxRequestOptions,

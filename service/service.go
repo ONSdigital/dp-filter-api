@@ -83,7 +83,6 @@ func New() *Service {
 
 // Init initialises all the service dependencies, including healthcheck with checkers, api and middleware
 func (svc *Service) Init(ctx context.Context, cfg *config.Config, buildTime, gitCommit, version string) (err error) {
-
 	svc.Cfg = cfg
 
 	// Get data store.
@@ -152,7 +151,6 @@ func (svc *Service) Init(ctx context.Context, cfg *config.Config, buildTime, git
 
 // Start starts an initialised service
 func (svc *Service) Start(ctx context.Context, svcErrors chan error) {
-
 	// Start kafka logging
 	svc.FilterOutputSubmittedProducer.Channels().LogErrors(ctx, "error received from kafka producer, topic: "+svc.Cfg.FilterOutputSubmittedTopic)
 
@@ -190,6 +188,7 @@ func (svc *Service) createMiddleware(ctx context.Context, cfg *config.Config) al
 func newMiddleware(healthcheckHandler func(http.ResponseWriter, *http.Request), endpoint string) func(http.Handler) http.Handler {
 	return func(h http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			//nolint:goconst // "GET" is acceptable here
 			if req.Method == "GET" && req.URL.Path == endpoint {
 				healthcheckHandler(w, req)
 				return
@@ -279,7 +278,10 @@ func (svc *Service) registerCheckers(ctx context.Context) (err error) {
 	registerChecker := func(name string, dependency Dependency) {
 		criticalHandler := func(ctx context.Context, state *healthcheck.CheckState) error {
 			err := errors.New(fmt.Sprintf("%s not initialised", strings.ToLower(name)))
-			state.Update(healthcheck.StatusCritical, err.Error(), 0)
+			if updateErr := state.Update(healthcheck.StatusCritical, err.Error(), 0); updateErr != nil {
+				log.Error(ctx, "failed to update healthcheck state", updateErr)
+				return updateErr
+			}
 			return err
 		}
 

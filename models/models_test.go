@@ -85,7 +85,6 @@ func TestValidateFilterOutputUpdate(t *testing.T) {
 		currentFilter := &Filter{Published: &Unpublished}
 
 		Convey("When filter is validated then no errors are returned", func() {
-
 			err = filter.ValidateFilterOutputUpdate(currentFilter)
 			So(err, ShouldBeNil)
 		})
@@ -99,7 +98,6 @@ func TestValidateFilterOutputUpdate(t *testing.T) {
 		currentFilter := &Filter{Published: &Unpublished}
 
 		Convey("When filter is validated then an error is returned", func() {
-
 			err = filter.ValidateFilterOutputUpdate(currentFilter)
 			So(err, ShouldNotBeNil)
 			So(err, ShouldResemble, errors.New("forbidden from updating the following fields: [dimensions]"))
@@ -114,7 +112,6 @@ func TestValidateFilterOutputUpdate(t *testing.T) {
 		currentFilter := &Filter{Published: &Unpublished}
 
 		Convey("When filter is validated then an error is returned", func() {
-
 			err = filter.ValidateFilterOutputUpdate(currentFilter)
 			So(err, ShouldNotBeNil)
 			So(err, ShouldResemble, errors.New("forbidden from updating the following fields: [instance_id]"))
@@ -129,7 +126,6 @@ func TestValidateFilterOutputUpdate(t *testing.T) {
 		currentFilter := &Filter{Published: &Unpublished}
 
 		Convey("When filter is validated then an error is returned", func() {
-
 			err = filter.ValidateFilterOutputUpdate(currentFilter)
 			So(err, ShouldNotBeNil)
 			So(err, ShouldResemble, errors.New("forbidden from updating the following fields: [filter_id]"))
@@ -144,7 +140,6 @@ func TestValidateFilterOutputUpdate(t *testing.T) {
 		currentFilter := &Filter{Published: &Unpublished}
 
 		Convey("When filter is validated then an error is returned", func() {
-
 			err = filter.ValidateFilterOutputUpdate(currentFilter)
 			So(err, ShouldNotBeNil)
 			So(err, ShouldResemble, errors.New("forbidden from updating the following fields: [instance_id dimensions filter_id]"))
@@ -292,7 +287,6 @@ func TestValidateFilterBlueprintUpdate(t *testing.T) {
 		So(filter.Dataset.Version, ShouldEqual, 2)
 
 		Convey("When filter is validated then no errors are returned", func() {
-
 			err = ValidateFilterBlueprintUpdate(filter)
 			So(err, ShouldBeNil)
 		})
@@ -305,7 +299,6 @@ func TestValidateFilterBlueprintUpdate(t *testing.T) {
 		So(filter.Dataset.ID, ShouldEqual, "123")
 
 		Convey("When filter is validated then an error is returned", func() {
-
 			err = ValidateFilterBlueprintUpdate(filter)
 			So(err, ShouldNotBeNil)
 			So(err, ShouldResemble, errors.New("forbidden from updating the following fields: [dataset.id]"))
@@ -319,7 +312,6 @@ func TestValidateFilterBlueprintUpdate(t *testing.T) {
 		So(filter.Dataset.Edition, ShouldEqual, "2018")
 
 		Convey("When filter is validated then an error is returned", func() {
-
 			err = ValidateFilterBlueprintUpdate(filter)
 			So(err, ShouldNotBeNil)
 			So(err, ShouldResemble, errors.New("forbidden from updating the following fields: [dataset.edition]"))
@@ -334,7 +326,6 @@ func TestValidateFilterBlueprintUpdate(t *testing.T) {
 		So(filter.Dataset.Edition, ShouldEqual, "2018")
 
 		Convey("When filter is validated then an error is returned", func() {
-
 			err = ValidateFilterBlueprintUpdate(filter)
 			So(err, ShouldNotBeNil)
 			So(err, ShouldResemble, errors.New("forbidden from updating the following fields: [dataset.id dataset.edition]"))
@@ -343,7 +334,6 @@ func TestValidateFilterBlueprintUpdate(t *testing.T) {
 }
 
 func TestFilterHash(t *testing.T) {
-
 	testFilter := func() Filter {
 		return Filter{
 			FilterID:   "myFilter",

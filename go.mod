@@ -13,10 +13,10 @@ require (
 	github.com/ONSdigital/dp-api-clients-go/v2 v2.263.0
 	github.com/ONSdigital/dp-healthcheck v1.6.3
 	github.com/ONSdigital/dp-kafka/v2 v2.8.0
-	github.com/ONSdigital/dp-mongodb-in-memory v1.7.0
+	github.com/ONSdigital/dp-mongodb-in-memory v1.8.0
 	github.com/ONSdigital/dp-mongodb/v3 v3.8.0
 	github.com/ONSdigital/dp-net v1.5.0
-	github.com/ONSdigital/dp-net/v2 v2.20.0
+	github.com/ONSdigital/dp-net/v2 v2.21.0
 	github.com/ONSdigital/dp-otel-go v0.0.8
 	github.com/ONSdigital/go-ns v0.0.0-20241030091535-cc1b11756418
 	github.com/ONSdigital/log.go/v2 v2.4.3
@@ -68,7 +68,7 @@ require (
 	github.com/pierrec/lz4/v4 v4.1.22 // indirect
 	github.com/rcrowley/go-metrics v0.0.0-20201227073835-cf1acfcdf475 // indirect
 	github.com/smarty/assertions v1.16.0 // indirect
-	github.com/spf13/afero v1.11.0 // indirect
+	github.com/spf13/afero v1.12.0 // indirect
 	github.com/square/mongo-lock v0.0.0-20230808145049-cfcf499f6bf0 // indirect
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
 	github.com/xdg-go/scram v1.1.2 // indirect

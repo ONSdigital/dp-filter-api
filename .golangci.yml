@@ -1,0 +1,146 @@
+# This file was inspired by the golangci-lint one:
+# https://github.com/golangci/golangci-lint/blob/master/.golangci.yml
+run:
+  # default concurrency is a available CPU number
+  concurrency: 4
+
+  # timeout for analysis, e.g. 30s, 5m, default is 1m
+  timeout: 5m
+linters-settings:
+  govet:
+    shadow: true
+  golint:
+    min-confidence: 0
+  gocyclo:
+    min-complexity: 20
+  gocognit:
+    min-complexity: 40
+  maligned:
+    suggest-new: true
+  dupl:
+    threshold: 100
+  goconst:
+    min-len: 2
+    min-occurrences: 2
+  misspell:
+    locale: UK
+  lll:
+    line-length: 140
+  gofmt:
+    simplify: false
+  gocritic:
+    enabled-tags:
+      - diagnostic
+      - experimental
+      - opinionated
+      - performance
+      - style
+    disabled-checks:
+      - wrapperFunc
+      - dupImport # https://github.com/go-critic/go-critic/issues/845
+      - ifElseChain
+      - octalLiteral
+      - hugeParam
+  revive:
+    rules:
+      # disabled as parameter names are useful for context even when unused, especially in interface implementations
+      - name: unused-parameter
+        severity: warning
+        disabled: true
+    include:
+      - "**/*_test.go" # Specify test files to include
+  funlen:
+  # lines: 100
+  # statements: 100
+
+linters:
+  # please, do not use `enable-all`: it's deprecated and will be removed soon.
+  # inverted configuration with `enable-all` and `disable` is not scalable during updates of golangci-lint
+  disable-all: true
+  enable:
+    - dogsled
+    - errcheck
+    - gochecknoinits
+    - goconst
+    - gocritic
+    - gocyclo
+    - gofmt
+    - goimports
+    - revive
+    - gosec
+    - gosimple
+    - govet
+    - ineffassign
+    - nakedret
+    - staticcheck
+    - stylecheck
+    - typecheck
+    - unconvert
+    - unused
+    - whitespace
+    - gocognit
+    - prealloc
+
+issues:
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        - gocyclo
+        - errcheck
+        - dupl
+        - gosec
+    # Allow dot import in test files for goconvey
+    - path: _test.go
+      text: "dot-imports"
+      linters:
+        - revive
+      source: "github.com/smartystreets/goconvey/convey"
+    # TODO: replacing w.HeaderMap with w.Result() did not fix the issue, only the HeaderMap contains the headers
+    - path: middleware/assert_test.go
+      text: "w.HeaderMap"
+      linters:
+        - staticcheck
+    # TODO: function is used in many places, it will take time to refactor all occurrences
+    - path: mongo/filterstore.go
+      text: "paramTypeCombine"
+      linters:
+        - gocritic
+    - path: mock/datastore.go
+      text: "paramTypeCombine"
+      linters:
+        - gocritic
+    # Acceptable for test file
+    - path: models/event_test.go
+      text: "shadowing of predeclared identifier: new"
+      linters:
+        - gocritic
+    # TODO: refactor to use a different hashing algorithm, e.g. SHA-256 (acceptable on the basic other services use this and the impact of changing is unknown)
+    - path: models/models.go
+      text: "weak cryptographic primitive"
+      linters:
+        - gosec
+    # TODO: refactor code to remove fallthrough
+    - path: api/filter_dimension_options.go
+      text: "emptyFallthrough: replace empty case containing only fallthrough with expression list"
+      linters:
+        - gocritic
+    # TODO: refactor code to reduce nesting
+    - path: api/filter_dimension_options.go
+      text: "nestingReduce: invert if cond, replace body with `continue`, move old body after the statement"
+      linters:
+        - gocritic
+    # TODO: refactor code to remove fallthrough
+    - path: api/filters.go
+      text: "emptyFallthrough: replace empty case containing only fallthrough with expression list"
+      linters:
+        - gocritic
+    # TODO: Ignore MixedCaps in package name for filterOutputQueue. Refactoring this caused issues within Concourse still expecting the old package name
+    - path: filterOutputQueue/filter_output_queue.go
+      text: "should not use MixedCaps in package name; filterOutputQueue should be filteroutputqueue"
+      linters:
+        - stylecheck
+    - path: filterOutputQueue/filter_output_queue_test.go
+      text: "should not use MixedCaps in package name; filterOutputQueue should be filteroutputqueue"
+      linters:
+        - stylecheck
+  new: false

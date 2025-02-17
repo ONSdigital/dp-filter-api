@@ -11,7 +11,7 @@ import (
 	"github.com/ONSdigital/dp-filter-api/models"
 )
 
-func GenerateMocksForMiddleware(flexCode int, datasetVersion int, filterType string) (*apimock.FilterFlexAPIMock, *apimock.DataStoreMock) {
+func GenerateMocksForMiddleware(flexCode, datasetVersion int, filterType string) (*apimock.FilterFlexAPIMock, *apimock.DataStoreMock) {
 	// set the Filter flex Call
 	filterFlexAPIMock := &apimock.FilterFlexAPIMock{
 		ForwardRequestFunc: func(r *http.Request) (*http.Response, error) { //
