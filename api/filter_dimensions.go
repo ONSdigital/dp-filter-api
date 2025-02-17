@@ -69,7 +69,7 @@ func (api *FilterAPI) getFilterBlueprintDimensionsHandler(w http.ResponseWriter,
 		return
 	}
 
-	logData["filter out put:"] = filter
+	logData["filter output:"] = filter
 
 	logData["dimensions"] = filter.Dimensions
 
@@ -107,31 +107,32 @@ func (api *FilterAPI) getFilterBlueprintDimensionsHandler(w http.ResponseWriter,
 		Offset:     offset,
 		Limit:      limit,
 	}
-	logData["items out put:"] = items
+	logData["items output:"] = items
 
 	if api.enableURLRewriting {
-		dimensionSearchAPILinksBuilder := links.FromHeadersOrDefault(&r.Header, api.host)
+		filterAPILinksBuilder := links.FromHeadersOrDefault(&r.Header, api.host)
 
 		for i := range publicDimensions.Items {
-			item := publicDimensions.Items[i].Links
-
-			newSelfLink, err := dimensionSearchAPILinksBuilder.BuildLink(item.Self.HRef)
-			if err == nil {
-				publicDimensions.Items[i].Links.Self.HRef = newSelfLink
+			linkFields := map[string]*models.LinkObject{
+				"Self":    publicDimensions.Items[i].Links.Self,
+				"Filter":  publicDimensions.Items[i].Links.Filter,
+				"Options": publicDimensions.Items[i].Links.Options,
 			}
 
-			newFilterLink, err := dimensionSearchAPILinksBuilder.BuildLink(item.Filter.HRef)
-			if err == nil {
-				publicDimensions.Items[i].Links.Filter.HRef = newFilterLink
-			}
-
-			newOptionsLink, err := dimensionSearchAPILinksBuilder.BuildLink(item.Options.HRef)
-			if err == nil {
-				publicDimensions.Items[i].Links.Options.HRef = newOptionsLink
+			for linkType, linkObj := range linkFields {
+				if linkObj != nil && linkObj.HRef != "" {
+					newLink, err := filterAPILinksBuilder.BuildLink(linkObj.HRef)
+					if err != nil {
+						logData["link_type"] = linkType
+						logData["original_link"] = linkObj.HRef
+						log.Error(ctx, "failed to rewrite filter dimension links", err, logData)
+						setErrorCode(w, err)
+					}
+					linkObj.HRef = newLink
+				}
 			}
 		}
 	}
-
 	b, err := json.Marshal(publicDimensions)
 	if err != nil {
 		log.Error(ctx, "failed to marshal filter blueprint dimensions into bytes", err, logData)
@@ -183,7 +184,7 @@ func (api *FilterAPI) getFilterBlueprintDimensionHandler(w http.ResponseWriter, 
 	publicDimension := CreatePublicDimension(*dimension, api.host.String(), filterBlueprintID)
 
 	if api.enableURLRewriting {
-		dimensionSearchAPILinksBuilder := links.FromHeadersOrDefault(&r.Header, api.host)
+		filterAPILinksBuilder := links.FromHeadersOrDefault(&r.Header, api.host)
 
 		linkFields := map[string]*models.LinkObject{
 			"Self":    publicDimension.Links.Self,
@@ -191,15 +192,16 @@ func (api *FilterAPI) getFilterBlueprintDimensionHandler(w http.ResponseWriter, 
 			"Options": publicDimension.Links.Options,
 		}
 
-		for _, linkObj := range linkFields {
+		for linkType, linkObj := range linkFields {
 			if linkObj != nil && linkObj.HRef != "" {
-				newLink, err := dimensionSearchAPILinksBuilder.BuildLink(linkObj.HRef)
-				if err == nil {
-					linkObj.HRef = newLink
-				} else {
+				newLink, err := filterAPILinksBuilder.BuildLink(linkObj.HRef)
+				if err != nil {
+					logData["link_type"] = linkType
+					logData["original_link"] = linkObj.HRef
 					log.Error(ctx, "failed to rewrite public dimension link", err, logData)
 					setErrorCode(w, err)
 				}
+				linkObj.HRef = newLink
 			}
 		}
 	}

@@ -32,6 +32,7 @@ type Config struct {
 	ServiceAuthToken           string        `envconfig:"SERVICE_AUTH_TOKEN"               json:"-"`
 	ZebedeeURL                 string        `envconfig:"ZEBEDEE_URL"`
 	EnablePrivateEndpoints     bool          `envconfig:"ENABLE_PRIVATE_ENDPOINTS"`
+	EnableURLRewriting         bool          `envconfig:"ENABLE_URL_REWRITING"`
 	DownloadServiceURL         string        `envconfig:"DOWNLOAD_SERVICE_URL"`
 	DownloadServiceSecretKey   string        `envconfig:"DOWNLOAD_SERVICE_SECRET_KEY"      json:"-"`
 	MaxRequestOptions          int           `envconfig:"MAX_REQUEST_OPTIONS"`
@@ -40,7 +41,6 @@ type Config struct {
 	DefaultMaxLimit            int           `envconfig:"DEFAULT_MAXIMUM_LIMIT"`
 	AssertDatasetType          bool          `envconfig:"ASSERT_DATASET_TYPE"`
 	FilterFlexAPIURL           string        `envconfig:"FILTER_FLEX_API_URL"`
-	EnableURLRewriting         bool          `envconfig:"ENABLE_URL_REWRITING"`
 	MongoConfig
 }
 

@@ -43,15 +43,16 @@ func (api *FilterAPI) getFilterOutputHandler(w http.ResponseWriter, r *http.Requ
 			"Version":         filterOutput.Links.Version,
 		}
 
-		for _, linkObj := range linkFields {
+		for linkType, linkObj := range linkFields {
 			if linkObj != nil && linkObj.HRef != "" {
 				newLink, err := dimensionSearchAPILinksBuilder.BuildLink(linkObj.HRef)
-				if err == nil {
-					linkObj.HRef = newLink
-				} else {
-					log.Error(ctx, "failed to rewrite filter output links", err, logData)
+				if err != nil {
+					logData["link_type"] = linkType
+					logData["original_link"] = linkObj.HRef
+					log.Error(ctx, "failed to rewrite filter output link", err, logData)
 					setErrorCode(w, err)
 				}
+				linkObj.HRef = newLink
 			}
 		}
 	}

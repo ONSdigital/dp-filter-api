@@ -219,7 +219,7 @@ func (api *FilterAPI) getFilterBlueprintDimensionOptionHandler(w http.ResponseWr
 			if linkObj != nil && linkObj.HRef != "" {
 				newLink, err := filterAPILinksBuilder.BuildLink(linkObj.HRef)
 				if err != nil {
-					log.Error(ctx, "failed to rewrite dimension option link", err, logData)
+					log.Error(ctx, "failed to rewrite dimension option links", err, logData)
 					setErrorCode(w, err)
 				}
 				linkObj.HRef = newLink

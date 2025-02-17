@@ -193,20 +193,24 @@ func (api *FilterAPI) getFilterBlueprintHandler(w http.ResponseWriter, r *http.R
 	if api.enableURLRewriting {
 		dimensionSearchAPILinksBuilder := links.FromHeadersOrDefault(&r.Header, api.host)
 
-		linkFields := []*models.LinkObject{
-			filterBlueprint.Links.Dimensions,
-			filterBlueprint.Links.FilterOutput,
-			filterBlueprint.Links.FilterBlueprint,
-			filterBlueprint.Links.Self,
-			filterBlueprint.Links.Version,
+		linkFields := map[string]*models.LinkObject{
+			"Dimensions":      filterBlueprint.Links.Dimensions,
+			"FilterOutput":    filterBlueprint.Links.FilterOutput,
+			"FilterBlueprint": filterBlueprint.Links.FilterBlueprint,
+			"Self":            filterBlueprint.Links.Self,
+			"Version":         filterBlueprint.Links.Version,
 		}
 
-		for _, linkObj := range linkFields {
-			if linkObj != nil {
+		for linkType, linkObj := range linkFields {
+			if linkObj != nil && linkObj.HRef != "" {
 				newLink, err := dimensionSearchAPILinksBuilder.BuildLink(linkObj.HRef)
-				if err == nil {
-					linkObj.HRef = newLink
+				if err != nil {
+					logData["link_type"] = linkType
+					logData["original_link"] = linkObj.HRef
+					log.Error(ctx, "failed to rewrite filter blueprint link", err, logData)
+					setErrorCode(w, err)
 				}
+				linkObj.HRef = newLink
 			}
 		}
 	}

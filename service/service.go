@@ -132,6 +132,7 @@ func (svc *Service) Init(ctx context.Context, cfg *config.Config, buildTime, git
 	host, err := url.Parse(svc.Cfg.Host)
 	if err != nil {
 		log.Fatal(ctx, "error parsing Filter API URL", err, log.Data{"url": cfg.Host})
+		return err
 	}
 
 	// Create API, with outputQueue

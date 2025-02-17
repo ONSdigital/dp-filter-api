@@ -75,7 +75,7 @@ func TestSuccessfulGetFilterOutput(t *testing.T) {
 		So(filterOutput.Downloads.XLS, ShouldResemble, &models.DownloadItem{HRef: "ons-test-site.gov.uk/87654321.xls", Private: "", Public: "", Size: "24mb"})
 	})
 
-	Convey("Successfully get a filter output from a request when url rewriting enabled with x-florence-host", t, func() {
+	Convey("Successfully get a filter output from a request when url rewriting is enabled with authentication", t, func() {
 		r := createAuthenticatedRequest("GET", "http://localhost:22100/filter-outputs/12345678", nil)
 		r.Header.Set("X-Forwarded-Host", "api.test.com")
 
