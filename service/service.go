@@ -135,6 +135,12 @@ func (svc *Service) Init(ctx context.Context, cfg *config.Config, buildTime, git
 		return err
 	}
 
+	DatasetAPIURL, err := url.Parse(svc.Cfg.DatasetAPIURL)
+	if err != nil {
+		log.Fatal(ctx, "error parsing Data set API URL", err, log.Data{"url": cfg.DatasetAPIURL})
+		return err
+	}
+
 	// Create API, with outputQueue
 	outputQueue := filterOutputQueue.CreateOutputQueue(svc.FilterOutputSubmittedProducer.Channels().Output)
 	svc.api = api.Setup(
@@ -145,6 +151,7 @@ func (svc *Service) Init(ctx context.Context, cfg *config.Config, buildTime, git
 		svc.datasetAPI,
 		svc.filterFlexAPI,
 		host,
+		DatasetAPIURL,
 		svc.Cfg.EnableURLRewriting,
 	)
 	return nil

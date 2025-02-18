@@ -38,6 +38,7 @@ type OutputQueue interface {
 // FilterAPI manages importing filters against a dataset
 type FilterAPI struct {
 	host                 *url.URL
+	DatasetAPIURL        *url.URL
 	maxRequestOptions    int
 	Router               *mux.Router
 	dataStore            DataStore
@@ -64,9 +65,11 @@ func Setup(
 	datasetAPI DatasetAPI,
 	filterFlexAPI FilterFlexAPI,
 	hostURL *url.URL,
+	datasetAPIURL *url.URL,
 	enableURLRewriting bool) *FilterAPI {
 	api := &FilterAPI{
 		host:                 hostURL,
+		DatasetAPIURL:        datasetAPIURL,
 		maxRequestOptions:    cfg.MaxRequestOptions,
 		Router:               router,
 		dataStore:            dataStore,

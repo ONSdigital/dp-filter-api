@@ -5,10 +5,8 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
-	"net/url"
 	"time"
 
-	"github.com/ONSdigital/dp-filter-api/config"
 	"github.com/ONSdigital/dp-filter-api/filters"
 	"github.com/ONSdigital/dp-filter-api/models"
 	"github.com/ONSdigital/dp-filter-api/mongo"
@@ -19,24 +17,15 @@ import (
 	"github.com/gorilla/mux"
 )
 
+const (
+	versionLinkType = "Version"
+)
+
 func (api *FilterAPI) getFilterOutputHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	filterOutputID := vars["filter_output_id"]
 	logData := log.Data{"filter_output_id": filterOutputID}
 	ctx := r.Context()
-	cfg, err := config.Get()
-	if err != nil {
-		log.Error(ctx, "unable to get config values", err, logData)
-		setErrorCode(w, err)
-		return
-	}
-	datasetAPIUl, err := url.Parse(cfg.DatasetAPIURL)
-	if err != nil {
-		log.Error(ctx, "unable to parse datasetURL", err, logData)
-		setErrorCode(w, err)
-		return
-	}
-
 	log.Info(ctx, "getting filter output", logData)
 
 	hideS3Links := r.Header.Get(dprequest.DownloadServiceHeaderKey) != api.downloadServiceToken
@@ -50,33 +39,31 @@ func (api *FilterAPI) getFilterOutputHandler(w http.ResponseWriter, r *http.Requ
 
 	if api.enableURLRewriting {
 		filterAPILinksBuilder := links.FromHeadersOrDefault(&r.Header, api.host)
-		datasetAPILinksBuilder := links.FromHeadersOrDefault(&r.Header, datasetAPIUl)
+		datasetAPILinksBuilder := links.FromHeadersOrDefault(&r.Header, api.DatasetAPIURL)
 
 		linkFields := map[string]*models.LinkObject{
 			"Self":            filterOutput.Links.Self,
 			"FilterBlueprint": filterOutput.Links.FilterBlueprint,
-			"Version":         filterOutput.Links.Version,
+			versionLinkType:   filterOutput.Links.Version,
 		}
 
 		for linkType, linkObj := range linkFields {
-			if linkObj != nil && linkObj.HRef != "" {
-				var newLink string
-				var err error
+			if linkObj == nil || linkObj.HRef == "" {
+				continue
+			}
 
-				if linkType == "Version" {
-					newLink, err = datasetAPILinksBuilder.BuildLink(linkObj.HRef)
-				} else {
-					newLink, err = filterAPILinksBuilder.BuildLink(linkObj.HRef)
-				}
+			builder := filterAPILinksBuilder
+			if linkType == versionLinkType {
+				builder = datasetAPILinksBuilder
+			}
 
-				if err != nil {
-					logData["link_type"] = linkType
-					logData["original_link"] = linkObj.HRef
-					log.Error(ctx, "failed to rewrite filter output link", err, logData)
-					setErrorCode(w, err)
-					return
-				}
+			if newLink, err := builder.BuildLink(linkObj.HRef); err == nil {
 				linkObj.HRef = newLink
+			} else {
+				log.Error(ctx, "failed to rewrite filter output link", err, logData,
+					log.Data{"link_type": linkType, "original_link": linkObj.HRef})
+				setErrorCode(w, err)
+				return
 			}
 		}
 	}
