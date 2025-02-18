@@ -606,7 +606,7 @@ func TestSuccessfulGetFilterBlueprint_PublishedDataset_URLRewriting(t *testing.T
 
 				versionLink, ok := links["version"].(map[string]interface{})
 				So(ok, ShouldBeTrue)
-				So(versionLink["href"], ShouldEqual, "http://localhost:80/datasets/123/editions/2019/versions/1")
+				So(versionLink["href"], ShouldEqual, "http://localhost:22000/datasets/123/editions/2019/versions/1")
 			})
 		})
 

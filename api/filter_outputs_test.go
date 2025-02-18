@@ -43,6 +43,15 @@ func TestSuccessfulGetFilterOutput(t *testing.T) {
 		}
 	}
 
+	expectedBodyFullRewrittenLinksWithoutAuth := func() models.Filter {
+		return models.Filter{
+			Links: models.LinkMap{
+				FilterBlueprint: &models.LinkObject{ID: "time", HRef: "http://localhost:80/filters/1234"},
+				Self:            &models.LinkObject{ID: "time", HRef: "http://localhost:80/filter-outputs/1234"},
+				Version:         &models.LinkObject{ID: "time", HRef: "http://localhost:22000/datasets/cpih01/editions/time-series/versions/2"}},
+		}
+	}
+
 	// func to unmarshal and validate body
 	validateBody := func(bytes []byte, expected models.Filter) {
 		var response models.Filter
@@ -73,6 +82,22 @@ func TestSuccessfulGetFilterOutput(t *testing.T) {
 
 		So(filterOutput.Downloads.CSV, ShouldResemble, &models.DownloadItem{HRef: "ons-test-site.gov.uk/87654321.csv", Private: "", Public: "", Size: "12mb"})
 		So(filterOutput.Downloads.XLS, ShouldResemble, &models.DownloadItem{HRef: "ons-test-site.gov.uk/87654321.xls", Private: "", Public: "", Size: "24mb"})
+	})
+
+	Convey("Successfully get a filter output from a request when url rewriting is enabled without authentication", t, func() {
+		r := createAuthenticatedRequest("GET", "http://localhost:22100/filter-outputs/12345678", nil)
+
+		mockDatastore := &apimock.DataStoreMock{
+			GetFilterOutputFunc: func(ctx context.Context, filterOutputID string) (*models.Filter, error) {
+				return createFilterWithLinks(), nil
+			},
+		}
+
+		w := httptest.NewRecorder()
+		filterAPI := api.Setup(cfg(), mux.NewRouter(), mockDatastore, &mock.FilterJob{}, mock.NewDatasetAPI().Unpublished(), filterFlexAPIMock, hostURL, true)
+		filterAPI.Router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusOK)
+		validateBody(w.Body.Bytes(), expectedBodyFullRewrittenLinksWithoutAuth())
 	})
 
 	Convey("Successfully get a filter output from a request when url rewriting is enabled with authentication", t, func() {
