@@ -41,30 +41,37 @@ func (api *FilterAPI) getFilterOutputHandler(w http.ResponseWriter, r *http.Requ
 		filterAPILinksBuilder := links.FromHeadersOrDefault(&r.Header, api.host)
 		datasetAPILinksBuilder := links.FromHeadersOrDefault(&r.Header, api.DatasetAPIURL)
 
-		linkFields := map[string]*models.LinkObject{
-			"Self":            filterOutput.Links.Self,
-			"FilterBlueprint": filterOutput.Links.FilterBlueprint,
-			versionLinkType:   filterOutput.Links.Version,
-		}
-
-		for linkType, linkObj := range linkFields {
-			if linkObj == nil || linkObj.HRef == "" {
-				continue
-			}
-
-			builder := filterAPILinksBuilder
-			if linkType == versionLinkType {
-				builder = datasetAPILinksBuilder
-			}
-
-			if newLink, err := builder.BuildLink(linkObj.HRef); err == nil {
-				linkObj.HRef = newLink
-			} else {
-				log.Error(ctx, "failed to rewrite filter output link", err, logData,
-					log.Data{"link_type": linkType, "original_link": linkObj.HRef})
+		if filterOutput.Links.Self != nil && filterOutput.Links.Self.HRef != "" {
+			newLink, err := filterAPILinksBuilder.BuildLink(filterOutput.Links.Self.HRef)
+			if err != nil {
+				log.Error(ctx, "failed to rewrite filter output self link", err, logData,
+					log.Data{"link_type": "Self", "original_link": filterOutput.Links.Self.HRef})
 				setErrorCode(w, err)
 				return
 			}
+			filterOutput.Links.Self.HRef = newLink
+		}
+
+		if filterOutput.Links.FilterBlueprint != nil && filterOutput.Links.FilterBlueprint.HRef != "" {
+			newLink, err := filterAPILinksBuilder.BuildLink(filterOutput.Links.FilterBlueprint.HRef)
+			if err != nil {
+				log.Error(ctx, "failed to rewrite filter output filterBlueprint link", err, logData,
+					log.Data{"link_type": "FilterBlueprint", "original_link": filterOutput.Links.FilterBlueprint.HRef})
+				setErrorCode(w, err)
+				return
+			}
+			filterOutput.Links.FilterBlueprint.HRef = newLink
+		}
+
+		if filterOutput.Links.Version != nil && filterOutput.Links.Version.HRef != "" {
+			newLink, err := datasetAPILinksBuilder.BuildLink(filterOutput.Links.Version.HRef)
+			if err != nil {
+				log.Error(ctx, "failed to rewrite filter output version link", err, logData,
+					log.Data{"link_type": "Version", "original_link": filterOutput.Links.Version.HRef})
+				setErrorCode(w, err)
+				return
+			}
+			filterOutput.Links.Version.HRef = newLink
 		}
 	}
 
