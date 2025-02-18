@@ -17,10 +17,6 @@ import (
 	"github.com/gorilla/mux"
 )
 
-const (
-	versionLinkType = "Version"
-)
-
 func (api *FilterAPI) getFilterOutputHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	filterOutputID := vars["filter_output_id"]
