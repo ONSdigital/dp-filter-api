@@ -479,7 +479,7 @@ func TestSuccessfulGetFilterBlueprintDimensionOptions(t *testing.T) {
 			validateBody(w.Body.Bytes(), expectedBodyFull())
 		})
 
-		Convey("Successfully get a list of dimension options with url rewriting enabled with x-forwarded Host", func() {
+		Convey("Successfully get a list of dimension options with url rewriting enabled with x-Forwarded-Host", func() {
 			r, err := http.NewRequest("GET", "http://localhost:22100/filters/12345678/dimensions/time/options", http.NoBody)
 			r.Header.Set("X-Forwarded-Host", "api.test.com")
 			So(err, ShouldBeNil)

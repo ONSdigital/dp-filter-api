@@ -127,6 +127,7 @@ func (api *FilterAPI) getFilterBlueprintDimensionsHandler(w http.ResponseWriter,
 						logData["original_link"] = linkObj.HRef
 						log.Error(ctx, "failed to rewrite filter dimension links", err, logData)
 						setErrorCode(w, err)
+						return
 					}
 					linkObj.HRef = newLink
 				}
@@ -200,6 +201,7 @@ func (api *FilterAPI) getFilterBlueprintDimensionHandler(w http.ResponseWriter, 
 					logData["original_link"] = linkObj.HRef
 					log.Error(ctx, "failed to rewrite public dimension link", err, logData)
 					setErrorCode(w, err)
+					return
 				}
 				linkObj.HRef = newLink
 			}

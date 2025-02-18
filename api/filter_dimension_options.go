@@ -88,21 +88,32 @@ func (api *FilterAPI) getFilterBlueprintDimensionOptionsHandler(w http.ResponseW
 	if api.enableURLRewriting {
 		filterAPILinksBuilder := links.FromHeadersOrDefault(&r.Header, api.host)
 
-		updateLink := func(link *models.LinkObject) {
+		updateLink := func(link *models.LinkObject) error {
 			if link == nil {
-				return
+				return nil
 			}
-			if newLink, err := filterAPILinksBuilder.BuildLink(link.HRef); err != nil {
-				setErrorCode(w, err)
-			} else {
-				link.HRef = newLink
+			newLink, err := filterAPILinksBuilder.BuildLink(link.HRef)
+			if err != nil {
+				log.Error(ctx, "failed to rewrite dimension option links", err, logData)
+				return err
 			}
+			link.HRef = newLink
+			return nil
 		}
 
 		for i := range options.Items {
-			updateLink(options.Items[i].Links.Self)
-			updateLink(options.Items[i].Links.Filter)
-			updateLink(options.Items[i].Links.Dimension)
+			if err := updateLink(options.Items[i].Links.Self); err != nil {
+				setErrorCode(w, err)
+				return
+			}
+			if err := updateLink(options.Items[i].Links.Filter); err != nil {
+				setErrorCode(w, err)
+				return
+			}
+			if err := updateLink(options.Items[i].Links.Dimension); err != nil {
+				setErrorCode(w, err)
+				return
+			}
 		}
 	}
 
@@ -219,8 +230,12 @@ func (api *FilterAPI) getFilterBlueprintDimensionOptionHandler(w http.ResponseWr
 			if linkObj != nil && linkObj.HRef != "" {
 				newLink, err := filterAPILinksBuilder.BuildLink(linkObj.HRef)
 				if err != nil {
+					logData["failed_link"] = map[string]string{
+						"href": linkObj.ID,
+					}
 					log.Error(ctx, "failed to rewrite dimension option links", err, logData)
 					setErrorCode(w, err)
+					return
 				}
 				linkObj.HRef = newLink
 			}
