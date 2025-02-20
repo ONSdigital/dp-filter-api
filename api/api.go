@@ -45,7 +45,8 @@ type FilterAPI struct {
 	outputQueue                OutputQueue
 	datasetAPI                 DatasetAPI
 	FilterFlexAPI              FilterFlexAPI
-	downloadServiceURL         *url.URL
+	downloadServiceURL         string
+	InternalDownloadServiceURL *url.URL
 	ExternalDownloadServiceURL *url.URL
 	downloadServiceToken       string
 	serviceAuthToken           string
@@ -67,7 +68,7 @@ func Setup(
 	filterFlexAPI FilterFlexAPI,
 	hostURL *url.URL,
 	datasetAPIURL *url.URL,
-	downloadService *url.URL,
+	internalDownloadService *url.URL,
 	externalDownloadService *url.URL,
 	enableURLRewriting bool) *FilterAPI {
 	api := &FilterAPI{
@@ -78,7 +79,8 @@ func Setup(
 		dataStore:                  dataStore,
 		outputQueue:                outputQueue,
 		datasetAPI:                 datasetAPI,
-		downloadServiceURL:         downloadService,
+		downloadServiceURL:         cfg.DownloadServiceURL,
+		InternalDownloadServiceURL: internalDownloadService,
 		ExternalDownloadServiceURL: externalDownloadService,
 		downloadServiceToken:       cfg.DownloadServiceSecretKey,
 		serviceAuthToken:           cfg.ServiceAuthToken,

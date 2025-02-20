@@ -34,6 +34,7 @@ type Config struct {
 	EnablePrivateEndpoints     bool          `envconfig:"ENABLE_PRIVATE_ENDPOINTS"`
 	EnableURLRewriting         bool          `envconfig:"ENABLE_URL_REWRITING"`
 	DownloadServiceURL         string        `envconfig:"DOWNLOAD_SERVICE_URL"`
+	InternalDownloadServiceURL string        `envconfig:"INTERNAL_DOWNLOAD_SERVICE_URL"`
 	ExternalDownloadServiceURL string        `envconfig:"EXTERNAL_DOWNLOAD_SERVICE_URL"`
 	DownloadServiceSecretKey   string        `envconfig:"DOWNLOAD_SERVICE_SECRET_KEY"      json:"-"`
 	MaxRequestOptions          int           `envconfig:"MAX_REQUEST_OPTIONS"`
@@ -87,6 +88,7 @@ func Get() (*Config, error) {
 		ZebedeeURL:                 "http://localhost:8082",
 		EnablePrivateEndpoints:     true,
 		DownloadServiceURL:         "http://localhost:23600",
+		InternalDownloadServiceURL: "http://localhost:23600",
 		ExternalDownloadServiceURL: "http://localhost:23600",
 		DownloadServiceSecretKey:   "QB0108EZ-825D-412C-9B1D-41EF7747F462",
 		AssertDatasetType:          false,

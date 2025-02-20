@@ -37,7 +37,7 @@ func (api *FilterAPI) getFilterOutputHandler(w http.ResponseWriter, r *http.Requ
 	if api.enableURLRewriting {
 		filterAPILinksBuilder := links.FromHeadersOrDefault(&r.Header, api.host)
 		datasetAPILinksBuilder := links.FromHeadersOrDefault(&r.Header, api.DatasetAPIURL)
-		downloadLinksBuilder := links.FromHeadersOrDefaultDownload(&r.Header, api.downloadServiceURL, api.ExternalDownloadServiceURL)
+		downloadLinksBuilder := links.FromHeadersOrDefaultDownload(&r.Header, api.InternalDownloadServiceURL, api.ExternalDownloadServiceURL)
 
 		if filterOutput.Links.Self != nil && filterOutput.Links.Self.HRef != "" {
 			newLink, err := filterAPILinksBuilder.BuildLink(filterOutput.Links.Self.HRef)
@@ -177,7 +177,7 @@ func (api *FilterAPI) updateFilterOutput(ctx context.Context, filterOutputID str
 		filterOutput.Published = &models.Published
 	}
 
-	BuildDownloadsObject(previousFilterOutput, filterOutput, api.downloadServiceURL.String())
+	BuildDownloadsObject(previousFilterOutput, filterOutput, api.downloadServiceURL)
 
 	filterOutput.State = previousFilterOutput.State
 
