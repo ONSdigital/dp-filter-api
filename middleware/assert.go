@@ -2,7 +2,6 @@ package middleware
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -158,8 +157,6 @@ func (a *Assert) FilterType(next http.Handler) http.Handler {
 		}
 
 		if f.Type == flexible || f.Type == multivariate {
-			log.Info(ctx, "checking X-Forwarded-Host and path prefix in FilterType()", log.Data{"X-Forwarded-Host": r.Header.Get("X-Forwarded-Host"),
-				"X-Forwarded-Path-Prefix": r.Header.Get("X-Forwarded-Path-Prefix")})
 			if err := a.doProxyRequest(w, r); err != nil {
 				a.respond.Error(ctx, w, filters.GetErrorStatusCode(err), er{
 					err: errors.Wrap(err, "failed to do proxy request"),
@@ -174,9 +171,7 @@ func (a *Assert) FilterType(next http.Handler) http.Handler {
 }
 
 func (a *Assert) doProxyRequest(w http.ResponseWriter, req *http.Request) error {
-	log.Info(context.Background(), "checking X-Forwarded-Host and path prefix in doProxyRequest()", log.Data{"X-Forwarded-Host": req.Header.Get("X-Forwarded-Host"),
-		"X-Forwarded-Path-Prefix": req.Header.Get("X-Forwarded-Path-Prefix")})
-	req.Header.Add("Test-Host", req.Header.Get("X-Forwarded-Host"))
+	req.Header.Add("X-Forwarded-API-Host", req.Header.Get("X-Forwarded-Host"))
 	resp, err := a.FilterFlexAPI.ForwardRequest(req)
 	if err != nil {
 		return errors.Wrap(err, "failed to forward request")
