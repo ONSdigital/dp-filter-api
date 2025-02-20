@@ -171,6 +171,7 @@ func (a *Assert) FilterType(next http.Handler) http.Handler {
 }
 
 func (a *Assert) doProxyRequest(w http.ResponseWriter, req *http.Request) error {
+	req.Header.Add("X-Forwarded-API-Host", req.Header.Get("X-Forwarded-Host"))
 	resp, err := a.FilterFlexAPI.ForwardRequest(req)
 	if err != nil {
 		return errors.Wrap(err, "failed to forward request")
