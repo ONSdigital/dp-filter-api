@@ -49,6 +49,8 @@ func TestSpec(t *testing.T) {
 				So(cfg.DefaultMaxLimit, ShouldEqual, 1000)
 				So(cfg.FilterFlexAPIURL, ShouldEqual, "http://localhost:27100")
 				So(cfg.EnableURLRewriting, ShouldEqual, false)
+				So(cfg.DownloadServiceURL, ShouldEqual, "http://localhost:23600")
+				So(cfg.ExternalDownloadServiceURL, ShouldEqual, "http://localhost:23600")
 			})
 		})
 	})

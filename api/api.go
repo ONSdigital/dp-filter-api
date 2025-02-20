@@ -37,23 +37,24 @@ type OutputQueue interface {
 
 // FilterAPI manages importing filters against a dataset
 type FilterAPI struct {
-	host                 *url.URL
-	DatasetAPIURL        *url.URL
-	maxRequestOptions    int
-	Router               *mux.Router
-	dataStore            DataStore
-	outputQueue          OutputQueue
-	datasetAPI           DatasetAPI
-	FilterFlexAPI        FilterFlexAPI
-	downloadServiceURL   string
-	downloadServiceToken string
-	serviceAuthToken     string
-	defaultLimit         int
-	maxLimit             int
-	defaultOffset        int
-	maxDatasetOptions    int
-	BatchMaxWorkers      int
-	enableURLRewriting   bool
+	host                       *url.URL
+	DatasetAPIURL              *url.URL
+	maxRequestOptions          int
+	Router                     *mux.Router
+	dataStore                  DataStore
+	outputQueue                OutputQueue
+	datasetAPI                 DatasetAPI
+	FilterFlexAPI              FilterFlexAPI
+	downloadServiceURL         *url.URL
+	ExternalDownloadServiceURL *url.URL
+	downloadServiceToken       string
+	serviceAuthToken           string
+	defaultLimit               int
+	maxLimit                   int
+	defaultOffset              int
+	maxDatasetOptions          int
+	BatchMaxWorkers            int
+	enableURLRewriting         bool
 }
 
 // Setup manages all the routes configured to API
@@ -66,24 +67,27 @@ func Setup(
 	filterFlexAPI FilterFlexAPI,
 	hostURL *url.URL,
 	datasetAPIURL *url.URL,
+	downloadService *url.URL,
+	externalDownloadService *url.URL,
 	enableURLRewriting bool) *FilterAPI {
 	api := &FilterAPI{
-		host:                 hostURL,
-		DatasetAPIURL:        datasetAPIURL,
-		maxRequestOptions:    cfg.MaxRequestOptions,
-		Router:               router,
-		dataStore:            dataStore,
-		outputQueue:          outputQueue,
-		datasetAPI:           datasetAPI,
-		downloadServiceURL:   cfg.DownloadServiceURL,
-		downloadServiceToken: cfg.DownloadServiceSecretKey,
-		serviceAuthToken:     cfg.ServiceAuthToken,
-		defaultLimit:         cfg.MongoConfig.Limit,
-		maxLimit:             cfg.DefaultMaxLimit,
-		defaultOffset:        cfg.MongoConfig.Offset,
-		maxDatasetOptions:    cfg.MaxDatasetOptions,
-		BatchMaxWorkers:      cfg.BatchMaxWorkers,
-		enableURLRewriting:   enableURLRewriting,
+		host:                       hostURL,
+		DatasetAPIURL:              datasetAPIURL,
+		maxRequestOptions:          cfg.MaxRequestOptions,
+		Router:                     router,
+		dataStore:                  dataStore,
+		outputQueue:                outputQueue,
+		datasetAPI:                 datasetAPI,
+		downloadServiceURL:         downloadService,
+		ExternalDownloadServiceURL: externalDownloadService,
+		downloadServiceToken:       cfg.DownloadServiceSecretKey,
+		serviceAuthToken:           cfg.ServiceAuthToken,
+		defaultLimit:               cfg.MongoConfig.Limit,
+		maxLimit:                   cfg.DefaultMaxLimit,
+		defaultOffset:              cfg.MongoConfig.Offset,
+		maxDatasetOptions:          cfg.MaxDatasetOptions,
+		BatchMaxWorkers:            cfg.BatchMaxWorkers,
+		enableURLRewriting:         enableURLRewriting,
 	}
 
 	// middleware

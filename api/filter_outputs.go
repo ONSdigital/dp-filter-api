@@ -17,6 +17,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
+//nolint:gocyclo // high cyclomactic complexity not in scope for maintenance
 func (api *FilterAPI) getFilterOutputHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	filterOutputID := vars["filter_output_id"]
@@ -36,6 +37,7 @@ func (api *FilterAPI) getFilterOutputHandler(w http.ResponseWriter, r *http.Requ
 	if api.enableURLRewriting {
 		filterAPILinksBuilder := links.FromHeadersOrDefault(&r.Header, api.host)
 		datasetAPILinksBuilder := links.FromHeadersOrDefault(&r.Header, api.DatasetAPIURL)
+		downloadLinksBuilder := links.FromHeadersOrDefaultDownload(&r.Header, api.downloadServiceURL, api.ExternalDownloadServiceURL)
 
 		if filterOutput.Links.Self != nil && filterOutput.Links.Self.HRef != "" {
 			newLink, err := filterAPILinksBuilder.BuildLink(filterOutput.Links.Self.HRef)
@@ -68,6 +70,29 @@ func (api *FilterAPI) getFilterOutputHandler(w http.ResponseWriter, r *http.Requ
 				return
 			}
 			filterOutput.Links.Version.HRef = newLink
+		}
+
+		if filterOutput.Downloads != nil {
+			if filterOutput.Downloads.CSV != nil && filterOutput.Downloads.CSV.HRef != "" {
+				newDownloadLink, err := downloadLinksBuilder.BuildDownloadLink(filterOutput.Downloads.CSV.HRef)
+				if err != nil {
+					log.Error(ctx, "failed to rewrite CSV download link", err, logData,
+						log.Data{"link_type": "CSV", "original_link": filterOutput.Downloads.CSV.HRef})
+					setErrorCode(w, err)
+					return
+				}
+				filterOutput.Downloads.CSV.HRef = newDownloadLink
+			}
+			if filterOutput.Downloads.XLS != nil && filterOutput.Downloads.XLS.HRef != "" {
+				newDownloadLink, err := downloadLinksBuilder.BuildDownloadLink(filterOutput.Downloads.XLS.HRef)
+				if err != nil {
+					log.Error(ctx, "failed to rewrite XLS download link", err, logData,
+						log.Data{"link_type": "XLS", "original_link": filterOutput.Downloads.XLS.HRef})
+					setErrorCode(w, err)
+					return
+				}
+				filterOutput.Downloads.XLS.HRef = newDownloadLink
+			}
 		}
 	}
 
@@ -152,7 +177,7 @@ func (api *FilterAPI) updateFilterOutput(ctx context.Context, filterOutputID str
 		filterOutput.Published = &models.Published
 	}
 
-	BuildDownloadsObject(previousFilterOutput, filterOutput, api.downloadServiceURL)
+	BuildDownloadsObject(previousFilterOutput, filterOutput, api.downloadServiceURL.String())
 
 	filterOutput.State = previousFilterOutput.State
 
