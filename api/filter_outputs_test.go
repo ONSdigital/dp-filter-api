@@ -32,8 +32,7 @@ const (
 )
 
 var (
-	internalDownloadSVCURL = &url.URL{Scheme: "http", Host: "localhost:23600"}
-	externalDownloadSVCURL = &url.URL{Scheme: "http", Host: "localhost:23900"}
+	parsedDownloadServiceURL = &url.URL{Scheme: "http", Host: "localhost:23600"}
 )
 
 func TestSuccessfulGetFilterOutput(t *testing.T) {
@@ -74,7 +73,7 @@ func TestSuccessfulGetFilterOutput(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		filterAPI := api.Setup(cfg(), mux.NewRouter(), &mock.DataStore{}, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, internalDownloadSVCURL, externalDownloadSVCURL, false)
+		filterAPI := api.Setup(cfg(), mux.NewRouter(), &mock.DataStore{}, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, parsedDownloadServiceURL, false)
 		filterAPI.Router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusOK)
 
@@ -83,12 +82,12 @@ func TestSuccessfulGetFilterOutput(t *testing.T) {
 
 		filterOutput := &models.Filter{}
 		if err = json.Unmarshal(jsonResult, filterOutput); err != nil {
-			t.Logf("failed to marshal filte output json response, error: [%v]", err.Error())
+			t.Logf("failed to marshal r output json response, error: [%v]", err.Error())
 			t.Fail()
 		}
 
-		So(filterOutput.Downloads.CSV, ShouldResemble, &models.DownloadItem{HRef: "ons-test-site.gov.uk/87654321.csv", Private: "", Public: "", Size: "12mb"})
-		So(filterOutput.Downloads.XLS, ShouldResemble, &models.DownloadItem{HRef: "ons-test-site.gov.uk/87654321.xls", Private: "", Public: "", Size: "24mb"})
+		So(filterOutput.Downloads.CSV, ShouldResemble, &models.DownloadItem{HRef: "/filter-outputs/87654321.csv", Private: "", Public: "", Size: "12mb"})
+		So(filterOutput.Downloads.XLS, ShouldResemble, &models.DownloadItem{HRef: "/filter-outputs/87654321.xls", Private: "", Public: "", Size: "24mb"})
 	})
 
 	Convey("Successfully get a filter output from a request when url rewriting is enabled without authentication", t, func() {
@@ -100,7 +99,7 @@ func TestSuccessfulGetFilterOutput(t *testing.T) {
 		}
 
 		w := httptest.NewRecorder()
-		filterAPI := api.Setup(cfg(), mux.NewRouter(), mockDatastore, &mock.FilterJob{}, mock.NewDatasetAPI().Unpublished(), filterFlexAPIMock, hostURL, datasetAPIURL, internalDownloadSVCURL, externalDownloadSVCURL, true)
+		filterAPI := api.Setup(cfg(), mux.NewRouter(), mockDatastore, &mock.FilterJob{}, mock.NewDatasetAPI().Unpublished(), filterFlexAPIMock, hostURL, datasetAPIURL, parsedDownloadServiceURL, true)
 		filterAPI.Router.ServeHTTP(w, r)
 
 		So(w.Code, ShouldEqual, http.StatusOK)
@@ -108,7 +107,7 @@ func TestSuccessfulGetFilterOutput(t *testing.T) {
 	})
 
 	Convey("Successfully get a filter output from a request when url rewriting is enabled with authentication", t, func() {
-		r := createAuthenticatedRequest("GET", "http://localhost:22100/filter-outputs/12345678", nil)
+		r := createAuthenticatedRequest("GET", "http://localhost:22100/filter-outputs/12345678", http.NoBody)
 		r.Header.Set("X-Forwarded-Host", "api.test.com")
 
 		mockDatastore := &apimock.DataStoreMock{
@@ -118,7 +117,7 @@ func TestSuccessfulGetFilterOutput(t *testing.T) {
 		}
 
 		w := httptest.NewRecorder()
-		filterAPI := api.Setup(cfg(), mux.NewRouter(), mockDatastore, &mock.FilterJob{}, mock.NewDatasetAPI().Unpublished(), filterFlexAPIMock, hostURL, datasetAPIURL, internalDownloadSVCURL, externalDownloadSVCURL, true)
+		filterAPI := api.Setup(cfg(), mux.NewRouter(), mockDatastore, &mock.FilterJob{}, mock.NewDatasetAPI().Unpublished(), filterFlexAPIMock, hostURL, datasetAPIURL, parsedDownloadServiceURL, true)
 		filterAPI.Router.ServeHTTP(w, r)
 		fmt.Println("body is", w.Body)
 		So(w.Code, ShouldEqual, http.StatusOK)
@@ -130,7 +129,7 @@ func TestSuccessfulGetFilterOutput(t *testing.T) {
 		r.Header.Add(dprequest.DownloadServiceHeaderKey, downloadServiceToken)
 
 		w := httptest.NewRecorder()
-		filterAPI := api.Setup(cfg(), mux.NewRouter(), &mock.DataStore{}, &mock.FilterJob{}, mock.NewDatasetAPI().Unpublished(), filterFlexAPIMock, hostURL, datasetAPIURL, internalDownloadSVCURL, externalDownloadSVCURL, false)
+		filterAPI := api.Setup(cfg(), mux.NewRouter(), &mock.DataStore{}, &mock.FilterJob{}, mock.NewDatasetAPI().Unpublished(), filterFlexAPIMock, hostURL, datasetAPIURL, parsedDownloadServiceURL, false)
 		filterAPI.Router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusOK)
 
@@ -139,12 +138,12 @@ func TestSuccessfulGetFilterOutput(t *testing.T) {
 
 		filterOutput := &models.Filter{}
 		if err := json.Unmarshal(jsonResult, filterOutput); err != nil {
-			t.Logf("failed to marshal filte output json response, error: [%v]", err.Error())
+			t.Logf("failed to marshal filter output json response, error: [%v]", err.Error())
 			t.Fail()
 		}
 
-		So(filterOutput.Downloads.CSV, ShouldResemble, &models.DownloadItem{HRef: "ons-test-site.gov.uk/87654321.csv", Private: "csv-private-link", Public: "csv-public-link", Size: "12mb"})
-		So(filterOutput.Downloads.XLS, ShouldResemble, &models.DownloadItem{HRef: "ons-test-site.gov.uk/87654321.xls", Private: "xls-private-link", Public: "xls-public-link", Size: "24mb"})
+		So(filterOutput.Downloads.CSV, ShouldResemble, &models.DownloadItem{HRef: "/filter-outputs/87654321.csv", Private: "csv-private-link", Public: "csv-public-link", Size: "12mb"})
+		So(filterOutput.Downloads.XLS, ShouldResemble, &models.DownloadItem{HRef: "/filter-outputs/87654321.xls", Private: "xls-private-link", Public: "xls-public-link", Size: "24mb"})
 	})
 
 	Convey("Successfully get a filter output from a request with an authorised download service token with URL rewriting Enabled", t, func() {
@@ -152,7 +151,7 @@ func TestSuccessfulGetFilterOutput(t *testing.T) {
 		r.Header.Add(dprequest.DownloadServiceHeaderKey, downloadServiceToken)
 
 		w := httptest.NewRecorder()
-		filterAPI := api.Setup(cfg(), mux.NewRouter(), &mock.DataStore{}, &mock.FilterJob{}, mock.NewDatasetAPI().Unpublished(), filterFlexAPIMock, hostURL, datasetAPIURL, internalDownloadSVCURL, externalDownloadSVCURL, true)
+		filterAPI := api.Setup(cfg(), mux.NewRouter(), &mock.DataStore{}, &mock.FilterJob{}, mock.NewDatasetAPI().Unpublished(), filterFlexAPIMock, hostURL, datasetAPIURL, parsedDownloadServiceURL, true)
 		filterAPI.Router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusOK)
 
@@ -161,21 +160,21 @@ func TestSuccessfulGetFilterOutput(t *testing.T) {
 
 		filterOutput := &models.Filter{}
 		if err := json.Unmarshal(jsonResult, filterOutput); err != nil {
-			t.Logf("failed to marshal filte output json response, error: [%v]", err.Error())
+			t.Logf("failed to marshal filter output json response, error: [%v]", err.Error())
 			t.Fail()
 		}
 
-		So(filterOutput.Downloads.CSV, ShouldResemble, &models.DownloadItem{HRef: "http://localhost:23600/downloads/ons-test-site.gov.uk/87654321.csv", Private: "csv-private-link", Public: "csv-public-link", Size: "12mb"})
-		So(filterOutput.Downloads.XLS, ShouldResemble, &models.DownloadItem{HRef: "http://localhost:23600/downloads/ons-test-site.gov.uk/87654321.xls", Private: "xls-private-link", Public: "xls-public-link", Size: "24mb"})
+		So(filterOutput.Downloads.CSV, ShouldResemble, &models.DownloadItem{HRef: "http://localhost:23600/downloads/filter-outputs/87654321.csv", Private: "csv-private-link", Public: "csv-public-link", Size: "12mb"})
+		So(filterOutput.Downloads.XLS, ShouldResemble, &models.DownloadItem{HRef: "http://localhost:23600/downloads/filter-outputs/87654321.xls", Private: "xls-private-link", Public: "xls-public-link", Size: "24mb"})
 	})
 
-	Convey("Successfully get a filter output from a request with an authorised download service token with URL rewriting Enabled with authantication", t, func() {
+	Convey("Successfully get a filter output from a request with an authorised download service token with URL rewriting Enabled with authentication", t, func() {
 		r := createAuthenticatedRequest("GET", "http://localhost:22100/filter-outputs/12345678", http.NoBody)
 		r.Header.Add(dprequest.DownloadServiceHeaderKey, downloadServiceToken)
 		r.Header.Set("X-Forwarded-Host", "api.test.com")
 
 		w := httptest.NewRecorder()
-		filterAPI := api.Setup(cfg(), mux.NewRouter(), &mock.DataStore{}, &mock.FilterJob{}, mock.NewDatasetAPI().Unpublished(), filterFlexAPIMock, hostURL, datasetAPIURL, internalDownloadSVCURL, externalDownloadSVCURL, true)
+		filterAPI := api.Setup(cfg(), mux.NewRouter(), &mock.DataStore{}, &mock.FilterJob{}, mock.NewDatasetAPI().Unpublished(), filterFlexAPIMock, hostURL, datasetAPIURL, parsedDownloadServiceURL, true)
 		filterAPI.Router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusOK)
 
@@ -184,19 +183,19 @@ func TestSuccessfulGetFilterOutput(t *testing.T) {
 
 		filterOutput := &models.Filter{}
 		if err := json.Unmarshal(jsonResult, filterOutput); err != nil {
-			t.Logf("failed to marshal filte output json response, error: [%v]", err.Error())
+			t.Logf("failed to marshal filter output json response, error: [%v]", err.Error())
 			t.Fail()
 		}
 
-		So(filterOutput.Downloads.CSV, ShouldResemble, &models.DownloadItem{HRef: "http://localhost:23900/downloads/ons-test-site.gov.uk/87654321.csv", Private: "csv-private-link", Public: "csv-public-link", Size: "12mb"})
-		So(filterOutput.Downloads.XLS, ShouldResemble, &models.DownloadItem{HRef: "http://localhost:23900/downloads/ons-test-site.gov.uk/87654321.xls", Private: "xls-private-link", Public: "xls-public-link", Size: "24mb"})
+		So(filterOutput.Downloads.CSV, ShouldResemble, &models.DownloadItem{HRef: "http://localhost:23600/downloads/filter-outputs/87654321.csv", Private: "csv-private-link", Public: "csv-public-link", Size: "12mb"})
+		So(filterOutput.Downloads.XLS, ShouldResemble, &models.DownloadItem{HRef: "http://localhost:23600/downloads/filter-outputs/87654321.xls", Private: "xls-private-link", Public: "xls-public-link", Size: "24mb"})
 	})
 
 	Convey("Successfully get an unpublished filter output", t, func() {
 		r := createAuthenticatedRequest("GET", "http://localhost:22100/filter-outputs/12345678", http.NoBody)
 
 		w := httptest.NewRecorder()
-		filterAPI := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().Unpublished(), &mock.FilterJob{}, mock.NewDatasetAPI().Unpublished(), filterFlexAPIMock, hostURL, datasetAPIURL, internalDownloadSVCURL, externalDownloadSVCURL, false)
+		filterAPI := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().Unpublished(), &mock.FilterJob{}, mock.NewDatasetAPI().Unpublished(), filterFlexAPIMock, hostURL, datasetAPIURL, parsedDownloadServiceURL, false)
 		filterAPI.Router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusOK)
 	})
@@ -212,7 +211,7 @@ func TestFailedToGetFilterOutput(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		filterAPI := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().InternalError(), &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, internalDownloadSVCURL, externalDownloadSVCURL, false)
+		filterAPI := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().InternalError(), &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, parsedDownloadServiceURL, false)
 		filterAPI.Router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusInternalServerError)
 
@@ -225,7 +224,7 @@ func TestFailedToGetFilterOutput(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		filterAPI := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().NotFound(), &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, internalDownloadSVCURL, externalDownloadSVCURL, false)
+		filterAPI := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().NotFound(), &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, parsedDownloadServiceURL, false)
 		filterAPI.Router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
@@ -238,7 +237,7 @@ func TestFailedToGetFilterOutput(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		filterAPI := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().Unpublished(), &mock.FilterJob{}, mock.NewDatasetAPI().Unpublished(), filterFlexAPIMock, hostURL, datasetAPIURL, internalDownloadSVCURL, externalDownloadSVCURL, false)
+		filterAPI := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().Unpublished(), &mock.FilterJob{}, mock.NewDatasetAPI().Unpublished(), filterFlexAPIMock, hostURL, datasetAPIURL, parsedDownloadServiceURL, false)
 		filterAPI.Router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
@@ -257,7 +256,7 @@ func TestSuccessfulUpdateFilterOutput(t *testing.T) {
 		r := createAuthenticatedRequest("PUT", "http://localhost:22100/filter-outputs/21312", reader)
 
 		w := httptest.NewRecorder()
-		filterAPI := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().MissingPublicLinks(), &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, internalDownloadSVCURL, externalDownloadSVCURL, false)
+		filterAPI := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().MissingPublicLinks(), &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, parsedDownloadServiceURL, false)
 		filterAPI.Router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusOK)
 
@@ -273,7 +272,7 @@ func TestSuccessfulUpdateFilterOutput(t *testing.T) {
 		r := createAuthenticatedRequest("PUT", "http://localhost:22100/filter-outputs/21312", reader)
 
 		w := httptest.NewRecorder()
-		filterAPI := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().MissingPublicLinks(), &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, internalDownloadSVCURL, externalDownloadSVCURL, false)
+		filterAPI := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().MissingPublicLinks(), &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, parsedDownloadServiceURL, false)
 		filterAPI.Router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusOK)
 
@@ -303,7 +302,7 @@ func TestSuccessfulUpdateFilterOutput_StatusComplete(t *testing.T) {
 			},
 		}
 
-		filterAPI := api.Setup(cfg(), mux.NewRouter(), mockDatastore, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, internalDownloadSVCURL, externalDownloadSVCURL, false)
+		filterAPI := api.Setup(cfg(), mux.NewRouter(), mockDatastore, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, parsedDownloadServiceURL, false)
 
 		Convey("When the PUT filter output endpoint is called with completed download data", func() {
 			reader := strings.NewReader(`{"downloads":{"csv":{"size":"12mb", "public":"s3-public-csv-location"}, "xls":{"size":"12mb", "public":"s3-public-xls-location"}}}`)
@@ -377,7 +376,7 @@ func TestSuccessfulUpdateFilterOutputUnpublished(t *testing.T) {
 		r := createAuthenticatedRequest("PUT", "http://localhost:22100/filter-outputs/21312", reader)
 
 		w := httptest.NewRecorder()
-		filterAPI := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().Unpublished(), &mock.FilterJob{}, mock.NewDatasetAPI().Unpublished(), filterFlexAPIMock, hostURL, datasetAPIURL, internalDownloadSVCURL, externalDownloadSVCURL, false)
+		filterAPI := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().Unpublished(), &mock.FilterJob{}, mock.NewDatasetAPI().Unpublished(), filterFlexAPIMock, hostURL, datasetAPIURL, parsedDownloadServiceURL, false)
 		filterAPI.Router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusOK)
 
@@ -393,7 +392,7 @@ func TestSuccessfulUpdateFilterOutputUnpublished(t *testing.T) {
 		r := createAuthenticatedRequest("PUT", "http://localhost:22100/filter-outputs/21312", reader)
 
 		w := httptest.NewRecorder()
-		filterAPI := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().Unpublished(), &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, internalDownloadSVCURL, externalDownloadSVCURL, false)
+		filterAPI := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().Unpublished(), &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, parsedDownloadServiceURL, false)
 		filterAPI.Router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusOK)
 
@@ -415,7 +414,7 @@ func TestFailedToUpdateFilterOutput(t *testing.T) {
 		r := createAuthenticatedRequest("PUT", "http://localhost:22100/filter-outputs/21312", reader)
 
 		w := httptest.NewRecorder()
-		filterAPI := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().InternalError(), &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, internalDownloadSVCURL, externalDownloadSVCURL, false)
+		filterAPI := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().InternalError(), &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, parsedDownloadServiceURL, false)
 		filterAPI.Router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusInternalServerError)
 
@@ -434,7 +433,7 @@ func TestFailedToUpdateFilterOutput(t *testing.T) {
 		r := createAuthenticatedRequest("PUT", "http://localhost:22100/filter-outputs/21312", reader)
 
 		w := httptest.NewRecorder()
-		filterAPI := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().NotFound(), &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, internalDownloadSVCURL, externalDownloadSVCURL, false)
+		filterAPI := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().NotFound(), &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, parsedDownloadServiceURL, false)
 		filterAPI.Router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 
@@ -450,7 +449,7 @@ func TestFailedToUpdateFilterOutput(t *testing.T) {
 		r := createAuthenticatedRequest("PUT", "http://localhost:22100/filter-outputs/21312", reader)
 
 		w := httptest.NewRecorder()
-		filterAPI := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().MissingPublicLinks(), &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, internalDownloadSVCURL, externalDownloadSVCURL, false)
+		filterAPI := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().MissingPublicLinks(), &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, parsedDownloadServiceURL, false)
 		filterAPI.Router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusForbidden)
 
@@ -469,7 +468,7 @@ func TestFailedToUpdateFilterOutput(t *testing.T) {
 		r := createAuthenticatedRequest("PUT", "http://localhost:22100/filter-outputs/21312", reader)
 
 		w := httptest.NewRecorder()
-		filterAPI := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().MissingPublicLinks(), &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, internalDownloadSVCURL, externalDownloadSVCURL, false)
+		filterAPI := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().MissingPublicLinks(), &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, parsedDownloadServiceURL, false)
 		filterAPI.Router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusForbidden)
 
@@ -491,7 +490,7 @@ func TestFailedToUpdateFilterOutput_BadRequest(t *testing.T) {
 
 	Convey("Given an existing filter output with download links", t, func() {
 		w := httptest.NewRecorder()
-		filterAPI := api.Setup(cfg(), mux.NewRouter(), &mock.DataStore{}, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, internalDownloadSVCURL, externalDownloadSVCURL, false)
+		filterAPI := api.Setup(cfg(), mux.NewRouter(), &mock.DataStore{}, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, parsedDownloadServiceURL, false)
 
 		Convey("When a PUT request is made to the filter output endpoint with invalid JSON", func() {
 			reader := strings.NewReader("{")
@@ -643,7 +642,7 @@ func TestSuccessfulAddEventToFilterOutput(t *testing.T) {
 			},
 		}
 
-		filterAPI := api.Setup(cfg(), mux.NewRouter(), mockDatastore, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, internalDownloadSVCURL, externalDownloadSVCURL, false)
+		filterAPI := api.Setup(cfg(), mux.NewRouter(), mockDatastore, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, parsedDownloadServiceURL, false)
 
 		Convey("When a POST request is made to the filter output event endpoint", func() {
 			reader := strings.NewReader(`{"type":"` + models.EventFilterOutputCompleted + `","time":"2018-06-10T05:59:05.893629647+01:00"}`)
@@ -679,7 +678,7 @@ func TestFailedAddEventToFilterOutput_InvalidJson(t *testing.T) {
 	Convey("Given an existing filter output", t, func() {
 		mockDatastore := &apimock.DataStoreMock{}
 
-		filterAPI := api.Setup(cfg(), mux.NewRouter(), mockDatastore, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, internalDownloadSVCURL, externalDownloadSVCURL, false)
+		filterAPI := api.Setup(cfg(), mux.NewRouter(), mockDatastore, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, parsedDownloadServiceURL, false)
 
 		Convey("When a POST request is made to the filter output event endpoint with invalid json", func() {
 			reader := strings.NewReader(`{`)
@@ -709,7 +708,7 @@ func TestFailedAddEventToFilterOutput_InvalidEvent(t *testing.T) {
 	Convey("Given an existing filter output", t, func() {
 		mockDatastore := &apimock.DataStoreMock{}
 
-		filterAPI := api.Setup(cfg(), mux.NewRouter(), mockDatastore, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, internalDownloadSVCURL, externalDownloadSVCURL, false)
+		filterAPI := api.Setup(cfg(), mux.NewRouter(), mockDatastore, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, parsedDownloadServiceURL, false)
 
 		Convey("When a POST request is made to the filter output event endpoint with an empty event type", func() {
 			reader := strings.NewReader(`{"type":""}`)
@@ -746,7 +745,7 @@ func TestFailedAddEventToFilterOutput_DatastoreError(t *testing.T) {
 			},
 		}
 
-		filterAPI := api.Setup(cfg(), mux.NewRouter(), mockDatastore, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, internalDownloadSVCURL, externalDownloadSVCURL, false)
+		filterAPI := api.Setup(cfg(), mux.NewRouter(), mockDatastore, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, parsedDownloadServiceURL, false)
 
 		Convey("When a POST request is made to the filter output event endpoint, and the data store returns an error", func() {
 			reader := strings.NewReader(`{"type":"` + models.EventFilterOutputCompleted + `","time":"2018-06-10T05:59:05.893629647+01:00"}`)
@@ -784,12 +783,12 @@ func createFilterWithLinks() *models.Filter {
 func createFilter() *models.Filter {
 	downloads := &models.Downloads{
 		CSV: &models.DownloadItem{
-			HRef:    "ons-test-site.gov.uk/87654321.csv",
+			HRef:    "/filter-outputs/87654321.csv",
 			Private: "csv-private-link",
 			Size:    "12mb",
 		},
 		XLS: &models.DownloadItem{
-			HRef:    "ons-test-site.gov.uk/87654321.xls",
+			HRef:    "/filter-outputs/87654321.xls",
 			Private: "xls-private-link",
 			Size:    "24mb",
 		},

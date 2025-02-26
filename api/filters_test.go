@@ -50,7 +50,7 @@ func TestSuccessfulAddFilterBlueprint_PublishedDataset(t *testing.T) {
 			},
 		}
 
-		filterAPI := api.Setup(cfg(), mux.NewRouter(), mockDatastore, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, internalDownloadSVCURL, externalDownloadSVCURL, false)
+		filterAPI := api.Setup(cfg(), mux.NewRouter(), mockDatastore, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, parsedDownloadServiceURL, false)
 
 		Convey("When a POST request is made to the filters endpoint", func() {
 			reader := strings.NewReader(`{"dataset":{"version":1, "edition":"1", "id":"1"} }`)
@@ -151,7 +151,7 @@ func TestSuccessfulPostFilterBlueprint_Flexible(t *testing.T) {
 				Type: "flexible",
 			}, nil
 		}
-		filterAPI := api.Setup(cfg(), mux.NewRouter(), datastoreMock, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, internalDownloadSVCURL, externalDownloadSVCURL, false)
+		filterAPI := api.Setup(cfg(), mux.NewRouter(), datastoreMock, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, parsedDownloadServiceURL, false)
 
 		Convey("When a post request is made to the submit endpoint", func() {
 			reader := strings.NewReader(`{}`)
@@ -188,7 +188,7 @@ func TestUnSuccessfulPostFilterBlueprint_NonFlexible(t *testing.T) {
 				Type: "flexible",
 			}, nil
 		}
-		filterAPI := api.Setup(conf, mux.NewRouter(), datastoreMock, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, internalDownloadSVCURL, externalDownloadSVCURL, false)
+		filterAPI := api.Setup(conf, mux.NewRouter(), datastoreMock, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, parsedDownloadServiceURL, false)
 
 		Convey("When a post request is made to the submit endpoint", func() {
 			reader := strings.NewReader(`{}`)
@@ -215,7 +215,7 @@ func TestSuccessfulAddFilterBlueprint_UnpublishedDataset(t *testing.T) {
 	Convey("Given an unpublished dataset", t, func() {
 		ds := mock.NewDataStore().Unpublished().Mock
 		w := httptest.NewRecorder()
-		filterAPI := api.Setup(cfg(), mux.NewRouter(), ds, &mock.FilterJob{}, mock.NewDatasetAPI().Unpublished(), filterFlexAPIMock, hostURL, datasetAPIURL, internalDownloadSVCURL, externalDownloadSVCURL, false)
+		filterAPI := api.Setup(cfg(), mux.NewRouter(), ds, &mock.FilterJob{}, mock.NewDatasetAPI().Unpublished(), filterFlexAPIMock, hostURL, datasetAPIURL, parsedDownloadServiceURL, false)
 
 		Convey("When a POST request is made to the filters endpoint", func() {
 			reader := strings.NewReader(`{"dataset":{"version":1, "edition":"1", "id":"1"}, "dimensions":[{"name": "age", "options": ["27","33"]}]}`)
@@ -251,7 +251,7 @@ func TestFailedToAddFilterBlueprint(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		filterAPI := api.Setup(cfg(), mux.NewRouter(), &mock.DataStore{}, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, internalDownloadSVCURL, externalDownloadSVCURL, false)
+		filterAPI := api.Setup(cfg(), mux.NewRouter(), &mock.DataStore{}, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, parsedDownloadServiceURL, false)
 		filterAPI.Router.ServeHTTP(w, r)
 
 		Convey("Then the response is 400 bad request, with the expected response body", func() {
@@ -277,7 +277,7 @@ func TestFailedToAddFilterBlueprint(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		filterAPI := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().InternalError(), &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, internalDownloadSVCURL, externalDownloadSVCURL, false)
+		filterAPI := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().InternalError(), &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, parsedDownloadServiceURL, false)
 		filterAPI.Router.ServeHTTP(w, r)
 
 		Convey("Then the response is 500 internal error, with the expected response body", func() {
@@ -303,7 +303,7 @@ func TestFailedToAddFilterBlueprint(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		filterAPI := api.Setup(cfg(), mux.NewRouter(), &mock.DataStore{}, &mock.FilterJob{}, mock.NewDatasetAPI().InternalServiceError(), filterFlexAPIMock, hostURL, datasetAPIURL, internalDownloadSVCURL, externalDownloadSVCURL, false)
+		filterAPI := api.Setup(cfg(), mux.NewRouter(), &mock.DataStore{}, &mock.FilterJob{}, mock.NewDatasetAPI().InternalServiceError(), filterFlexAPIMock, hostURL, datasetAPIURL, parsedDownloadServiceURL, false)
 		filterAPI.Router.ServeHTTP(w, r)
 
 		Convey("Then the response is 500 internal error, with the expected response body", func() {
@@ -329,7 +329,7 @@ func TestFailedToAddFilterBlueprint(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		filterAPI := api.Setup(cfg(), mux.NewRouter(), &mock.DataStore{}, &mock.FilterJob{}, mock.NewDatasetAPI().VersionNotFound(), filterFlexAPIMock, hostURL, datasetAPIURL, internalDownloadSVCURL, externalDownloadSVCURL, false)
+		filterAPI := api.Setup(cfg(), mux.NewRouter(), &mock.DataStore{}, &mock.FilterJob{}, mock.NewDatasetAPI().VersionNotFound(), filterFlexAPIMock, hostURL, datasetAPIURL, parsedDownloadServiceURL, false)
 		filterAPI.Router.ServeHTTP(w, r)
 
 		Convey("Then the response is 404 Not Found, with the expected response body", func() {
@@ -355,7 +355,7 @@ func TestFailedToAddFilterBlueprint(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		filterAPI := api.Setup(cfg(), mux.NewRouter(), &mock.DataStore{}, &mock.FilterJob{}, mock.NewDatasetAPI().Unpublished(), filterFlexAPIMock, hostURL, datasetAPIURL, internalDownloadSVCURL, externalDownloadSVCURL, false)
+		filterAPI := api.Setup(cfg(), mux.NewRouter(), &mock.DataStore{}, &mock.FilterJob{}, mock.NewDatasetAPI().Unpublished(), filterFlexAPIMock, hostURL, datasetAPIURL, parsedDownloadServiceURL, false)
 		filterAPI.Router.ServeHTTP(w, r)
 
 		Convey("Then the response is 404 not found, with the expected response body", func() {
@@ -381,7 +381,7 @@ func TestFailedToAddFilterBlueprint_BadJSON(t *testing.T) {
 
 	Convey("Given a published dataset", t, func() {
 		w := httptest.NewRecorder()
-		filterAPI := api.Setup(cfg(), mux.NewRouter(), &mock.DataStore{}, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, internalDownloadSVCURL, externalDownloadSVCURL, false)
+		filterAPI := api.Setup(cfg(), mux.NewRouter(), &mock.DataStore{}, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, parsedDownloadServiceURL, false)
 
 		Convey("When a POST request is made to the filters endpoint which has an invalid JSON message", func() {
 			reader := strings.NewReader("{")
@@ -522,7 +522,7 @@ func TestSuccessfulGetFilterBlueprint_PublishedDataset(t *testing.T) {
 
 	Convey("Given a published dataset", t, func() {
 		w := httptest.NewRecorder()
-		filterAPI := api.Setup(cfg(), mux.NewRouter(), &mock.DataStore{}, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, internalDownloadSVCURL, externalDownloadSVCURL, true)
+		filterAPI := api.Setup(cfg(), mux.NewRouter(), &mock.DataStore{}, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, parsedDownloadServiceURL, true)
 
 		Convey("When a GET request is made to the filters endpoint with no authentication", func() {
 			r, err := http.NewRequest("GET", cfg().Host+"/filters/12345678", http.NoBody)
@@ -572,7 +572,7 @@ func TestSuccessfulGetFilterBlueprint_PublishedDataset_URLRewriting(t *testing.T
 				}, nil
 			},
 		}
-		filterAPI := api.Setup(cfg(), mux.NewRouter(), mockDatastore, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, internalDownloadSVCURL, externalDownloadSVCURL, true)
+		filterAPI := api.Setup(cfg(), mux.NewRouter(), mockDatastore, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, parsedDownloadServiceURL, true)
 
 		Convey("When a GET request is made to the filters endpoint without X-Forwarded-Host", func() {
 			r, err := http.NewRequest("GET", cfg().Host+"/filters/12345678", http.NoBody)
@@ -658,7 +658,7 @@ func TestSuccessfulGetFilterBlueprint_UnpublishedDataset(t *testing.T) {
 		r := createAuthenticatedRequest("GET", cfg().Host+"/filters/12345678", http.NoBody)
 
 		w := httptest.NewRecorder()
-		filterAPI := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().Unpublished(), &mock.FilterJob{}, mock.NewDatasetAPI().Unpublished(), filterFlexAPIMock, hostURL, datasetAPIURL, internalDownloadSVCURL, externalDownloadSVCURL, false)
+		filterAPI := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().Unpublished(), &mock.FilterJob{}, mock.NewDatasetAPI().Unpublished(), filterFlexAPIMock, hostURL, datasetAPIURL, parsedDownloadServiceURL, false)
 
 		filterAPI.Router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusOK)
@@ -679,7 +679,7 @@ func TestFailedToGetFilterBlueprint(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		filterAPI := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().InternalError(), &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, internalDownloadSVCURL, externalDownloadSVCURL, false)
+		filterAPI := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().InternalError(), &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, parsedDownloadServiceURL, false)
 
 		filterAPI.Router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusInternalServerError)
@@ -695,7 +695,7 @@ func TestFailedToGetFilterBlueprint(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		filterAPI := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().NotFound(), &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, internalDownloadSVCURL, externalDownloadSVCURL, false)
+		filterAPI := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().NotFound(), &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, parsedDownloadServiceURL, false)
 		filterAPI.Router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 		So(w.Result().Header.Get("ETag"), ShouldResemble, "")
@@ -709,7 +709,7 @@ func TestFailedToGetFilterBlueprint(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		filterAPI := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().Unpublished(), &mock.FilterJob{}, mock.NewDatasetAPI().Unpublished(), filterFlexAPIMock, hostURL, datasetAPIURL, internalDownloadSVCURL, externalDownloadSVCURL, false)
+		filterAPI := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().Unpublished(), &mock.FilterJob{}, mock.NewDatasetAPI().Unpublished(), filterFlexAPIMock, hostURL, datasetAPIURL, parsedDownloadServiceURL, false)
 		filterAPI.Router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 		So(w.Result().Header.Get("ETag"), ShouldResemble, "")
@@ -747,7 +747,7 @@ func TestSuccessfulUpdateFilterBlueprint_PublishedDataset(t *testing.T) {
 			},
 		}
 
-		filterAPI := api.Setup(cfg(), mux.NewRouter(), mockDatastore, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, internalDownloadSVCURL, externalDownloadSVCURL, false)
+		filterAPI := api.Setup(cfg(), mux.NewRouter(), mockDatastore, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, parsedDownloadServiceURL, false)
 
 		Convey("When a PUT request is made to the filters endpoint and a valid ETag", func() {
 			reader := strings.NewReader(`{"dataset":{"version":1}}`)
@@ -850,7 +850,7 @@ func TestSuccessfulUpdateFilterBlueprint_UnpublishedDataset(t *testing.T) {
 		r.Header.Set("If-Match", testETag)
 
 		w := httptest.NewRecorder()
-		filterAPI := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().Unpublished(), &mock.FilterJob{}, mock.NewDatasetAPI().Unpublished(), filterFlexAPIMock, hostURL, datasetAPIURL, internalDownloadSVCURL, externalDownloadSVCURL, false)
+		filterAPI := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().Unpublished(), &mock.FilterJob{}, mock.NewDatasetAPI().Unpublished(), filterFlexAPIMock, hostURL, datasetAPIURL, parsedDownloadServiceURL, false)
 		filterAPI.Router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusOK)
 		So(w.Result().Header.Get("ETag"), ShouldResemble, testETag1)
@@ -875,7 +875,7 @@ func TestFailedToUpdateFilterBlueprint(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		filterAPI := api.Setup(cfg(), mux.NewRouter(), &mock.DataStore{}, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, internalDownloadSVCURL, externalDownloadSVCURL, false)
+		filterAPI := api.Setup(cfg(), mux.NewRouter(), &mock.DataStore{}, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, parsedDownloadServiceURL, false)
 		filterAPI.Router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 		So(w.Result().Header.Get("ETag"), ShouldResemble, "")
@@ -897,7 +897,7 @@ func TestFailedToUpdateFilterBlueprint(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		filterAPI := api.Setup(cfg(), mux.NewRouter(), &mock.DataStore{}, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, internalDownloadSVCURL, externalDownloadSVCURL, false)
+		filterAPI := api.Setup(cfg(), mux.NewRouter(), &mock.DataStore{}, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, parsedDownloadServiceURL, false)
 		filterAPI.Router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 		So(w.Result().Header.Get("ETag"), ShouldResemble, "")
@@ -919,7 +919,7 @@ func TestFailedToUpdateFilterBlueprint(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		filterAPI := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().NotFound(), &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, internalDownloadSVCURL, externalDownloadSVCURL, false)
+		filterAPI := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().NotFound(), &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, parsedDownloadServiceURL, false)
 		filterAPI.Router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 		So(w.Result().Header.Get("ETag"), ShouldResemble, "")
@@ -942,7 +942,7 @@ func TestFailedToUpdateFilterBlueprint(t *testing.T) {
 
 		w := httptest.NewRecorder()
 
-		filterAPI := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().Unpublished(), &mock.FilterJob{}, mock.NewDatasetAPI().Unpublished(), filterFlexAPIMock, hostURL, datasetAPIURL, internalDownloadSVCURL, externalDownloadSVCURL, false)
+		filterAPI := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().Unpublished(), &mock.FilterJob{}, mock.NewDatasetAPI().Unpublished(), filterFlexAPIMock, hostURL, datasetAPIURL, parsedDownloadServiceURL, false)
 		filterAPI.Router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 		So(w.Result().Header.Get("ETag"), ShouldResemble, "")
@@ -964,7 +964,7 @@ func TestFailedToUpdateFilterBlueprint(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		filterAPI := api.Setup(cfg(), mux.NewRouter(), &mock.DataStore{}, &mock.FilterJob{}, mock.NewDatasetAPI().VersionNotFound(), filterFlexAPIMock, hostURL, datasetAPIURL, internalDownloadSVCURL, externalDownloadSVCURL, false)
+		filterAPI := api.Setup(cfg(), mux.NewRouter(), &mock.DataStore{}, &mock.FilterJob{}, mock.NewDatasetAPI().VersionNotFound(), filterFlexAPIMock, hostURL, datasetAPIURL, parsedDownloadServiceURL, false)
 		filterAPI.Router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 		So(w.Result().Header.Get("ETag"), ShouldResemble, "")
@@ -986,7 +986,7 @@ func TestFailedToUpdateFilterBlueprint(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		filterAPI := api.Setup(cfg(), mux.NewRouter(), &mock.DataStore{}, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, internalDownloadSVCURL, externalDownloadSVCURL, false)
+		filterAPI := api.Setup(cfg(), mux.NewRouter(), &mock.DataStore{}, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, parsedDownloadServiceURL, false)
 		filterAPI.Router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 		So(w.Result().Header.Get("ETag"), ShouldResemble, "")
@@ -1008,7 +1008,7 @@ func TestFailedToUpdateFilterBlueprint(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		filterAPI := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().InvalidDimensionOption(), &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, internalDownloadSVCURL, externalDownloadSVCURL, false)
+		filterAPI := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().InvalidDimensionOption(), &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, parsedDownloadServiceURL, false)
 		filterAPI.Router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 		So(w.Result().Header.Get("ETag"), ShouldResemble, "")
@@ -1029,7 +1029,7 @@ func TestFailedToUpdateFilterBlueprint(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		w := httptest.NewRecorder()
-		filterAPI := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().InvalidDimensionOption(), &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, internalDownloadSVCURL, externalDownloadSVCURL, false)
+		filterAPI := api.Setup(cfg(), mux.NewRouter(), mock.NewDataStore().InvalidDimensionOption(), &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, parsedDownloadServiceURL, false)
 		filterAPI.Router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 		So(w.Result().Header.Get("ETag"), ShouldResemble, "")
@@ -1098,7 +1098,7 @@ func TestRequestForwardingMiddleware(t *testing.T) {
 				}, nil
 			}
 
-			filterAPI := api.Setup(conf, mux.NewRouter(), &mock.DataStore{}, &mock.FilterJob{}, datasetAPIMock, filterFlexAPIMock, hostURL, datasetAPIURL, internalDownloadSVCURL, externalDownloadSVCURL, false)
+			filterAPI := api.Setup(conf, mux.NewRouter(), &mock.DataStore{}, &mock.FilterJob{}, datasetAPIMock, filterFlexAPIMock, hostURL, datasetAPIURL, parsedDownloadServiceURL, false)
 
 			reader := strings.NewReader(`{"dataset":{"version":1, "edition":"1", "id":"1", "type": "cantabular_flexible_table"} }`)
 			r, err := http.NewRequest("POST", cfg().Host+"/filters", reader)
@@ -1132,7 +1132,7 @@ func TestRequestForwardingMiddleware(t *testing.T) {
 				}, nil
 			}
 
-			filterAPI := api.Setup(conf, mux.NewRouter(), &mock.DataStore{}, &mock.FilterJob{}, datasetAPIMock, filterFlexAPIMock, hostURL, datasetAPIURL, internalDownloadSVCURL, externalDownloadSVCURL, false)
+			filterAPI := api.Setup(conf, mux.NewRouter(), &mock.DataStore{}, &mock.FilterJob{}, datasetAPIMock, filterFlexAPIMock, hostURL, datasetAPIURL, parsedDownloadServiceURL, false)
 
 			reader := strings.NewReader(`{"dataset":{"version":1, "edition":"1", "id":"1", "type": "other"} }`)
 			r, err := http.NewRequest("POST", cfg().Host+"/filters", reader)
@@ -1166,7 +1166,7 @@ func TestRequestForwardingMiddleware(t *testing.T) {
 				}, nil
 			}
 
-			filterAPI := api.Setup(conf, mux.NewRouter(), datastoreMock, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, internalDownloadSVCURL, externalDownloadSVCURL, false)
+			filterAPI := api.Setup(conf, mux.NewRouter(), datastoreMock, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, parsedDownloadServiceURL, false)
 
 			r, err := http.NewRequest("GET", cfg().Host+"/filters/foo", http.NoBody)
 			So(err, ShouldBeNil)
@@ -1201,7 +1201,7 @@ func TestRequestForwardingMiddleware(t *testing.T) {
 				}, nil
 			}
 
-			filterAPI := api.Setup(conf, mux.NewRouter(), datastoreMock, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, internalDownloadSVCURL, externalDownloadSVCURL, false)
+			filterAPI := api.Setup(conf, mux.NewRouter(), datastoreMock, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, parsedDownloadServiceURL, false)
 
 			r, err := http.NewRequest("GET", cfg().Host+"/filters/foo", http.NoBody)
 			So(err, ShouldBeNil)
@@ -1234,7 +1234,7 @@ func TestRequestForwardingMiddleware(t *testing.T) {
 				}, nil
 			}
 
-			filterAPI := api.Setup(conf, mux.NewRouter(), datastoreMock, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, internalDownloadSVCURL, externalDownloadSVCURL, false)
+			filterAPI := api.Setup(conf, mux.NewRouter(), datastoreMock, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, parsedDownloadServiceURL, false)
 
 			r, err := http.NewRequest("GET", cfg().Host+"/filters/foo/dimensions", http.NoBody)
 			So(err, ShouldBeNil)
@@ -1269,7 +1269,7 @@ func TestRequestForwardingMiddleware(t *testing.T) {
 				}, nil
 			}
 
-			filterAPI := api.Setup(conf, mux.NewRouter(), datastoreMock, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, internalDownloadSVCURL, externalDownloadSVCURL, false)
+			filterAPI := api.Setup(conf, mux.NewRouter(), datastoreMock, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, parsedDownloadServiceURL, false)
 
 			r, err := http.NewRequest("GET", cfg().Host+"/filters/foo/dimensions", http.NoBody)
 			So(err, ShouldBeNil)
@@ -1287,7 +1287,7 @@ func TestRequestForwardingMiddleware(t *testing.T) {
 		Convey("When there is a PUT request to /filter-outputs/test-output-id and the filter type is flexible", func() {
 			filterFlexMock, datastoreMock := mock.GenerateMocksForMiddleware(http.StatusOK, 1, "flexible")
 
-			filterAPI := api.Setup(conf, mux.NewRouter(), datastoreMock, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexMock, hostURL, datasetAPIURL, internalDownloadSVCURL, externalDownloadSVCURL, false)
+			filterAPI := api.Setup(conf, mux.NewRouter(), datastoreMock, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexMock, hostURL, datasetAPIURL, parsedDownloadServiceURL, false)
 
 			r, err := http.NewRequest("PUT", cfg().Host+"/filter-outputs/test-output-id", http.NoBody)
 			So(err, ShouldBeNil)
@@ -1305,7 +1305,7 @@ func TestRequestForwardingMiddleware(t *testing.T) {
 			reader := strings.NewReader(`{"dataset":{"version":1, "edition":"1", "id":"1", "type": "other"} }`)
 			filterFlexMock, datastoreMock := mock.GenerateMocksForMiddleware(http.StatusOK, 1, "NOT-flexible")
 
-			filterAPI := api.Setup(conf, mux.NewRouter(), datastoreMock, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexMock, hostURL, datasetAPIURL, internalDownloadSVCURL, externalDownloadSVCURL, false)
+			filterAPI := api.Setup(conf, mux.NewRouter(), datastoreMock, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexMock, hostURL, datasetAPIURL, parsedDownloadServiceURL, false)
 
 			datastoreMock.CreateFilterOutputFunc = func(ctx context.Context, filter *models.Filter) error { return nil }
 
@@ -1340,7 +1340,7 @@ func TestRequestForwardingMiddleware(t *testing.T) {
 				}, nil
 			}
 
-			filterAPI := api.Setup(conf, mux.NewRouter(), datastoreMock, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, internalDownloadSVCURL, externalDownloadSVCURL, false)
+			filterAPI := api.Setup(conf, mux.NewRouter(), datastoreMock, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, parsedDownloadServiceURL, false)
 
 			r, err := http.NewRequest(http.MethodGet, cfg().Host+"/filters/foo/dimensions/bar", http.NoBody)
 			So(err, ShouldBeNil)
@@ -1376,7 +1376,7 @@ func TestRequestForwardingMiddleware(t *testing.T) {
 				}, nil
 			}
 
-			filterAPI := api.Setup(conf, mux.NewRouter(), datastoreMock, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, internalDownloadSVCURL, externalDownloadSVCURL, false)
+			filterAPI := api.Setup(conf, mux.NewRouter(), datastoreMock, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, parsedDownloadServiceURL, false)
 
 			r, err := http.NewRequest(http.MethodGet, cfg().Host+"/filters/foo/dimensions/bar", http.NoBody)
 			So(err, ShouldBeNil)
@@ -1395,7 +1395,7 @@ func TestRequestForwardingMiddleware(t *testing.T) {
 		Convey("When there is a PUT request to /filters/{id} and the filter type is flexible", func() {
 			filterFlexMock, datastoreMock := mock.GenerateMocksForMiddleware(http.StatusOK, 1, "flexible")
 
-			filterAPI := api.Setup(conf, mux.NewRouter(), datastoreMock, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexMock, hostURL, datasetAPIURL, internalDownloadSVCURL, externalDownloadSVCURL, false)
+			filterAPI := api.Setup(conf, mux.NewRouter(), datastoreMock, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexMock, hostURL, datasetAPIURL, parsedDownloadServiceURL, false)
 
 			r, err := http.NewRequest("PUT", cfg().Host+"/filters/test-output-id", http.NoBody)
 			So(err, ShouldBeNil)
@@ -1428,7 +1428,7 @@ func TestRequestForwardingMiddleware(t *testing.T) {
 				}, nil
 			}
 
-			filterAPI := api.Setup(conf, mux.NewRouter(), datastoreMock, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, internalDownloadSVCURL, externalDownloadSVCURL, false)
+			filterAPI := api.Setup(conf, mux.NewRouter(), datastoreMock, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, parsedDownloadServiceURL, false)
 
 			r, err := http.NewRequest(http.MethodPost, cfg().Host+"/filters/foo/dimensions/bar", http.NoBody)
 			So(err, ShouldBeNil)
@@ -1464,7 +1464,7 @@ func TestRequestForwardingMiddleware(t *testing.T) {
 				}, nil
 			}
 
-			filterAPI := api.Setup(conf, mux.NewRouter(), datastoreMock, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, internalDownloadSVCURL, externalDownloadSVCURL, false)
+			filterAPI := api.Setup(conf, mux.NewRouter(), datastoreMock, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, parsedDownloadServiceURL, false)
 
 			r, err := http.NewRequest(http.MethodPost, cfg().Host+"/filters/foo/dimensions/bar", http.NoBody)
 			So(err, ShouldBeNil)
@@ -1498,7 +1498,7 @@ func TestRequestForwardingMiddleware(t *testing.T) {
 				}, nil
 			}
 
-			filterAPI := api.Setup(conf, mux.NewRouter(), datastoreMock, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, internalDownloadSVCURL, externalDownloadSVCURL, false)
+			filterAPI := api.Setup(conf, mux.NewRouter(), datastoreMock, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, parsedDownloadServiceURL, false)
 
 			r, err := http.NewRequest(http.MethodPatch, cfg().Host+"/filters/foo/dimensions/bar", http.NoBody)
 			So(err, ShouldBeNil)
@@ -1534,7 +1534,7 @@ func TestRequestForwardingMiddleware(t *testing.T) {
 				}, nil
 			}
 
-			filterAPI := api.Setup(conf, mux.NewRouter(), datastoreMock, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, internalDownloadSVCURL, externalDownloadSVCURL, false)
+			filterAPI := api.Setup(conf, mux.NewRouter(), datastoreMock, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, parsedDownloadServiceURL, false)
 
 			r, err := http.NewRequest(http.MethodPatch, cfg().Host+"/filters/foo/dimensions/bar", http.NoBody)
 			So(err, ShouldBeNil)
@@ -1568,7 +1568,7 @@ func TestRequestForwardingMiddleware(t *testing.T) {
 				}, nil
 			}
 
-			filterAPI := api.Setup(conf, mux.NewRouter(), datastoreMock, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, internalDownloadSVCURL, externalDownloadSVCURL, false)
+			filterAPI := api.Setup(conf, mux.NewRouter(), datastoreMock, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, parsedDownloadServiceURL, false)
 
 			r, err := http.NewRequest(http.MethodDelete, cfg().Host+"/filters/foo/dimensions/bar", http.NoBody)
 			So(err, ShouldBeNil)
@@ -1604,7 +1604,7 @@ func TestRequestForwardingMiddleware(t *testing.T) {
 				}, nil
 			}
 
-			filterAPI := api.Setup(conf, mux.NewRouter(), datastoreMock, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, internalDownloadSVCURL, externalDownloadSVCURL, false)
+			filterAPI := api.Setup(conf, mux.NewRouter(), datastoreMock, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, parsedDownloadServiceURL, false)
 
 			r, err := http.NewRequest(http.MethodDelete, cfg().Host+"/filters/foo/dimensions/bar", http.NoBody)
 			So(err, ShouldBeNil)
@@ -1638,7 +1638,7 @@ func TestRequestForwardingMiddleware(t *testing.T) {
 				}, nil
 			}
 
-			filterAPI := api.Setup(conf, mux.NewRouter(), datastoreMock, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, internalDownloadSVCURL, externalDownloadSVCURL, false)
+			filterAPI := api.Setup(conf, mux.NewRouter(), datastoreMock, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, parsedDownloadServiceURL, false)
 
 			r, err := http.NewRequest(http.MethodGet, cfg().Host+"/filters/foo/dimensions/bar/options/foobar", http.NoBody)
 			So(err, ShouldBeNil)
@@ -1674,7 +1674,7 @@ func TestRequestForwardingMiddleware(t *testing.T) {
 				}, nil
 			}
 
-			filterAPI := api.Setup(conf, mux.NewRouter(), datastoreMock, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, internalDownloadSVCURL, externalDownloadSVCURL, false)
+			filterAPI := api.Setup(conf, mux.NewRouter(), datastoreMock, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, parsedDownloadServiceURL, false)
 
 			r, err := http.NewRequest(http.MethodGet, cfg().Host+"/filters/foo/dimensions/bar/options/foobar", http.NoBody)
 			So(err, ShouldBeNil)
@@ -1715,7 +1715,7 @@ func TestRequestForwardingMiddleware(t *testing.T) {
 				}, nil
 			}
 
-			filterAPI := api.Setup(conf, mux.NewRouter(), &mock.DataStore{}, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, internalDownloadSVCURL, externalDownloadSVCURL, false)
+			filterAPI := api.Setup(conf, mux.NewRouter(), &mock.DataStore{}, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, parsedDownloadServiceURL, false)
 
 			reader := strings.NewReader(`{"dataset":{"version":1, "edition":"1", "id":"1", "type": "cantabular_flexible_table"} }`)
 			r, err := http.NewRequest("POST", cfg().Host+"/filters", reader)
@@ -1752,7 +1752,7 @@ func TestRequestForwardingMiddleware(t *testing.T) {
 				}, nil
 			}
 
-			filterAPI := api.Setup(conf, mux.NewRouter(), &mock.DataStore{}, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, internalDownloadSVCURL, externalDownloadSVCURL, false)
+			filterAPI := api.Setup(conf, mux.NewRouter(), &mock.DataStore{}, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, parsedDownloadServiceURL, false)
 
 			r, err := http.NewRequest("GET", cfg().Host+"/filters/foo", http.NoBody)
 			So(err, ShouldBeNil)
@@ -1788,7 +1788,7 @@ func TestRequestForwardingMiddleware(t *testing.T) {
 				}, nil
 			}
 
-			filterAPI := api.Setup(conf, mux.NewRouter(), &mock.DataStore{}, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, internalDownloadSVCURL, externalDownloadSVCURL, false)
+			filterAPI := api.Setup(conf, mux.NewRouter(), &mock.DataStore{}, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, parsedDownloadServiceURL, false)
 
 			r, err := http.NewRequest("GET", cfg().Host+"/filters/foo/dimensions", http.NoBody)
 			So(err, ShouldBeNil)
@@ -1806,7 +1806,7 @@ func TestRequestForwardingMiddleware(t *testing.T) {
 		Convey("When a PUT request is made to the filter-outputs/id and the filter type is flexible", func() {
 			filterFlexMock, datastoreMock := mock.GenerateMocksForMiddleware(http.StatusOK, 1, "flexible")
 
-			filterAPI := api.Setup(conf, mux.NewRouter(), datastoreMock, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexMock, hostURL, datasetAPIURL, internalDownloadSVCURL, externalDownloadSVCURL, false)
+			filterAPI := api.Setup(conf, mux.NewRouter(), datastoreMock, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexMock, hostURL, datasetAPIURL, parsedDownloadServiceURL, false)
 
 			reader := strings.NewReader(`{"dataset":{"version":1, "edition":"1", "id":"1", "type": "cantabular_flexible_table"} }`)
 			r, err := http.NewRequest("PUT", cfg().Host+"/filter-outputs/test-output-id", reader)
@@ -1844,7 +1844,7 @@ func TestRequestForwardingMiddleware(t *testing.T) {
 				}, nil
 			}
 
-			filterAPI := api.Setup(conf, mux.NewRouter(), &mock.DataStore{}, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, internalDownloadSVCURL, externalDownloadSVCURL, false)
+			filterAPI := api.Setup(conf, mux.NewRouter(), &mock.DataStore{}, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, parsedDownloadServiceURL, false)
 
 			r, err := http.NewRequest(http.MethodGet, cfg().Host+"/filters/foo/dimensions/bar", http.NoBody)
 			So(err, ShouldBeNil)
@@ -1880,7 +1880,7 @@ func TestRequestForwardingMiddleware(t *testing.T) {
 				}, nil
 			}
 
-			filterAPI := api.Setup(conf, mux.NewRouter(), &mock.DataStore{}, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, internalDownloadSVCURL, externalDownloadSVCURL, false)
+			filterAPI := api.Setup(conf, mux.NewRouter(), &mock.DataStore{}, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, parsedDownloadServiceURL, false)
 
 			r, err := http.NewRequest(http.MethodPost, cfg().Host+"/filters/foo/dimensions/bar", http.NoBody)
 			So(err, ShouldBeNil)
@@ -1916,7 +1916,7 @@ func TestRequestForwardingMiddleware(t *testing.T) {
 				}, nil
 			}
 
-			filterAPI := api.Setup(conf, mux.NewRouter(), &mock.DataStore{}, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, internalDownloadSVCURL, externalDownloadSVCURL, false)
+			filterAPI := api.Setup(conf, mux.NewRouter(), &mock.DataStore{}, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, parsedDownloadServiceURL, false)
 
 			r, err := http.NewRequest(http.MethodPatch, cfg().Host+"/filters/foo/dimensions/bar", http.NoBody)
 			So(err, ShouldBeNil)
@@ -1952,7 +1952,7 @@ func TestRequestForwardingMiddleware(t *testing.T) {
 				}, nil
 			}
 
-			filterAPI := api.Setup(conf, mux.NewRouter(), &mock.DataStore{}, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, internalDownloadSVCURL, externalDownloadSVCURL, false)
+			filterAPI := api.Setup(conf, mux.NewRouter(), &mock.DataStore{}, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, parsedDownloadServiceURL, false)
 
 			r, err := http.NewRequest(http.MethodDelete, cfg().Host+"/filters/foo/dimensions/bar", http.NoBody)
 			So(err, ShouldBeNil)
@@ -1988,7 +1988,7 @@ func TestRequestForwardingMiddleware(t *testing.T) {
 				}, nil
 			}
 
-			filterAPI := api.Setup(conf, mux.NewRouter(), &mock.DataStore{}, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, internalDownloadSVCURL, externalDownloadSVCURL, false)
+			filterAPI := api.Setup(conf, mux.NewRouter(), &mock.DataStore{}, &mock.FilterJob{}, &mock.DatasetAPI{}, filterFlexAPIMock, hostURL, datasetAPIURL, parsedDownloadServiceURL, false)
 
 			r, err := http.NewRequest(http.MethodGet, cfg().Host+"/filters/foo/dimensions/bar/options/foobar", http.NoBody)
 			So(err, ShouldBeNil)

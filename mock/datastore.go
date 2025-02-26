@@ -316,12 +316,12 @@ func (ds *DataStore) GetFilterOutput(ctx context.Context, filterID string) (*mod
 
 	downloads := &models.Downloads{
 		CSV: &models.DownloadItem{
-			HRef:    "ons-test-site.gov.uk/87654321.csv",
+			HRef:    "/filter-outputs/87654321.csv",
 			Private: "csv-private-link",
 			Size:    "12mb",
 		},
 		XLS: &models.DownloadItem{
-			HRef:    "ons-test-site.gov.uk/87654321.xls",
+			HRef:    "/filter-outputs/87654321.xls",
 			Private: "xls-private-link",
 			Size:    "24mb",
 		},

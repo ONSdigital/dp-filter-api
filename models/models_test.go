@@ -152,12 +152,12 @@ func TestValidateFilterOutputDownloadsUpdate(t *testing.T) {
 		"downloads for csv and xls but not public ones", t, func() {
 		downloads := &Downloads{
 			CSV: &DownloadItem{
-				HRef:    "ons-test-site.gov.uk/87654321.csv",
+				HRef:    "/filter-outputs/87654321.csv",
 				Private: "private-link",
 				Size:    "12mb",
 			},
 			XLS: &DownloadItem{
-				HRef:    "ons-test-site.gov.uk/87654321.xls",
+				HRef:    "/filter-outputs/87654321.xls",
 				Private: "private-link",
 				Size:    "24mb",
 			},
@@ -227,13 +227,13 @@ func TestValidateFilterOutputDownloadsUpdate(t *testing.T) {
 	Convey("Given the version is published and the current filter has public downloads link for csv and xls", t, func() {
 		downloads := &Downloads{
 			CSV: &DownloadItem{
-				HRef:    "ons-test-site.gov.uk/87654321.csv",
+				HRef:    "/filter-outputs/87654321.csv",
 				Private: "private-link",
 				Public:  "public-link",
 				Size:    "12mb",
 			},
 			XLS: &DownloadItem{
-				HRef:    "ons-test-site.gov.uk/87654321.xls",
+				HRef:    "/filter-outputs/87654321.xls",
 				Private: "private-link",
 				Public:  "public-link",
 				Size:    "24mb",
