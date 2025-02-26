@@ -16,7 +16,7 @@ require (
 	github.com/ONSdigital/dp-mongodb-in-memory v1.8.0
 	github.com/ONSdigital/dp-mongodb/v3 v3.8.0
 	github.com/ONSdigital/dp-net v1.5.0
-	github.com/ONSdigital/dp-net/v2 v2.21.0
+	github.com/ONSdigital/dp-net/v2 v2.22.0
 	github.com/ONSdigital/dp-otel-go v0.0.8
 	github.com/ONSdigital/go-ns v0.0.0-20241030091535-cc1b11756418
 	github.com/ONSdigital/log.go/v2 v2.4.3

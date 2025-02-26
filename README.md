@@ -57,8 +57,6 @@ Scripts for updating and debugging Kafka can be found [here](https://github.com/
 | DOWNLOAD_SERVICE_URL         | http://localhost:23600                                       | The URL of the download service                                                                                  |
 | DOWNLOAD_SERVICE_SECRET_KEY  | QB0108EZ-825D-412C-9B1D-41EF7747F462                         | The service token for the download service                                                                       |
 | ENABLE_URL_REWRITING         | false                                                        | Feature flag to enable URL rewriting                                                                             |
-| INTERNAL_DOWNLOAD_SERVICE_URL| "http://localhost:23600"                                     | Internal download service URL                                                                                    |
-| EXTERNAL_DOWNLOAD_SERVICE_URL| "http://localhost:23600"                                     | External download service URL                                                                                    |
 
 **Notes:**
 
