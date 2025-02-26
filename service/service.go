@@ -140,14 +140,9 @@ func (svc *Service) Init(ctx context.Context, cfg *config.Config, buildTime, git
 		log.Fatal(ctx, "error parsing Dataset API URL", err, log.Data{"url": cfg.DatasetAPIURL})
 		return err
 	}
-	InternalDownloadServiceURL, err := url.Parse(svc.Cfg.InternalDownloadServiceURL)
+	DownloadServiceURL, err := url.Parse(svc.Cfg.DownloadServiceURL)
 	if err != nil {
-		log.Fatal(ctx, "error parsing Internal Download Service URL", err, log.Data{"url": cfg.DownloadServiceURL})
-		return err
-	}
-	ExternalDownloadServiceURL, err := url.Parse(svc.Cfg.ExternalDownloadServiceURL)
-	if err != nil {
-		log.Fatal(ctx, "error parsing External Download Service URL", err, log.Data{"url": cfg.ExternalDownloadServiceURL})
+		log.Fatal(ctx, "error parsing Download Service URL", err, log.Data{"url": cfg.DownloadServiceURL})
 		return err
 	}
 
@@ -162,8 +157,7 @@ func (svc *Service) Init(ctx context.Context, cfg *config.Config, buildTime, git
 		svc.filterFlexAPI,
 		host,
 		DatasetAPIURL,
-		InternalDownloadServiceURL,
-		ExternalDownloadServiceURL,
+		DownloadServiceURL,
 		svc.Cfg.EnableURLRewriting,
 	)
 	return nil

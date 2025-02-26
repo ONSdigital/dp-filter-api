@@ -37,7 +37,6 @@ func (api *FilterAPI) getFilterOutputHandler(w http.ResponseWriter, r *http.Requ
 	if api.enableURLRewriting {
 		filterAPILinksBuilder := links.FromHeadersOrDefault(&r.Header, api.host)
 		datasetAPILinksBuilder := links.FromHeadersOrDefault(&r.Header, api.DatasetAPIURL)
-		downloadLinksBuilder := links.FromHeadersOrDefaultDownload(&r.Header, api.InternalDownloadServiceURL, api.ExternalDownloadServiceURL)
 
 		if filterOutput.Links.Self != nil && filterOutput.Links.Self.HRef != "" {
 			newLink, err := filterAPILinksBuilder.BuildLink(filterOutput.Links.Self.HRef)
@@ -74,7 +73,7 @@ func (api *FilterAPI) getFilterOutputHandler(w http.ResponseWriter, r *http.Requ
 
 		if filterOutput.Downloads != nil {
 			if filterOutput.Downloads.CSV != nil && filterOutput.Downloads.CSV.HRef != "" {
-				newDownloadLink, err := downloadLinksBuilder.BuildDownloadLink(filterOutput.Downloads.CSV.HRef)
+				newDownloadLink, err := links.BuildDownloadLink(filterOutput.Downloads.CSV.HRef, api.downloadServiceURL)
 				if err != nil {
 					log.Error(ctx, "failed to rewrite CSV download link", err, logData,
 						log.Data{"link_type": "CSV", "original_link": filterOutput.Downloads.CSV.HRef})
@@ -84,7 +83,7 @@ func (api *FilterAPI) getFilterOutputHandler(w http.ResponseWriter, r *http.Requ
 				filterOutput.Downloads.CSV.HRef = newDownloadLink
 			}
 			if filterOutput.Downloads.XLS != nil && filterOutput.Downloads.XLS.HRef != "" {
-				newDownloadLink, err := downloadLinksBuilder.BuildDownloadLink(filterOutput.Downloads.XLS.HRef)
+				newDownloadLink, err := links.BuildDownloadLink(filterOutput.Downloads.XLS.HRef, api.downloadServiceURL)
 				if err != nil {
 					log.Error(ctx, "failed to rewrite XLS download link", err, logData,
 						log.Data{"link_type": "XLS", "original_link": filterOutput.Downloads.XLS.HRef})
@@ -177,7 +176,7 @@ func (api *FilterAPI) updateFilterOutput(ctx context.Context, filterOutputID str
 		filterOutput.Published = &models.Published
 	}
 
-	BuildDownloadsObject(previousFilterOutput, filterOutput, api.downloadServiceURL)
+	BuildDownloadsObject(previousFilterOutput, filterOutput, api.downloadServiceURL.String())
 
 	filterOutput.State = previousFilterOutput.State
 
