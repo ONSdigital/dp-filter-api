@@ -5,35 +5,23 @@ import (
 	"testing"
 
 	"github.com/ONSdigital/dp-filter-api/models"
-	mim "github.com/ONSdigital/dp-mongodb-in-memory"
 	mongoDriver "github.com/ONSdigital/dp-mongodb/v3/mongodb"
 	. "github.com/smartystreets/goconvey/convey"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 func TestGetFilterOutput(t *testing.T) {
 	ctx := context.Background()
-
-	server, err := mim.Start(ctx, "5.0.2")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer server.Stop(ctx)
-
-	client, err := mongo.Connect(ctx, options.Client().ApplyURI(server.URI()))
-	if err != nil {
-		t.Fatal(err)
-	}
+	client := getTestMongoClient(ctx, t)
 
 	sf := createFilterStore(client)
 	collection := client.Database("filters").Collection("filterOutputs")
 
 	Convey("Given a filter output exists in the database", t, func() {
 		f := createFilter()
-		_, err = collection.InsertOne(ctx, f)
+		_, err := collection.InsertOne(ctx, f)
 		if err != nil {
 			t.Fatal(err)
 		}
