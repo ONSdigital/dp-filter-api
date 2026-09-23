@@ -138,7 +138,7 @@ func (s *FilterStore) UpdateFilter(ctx context.Context, updatedFilter *models.Fi
 }
 
 // GetFilterDimension return a single dimension, along with the filter eTag hash
-func (s *FilterStore) GetFilterDimension(ctx context.Context, filterID string, name, eTagSelector string) (*models.Dimension, error) {
+func (s *FilterStore) GetFilterDimension(ctx context.Context, filterID, name, eTagSelector string) (*models.Dimension, error) {
 	var result models.Filter
 	err := s.Connection.Collection(s.ActualCollectionName(config.FiltersCollection)).FindOne(
 		ctx,
@@ -276,7 +276,7 @@ func (s *FilterStore) AddFilterDimensionOptions(ctx context.Context, filterID, n
 }
 
 // RemoveFilterDimensionOption from a filter
-func (s *FilterStore) RemoveFilterDimensionOption(ctx context.Context, filterID string, name string, option string, timestamp primitive.Timestamp, eTagSelector string, currentFilter *models.Filter) (string, error) {
+func (s *FilterStore) RemoveFilterDimensionOption(ctx context.Context, filterID, name, option string, timestamp primitive.Timestamp, eTagSelector string, currentFilter *models.Filter) (string, error) {
 	// define selector query
 	selector := selector(filterID, name, timestamp, eTagSelector)
 
@@ -314,7 +314,7 @@ func (s *FilterStore) RemoveFilterDimensionOption(ctx context.Context, filterID 
 }
 
 // RemoveFilterDimensionOptions removes the provided options from a filter. If an error happens, it is returned.
-func (s *FilterStore) RemoveFilterDimensionOptions(ctx context.Context, filterID string, name string, options []string, timestamp primitive.Timestamp, eTagSelector string, currentFilter *models.Filter) (string, error) {
+func (s *FilterStore) RemoveFilterDimensionOptions(ctx context.Context, filterID, name string, options []string, timestamp primitive.Timestamp, eTagSelector string, currentFilter *models.Filter) (string, error) {
 	// define selector query
 	selector := selector(filterID, name, timestamp, eTagSelector)
 

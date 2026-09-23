@@ -92,26 +92,26 @@ func (api *FilterAPI) getFilterBlueprintDimensionOptionsHandler(w http.ResponseW
 			if link == nil {
 				return nil
 			}
-			newLink, err := filterAPILinksBuilder.BuildLink(link.HRef)
-			if err != nil {
-				log.Error(ctx, "failed to rewrite dimension option links", err, logData)
-				return err
+			newLink, linkErr := filterAPILinksBuilder.BuildLink(link.HRef)
+			if linkErr != nil {
+				log.Error(ctx, "failed to rewrite dimension option links", linkErr, logData)
+				return linkErr
 			}
 			link.HRef = newLink
 			return nil
 		}
 
 		for i := range options.Items {
-			if err := updateLink(options.Items[i].Links.Self); err != nil {
-				setErrorCode(w, err)
+			if linkErr := updateLink(options.Items[i].Links.Self); linkErr != nil {
+				setErrorCode(w, linkErr)
 				return
 			}
-			if err := updateLink(options.Items[i].Links.Filter); err != nil {
-				setErrorCode(w, err)
+			if linkErr := updateLink(options.Items[i].Links.Filter); linkErr != nil {
+				setErrorCode(w, linkErr)
 				return
 			}
-			if err := updateLink(options.Items[i].Links.Dimension); err != nil {
-				setErrorCode(w, err)
+			if linkErr := updateLink(options.Items[i].Links.Dimension); linkErr != nil {
+				setErrorCode(w, linkErr)
 				return
 			}
 		}
@@ -152,38 +152,40 @@ func slice(full []string, offset, limit int) (sliced []string) {
 
 func (api *FilterAPI) getFilterBlueprintDimensionOptions(_ context.Context, filter *models.Filter, dimensionName string, offset, limit int) (options *models.PublicDimensionOptions, err error) {
 	for _, dimension := range filter.Dimensions {
-		if dimension.Name == dimensionName {
-			options = &models.PublicDimensionOptions{
-				Items:      []*models.PublicDimensionOption{},
-				TotalCount: len(dimension.Options),
-				Offset:     offset,
-				Limit:      limit,
-			}
-
-			// sort alphabetically and cut according to limit and offset
-			sort.Strings(dimension.Options)
-			dimension.Options = slice(dimension.Options, offset, limit)
-
-			dimLink := fmt.Sprintf("%s/filters/%s/dimensions/%s", api.host, filter.FilterID, dimension.Name)
-			filterObject := &models.LinkObject{
-				HRef: fmt.Sprintf("%s/filters/%s", api.host, filter.FilterID),
-				ID:   filter.FilterID,
-			}
-
-			for _, option := range dimension.Options {
-				dimensionOption := &models.PublicDimensionOption{
-					Links: &models.PublicDimensionOptionLinkMap{
-						Self:      &models.LinkObject{HRef: dimLink + "/options/" + option, ID: option},
-						Dimension: &models.LinkObject{HRef: dimLink, ID: dimension.Name},
-						Filter:    filterObject,
-					},
-					Option: option,
-				}
-				options.Items = append(options.Items, dimensionOption)
-			}
-			options.Count = len(options.Items)
-			return options, nil
+		if dimension.Name != dimensionName {
+			continue
 		}
+
+		options = &models.PublicDimensionOptions{
+			Items:      []*models.PublicDimensionOption{},
+			TotalCount: len(dimension.Options),
+			Offset:     offset,
+			Limit:      limit,
+		}
+
+		// sort alphabetically and cut according to limit and offset
+		sort.Strings(dimension.Options)
+		dimension.Options = slice(dimension.Options, offset, limit)
+
+		dimLink := fmt.Sprintf("%s/filters/%s/dimensions/%s", api.host, filter.FilterID, dimension.Name)
+		filterObject := &models.LinkObject{
+			HRef: fmt.Sprintf("%s/filters/%s", api.host, filter.FilterID),
+			ID:   filter.FilterID,
+		}
+
+		for _, option := range dimension.Options {
+			dimensionOption := &models.PublicDimensionOption{
+				Links: &models.PublicDimensionOptionLinkMap{
+					Self:      &models.LinkObject{HRef: dimLink + "/options/" + option, ID: option},
+					Dimension: &models.LinkObject{HRef: dimLink, ID: dimension.Name},
+					Filter:    filterObject,
+				},
+				Option: option,
+			}
+			options.Items = append(options.Items, dimensionOption)
+		}
+		options.Count = len(options.Items)
+		return options, nil
 	}
 
 	return nil, filters.ErrDimensionNotFound
@@ -228,13 +230,13 @@ func (api *FilterAPI) getFilterBlueprintDimensionOptionHandler(w http.ResponseWr
 
 		for _, linkObj := range linkFields {
 			if linkObj != nil && linkObj.HRef != "" {
-				newLink, err := filterAPILinksBuilder.BuildLink(linkObj.HRef)
-				if err != nil {
+				newLink, linkErr := filterAPILinksBuilder.BuildLink(linkObj.HRef)
+				if linkErr != nil {
 					logData["failed_link"] = map[string]string{
 						"href": linkObj.ID,
 					}
-					log.Error(ctx, "failed to rewrite dimension option links", err, logData)
-					setErrorCode(w, err)
+					log.Error(ctx, "failed to rewrite dimension option links", linkErr, logData)
+					setErrorCode(w, linkErr)
 					return
 				}
 				linkObj.HRef = newLink
@@ -271,25 +273,27 @@ func (api *FilterAPI) getFilterBlueprintDimensionOption(_ context.Context, filte
 		if d.Name == dimensionName {
 			dimensionFound = true
 			for _, o := range d.Options {
-				if o == option {
-					optionFound = true
-
-					dimLink := fmt.Sprintf("%s/filters/%s/dimensions/%s", api.host, filter.FilterID, d.Name)
-					filterObject := &models.LinkObject{
-						HRef: fmt.Sprintf("%s/filters/%s", api.host, filter.FilterID),
-						ID:   filter.FilterID,
-					}
-
-					dimensionOption = &models.PublicDimensionOption{
-						Links: &models.PublicDimensionOptionLinkMap{
-							Self:      &models.LinkObject{HRef: dimLink + "/options/" + option, ID: option},
-							Dimension: &models.LinkObject{HRef: dimLink, ID: d.Name},
-							Filter:    filterObject,
-						},
-						Option: option,
-					}
-					break
+				if o != option {
+					continue
 				}
+
+				optionFound = true
+
+				dimLink := fmt.Sprintf("%s/filters/%s/dimensions/%s", api.host, filter.FilterID, d.Name)
+				filterObject := &models.LinkObject{
+					HRef: fmt.Sprintf("%s/filters/%s", api.host, filter.FilterID),
+					ID:   filter.FilterID,
+				}
+
+				dimensionOption = &models.PublicDimensionOption{
+					Links: &models.PublicDimensionOptionLinkMap{
+						Self:      &models.LinkObject{HRef: dimLink + "/options/" + option, ID: option},
+						Dimension: &models.LinkObject{HRef: dimLink, ID: d.Name},
+						Filter:    filterObject,
+					},
+					Option: option,
+				}
+				break
 			}
 			break
 		}
@@ -543,8 +547,8 @@ func (api *FilterAPI) patchFilterBlueprintDimensionHandler(w http.ResponseWriter
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-		v2, err := getStringArrayFromInterface(patch.Value)
-		if err != nil {
+		v2, valueErr := getStringArrayFromInterface(patch.Value)
+		if valueErr != nil {
 			err = fmt.Errorf("values provided are not strings")
 			log.Error(ctx, "error validating patch operation path, no change has been applied", err, logData)
 			http.Error(w, err.Error(), http.StatusBadRequest)
@@ -644,9 +648,7 @@ func setErrorCodeFromError(w http.ResponseWriter, err error) {
 	switch err {
 	case filters.ErrFilterBlueprintNotFound:
 		setErrorCode(w, err, statusBadRequest)
-	case filters.ErrDimensionsNotFound:
-		fallthrough
-	case filters.ErrVersionNotFound:
+	case filters.ErrDimensionsNotFound, filters.ErrVersionNotFound:
 		setErrorCode(w, err, statusUnprocessableEntity)
 	default:
 		setErrorCode(w, err)
@@ -658,9 +660,7 @@ func setErrorCodeFromErrorExpectDimension(w http.ResponseWriter, err error) {
 	switch err {
 	case filters.ErrFilterBlueprintNotFound, filters.ErrInvalidQueryParameter, filters.ErrDimensionNotFound:
 		setErrorCode(w, err, statusBadRequest)
-	case filters.ErrDimensionsNotFound:
-		fallthrough
-	case filters.ErrVersionNotFound:
+	case filters.ErrDimensionsNotFound, filters.ErrVersionNotFound:
 		setErrorCode(w, err, statusUnprocessableEntity)
 	default:
 		setErrorCode(w, err)

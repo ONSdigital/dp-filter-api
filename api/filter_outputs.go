@@ -39,33 +39,33 @@ func (api *FilterAPI) getFilterOutputHandler(w http.ResponseWriter, r *http.Requ
 		datasetAPILinksBuilder := links.FromHeadersOrDefault(&r.Header, api.DatasetAPIURL)
 
 		if filterOutput.Links.Self != nil && filterOutput.Links.Self.HRef != "" {
-			newLink, err := filterAPILinksBuilder.BuildLink(filterOutput.Links.Self.HRef)
-			if err != nil {
-				log.Error(ctx, "failed to rewrite filter output self link", err, logData,
+			newLink, linkErr := filterAPILinksBuilder.BuildLink(filterOutput.Links.Self.HRef)
+			if linkErr != nil {
+				log.Error(ctx, "failed to rewrite filter output self link", linkErr, logData,
 					log.Data{"link_type": "Self", "original_link": filterOutput.Links.Self.HRef})
-				setErrorCode(w, err)
+				setErrorCode(w, linkErr)
 				return
 			}
 			filterOutput.Links.Self.HRef = newLink
 		}
 
 		if filterOutput.Links.FilterBlueprint != nil && filterOutput.Links.FilterBlueprint.HRef != "" {
-			newLink, err := filterAPILinksBuilder.BuildLink(filterOutput.Links.FilterBlueprint.HRef)
-			if err != nil {
-				log.Error(ctx, "failed to rewrite filter output filterBlueprint link", err, logData,
+			newLink, linkErr := filterAPILinksBuilder.BuildLink(filterOutput.Links.FilterBlueprint.HRef)
+			if linkErr != nil {
+				log.Error(ctx, "failed to rewrite filter output filterBlueprint link", linkErr, logData,
 					log.Data{"link_type": "FilterBlueprint", "original_link": filterOutput.Links.FilterBlueprint.HRef})
-				setErrorCode(w, err)
+				setErrorCode(w, linkErr)
 				return
 			}
 			filterOutput.Links.FilterBlueprint.HRef = newLink
 		}
 
 		if filterOutput.Links.Version != nil && filterOutput.Links.Version.HRef != "" {
-			newLink, err := datasetAPILinksBuilder.BuildLink(filterOutput.Links.Version.HRef)
-			if err != nil {
-				log.Error(ctx, "failed to rewrite filter output version link", err, logData,
+			newLink, linkErr := datasetAPILinksBuilder.BuildLink(filterOutput.Links.Version.HRef)
+			if linkErr != nil {
+				log.Error(ctx, "failed to rewrite filter output version link", linkErr, logData,
 					log.Data{"link_type": "Version", "original_link": filterOutput.Links.Version.HRef})
-				setErrorCode(w, err)
+				setErrorCode(w, linkErr)
 				return
 			}
 			filterOutput.Links.Version.HRef = newLink
@@ -73,21 +73,21 @@ func (api *FilterAPI) getFilterOutputHandler(w http.ResponseWriter, r *http.Requ
 
 		if filterOutput.Downloads != nil {
 			if filterOutput.Downloads.CSV != nil && filterOutput.Downloads.CSV.HRef != "" {
-				newDownloadLink, err := links.BuildDownloadLink(filterOutput.Downloads.CSV.HRef, api.downloadServiceURL)
-				if err != nil {
-					log.Error(ctx, "failed to rewrite CSV download link", err, logData,
+				newDownloadLink, linkErr := links.BuildDownloadLink(filterOutput.Downloads.CSV.HRef, api.downloadServiceURL)
+				if linkErr != nil {
+					log.Error(ctx, "failed to rewrite CSV download link", linkErr, logData,
 						log.Data{"link_type": "CSV", "original_link": filterOutput.Downloads.CSV.HRef})
-					setErrorCode(w, err)
+					setErrorCode(w, linkErr)
 					return
 				}
 				filterOutput.Downloads.CSV.HRef = newDownloadLink
 			}
 			if filterOutput.Downloads.XLS != nil && filterOutput.Downloads.XLS.HRef != "" {
-				newDownloadLink, err := links.BuildDownloadLink(filterOutput.Downloads.XLS.HRef, api.downloadServiceURL)
-				if err != nil {
-					log.Error(ctx, "failed to rewrite XLS download link", err, logData,
+				newDownloadLink, linkErr := links.BuildDownloadLink(filterOutput.Downloads.XLS.HRef, api.downloadServiceURL)
+				if linkErr != nil {
+					log.Error(ctx, "failed to rewrite XLS download link", linkErr, logData,
 						log.Data{"link_type": "XLS", "original_link": filterOutput.Downloads.XLS.HRef})
-					setErrorCode(w, err)
+					setErrorCode(w, linkErr)
 					return
 				}
 				filterOutput.Downloads.XLS.HRef = newDownloadLink

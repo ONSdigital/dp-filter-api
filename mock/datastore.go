@@ -359,7 +359,7 @@ func (ds *DataStore) RemoveFilterDimension(ctx context.Context, filterID, name s
 }
 
 // RemoveFilterDimensionOption represents the mocked version of removing a filter dimension option from the datastore
-func (ds *DataStore) RemoveFilterDimensionOption(ctx context.Context, filterID string, name string, option string, timestamp primitive.Timestamp, eTagSelector string, currentFilter *models.Filter) (newETag string, err error) {
+func (ds *DataStore) RemoveFilterDimensionOption(ctx context.Context, filterID, name, option string, timestamp primitive.Timestamp, eTagSelector string, currentFilter *models.Filter) (newETag string, err error) {
 	if ds.Cfg.InternalError {
 		return "", errorInternalServer
 	}
@@ -380,7 +380,7 @@ func (ds *DataStore) RemoveFilterDimensionOption(ctx context.Context, filterID s
 }
 
 // RemoveFilterDimensionOptions represents the mocked version of removing a set of filter dimension options from the datastore
-func (ds *DataStore) RemoveFilterDimensionOptions(ctx context.Context, filterID string, name string, options []string, timestamp primitive.Timestamp, eTagSelector string, currentFilter *models.Filter) (newETag string, err error) {
+func (ds *DataStore) RemoveFilterDimensionOptions(ctx context.Context, filterID, name string, options []string, timestamp primitive.Timestamp, eTagSelector string, currentFilter *models.Filter) (newETag string, err error) {
 	if ds.Cfg.InternalError {
 		return "", errorInternalServer
 	}

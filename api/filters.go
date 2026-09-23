@@ -15,7 +15,7 @@ import (
 	"github.com/ONSdigital/dp-filter-api/mongo"
 	dphttp "github.com/ONSdigital/dp-net/http"
 	dprequest "github.com/ONSdigital/dp-net/request"
-	"github.com/ONSdigital/dp-net/v2/links"
+	dplinks "github.com/ONSdigital/dp-net/v2/links"
 	"github.com/ONSdigital/log.go/v2/log"
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
@@ -191,59 +191,59 @@ func (api *FilterAPI) getFilterBlueprintHandler(w http.ResponseWriter, r *http.R
 	logData["filter_blueprint"] = filterBlueprint
 
 	if api.enableURLRewriting {
-		filterAPILinksBuilder := links.FromHeadersOrDefault(&r.Header, api.host)
-		datasetAPILinksBuilder := links.FromHeadersOrDefault(&r.Header, api.DatasetAPIURL)
+		filterAPILinksBuilder := dplinks.FromHeadersOrDefault(&r.Header, api.host)
+		datasetAPILinksBuilder := dplinks.FromHeadersOrDefault(&r.Header, api.DatasetAPIURL)
 
 		if filterBlueprint.Links.Dimensions != nil && filterBlueprint.Links.Dimensions.HRef != "" {
-			newLink, err := filterAPILinksBuilder.BuildLink(filterBlueprint.Links.Dimensions.HRef)
-			if err != nil {
-				log.Error(ctx, "failed to rewrite filter blueprint dimensions link", err, logData,
+			newLink, linkErr := filterAPILinksBuilder.BuildLink(filterBlueprint.Links.Dimensions.HRef)
+			if linkErr != nil {
+				log.Error(ctx, "failed to rewrite filter blueprint dimensions link", linkErr, logData,
 					log.Data{"link_type": "Dimensions", "original_link": filterBlueprint.Links.Dimensions.HRef})
-				setErrorCode(w, err)
+				setErrorCode(w, linkErr)
 				return
 			}
 			filterBlueprint.Links.Dimensions.HRef = newLink
 		}
 
 		if filterBlueprint.Links.FilterOutput != nil && filterBlueprint.Links.FilterOutput.HRef != "" {
-			newLink, err := filterAPILinksBuilder.BuildLink(filterBlueprint.Links.FilterOutput.HRef)
-			if err != nil {
-				log.Error(ctx, "failed to rewrite filter blueprint filterOutput link", err, logData,
+			newLink, linkErr := filterAPILinksBuilder.BuildLink(filterBlueprint.Links.FilterOutput.HRef)
+			if linkErr != nil {
+				log.Error(ctx, "failed to rewrite filter blueprint filterOutput link", linkErr, logData,
 					log.Data{"link_type": "FilterOutput", "original_link": filterBlueprint.Links.FilterOutput.HRef})
-				setErrorCode(w, err)
+				setErrorCode(w, linkErr)
 				return
 			}
 			filterBlueprint.Links.FilterOutput.HRef = newLink
 		}
 
 		if filterBlueprint.Links.FilterBlueprint != nil && filterBlueprint.Links.FilterBlueprint.HRef != "" {
-			newLink, err := filterAPILinksBuilder.BuildLink(filterBlueprint.Links.FilterBlueprint.HRef)
-			if err != nil {
-				log.Error(ctx, "failed to rewrite filter blueprint filterBlueprint link", err, logData,
+			newLink, linkErr := filterAPILinksBuilder.BuildLink(filterBlueprint.Links.FilterBlueprint.HRef)
+			if linkErr != nil {
+				log.Error(ctx, "failed to rewrite filter blueprint filterBlueprint link", linkErr, logData,
 					log.Data{"link_type": "FilterBlueprint", "original_link": filterBlueprint.Links.FilterBlueprint.HRef})
-				setErrorCode(w, err)
+				setErrorCode(w, linkErr)
 				return
 			}
 			filterBlueprint.Links.FilterBlueprint.HRef = newLink
 		}
 
 		if filterBlueprint.Links.Self != nil && filterBlueprint.Links.Self.HRef != "" {
-			newLink, err := filterAPILinksBuilder.BuildLink(filterBlueprint.Links.Self.HRef)
-			if err != nil {
-				log.Error(ctx, "failed to rewrite filter blueprint self link", err, logData,
+			newLink, linkErr := filterAPILinksBuilder.BuildLink(filterBlueprint.Links.Self.HRef)
+			if linkErr != nil {
+				log.Error(ctx, "failed to rewrite filter blueprint self link", linkErr, logData,
 					log.Data{"link_type": "Self", "original_link": filterBlueprint.Links.Self.HRef})
-				setErrorCode(w, err)
+				setErrorCode(w, linkErr)
 				return
 			}
 			filterBlueprint.Links.Self.HRef = newLink
 		}
 
 		if filterBlueprint.Links.Version != nil && filterBlueprint.Links.Version.HRef != "" {
-			newLink, err := datasetAPILinksBuilder.BuildLink(filterBlueprint.Links.Version.HRef)
-			if err != nil {
-				log.Error(ctx, "failed to rewrite filter blueprint version link", err, logData,
+			newLink, linkErr := datasetAPILinksBuilder.BuildLink(filterBlueprint.Links.Version.HRef)
+			if linkErr != nil {
+				log.Error(ctx, "failed to rewrite filter blueprint version link", linkErr, logData,
 					log.Data{"link_type": "Version", "original_link": filterBlueprint.Links.Version.HRef})
-				setErrorCode(w, err)
+				setErrorCode(w, linkErr)
 				return
 			}
 			filterBlueprint.Links.Version.HRef = newLink
@@ -367,7 +367,8 @@ func (api *FilterAPI) updateFilterBlueprint(ctx context.Context, filter *models.
 	if versionHasChanged {
 		log.Info(ctx, "finding new version details for filter after version change", logData)
 
-		version, err := api.getVersion(ctx, newFilter.Dataset)
+		var version *datasetAPI.Version
+		version, err = api.getVersion(ctx, newFilter.Dataset)
 		if err != nil {
 			log.Error(ctx, "unable to retrieve version document", err, logData)
 			return nil, filters.NewBadRequestErr(err.Error())
@@ -711,9 +712,7 @@ func setErrorCode(w http.ResponseWriter, err error, typ ...string) {
 		}
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
-	case filters.ErrDimensionsNotFound:
-		fallthrough
-	case filters.ErrVersionNotFound:
+	case filters.ErrDimensionsNotFound, filters.ErrVersionNotFound:
 		if typ != nil {
 			if typ[0] == statusBadRequest {
 				http.Error(w, err.Error(), http.StatusBadRequest)
@@ -726,9 +725,7 @@ func setErrorCode(w http.ResponseWriter, err error, typ ...string) {
 		}
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
-	case filters.ErrDimensionOptionNotFound:
-		fallthrough
-	case filters.ErrFilterOutputNotFound:
+	case filters.ErrDimensionOptionNotFound, filters.ErrFilterOutputNotFound:
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	case filters.ErrUnauthorised:

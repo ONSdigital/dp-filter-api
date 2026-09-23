@@ -119,7 +119,7 @@ func (svc *Service) Init(ctx context.Context, cfg *config.Config, buildTime, git
 		return err
 	}
 	svc.HealthCheck = GetHealthCheck(versionInfo, svc.Cfg.HealthCheckCriticalTimeout, svc.Cfg.HealthCheckInterval)
-	if err := svc.registerCheckers(ctx); err != nil {
+	if err = svc.registerCheckers(ctx); err != nil {
 		return errors.Wrap(err, "unable to register checkers")
 	}
 
@@ -291,12 +291,12 @@ func (svc *Service) registerCheckers(ctx context.Context) (err error) {
 	// generic register checker method - if dependency is nil, a failing healthcheck will be created.
 	registerChecker := func(name string, dependency Dependency) {
 		criticalHandler := func(ctx context.Context, state *healthcheck.CheckState) error {
-			err := errors.New(fmt.Sprintf("%s not initialised", strings.ToLower(name)))
-			if updateErr := state.Update(healthcheck.StatusCritical, err.Error(), 0); updateErr != nil {
+			initialisationErr := errors.New(fmt.Sprintf("%s not initialised", strings.ToLower(name)))
+			if updateErr := state.Update(healthcheck.StatusCritical, initialisationErr.Error(), 0); updateErr != nil {
 				log.Error(ctx, "failed to update healthcheck state", updateErr)
 				return updateErr
 			}
-			return err
+			return initialisationErr
 		}
 
 		// set / register the failing healthcheck

@@ -1,6 +1,7 @@
 package models
 
 import (
+	//nolint:gosec // SHA-1 is used for uniqueness and performance, not security
 	"crypto/sha1"
 	"encoding/json"
 	"errors"
@@ -65,6 +66,7 @@ type Filter struct {
 // An optional byte array can be provided to append to the hash.
 // This can be used, for example, to calculate a hash of this filter and an update applied to it.
 func (filter *Filter) Hash(extraBytes []byte) (string, error) {
+	//nolint:gosec // SHA-1 is used for uniqueness and performance, not security
 	h := sha1.New()
 
 	// copy by value to ignore ETag without affecting f

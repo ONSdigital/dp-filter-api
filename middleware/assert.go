@@ -117,7 +117,8 @@ func (a *Assert) DatasetType(next http.Handler) http.Handler {
 
 		r.Body = io.NopCloser(buf)
 
-		if d.Type == cantabularFlexibleTable || d.Type == cantabularMultivariateTable {
+		switch d.Type {
+		case cantabularFlexibleTable, cantabularMultivariateTable:
 			if err := a.doProxyRequest(w, r); err != nil {
 				a.respond.Error(ctx, w, filters.GetErrorStatusCode(err), er{
 					err: errors.Wrap(err, "failed to do proxy request"),
@@ -125,7 +126,7 @@ func (a *Assert) DatasetType(next http.Handler) http.Handler {
 				})
 			}
 			return
-		} else if d.Type == cantabularTable {
+		case cantabularTable:
 			a.respond.Error(ctx, w, http.StatusBadRequest, errors.New("invalid dataset type"))
 			return
 		}

@@ -15,19 +15,19 @@ func TestRemoveDuplicateEvents(t *testing.T) {
 		}
 
 		Convey("When filter a new filter provides no events", func() {
-			new := &Filter{
+			newFilter := &Filter{
 				ID:     "1234",
 				Events: []*Event{},
 			}
 
 			Convey("Then the result should still be empty", func() {
-				new.RemoveDuplicateEvents(current)
-				So(len(new.Events), ShouldEqual, 0)
+				newFilter.RemoveDuplicateEvents(current)
+				So(len(newFilter.Events), ShouldEqual, 0)
 			})
 		})
 
 		Convey("When filter a new filter provides events", func() {
-			new := &Filter{
+			newFilter := &Filter{
 				Events: []*Event{
 					{
 						Type: "Event1",
@@ -37,8 +37,8 @@ func TestRemoveDuplicateEvents(t *testing.T) {
 			}
 
 			Convey("Then all of them should be kept", func() {
-				new.RemoveDuplicateEvents(current)
-				So(len(new.Events), ShouldEqual, 1)
+				newFilter.RemoveDuplicateEvents(current)
+				So(len(newFilter.Events), ShouldEqual, 1)
 			})
 		})
 	})
@@ -59,14 +59,14 @@ func TestRemoveDuplicateEvents(t *testing.T) {
 		}
 
 		Convey("When filter a new filter provides no events", func() {
-			new := &Filter{
+			newFilter := &Filter{
 				ID:     "1234",
 				Events: []*Event{},
 			}
 
 			Convey("Then the result should be empty", func() {
-				new.RemoveDuplicateEvents(current)
-				So(len(new.Events), ShouldEqual, 0)
+				newFilter.RemoveDuplicateEvents(current)
+				So(len(newFilter.Events), ShouldEqual, 0)
 			})
 		})
 
@@ -75,25 +75,25 @@ func TestRemoveDuplicateEvents(t *testing.T) {
 				Type: "New Event",
 				Time: time.Now(),
 			}
-			new := &Filter{
+			newFilter := &Filter{
 				Events: []*Event{newE},
 			}
 
 			Convey("Then the new event should be kept", func() {
-				new.RemoveDuplicateEvents(current)
-				So(len(new.Events), ShouldEqual, 1)
-				So(new.Events[0], ShouldEqual, newE)
+				newFilter.RemoveDuplicateEvents(current)
+				So(len(newFilter.Events), ShouldEqual, 1)
+				So(newFilter.Events[0], ShouldEqual, newE)
 			})
 		})
 
 		Convey("When filter a new filter provides an existing event", func() {
-			new := &Filter{
+			newFilter := &Filter{
 				Events: []*Event{e1},
 			}
 
 			Convey("Then the result should be empty", func() {
-				new.RemoveDuplicateEvents(current)
-				So(len(new.Events), ShouldEqual, 0)
+				newFilter.RemoveDuplicateEvents(current)
+				So(len(newFilter.Events), ShouldEqual, 0)
 			})
 		})
 	})

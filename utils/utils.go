@@ -2,7 +2,7 @@ package utils
 
 // CreateArray creates an array of keys from the provided map
 func CreateArray(m map[string]struct{}) []string {
-	array := []string{}
+	array := make([]string, 0, len(m))
 	for k := range m {
 		array = append(array, k)
 	}

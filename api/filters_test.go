@@ -725,7 +725,6 @@ func TestSuccessfulUpdateFilterBlueprint_PublishedDataset(t *testing.T) {
 	t.Parallel()
 
 	Convey("Given a published dataset", t, func() {
-		testETag := "testETag"
 		testETagUpdated := "testETagUpdated"
 		w := httptest.NewRecorder()
 

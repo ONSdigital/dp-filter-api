@@ -121,12 +121,12 @@ func (api *FilterAPI) getFilterBlueprintDimensionsHandler(w http.ResponseWriter,
 
 			for linkType, linkObj := range linkFields {
 				if linkObj != nil && linkObj.HRef != "" {
-					newLink, err := filterAPILinksBuilder.BuildLink(linkObj.HRef)
-					if err != nil {
+					newLink, linkErr := filterAPILinksBuilder.BuildLink(linkObj.HRef)
+					if linkErr != nil {
 						logData["link_type"] = linkType
 						logData["original_link"] = linkObj.HRef
-						log.Error(ctx, "failed to rewrite filter dimension links", err, logData)
-						setErrorCode(w, err)
+						log.Error(ctx, "failed to rewrite filter dimension links", linkErr, logData)
+						setErrorCode(w, linkErr)
 						return
 					}
 					linkObj.HRef = newLink
@@ -195,12 +195,12 @@ func (api *FilterAPI) getFilterBlueprintDimensionHandler(w http.ResponseWriter, 
 
 		for linkType, linkObj := range linkFields {
 			if linkObj != nil && linkObj.HRef != "" {
-				newLink, err := filterAPILinksBuilder.BuildLink(linkObj.HRef)
-				if err != nil {
+				newLink, linkErr := filterAPILinksBuilder.BuildLink(linkObj.HRef)
+				if linkErr != nil {
 					logData["link_type"] = linkType
 					logData["original_link"] = linkObj.HRef
-					log.Error(ctx, "failed to rewrite public dimension link", err, logData)
-					setErrorCode(w, err)
+					log.Error(ctx, "failed to rewrite public dimension link", linkErr, logData)
+					setErrorCode(w, linkErr)
 					return
 				}
 				linkObj.HRef = newLink
@@ -476,7 +476,7 @@ func (api *FilterAPI) checkNewFilterDimensionOptions(ctx context.Context, dimens
 
 // CreatePublicDimensions wraps CreatePublicDimension for converting arrays of dimensions
 func CreatePublicDimensions(inputDimensions []models.Dimension, host, filterID string) []*models.PublicDimension {
-	outputDimensions := make([]*models.PublicDimension, 0)
+	outputDimensions := make([]*models.PublicDimension, 0, len(inputDimensions))
 	for _, inputDimension := range inputDimensions {
 		publicDimension := CreatePublicDimension(inputDimension, host, filterID)
 		outputDimensions = append(outputDimensions, publicDimension)
