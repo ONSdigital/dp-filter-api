@@ -78,6 +78,12 @@ To run the acceptance tests for this project, use the following commands
 * Run the dp-filter-api using `make acceptance`
 * Run the tests in dp-api-test
 
+### Python SDK
+
+The Python SDK provides a client for interacting with dp-filter-api endpoints.
+
+See the [Python SDK documentation](sdk/python/README.md) for details.
+
 ### Contributing
 
 See [CONTRIBUTING](CONTRIBUTING.md) for details.
