@@ -15,9 +15,16 @@ export GRAPH_ADDR?=bolt://localhost:7687
 .PHONY: all
 all: audit test build
 
-.PHONY: audit
-audit:
+.PHONY: audit-go
+audit-go:
 	dis-vulncheck
+
+.PHONY: audit-python
+audit-python:
+	$(MAKE) -C sdk/python audit
+
+.PHONY: audit
+audit: audit-go audit-python
 
 .PHONY: build
 build:
@@ -28,9 +35,24 @@ build:
 debug:
 	HUMAN_LOG=1 go run $(LDFLAGS) -race cmd/$(MAIN)/main.go
 
-.PHONY: lint
-lint:
+.PHONY: lint-go
+lint-go:
 	golangci-lint run ./...
+
+.PHONY: lint-python
+lint-python:
+	$(MAKE) -C sdk/python lint
+
+.PHONY: lint-python-types
+lint-python-types:
+	$(MAKE) -C sdk/python typecheck
+
+.PHONY: lint
+lint: lint-go lint-python lint-python-types
+
+.PHONY: format-python
+format-python:
+	$(MAKE) -C sdk/python format
 
 .PHONY: test-component
 test-component:
@@ -44,7 +66,13 @@ acceptance-publishing:
 acceptance-web:
 	ENABLE_PRIVATE_ENDPOINTS=false MONGODB_FILTERS_DATABASE=test HUMAN_LOG=1 go run $(LDFLAGS) -race cmd/$(MAIN)/main.go
 
-.PHONY: test
-test:
+.PHONY: test-go
+test-go:
 	go test -cover -race ./...
-.PHONY: build debug acceptance test
+
+.PHONY: test-python
+test-python:
+	$(MAKE) -C sdk/python test
+
+.PHONY: test
+test: test-go test-python
