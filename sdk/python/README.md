@@ -204,7 +204,7 @@ except APIError as error:
     print(f"API request failed: {error}; status={error.status_code}")
 ```
 
-> **Note:**: Network errors are also wrapped as an `APIError` but the `status_code` is `None`.
+> **Note:** Network errors are also wrapped as an `APIError` but the `status_code` is `None`.
 
 ## Development
 

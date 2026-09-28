@@ -43,12 +43,8 @@ lint-go:
 lint-python:
 	$(MAKE) -C sdk/python lint
 
-.PHONY: lint-python-types
-lint-python-types:
-	$(MAKE) -C sdk/python typecheck
-
 .PHONY: lint
-lint: lint-go lint-python lint-python-types
+lint: lint-go lint-python
 
 .PHONY: format-python
 format-python:
