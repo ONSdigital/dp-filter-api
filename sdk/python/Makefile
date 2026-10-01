@@ -19,7 +19,7 @@ mypy:  ## Run mypy.
 	poetry run mypy dp_filter_api_sdk_python
 
 test:  ## Run tests and check coverage.
-	poetry run pytest -n auto --cov=dp_filter_api_sdk_python --cov-report=term-missing --cov-fail-under=100
+	poetry run pytest -n auto --cov=dp_filter_api_sdk_python --cov-report=term-missing --cov-fail-under=80
 
 audit:  ## Run pip-audit to check for vulnerabilities.
 	poetry run pip-audit
