@@ -9,19 +9,32 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"reflect"
 	"strings"
 	"testing"
 
 	"github.com/ONSdigital/dp-api-clients-go/v2/dataset"
+	"github.com/ONSdigital/dp-api-clients-go/v2/filterflex"
 	"github.com/ONSdigital/dp-filter-api/api"
 	apimock "github.com/ONSdigital/dp-filter-api/api/mock"
 	"github.com/ONSdigital/dp-filter-api/filters"
 	"github.com/ONSdigital/dp-filter-api/mock"
 	"github.com/ONSdigital/dp-filter-api/models"
 	"github.com/ONSdigital/dp-filter-api/mongo"
+	dprequest "github.com/ONSdigital/dp-net/request"
+	dprequestv2 "github.com/ONSdigital/dp-net/v2/request"
 	"github.com/gorilla/mux"
 	. "github.com/smartystreets/goconvey/convey"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.opentelemetry.io/contrib/instrumentation/github.com/gorilla/mux/otelmux"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"go.opentelemetry.io/contrib/propagators/autoprop"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/propagation"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	"go.opentelemetry.io/otel/sdk/trace/tracetest"
+	"go.opentelemetry.io/otel/trace"
+	"go.opentelemetry.io/otel/trace/noop"
 )
 
 var (
@@ -167,6 +180,267 @@ func TestSuccessfulPostFilterBlueprint_Flexible(t *testing.T) {
 			})
 		})
 	})
+}
+
+func TestFlexibleFilterForwardsRequestWithoutActiveTracing(t *testing.T) {
+	type receivedRequest struct {
+		method string
+		path   string
+		query  url.Values
+		header http.Header
+		body   string
+		err    error
+	}
+
+	received := make(chan receivedRequest, 1)
+	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, err := io.ReadAll(r.Body)
+		received <- receivedRequest{r.Method, r.URL.Path, r.URL.Query(), r.Header.Clone(), string(body), err}
+		w.WriteHeader(http.StatusAccepted)
+	}))
+	defer backend.Close()
+
+	conf := cfg()
+	conf.AssertDatasetType = true
+	conf.EnablePrivateEndpoints = false
+	store := mock.NewDataStore().Mock
+	store.GetFilterFunc = func(_ context.Context, _, _ string) (*models.Filter, error) {
+		return &models.Filter{Type: "flexible"}, nil
+	}
+
+	router := mux.NewRouter()
+	noTracing := noop.NewTracerProvider()
+	router.Use(otelmux.Middleware("dp-filter-api", otelmux.WithTracerProvider(noTracing)))
+	api.Setup(conf, router, store, &mock.FilterJob{}, &mock.DatasetAPI{},
+		filterflex.New(filterflex.Config{HostURL: backend.URL}), hostURL, datasetAPIURL, parsedDownloadServiceURL, false)
+	handler := dprequest.HandlerRequestID(16)(dprequestv2.HandlerRequestID(16)(otelhttp.NewMiddleware("dp-filter-api", otelhttp.WithTracerProvider(noTracing))(router)))
+
+	const body = `{"options":["27"]}`
+	const traceparent = "00-0123456789abcdef0123456789abcdef-0123456789abcdef-01"
+	const requestID = "caller-request"
+	request := httptest.NewRequest(http.MethodPut, "/filters/filter-123/dimensions/age?choice=blue&choice=green", strings.NewReader(body))
+	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set("Authorization", "Bearer synthetic-user")
+	request.Header.Set("Cookie", "session=synthetic-session")
+	request.Header.Set("X-Forwarded-Host", "api.example.test")
+	request.Header.Set("X-Forwarded-Proto", "https")
+	request.Header.Set("X-Request-Id", requestID)
+	request.Header.Set("traceparent", traceparent)
+
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, request)
+	if response.Code != http.StatusAccepted {
+		t.Fatalf("forwarded response status: got %d, want %d", response.Code, http.StatusAccepted)
+	}
+
+	select {
+	case got := <-received:
+		if got.err != nil {
+			t.Fatal(got.err)
+		}
+		if got.method != http.MethodPut || got.path != "/filters/filter-123/dimensions/age" {
+			t.Errorf("backend request: got %s %s", got.method, got.path)
+		}
+		if want := (url.Values{"choice": {"blue", "green"}}); !reflect.DeepEqual(got.query, want) {
+			t.Errorf("backend query: got %v, want %v", got.query, want)
+		}
+		if got.body != body {
+			t.Errorf("backend body: got %q, want %q", got.body, body)
+		}
+		for key, want := range map[string]string{
+			"Content-Type":         "application/json",
+			"Authorization":        "Bearer synthetic-user",
+			"Cookie":               "session=synthetic-session",
+			"X-Forwarded-Host":     "api.example.test",
+			"X-Forwarded-Proto":    "https",
+			"X-Forwarded-API-Host": "api.example.test",
+			"traceparent":          traceparent,
+		} {
+			if value := got.header.Get(key); value != want {
+				t.Errorf("backend %s: got %q, want %q", key, value, want)
+			}
+		}
+		ids := got.header.Values("X-Request-Id")
+		if len(ids) != 2 || ids[0] != requestID || !strings.HasPrefix(ids[1], requestID+",") || len(ids[1]) != len(requestID)+1+len(requestID)/2 {
+			t.Errorf("backend X-Request-Id: got %q, want caller ID extended with a new hop", ids)
+		}
+	default:
+		t.Fatal("backend received no forwarded request")
+	}
+}
+
+func TestFlexibleFilterPreservesIncomingTraceWithOTel(t *testing.T) {
+	t.Setenv("OTEL_PROPAGATORS", "tracecontext,baggage")
+	previousProvider := otel.GetTracerProvider()
+	previousPropagator := otel.GetTextMapPropagator()
+	exporter := tracetest.NewInMemoryExporter()
+	provider := sdktrace.NewTracerProvider(sdktrace.WithSyncer(exporter))
+	t.Cleanup(func() {
+		otel.SetTracerProvider(previousProvider)
+		otel.SetTextMapPropagator(previousPropagator)
+		if err := provider.Shutdown(context.Background()); err != nil {
+			t.Errorf("shutdown tracer provider: %v", err)
+		}
+	})
+	otel.SetTracerProvider(provider)
+	propagator := autoprop.NewTextMapPropagator()
+	otel.SetTextMapPropagator(propagator)
+
+	received := make(chan http.Header, 1)
+	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		received <- r.Header.Clone()
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer backend.Close()
+
+	conf := cfg()
+	conf.AssertDatasetType = true
+	conf.EnablePrivateEndpoints = false
+	store := mock.NewDataStore().Mock
+	store.GetFilterFunc = func(_ context.Context, _, _ string) (*models.Filter, error) {
+		return &models.Filter{Type: "flexible"}, nil
+	}
+	router := mux.NewRouter()
+	router.Use(otelmux.Middleware(conf.OTServiceName))
+	api.Setup(conf, router, store, &mock.FilterJob{}, &mock.DatasetAPI{},
+		filterflex.New(filterflex.Config{HostURL: backend.URL}), hostURL, datasetAPIURL, parsedDownloadServiceURL, false)
+	handler := dprequest.HandlerRequestID(16)(dprequestv2.HandlerRequestID(16)(otelhttp.NewMiddleware(conf.OTServiceName)(router)))
+
+	const traceparent = "00-0123456789abcdef0123456789abcdef-0123456789abcdef-01"
+	const requestID = "caller-request"
+	request := httptest.NewRequest(http.MethodGet, "/filters/filter-123", http.NoBody)
+	request.Header.Set("traceparent", traceparent)
+	request.Header.Set("X-Request-Id", requestID)
+	incomingSpan := trace.SpanContextFromContext(propagator.Extract(context.Background(), propagation.HeaderCarrier(request.Header)))
+	if !incomingSpan.IsValid() {
+		t.Fatalf("invalid incoming traceparent: %q", traceparent)
+	}
+
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, request)
+	if response.Code != http.StatusOK {
+		t.Fatalf("forwarded response status: got %d, want %d", response.Code, http.StatusOK)
+	}
+
+	select {
+	case headers := <-received:
+		backendSpan := trace.SpanContextFromContext(propagator.Extract(context.Background(), propagation.HeaderCarrier(headers)))
+		if !backendSpan.IsValid() {
+			t.Fatalf("backend received invalid traceparent: %q", headers.Get("traceparent"))
+		}
+		if backendSpan.TraceID() != incomingSpan.TraceID() || backendSpan.SpanID() != incomingSpan.SpanID() {
+			t.Errorf("backend trace context: got %s/%s, want %s/%s", backendSpan.TraceID(), backendSpan.SpanID(), incomingSpan.TraceID(), incomingSpan.SpanID())
+		}
+		ids := headers.Values("X-Request-Id")
+		if len(ids) != 2 || ids[0] != requestID || !strings.HasPrefix(ids[1], requestID+",") || len(ids[1]) != len(requestID)+1+len(requestID)/2 {
+			t.Errorf("backend X-Request-Id: got %q, want caller ID extended with a new hop", ids)
+		}
+	default:
+		t.Fatal("backend received no forwarded request")
+	}
+
+	activeSpan := false
+	for _, span := range exporter.GetSpans() {
+		if span.SpanContext.TraceID() == incomingSpan.TraceID() && span.SpanContext.SpanID() != incomingSpan.SpanID() {
+			activeSpan = true
+		}
+	}
+	if !activeSpan {
+		t.Error("inbound OTel middleware did not record a child span of the incoming trace")
+	}
+}
+
+func TestFlexibleFilterDatasetLookupUsesServiceRequest(t *testing.T) {
+	type receivedRequest struct {
+		method string
+		path   string
+		query  url.Values
+		header http.Header
+		body   string
+		err    error
+	}
+
+	lookups := make(chan receivedRequest, 1)
+	datasetBackend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, err := io.ReadAll(r.Body)
+		lookups <- receivedRequest{r.Method, r.URL.Path, r.URL.Query(), r.Header.Clone(), string(body), err}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{"type":"cantabular_flexible_table"}`)
+	}))
+	defer datasetBackend.Close()
+
+	forwarded := make(chan string, 1)
+	flexBackend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, _ := io.ReadAll(r.Body)
+		forwarded <- string(body)
+		w.WriteHeader(http.StatusAccepted)
+	}))
+	defer flexBackend.Close()
+
+	datasetURL, err := url.Parse(datasetBackend.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	conf := cfg()
+	conf.AssertDatasetType = true
+	conf.EnablePrivateEndpoints = false
+	conf.ServiceAuthToken = "synthetic-service"
+	router := mux.NewRouter()
+	noTracing := noop.NewTracerProvider()
+	router.Use(otelmux.Middleware("dp-filter-api", otelmux.WithTracerProvider(noTracing)))
+	api.Setup(conf, router, &mock.DataStore{}, &mock.FilterJob{}, dataset.NewAPIClient(datasetBackend.URL),
+		filterflex.New(filterflex.Config{HostURL: flexBackend.URL}), hostURL, datasetURL, parsedDownloadServiceURL, false)
+	handler := dprequest.HandlerRequestID(16)(dprequestv2.HandlerRequestID(16)(otelhttp.NewMiddleware("dp-filter-api", otelhttp.WithTracerProvider(noTracing))(router)))
+
+	const body = `{"dataset":{"id":"dataset-123","edition":"2026","version":1}}`
+	const requestID = "caller-request"
+	request := httptest.NewRequest(http.MethodPost, "/filters?choice=blue&choice=green", strings.NewReader(body))
+	request.Header.Set("X-Request-Id", requestID)
+	request.Header.Set("Authorization", "Bearer synthetic-caller")
+	request.Header.Set("Cookie", "session=synthetic-session")
+	request.Header.Set("Content-Type", "application/json")
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, request)
+	if response.Code != http.StatusAccepted {
+		t.Fatalf("forwarded response status: got %d, want %d", response.Code, http.StatusAccepted)
+	}
+
+	select {
+	case got := <-lookups:
+		if got.err != nil {
+			t.Fatal(got.err)
+		}
+		if got.method != http.MethodGet || got.path != "/datasets/dataset-123" {
+			t.Errorf("dataset lookup: got %s %s", got.method, got.path)
+		}
+		if len(got.query) != 0 || got.body != "" {
+			t.Errorf("dataset lookup should not forward POST query or body: got query %v, body %q", got.query, got.body)
+		}
+		if auth := got.header.Get("Authorization"); auth != "Bearer synthetic-service" {
+			t.Errorf("dataset lookup Authorization: got %q, want service token", auth)
+		}
+		if cookie := got.header.Get("Cookie"); cookie != "" {
+			t.Errorf("dataset lookup Cookie: got %q, want none", cookie)
+		}
+		if contentType := got.header.Get("Content-Type"); contentType != "" {
+			t.Errorf("dataset lookup Content-Type: got %q, want none", contentType)
+		}
+		ids := got.header.Values("X-Request-Id")
+		if len(ids) != 1 || !strings.HasPrefix(ids[0], requestID+",") {
+			t.Errorf("dataset lookup X-Request-Id: got %q, want %q extended with a new hop", ids, requestID)
+		}
+	default:
+		t.Fatal("dataset backend received no lookup")
+	}
+
+	select {
+	case got := <-forwarded:
+		if got != body {
+			t.Errorf("Flex POST body: got %q, want %q", got, body)
+		}
+	default:
+		t.Fatal("Flex backend received no POST")
+	}
 }
 
 func TestUnSuccessfulPostFilterBlueprint_NonFlexible(t *testing.T) {

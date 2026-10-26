@@ -19,6 +19,7 @@ import (
 	kafka "github.com/ONSdigital/dp-kafka/v2"
 	dphandlers "github.com/ONSdigital/dp-net/handlers"
 	dphttp "github.com/ONSdigital/dp-net/http"
+	dprequestv2 "github.com/ONSdigital/dp-net/v2/request"
 	"github.com/ONSdigital/log.go/v2/log"
 	"github.com/gorilla/mux"
 	"github.com/justinas/alice"
@@ -71,7 +72,9 @@ var GetHealthCheck = func(version healthcheck.VersionInfo, criticalTimeout, inte
 
 // GetHTTPServer returns an http server
 var GetHTTPServer = func(bindAddr string, router http.Handler) HTTPServer {
-	s := dphttp.NewServer(bindAddr, router)
+	addRequestID := dprequestv2.HandlerRequestID(16)
+	wrappedRouter := addRequestID(router)
+	s := dphttp.NewServer(bindAddr, wrappedRouter)
 	s.HandleOSSignals = false
 	return s
 }
